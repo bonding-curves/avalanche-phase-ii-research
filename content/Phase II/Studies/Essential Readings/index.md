@@ -1,6 +1,6 @@
 ---
 title: Essential Readings
-description: Studies grounded in the project's essential source materials.
+description: Research studies grounded in the project's essential source materials.
 ---
 
 # Essential Readings

@@ -35,3 +35,13 @@ npm run verify
 - `quartz/` contains the pinned site generator.
 
 Research status and limitations are stated on the relevant pages. A rendered page is not evidence of contractual acceptance or independent empirical validation.
+
+## Research navigation
+
+`data/research-navigation.json` owns collection membership, canonical source titles, and source-to-study navigation. The Wiki and Studies collection indexes are generated from that file:
+
+```bash
+npm run collections:build
+```
+
+`npm run dev` rebuilds the indexes before starting Quartz. `npm run verify` rejects stale indexes, unresolved IDs, missing pages, title drift, broken reciprocal links, and publication-boundary violations.
