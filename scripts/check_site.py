@@ -97,6 +97,7 @@ FORBIDDEN_TEXT = (
 )
 
 IMAGE_LINK = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+HTML_IMAGE = re.compile(r'<img\b[^>]*\bsrc=["\']([^"\']+)["\']', re.IGNORECASE)
 
 
 def _local_asset(root: Path, page: Path, target: str) -> Path | None:
@@ -114,6 +115,17 @@ def _local_asset(root: Path, page: Path, target: str) -> Path | None:
     return page.parent / decoded
 
 
+def _public_asset(root: Path, page: Path, target: str) -> Path | None:
+    parsed = urlsplit(target.strip())
+    if parsed.scheme or parsed.netloc or target.startswith("data:"):
+        return None
+    decoded = unquote(parsed.path)
+    public = root / "public"
+    if decoded.startswith("/"):
+        return public / decoded.lstrip("/")
+    return page.parent / decoded
+
+
 def check(root: Path) -> dict[str, object]:
     root = root.resolve()
     missing = [path for path in REQUIRED_CONTENT + REQUIRED_PUBLIC if not (root / path).is_file()]
@@ -125,6 +137,7 @@ def check(root: Path) -> dict[str, object]:
     forbidden_matches = []
     missing_required_text = []
     missing_local_assets = []
+    broken_public_images = []
     for relative, required_values in REQUIRED_TEXT.items():
         page = root / relative
         if not page.is_file():
@@ -154,6 +167,19 @@ def check(root: Path) -> dict[str, object]:
                             "text": forbidden,
                         }
                     )
+    public = root / "public"
+    if public.is_dir():
+        for page in sorted(public.rglob("*.html")):
+            text = page.read_text(errors="replace")
+            for target in HTML_IMAGE.findall(text):
+                asset = _public_asset(root, page, target)
+                if asset is not None and not asset.resolve().is_file():
+                    broken_public_images.append(
+                        {
+                            "file": page.relative_to(root).as_posix(),
+                            "target": target,
+                        }
+                    )
     result = {
         "status": (
             "pass"
@@ -162,11 +188,13 @@ def check(root: Path) -> dict[str, object]:
             and not forbidden_matches
             and not missing_required_text
             and not missing_local_assets
+            and not broken_public_images
             else "fail"
         ),
         "missing_required_files": missing,
         "missing_required_text": missing_required_text,
         "missing_local_assets": missing_local_assets,
+        "broken_public_images": broken_public_images,
         "forbidden_paths": forbidden_paths,
         "forbidden_text_matches": forbidden_matches,
     }

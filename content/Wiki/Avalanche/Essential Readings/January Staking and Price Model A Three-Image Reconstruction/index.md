@@ -38,7 +38,7 @@ The feedback from aggregate staking to rewards and back to individual choices is
 
 ## 2. Image 1: Agent problem
 
-![Agent Problem image](assets/01-agent-problem.jpg)
+![Agent Problem image](/Wiki/Avalanche/Essential%20Readings/January%20Staking%20and%20Price%20Model%20A%20Three-Image%20Reconstruction/assets/01-agent-problem.jpg)
 
 ### Original evidence
 
@@ -87,7 +87,7 @@ Here $C_i$ denotes liquid-token convenience, $L_i$ denotes lock-up cost, and $R_
 
 ## 3. Image 2: Equilibrium solution
 
-![Solution image](assets/02-equilibrium-solution.jpg)
+![Solution image](/Wiki/Avalanche/Essential%20Readings/January%20Staking%20and%20Price%20Model%20A%20Three-Image%20Reconstruction/assets/02-equilibrium-solution.jpg)
 
 ### Original evidence
 
@@ -167,7 +167,7 @@ An equilibrium is a root $F(\Theta_t^*)=0$ with $\Theta_t^*\in[0,1]$. This repre
 
 ## 4. Image 3: Demand shock
 
-![Demand Shock image](assets/03-demand-shock.jpg)
+![Demand Shock image](/Wiki/Avalanche/Essential%20Readings/January%20Staking%20and%20Price%20Model%20A%20Three-Image%20Reconstruction/assets/03-demand-shock.jpg)
 
 ### Original evidence
 
