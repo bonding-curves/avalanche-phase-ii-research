@@ -5,7 +5,7 @@ description: Primary research sources and available faithful local editions.
 
 # Essential Readings
 
-- [The Avalanche Foundation Unveils its Economic Research Agenda](https://www.linkedin.com/pulse/avalanche-foundation-unveils-its-economic-research-agenda-mjoec)
-- [Value Accrual Isn't a Narrative—It's an Equilibrium Outcome](https://x.com/eric_lu_sc/status/2034600805764903287)
+- [The Avalanche Foundation Unveils its Economic Research Agenda](The%20Avalanche%20Foundation%20Unveils%20its%20Economic%20Research%20Agenda/)
+- [Value Accrual as Equilibrium: How We Think About AVAX Tokenomics](Value%20Accrual%20as%20Equilibrium%20How%20We%20Think%20About%20AVAX%20Tokenomics/)
 - [How Do Avalanche Validators Actually Think About Staking Rewards?](How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/)
-- [From Gross Chain Product to Gross Chain Income: Where the Value Goes](https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes)
+- [From Gross Chain Product to Gross Chain Income: Where the Value Goes](From%20Gross%20Chain%20Product%20to%20Gross%20Chain%20Income%20Where%20the%20Value%20Goes/)

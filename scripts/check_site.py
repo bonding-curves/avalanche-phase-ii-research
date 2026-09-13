@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 
 REQUIRED_CONTENT = (
@@ -23,7 +25,11 @@ REQUIRED_CONTENT = (
     "content/Phase II/Milestone 1/1-3 Staking Model Spec.md",
     "content/Phase II/Milestone 1/1-4 Behavioral Calibration.md",
     "content/Wiki/Avalanche/index.md",
+    "content/Wiki/Avalanche/Essential Readings/index.md",
+    "content/Wiki/Avalanche/Essential Readings/The Avalanche Foundation Unveils its Economic Research Agenda/index.md",
+    "content/Wiki/Avalanche/Essential Readings/Value Accrual as Equilibrium How We Think About AVAX Tokenomics/index.md",
     "content/Wiki/Avalanche/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md",
+    "content/Wiki/Avalanche/Essential Readings/From Gross Chain Product to Gross Chain Income Where the Value Goes/index.md",
 )
 
 REQUIRED_PUBLIC = (
@@ -40,9 +46,18 @@ REQUIRED_PUBLIC = (
     "public/Phase-II/Milestone-1/1-3-Staking-Model-Spec.html",
     "public/Phase-II/Milestone-1/1-4-Behavioral-Calibration.html",
     "public/Wiki/Avalanche/index.html",
+    "public/Wiki/Avalanche/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/index.html",
+    "public/Wiki/Avalanche/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/index.html",
+    "public/Wiki/Avalanche/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/index.html",
 )
 
 REQUIRED_TEXT = {
+    "content/Wiki/Avalanche/Essential Readings/index.md": (
+        "The Avalanche Foundation Unveils its Economic Research Agenda",
+        "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics",
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "From Gross Chain Product to Gross Chain Income: Where the Value Goes",
+    ),
     "content/Phase II/Studies/Essential Readings/index.md": (
         "How Do Avalanche Validators Actually Think About Staking Rewards?",
     ),
@@ -64,6 +79,23 @@ FORBIDDEN_TEXT = (
     "notebook grade",
 )
 
+IMAGE_LINK = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+
+
+def _local_asset(root: Path, page: Path, target: str) -> Path | None:
+    parsed = urlsplit(target.strip().strip("<>"))
+    if parsed.scheme or parsed.netloc:
+        return None
+    decoded = unquote(parsed.path)
+    if decoded.startswith("/"):
+        parts = decoded.lstrip("/").split("/")
+        if parts[0] == "Phase-I":
+            parts[0] = "Phase I"
+        elif parts[0] == "Phase-II":
+            parts[0] = "Phase II"
+        return root / "content" / Path(*parts)
+    return page.parent / decoded
+
 
 def check(root: Path) -> dict[str, object]:
     root = root.resolve()
@@ -75,6 +107,7 @@ def check(root: Path) -> dict[str, object]:
     ]
     forbidden_matches = []
     missing_required_text = []
+    missing_local_assets = []
     for relative, required_values in REQUIRED_TEXT.items():
         page = root / relative
         if not page.is_file():
@@ -87,6 +120,15 @@ def check(root: Path) -> dict[str, object]:
     if content.is_dir():
         for page in sorted(content.rglob("*.md")):
             text = page.read_text(errors="replace")
+            for target in IMAGE_LINK.findall(text):
+                asset = _local_asset(root, page, target)
+                if asset is not None and not asset.is_file():
+                    missing_local_assets.append(
+                        {
+                            "file": page.relative_to(root).as_posix(),
+                            "target": target,
+                        }
+                    )
             for forbidden in FORBIDDEN_TEXT:
                 if forbidden.casefold() in text.casefold():
                     forbidden_matches.append(
@@ -102,10 +144,12 @@ def check(root: Path) -> dict[str, object]:
             and not forbidden_paths
             and not forbidden_matches
             and not missing_required_text
+            and not missing_local_assets
             else "fail"
         ),
         "missing_required_files": missing,
         "missing_required_text": missing_required_text,
+        "missing_local_assets": missing_local_assets,
         "forbidden_paths": forbidden_paths,
         "forbidden_text_matches": forbidden_matches,
     }

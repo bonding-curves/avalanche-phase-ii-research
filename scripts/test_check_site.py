@@ -34,6 +34,16 @@ class ClientSiteCheckTest(unittest.TestCase):
             self.assertEqual(result["status"], "fail")
             self.assertTrue(result["forbidden_text_matches"])
 
+    def test_rejects_missing_local_image(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            target = root / check_site.REQUIRED_CONTENT[0]
+            target.write_text(target.read_text() + "\n![Missing](/missing.png)\n")
+            result = check_site.check(root)
+            self.assertEqual(result["status"], "fail")
+            self.assertEqual(result["missing_local_assets"][0]["target"], "/missing.png")
+
     def test_rejects_missing_required_file(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

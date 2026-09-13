@@ -4,14 +4,14 @@
     {
       "id": "lit:avax-economic-agenda",
       "title": "The Avalanche Foundation Unveils its Economic Research Agenda",
-      "canonical_url": "https://www.linkedin.com/pulse/avalanche-foundation-unveils-its-economic-research-agenda-mjoec",
-      "local_page": null
+      "canonical_url": "https://www.avax.network/about/blog/the-avalanche-foundation-unveils-its-economic-research-agenda",
+      "local_page": "content/Wiki/Avalanche/Essential Readings/The Avalanche Foundation Unveils its Economic Research Agenda/index.md"
     },
     {
       "id": "lit:eric-equilibrium",
-      "title": "Value Accrual Isn't a Narrative—It's an Equilibrium Outcome",
-      "canonical_url": "https://x.com/eric_lu_sc/status/2034600805764903287",
-      "local_page": null
+      "title": "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics",
+      "canonical_url": "https://www.linkedin.com/pulse/value-accrual-equilibrium-how-we-think-avax-siyu-eric-lu-phd-pokvc",
+      "local_page": "content/Wiki/Avalanche/Essential Readings/Value Accrual as Equilibrium How We Think About AVAX Tokenomics/index.md"
     },
     {
       "id": "lit:eric-validator-rewards",
@@ -23,7 +23,7 @@
       "id": "lit:eric-gcp-gci",
       "title": "From Gross Chain Product to Gross Chain Income: Where the Value Goes",
       "canonical_url": "https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes",
-      "local_page": null
+      "local_page": "content/Wiki/Avalanche/Essential Readings/From Gross Chain Product to Gross Chain Income Where the Value Goes/index.md"
     }
   ],
   "collections": [
