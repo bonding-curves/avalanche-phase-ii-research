@@ -14,7 +14,7 @@ const config: QuartzConfig = {
     enablePopovers: false,
     analytics: null,
     locale: "en-US",
-    baseUrl: "localhost:8844",
+    baseUrl: process.env.QUARTZ_BASE_URL ?? "localhost:8844",
     ignorePatterns: ["private", "templates", ".obsidian"],
     defaultDateType: "modified",
     theme: {
