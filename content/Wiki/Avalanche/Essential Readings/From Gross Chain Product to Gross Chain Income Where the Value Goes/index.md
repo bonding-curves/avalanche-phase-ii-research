@@ -4,6 +4,7 @@ description: "A faithful local reading view of Eric Lu's GCP/GCI article, genera
 date: 2026-08-12
 author: "Siyu (Eric) Lu, PhD"
 source_id: "lit:eric-gcp-gci"
+source_type: article
 canonical_url: "https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes"
 captured_at: "2026-09-13T10:22:40-07:00"
 status: source-reproduced
@@ -11,7 +12,7 @@ status: source-reproduced
 
 # From Gross Chain Product to Gross Chain Income: Where the Value Goes
 
-**Siyu (Eric) Lu, PhD** · Published August 12, 2026 · [Original article](https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes)
+**Article** · Siyu (Eric) Lu, PhD · Published August 12, 2026 · [Original article](https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes)
 
 ![GCP to GCI article cover](/Wiki/Avalanche/Essential%20Readings/From%20Gross%20Chain%20Product%20to%20Gross%20Chain%20Income%20Where%20the%20Value%20Goes/raw/assets/cover.png)
 

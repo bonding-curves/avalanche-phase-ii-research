@@ -30,6 +30,8 @@ REQUIRED_CONTENT = (
     "content/Wiki/Avalanche/Essential Readings/Value Accrual as Equilibrium How We Think About AVAX Tokenomics/index.md",
     "content/Wiki/Avalanche/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md",
     "content/Wiki/Avalanche/Essential Readings/From Gross Chain Product to Gross Chain Income Where the Value Goes/index.md",
+    "content/Wiki/Avalanche/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/index.md",
+    "content/Wiki/Avalanche/Essential Readings/January Staking and Price Model A Three-Image Reconstruction/index.md",
 )
 
 REQUIRED_PUBLIC = (
@@ -49,6 +51,8 @@ REQUIRED_PUBLIC = (
     "public/Wiki/Avalanche/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/index.html",
     "public/Wiki/Avalanche/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/index.html",
     "public/Wiki/Avalanche/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/index.html",
+    "public/Wiki/Avalanche/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/index.html",
+    "public/Wiki/Avalanche/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/index.html",
 )
 
 REQUIRED_TEXT = {
@@ -57,6 +61,8 @@ REQUIRED_TEXT = {
         "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics",
         "How Do Avalanche Validators Actually Think About Staking Rewards?",
         "From Gross Chain Product to Gross Chain Income: Where the Value Goes",
+        "ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment",
+        "January Staking and Price Model: A Three-Image Reconstruction",
     ),
     "content/Phase II/Studies/Essential Readings/index.md": (
         "How Do Avalanche Validators Actually Think About Staking Rewards?",
@@ -66,6 +72,17 @@ REQUIRED_TEXT = {
     ),
     "content/Wiki/Avalanche/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md": (
         "/Phase-II/Studies/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/",
+    ),
+    "content/Wiki/Avalanche/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/index.md": (
+        "timestamped analytical reading view",
+        "ACP-285: Reduce Minimum Consumption Rate",
+        "automatic captions were used to locate sections",
+    ),
+    "content/Wiki/Avalanche/Essential Readings/January Staking and Price Model A Three-Image Reconstruction/index.md": (
+        "Original evidence",
+        "Mathematical reconstruction",
+        "Unresolved",
+        "status: conceptual-reconstruction",
     ),
 }
 

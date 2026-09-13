@@ -5,6 +5,7 @@ date: 2026-03-19
 author: "Siyu (Eric) Lu, PhD"
 canonical_url: "https://www.linkedin.com/pulse/value-accrual-equilibrium-how-we-think-avax-siyu-eric-lu-phd-pokvc"
 source_id: "lit:eric-equilibrium"
+source_type: article
 source_record: "source.json"
 build_receipt: "receipts/build.json"
 capture_sha256: "66e19b5802e274e43f2610d8175e1473a182777ea977c1d3dfd35354e5fa0988"
@@ -14,7 +15,7 @@ topics: [Avalanche, tokenomics, value accrual, staking, equilibrium]
 
 # Value Accrual as Equilibrium: How We Think About AVAX Tokenomics
 
-**Siyu (Eric) Lu, PhD** · Published March 19, 2026 · [Original article on LinkedIn](https://www.linkedin.com/pulse/value-accrual-equilibrium-how-we-think-avax-siyu-eric-lu-phd-pokvc)
+**Article** · Siyu (Eric) Lu, PhD · Published March 19, 2026 · [Original article on LinkedIn](https://www.linkedin.com/pulse/value-accrual-equilibrium-how-we-think-avax-siyu-eric-lu-phd-pokvc)
 
 ![Value Accrual as Equilibrium: How We Think About AVAX Tokenomics](/Wiki/Avalanche/Essential%20Readings/Value%20Accrual%20as%20Equilibrium%20How%20We%20Think%20About%20AVAX%20Tokenomics/raw/assets/cover.jpg)
 

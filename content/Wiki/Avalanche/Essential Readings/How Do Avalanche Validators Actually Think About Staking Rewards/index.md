@@ -5,6 +5,7 @@ date: 2026-04-28
 author: "Siyu (Eric) Lu, PhD"
 canonical_url: "https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc"
 source_id: "lit:eric-validator-rewards"
+source_type: article
 source_record: "source.json"
 build_receipt: "receipts/build.json"
 capture_sha256: "97207b7a110a52a1953045a3b9a5373615a2e4cc5d4d3fbe5a19aecf2bbb1818"
@@ -14,7 +15,7 @@ topics: [Avalanche, validator economics, staking rewards, ACP-275, ACP-285]
 
 # How Do Avalanche Validators Actually Think About Staking Rewards?
 
-**Siyu (Eric) Lu, PhD** · Published April 28, 2026 · [Original article on LinkedIn](https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc)
+**Article** · Siyu (Eric) Lu, PhD · Published April 28, 2026 · [Original article on LinkedIn](https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc)
 
 **Related study:** [Exploratory analysis, reproduction, and dynamic modeling](/Phase-II/Studies/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/)
 

@@ -4,6 +4,7 @@ description: "A faithful local reading view of the Foundation economic research 
 date: 2026-07-30
 author: Avalanche Foundation
 source_id: "lit:avax-economic-agenda"
+source_type: article
 canonical_url: "https://www.avax.network/about/blog/the-avalanche-foundation-unveils-its-economic-research-agenda"
 captured_at: "2026-09-12T23:55:42-07:00"
 status: source-reproduced
@@ -11,7 +12,7 @@ status: source-reproduced
 
 # The Avalanche Foundation Unveils its Economic Research Agenda
 
-**Avalanche Foundation** · Published July 30, 2026 · [Original article](https://www.avax.network/about/blog/the-avalanche-foundation-unveils-its-economic-research-agenda)
+**Article** · Avalanche Foundation · Published July 30, 2026 · [Original article](https://www.avax.network/about/blog/the-avalanche-foundation-unveils-its-economic-research-agenda)
 
 ![Foundation Economics Research Agenda](/Wiki/Avalanche/Essential%20Readings/The%20Avalanche%20Foundation%20Unveils%20its%20Economic%20Research%20Agenda/raw/assets/cover.png)
 

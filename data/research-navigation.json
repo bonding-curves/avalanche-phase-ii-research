@@ -1,29 +1,47 @@
 {
-  "schema_version": "research-navigation/v1",
+  "schema_version": "research-navigation/v2",
   "sources": [
     {
       "id": "lit:avax-economic-agenda",
       "title": "The Avalanche Foundation Unveils its Economic Research Agenda",
+      "source_type": "article",
       "canonical_url": "https://www.avax.network/about/blog/the-avalanche-foundation-unveils-its-economic-research-agenda",
       "local_page": "content/Wiki/Avalanche/Essential Readings/The Avalanche Foundation Unveils its Economic Research Agenda/index.md"
     },
     {
       "id": "lit:eric-equilibrium",
       "title": "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics",
+      "source_type": "article",
       "canonical_url": "https://www.linkedin.com/pulse/value-accrual-equilibrium-how-we-think-avax-siyu-eric-lu-phd-pokvc",
       "local_page": "content/Wiki/Avalanche/Essential Readings/Value Accrual as Equilibrium How We Think About AVAX Tokenomics/index.md"
     },
     {
       "id": "lit:eric-validator-rewards",
       "title": "How Do Avalanche Validators Actually Think About Staking Rewards?",
+      "source_type": "article",
       "canonical_url": "https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc",
       "local_page": "content/Wiki/Avalanche/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md"
     },
     {
       "id": "lit:eric-gcp-gci",
       "title": "From Gross Chain Product to Gross Chain Income: Where the Value Goes",
+      "source_type": "article",
       "canonical_url": "https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes",
       "local_page": "content/Wiki/Avalanche/Essential Readings/From Gross Chain Product to Gross Chain Income Where the Value Goes/index.md"
+    },
+    {
+      "id": "lit:acp-285-community-call",
+      "title": "ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment",
+      "source_type": "video",
+      "canonical_url": "https://www.youtube.com/watch?v=sx4-AW7HcSU",
+      "local_page": "content/Wiki/Avalanche/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/index.md"
+    },
+    {
+      "id": "evidence:eric-january-images",
+      "title": "January Staking and Price Model: A Three-Image Reconstruction",
+      "source_type": "model_artifact",
+      "canonical_url": null,
+      "local_page": "content/Wiki/Avalanche/Essential Readings/January Staking and Price Model A Three-Image Reconstruction/index.md"
     }
   ],
   "collections": [
@@ -36,7 +54,9 @@
         "lit:avax-economic-agenda",
         "lit:eric-equilibrium",
         "lit:eric-validator-rewards",
-        "lit:eric-gcp-gci"
+        "lit:eric-gcp-gci",
+        "lit:acp-285-community-call",
+        "evidence:eric-january-images"
       ],
       "wiki_index": "content/Wiki/Avalanche/Essential Readings/index.md",
       "studies_index": "content/Phase II/Studies/Essential Readings/index.md"

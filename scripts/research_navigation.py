@@ -16,6 +16,11 @@ from urllib.parse import quote, urlparse
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "data" / "research-navigation.json"
 ID = re.compile(r"^[a-z][a-z0-9:_-]+$")
+SOURCE_TYPES = {
+    "article": "Article",
+    "video": "Video",
+    "model_artifact": "Model artifact",
+}
 
 
 class RegistryError(ValueError):
@@ -92,7 +97,7 @@ def _relative_link(source: Path, target: Path) -> str:
 
 
 def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
-    if registry.get("schema_version") != "research-navigation/v1":
+    if registry.get("schema_version") != "research-navigation/v2":
         raise RegistryError("unsupported schema_version")
     sources = _unique(_records(registry.get("sources"), "sources"), "source")
     collections = _unique(_records(registry.get("collections"), "collections"), "collection")
@@ -101,10 +106,16 @@ def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
     for source in sources.values():
         if not isinstance(source.get("title"), str) or not source["title"].strip():
             raise RegistryError(f"{source['id']}: title is required")
+        source_type = source.get("source_type")
+        if source_type not in SOURCE_TYPES:
+            raise RegistryError(f"{source['id']}: unsupported source_type {source_type!r}")
         url = source.get("canonical_url")
-        parsed = urlparse(url) if isinstance(url, str) else None
-        if not parsed or parsed.scheme != "https" or not parsed.netloc:
-            raise RegistryError(f"{source['id']}: canonical_url must be HTTPS")
+        if source_type == "model_artifact" and url is None:
+            pass
+        else:
+            parsed = urlparse(url) if isinstance(url, str) else None
+            if not parsed or parsed.scheme != "https" or not parsed.netloc:
+                raise RegistryError(f"{source['id']}: canonical_url must be HTTPS")
         if source.get("local_page") is not None:
             page = _page(root, source["local_page"], f"{source['id']}.local_page")
             if not page.is_file():
@@ -164,7 +175,8 @@ def render(registry: dict[str, Any], root: Path = ROOT) -> dict[Path, str]:
             source = sources[source_id]
             local_page = source.get("local_page")
             link = _relative_link(wiki_index, _page(root, local_page, "local_page")) if local_page else source["canonical_url"]
-            wiki_items.append(f"- [{source['title']}]({link})")
+            source_type = SOURCE_TYPES[source["source_type"]]
+            wiki_items.append(f"- [{source['title']}]({link}) · {source_type}")
         study_items = []
         for study in studies.values():
             if study["collection_id"] == collection["id"]:
