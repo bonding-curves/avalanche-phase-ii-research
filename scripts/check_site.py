@@ -35,24 +35,24 @@ REQUIRED_CONTENT = (
 )
 
 REQUIRED_PUBLIC = (
-    "public/index.html",
-    "public/Phase-II/index.html",
-    "public/Phase-II/Studies/index.html",
-    "public/Phase-II/Studies/Essential-Readings/index.html",
-    "public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/index.html",
-    "public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Exploratory-Data-Analysis.html",
-    "public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Reproduction.html",
-    "public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Dynamic-Model.html",
-    "public/Phase-II/Milestone-1/1-1-Data-Ingestion.html",
-    "public/Phase-II/Milestone-1/1-2-Data-Manifest.html",
-    "public/Phase-II/Milestone-1/1-3-Staking-Model-Spec.html",
-    "public/Phase-II/Milestone-1/1-4-Behavioral-Calibration.html",
-    "public/Wiki/Avalanche/index.html",
-    "public/Wiki/Avalanche/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/index.html",
-    "public/Wiki/Avalanche/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/index.html",
-    "public/Wiki/Avalanche/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/index.html",
-    "public/Wiki/Avalanche/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/index.html",
-    "public/Wiki/Avalanche/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/index.html",
+    ".site/public/index.html",
+    ".site/public/Phase-II/index.html",
+    ".site/public/Phase-II/Studies/index.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/index.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/index.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Exploratory-Data-Analysis.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Reproduction.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Dynamic-Model.html",
+    ".site/public/Phase-II/Milestone-1/1-1-Data-Ingestion.html",
+    ".site/public/Phase-II/Milestone-1/1-2-Data-Manifest.html",
+    ".site/public/Phase-II/Milestone-1/1-3-Staking-Model-Spec.html",
+    ".site/public/Phase-II/Milestone-1/1-4-Behavioral-Calibration.html",
+    ".site/public/Wiki/Avalanche/index.html",
+    ".site/public/Wiki/Avalanche/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/index.html",
+    ".site/public/Wiki/Avalanche/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/index.html",
+    ".site/public/Wiki/Avalanche/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/index.html",
+    ".site/public/Wiki/Avalanche/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/index.html",
+    ".site/public/Wiki/Avalanche/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/index.html",
 )
 
 REQUIRED_TEXT = {
@@ -120,7 +120,7 @@ def _public_asset(root: Path, page: Path, target: str) -> Path | None:
     if parsed.scheme or parsed.netloc or target.startswith("data:"):
         return None
     decoded = unquote(parsed.path)
-    public = root / "public"
+    public = root / ".site" / "public"
     if decoded.startswith("/"):
         return public / decoded.lstrip("/")
     return page.parent / decoded
@@ -131,7 +131,7 @@ def check(root: Path) -> dict[str, object]:
     missing = [path for path in REQUIRED_CONTENT + REQUIRED_PUBLIC if not (root / path).is_file()]
     forbidden_paths = [
         path
-        for path in ("content/Wiki/BCRG", "public/Wiki/BCRG")
+        for path in ("content/Wiki/BCRG", ".site/public/Wiki/BCRG")
         if (root / path).exists()
     ]
     forbidden_matches = []
@@ -167,7 +167,7 @@ def check(root: Path) -> dict[str, object]:
                             "text": forbidden,
                         }
                     )
-    public = root / "public"
+    public = root / ".site" / "public"
     if public.is_dir():
         for page in sorted(public.rglob("*.html")):
             text = page.read_text(errors="replace")

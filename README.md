@@ -86,16 +86,17 @@ Not every source requires every analytical method. A study may classify a compon
 | [`content/`](content/) | Phase I archive, Phase II studies, milestone evidence, and the source-linked Wiki |
 | [`data/`](data/) | Client-safe research navigation and structured records |
 | [`scripts/`](scripts/) | Deterministic content, link, site, and publication checks |
-| [`quartz/`](quartz/) | Pinned publication engine for the research site |
+| [`.site/`](.site/) | Pinned Quartz publication engine and Node environment |
 | [`.codex/`](.codex/) | Client-safe agent instructions and reusable capabilities |
 
-Quartz is publication infrastructure, not the research product. It will move under `.site/` as the client surface is simplified. Research notebooks and the reusable modeling package will appear only after their interfaces and evidence contracts are exercised.
+Quartz is publication infrastructure, not the research product. Research notebooks and the reusable modeling package will appear only after their interfaces and evidence contracts are exercised.
 
 ## Run and verify
 
-Install the pinned Node dependencies and start the local research site:
+Install the pinned site dependencies and start the local research site:
 
 ```bash
+cd .site
 npm ci
 npm run dev
 ```
@@ -105,10 +106,11 @@ Open <http://127.0.0.1:8844>. Content changes rebuild automatically.
 Run the independent content, collection, site, and publication checks:
 
 ```bash
+cd .site
 npm run verify
 ```
 
-The generated site is written to `public/`. Generated output and installed dependencies are not committed.
+The generated site is written to `.site/public/`. Generated output and installed dependencies are not committed.
 
 ## Current limitations
 
