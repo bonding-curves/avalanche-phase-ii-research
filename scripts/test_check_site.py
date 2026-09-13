@@ -13,6 +13,9 @@ class ClientSiteCheckTest(unittest.TestCase):
             path = root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("# Fixture\n")
+        for relative, required_values in check_site.REQUIRED_TEXT.items():
+            path = root / relative
+            path.write_text(path.read_text() + "\n".join(required_values) + "\n")
 
     def test_accepts_complete_client_fixture(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -39,6 +42,16 @@ class ClientSiteCheckTest(unittest.TestCase):
             result = check_site.check(root)
             self.assertEqual(result["status"], "fail")
             self.assertIn(check_site.REQUIRED_PUBLIC[0], result["missing_required_files"])
+
+    def test_rejects_missing_reciprocal_link(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.fixture(root)
+            target = root / next(iter(check_site.REQUIRED_TEXT))
+            target.write_text("# Link removed\n")
+            result = check_site.check(root)
+            self.assertEqual(result["status"], "fail")
+            self.assertTrue(result["missing_required_text"])
 
 
 if __name__ == "__main__":

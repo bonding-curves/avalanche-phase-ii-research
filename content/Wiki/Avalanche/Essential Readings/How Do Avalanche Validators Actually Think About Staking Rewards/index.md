@@ -16,6 +16,8 @@ topics: [Avalanche, validator economics, staking rewards, ACP-275, ACP-285]
 
 **Siyu (Eric) Lu, PhD** · Published April 28, 2026 · [Original article on LinkedIn](https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc)
 
+**Related study:** [Exploratory analysis, reproduction, and dynamic modeling](/Phase-II/Studies/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/)
+
 ![How Do Avalanche Validators Actually Think About Staking Rewards?](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/cover.jpg)
 
 At the Avalanche Foundation, we are in the process of evolving how we support and develop the ecosystem. A core part of that evolution is building a more rigorous, evidence-based foundation for the decisions we make, whether that means how we allocate grants, how we measure ecosystem health, or how we evaluate proposed changes to protocol mechanics.
