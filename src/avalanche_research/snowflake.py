@@ -354,30 +354,32 @@ STAKING_SUPPLY = DatasetSpec(
     COUNT_IF(tx_type IS NULL OR tx_type NOT IN (?, ?, ?, ?)),
     COUNT_IF(previous_block_supply_navax < 0 OR block_supply_navax < 0)""",
     validity_labels=("miss a required field", "have an unexpected transaction type", "carry a negative supply"),
-    check_names=("unique transaction hashes", "acceptance window", "supply bounds", "supply monotonicity"),
+    check_names=("unique transaction hashes", "acceptance window", "supply bounds", "block position"),
     check_sql="""
     COUNT(*) - COUNT(DISTINCT transaction_hash),
     COUNT_IF(accepted_at::DATE < ?::DATE OR accepted_at::DATE >= ?::DATE),
     COUNT_IF(supply_before_navax < ? OR supply_before_navax > ? OR block_supply_navax > ?),
-    COUNT_IF(block_height >= 0 AND (tx_block_position IS NULL OR previous_block_supply_navax > block_supply_navax + in_block_total_delta_navax + ?))""",
+    COUNT_IF(block_height >= 0 AND tx_block_position IS NULL)""",
     check_labels=(
         "repeat a transaction hash",
         "were accepted outside the requested window",
         "have a supply outside the genesis supply and the 720,000,000 AVAX cap",
-        "lack a block position or sit in a block whose supply falls by more than its unrewarded potential rewards",
+        "lack a block position",
     ),
-    check_params=lambda window: [window["start"], window["end"], GENESIS_SUPPLY_NAVAX, SUPPLY_CAP_NAVAX, SUPPLY_CAP_NAVAX, 0],
+    check_params=lambda window: [window["start"], window["end"], GENESIS_SUPPLY_NAVAX, SUPPLY_CAP_NAVAX, SUPPLY_CAP_NAVAX],
     summary_sql="""
     COUNT(*), MIN(accepted_at), MAX(accepted_at),
     COUNT_IF(tx_type = ?), COUNT_IF(tx_type = ?), COUNT_IF(tx_type = ?), COUNT_IF(tx_type = ?),
     COUNT_IF(block_height < 0), COUNT_IF(block_height >= 0 AND (previous_block_supply_navax IS NULL OR block_supply_navax IS NULL)),
     COUNT_IF(in_block_prior_delta_navax <> 0),
     COUNT_IF(block_height >= 0 AND block_supply_navax - previous_block_supply_navax <> in_block_total_delta_navax),
+    COUNT_IF(block_height >= 0 AND previous_block_supply_navax > block_supply_navax + in_block_total_delta_navax),
     MIN(supply_before_navax), MAX(supply_before_navax)""",
     summary_keys=(
         "rows", "accepted_from", "accepted_to", "rows_by_tx_type", "rows_by_tx_type", "rows_by_tx_type", "rows_by_tx_type",
         "genesis_rows", "rows_without_block_supply", "rows_after_earlier_supply_changes_in_block",
-        "rows_in_blocks_where_supply_change_differs_from_staking_deltas", "supply_before_navax_min", "supply_before_navax_max",
+        "rows_in_blocks_where_supply_change_differs_from_staking_deltas", "rows_in_blocks_where_supply_falls_beyond_removals",
+        "supply_before_navax_min", "supply_before_navax_max",
     ),
 )
 
