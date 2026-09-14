@@ -154,7 +154,54 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     return build_receipt
 
 
-def check(capture_dir: Path, dataset_dir: Path | None = None) -> dict[str, Any]:
+CROSS_CHECK_TOLERANCE = 0.10
+CROSS_CHECK_ALIGNMENT_SECONDS = 3 * 3_600
+
+
+def cross_check(connection: Any, reference_dir: Path) -> tuple[dict[str, Any], list[str]]:
+    """Compare midnight prices with the DefiLlama price dataset built in reference_dir.
+
+    DefiLlama observation times drift through the day, so a day is compared only when its nearest reference
+    observation lies within three hours of midnight. Days without an aligned reference are counted, not compared.
+    """
+    parquet = reference_dir / "avax-price-daily.parquet"
+    if not parquet.is_file():
+        raise DataError(f"missing reference price dataset: {parquet}")
+    record = connection.execute(
+        f"""
+        WITH reference AS (
+          SELECT DISTINCT ON (observation_date) observation_date, price_usd,
+                 abs(date_diff('second', observation_date::TIMESTAMP, observed_at)) AS offset_seconds
+          FROM read_parquet('{str(parquet).replace("'", "''")}')
+          ORDER BY observation_date, offset_seconds
+        ),
+        paired AS (
+          SELECT r.observation_date, x.offset_seconds <= {CROSS_CHECK_ALIGNMENT_SECONDS} AS aligned,
+                 abs(r.price_usd / x.price_usd - 1) AS relative_difference
+          FROM rows r JOIN reference x USING (observation_date)
+          WHERE NOT r.partial_day
+        )
+        SELECT COUNT_IF(aligned), median(relative_difference) FILTER (aligned), MAX(relative_difference) FILTER (aligned),
+               COUNT_IF(aligned AND relative_difference > {CROSS_CHECK_TOLERANCE}), COUNT_IF(NOT aligned)
+        FROM paired
+        """
+    ).fetchone()
+    summary = {
+        "cross_check_days": record[0],
+        "cross_check_median_relative_difference": record[1],
+        "cross_check_max_relative_difference": record[2],
+        "cross_check_days_beyond_tolerance": record[3],
+        "cross_check_days_without_aligned_reference": record[4],
+    }
+    findings = []
+    if record[0] == 0:
+        findings.append("no overlapping days with the reference price dataset")
+    elif record[3]:
+        findings.append(f"{record[3]} days differ from the reference price by more than {CROSS_CHECK_TOLERANCE:.0%}")
+    return summary, findings
+
+
+def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | None = None) -> dict[str, Any]:
     catalog = load_catalog()
     receipt, _ = read_capture(capture_dir, catalog)
     findings: list[str] = []
@@ -209,6 +256,11 @@ def check(capture_dir: Path, dataset_dir: Path | None = None) -> dict[str, Any]:
                     findings.append("Parquet rows differ from the captured inputs")
             except (OSError, KeyError, TypeError, json.JSONDecodeError, duckdb.Error) as error:
                 findings.append(f"invalid dataset output: {error}")
+        if against is not None:
+            checked.append("reference price cross-check")
+            cross_summary, cross_findings = cross_check(connection, against)
+            summary.update(cross_summary)
+            findings.extend(cross_findings)
     finally:
         connection.close()
     return {

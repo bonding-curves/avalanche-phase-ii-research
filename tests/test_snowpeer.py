@@ -67,10 +67,11 @@ def make_capture(tmp_path: Path) -> tuple[Path, dict]:
 
 def test_catalog_schema_and_references_are_valid():
     catalog = snowpeer.load_catalog()
-    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "avalanche-snowflake"]
+    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "defillama", "avalanche-snowflake"]
     assert [item["id"] for item in catalog["datasets"]] == [
         snowpeer.DATASET_ID, "snowflake.primary-validator-stakes", "snowflake.primary-delegator-stakes",
         "snowflake.primary-staking-rewards", "snowflake.primary-staking-supply", "coingecko.avax-market-daily",
+        "defillama.avax-price-daily",
     ]
 
 

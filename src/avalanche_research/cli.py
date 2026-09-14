@@ -11,6 +11,7 @@ import click
 
 from . import __version__
 from . import coingecko
+from . import defillama
 from . import snowflake
 from . import snowpeer
 from .catalog import DataError, load_catalog
@@ -19,7 +20,12 @@ from .model import protocol
 from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 
 
-MODULES = {snowpeer.DATASET_ID: snowpeer, coingecko.DATASET_ID: coingecko, **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS}}
+MODULES = {
+    snowpeer.DATASET_ID: snowpeer,
+    coingecko.DATASET_ID: coingecko,
+    defillama.DATASET_ID: defillama,
+    **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
+}
 
 
 def module_for(dataset_id: str) -> Any:
@@ -152,10 +158,11 @@ def build(dataset_id: str, capture_dir: Path, output: Path, preview: bool, as_js
 @click.argument("dataset_id")
 @click.option("capture_dir", "--capture", type=click.Path(path_type=Path), required=True)
 @click.option("dataset_dir", "--dataset", type=click.Path(path_type=Path))
+@click.option("against", "--against", type=click.Path(path_type=Path), help="Built reference dataset directory for a cross-check.")
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
-def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, as_json: bool) -> None:
-    """Check capture integrity and optional built output."""
-    value = module_for(dataset_id).check(capture_dir, dataset_dir)
+def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, against: Path | None, as_json: bool) -> None:
+    """Check capture integrity, optional built output, and an optional reference cross-check."""
+    value = module_for(dataset_id).check(capture_dir, dataset_dir, against)
     if value["dataset_id"] != dataset_id:
         raise DataError(f"capture belongs to {value['dataset_id']}, not {dataset_id}")
     result = envelope(

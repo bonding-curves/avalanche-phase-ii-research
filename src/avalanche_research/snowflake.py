@@ -718,7 +718,9 @@ def read_parquet(path: Path, spec: DatasetSpec = VALIDATOR_STAKES) -> list[dict[
     return [dict(zip(columns, (_json_value(value) for value in record))) for record in records]
 
 
-def check(capture_dir: Path, dataset_dir: Path | None = None) -> dict[str, Any]:
+def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | None = None) -> dict[str, Any]:
+    if against is not None:
+        raise DataError("this dataset has no reference dataset to check against")
     catalog = load_catalog()
     receipt = read_capture(capture_dir, catalog)
     spec = spec_for(receipt["dataset_id"])

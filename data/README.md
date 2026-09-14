@@ -12,6 +12,7 @@ This directory defines the machine-readable contracts for research data used in 
 | `snowflake.primary-staking-rewards` | One Parquet row per reward transaction closing a staking period | Implemented, tested, and captured live |
 | `snowflake.primary-staking-supply` | One Parquet row per staking transaction with the block supply context behind its potential reward | Implemented, tested, and captured live |
 | `coingecko.avax-market-daily` | One Parquet row per day of AVAX price, market capitalization, volume, log return, and 30-day realized volatility | Implemented, tested, and captured live; public API serves the trailing 365 days only |
+| `defillama.avax-price-daily` | One Parquet row per daily AVAX price observation since 2020-09-22 with log return and 30-day realized volatility | Implemented, tested, and captured live |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -120,6 +121,24 @@ uv run --locked avalanche data check coingecko.avax-market-daily \
 
 The capture preserves the raw response bytes and hash. The build aligns prices, market capitalizations, and volumes on their timestamps, keeps the latest partial-day point flagged, and derives daily log returns and annualized 30-day realized volatility. The check verifies unique observations, one-day spacing, partial-day placement, and the volatility window.
 
+Full price history comes from the DefiLlama coins series, which carries CoinGecko lineage (`coingecko:avalanche-2`) and a per-series confidence value. The endpoint returns at most 500 points per request, so the contract declares five fixed 500-day windows from the 2020-09-22 series start; windows past the capture day return only the points that exist. The CoinGecko dataset then serves as a cross-check of the trailing year:
+
+```bash
+uv run --locked avalanche data fetch defillama.avax-price-daily \
+  --output data/runs/avax-price-example/capture
+
+uv run --locked avalanche data build defillama.avax-price-daily \
+  --from data/runs/avax-price-example/capture \
+  --output data/runs/avax-price-example/dataset
+
+uv run --locked avalanche data check coingecko.avax-market-daily \
+  --capture data/runs/avax-market-example/capture \
+  --dataset data/runs/avax-market-example/dataset \
+  --against data/runs/avax-price-example/dataset
+```
+
+The cross-check pairs each CoinGecko midnight observation with the DefiLlama observation nearest that day's start when it lies within three hours, reports the median and maximum relative difference and the days it could not align, and raises a finding for any aligned day beyond 10%.
+
 ## Inspect the contract
 
 ```bash
@@ -132,6 +151,7 @@ uv run --locked avalanche data describe snowflake.primary-delegator-stakes
 uv run --locked avalanche data describe snowflake.primary-staking-rewards
 uv run --locked avalanche data describe snowflake.primary-staking-supply
 uv run --locked avalanche data describe coingecko.avax-market-daily
+uv run --locked avalanche data describe defillama.avax-price-daily
 uv run --locked avalanche data manifest --json
 ```
 

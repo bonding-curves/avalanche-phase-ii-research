@@ -116,7 +116,9 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     return build_receipt
 
 
-def check(capture_dir: Path, dataset_dir: Path | None = None) -> dict[str, Any]:
+def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | None = None) -> dict[str, Any]:
+    if against is not None:
+        raise DataError("this dataset has no reference dataset to check against")
     catalog = load_catalog()
     receipt, values = read_capture(capture_dir, catalog)
     expected_row = transform(receipt, values)

@@ -135,7 +135,7 @@ The generated site is written to `.site/public/`. Generated output and installed
 - Milestone pages preserve requirements and evidence structure; their presence does not establish completion or acceptance.
 - The ACP-285 page is a timestamped analytical video summary, not a verified verbatim transcript.
 - The January model is reconstructed from three indirectly attributed images with material definitions still missing.
-- The AVAX market dataset covers only the trailing 365 days the public CoinGecko API serves; earlier price history needs a paid plan.
+- AVAX price history since 2020 comes from DefiLlama's CoinGecko-derived series; the direct CoinGecko dataset covers the trailing 365 days the public API serves and cross-checks it.
 
 ## Contributing
 

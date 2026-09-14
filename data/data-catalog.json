@@ -71,6 +71,43 @@
       ]
     },
     {
+      "id": "defillama",
+      "name": "DefiLlama public API",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Third-party aggregates. The coins price series carries CoinGecko lineage (coingecko:avalanche-2) with a per-series confidence value; use it for daily price context, not as exchange-level truth.",
+      "documentation_url": "https://defillama.com/docs/api",
+      "authentication": "none; the coins chart endpoint returns at most 500 points per request, so full history is captured as fixed 500-day windows",
+      "reuse_status": "Public access observed; DefiLlama attribution terms apply to redistribution.",
+      "endpoints": [
+        {
+          "id": "avax-price-window-1",
+          "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1600732800&span=500&period=1d",
+          "response_fields": ["coins"]
+        },
+        {
+          "id": "avax-price-window-2",
+          "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1643932800&span=500&period=1d",
+          "response_fields": ["coins"]
+        },
+        {
+          "id": "avax-price-window-3",
+          "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1687132800&span=500&period=1d",
+          "response_fields": ["coins"]
+        },
+        {
+          "id": "avax-price-window-4",
+          "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1730332800&span=500&period=1d",
+          "response_fields": ["coins"]
+        },
+        {
+          "id": "avax-price-window-5",
+          "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1773532800&span=500&period=1d",
+          "response_fields": ["coins"]
+        }
+      ]
+    },
+    {
       "id": "avalanche-snowflake",
       "name": "Avalanche Primary Network Data Snowflake share",
       "source_type": "database_share",
@@ -286,6 +323,23 @@
         {"name": "price_usd", "type": "number", "unit": "USD per AVAX", "derivation": "prices[i][1]"},
         {"name": "market_cap_usd", "type": "number", "unit": "USD", "derivation": "market_caps[i][1]"},
         {"name": "volume_usd", "type": "number", "unit": "USD over the trailing 24 hours", "derivation": "total_volumes[i][1]"},
+        {"name": "log_return", "type": "number", "unit": "natural log of consecutive price ratio; null on the first row", "derivation": "ln(price_usd / previous price_usd)"},
+        {"name": "realized_volatility_30d", "type": "number", "unit": "annualized; null until 30 returns exist", "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"}
+      ]
+    },
+    {
+      "id": "defillama.avax-price-daily",
+      "name": "AVAX daily price history",
+      "source_id": "defillama",
+      "status": "implemented",
+      "description": "One row per daily AVAX price observation in USD from the DefiLlama coins series with CoinGecko lineage, from the 2020-09-22 series start through the capture day, with daily log returns and annualized 30-day realized volatility. Windows past the capture day return only the points that exist.",
+      "endpoint_ids": ["avax-price-window-1", "avax-price-window-2", "avax-price-window-3", "avax-price-window-4", "avax-price-window-5"],
+      "fields": [
+        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "coins.coingecko:avalanche-2.prices[i].timestamp seconds since the epoch"},
+        {"name": "observation_date", "type": "string", "unit": "UTC calendar date", "derivation": "observed_at truncated to the day"},
+        {"name": "price_usd", "type": "number", "unit": "USD per AVAX", "derivation": "coins.coingecko:avalanche-2.prices[i].price"},
+        {"name": "confidence", "type": "number", "unit": "DefiLlama series confidence, 0 to 1", "derivation": "coins.coingecko:avalanche-2.confidence of the window that supplied the point"},
+        {"name": "lineage", "type": "string", "unit": "DefiLlama coin identifier", "derivation": "the coins key, coingecko:avalanche-2"},
         {"name": "log_return", "type": "number", "unit": "natural log of consecutive price ratio; null on the first row", "derivation": "ln(price_usd / previous price_usd)"},
         {"name": "realized_volatility_30d", "type": "number", "unit": "annualized; null until 30 returns exist", "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"}
       ]
