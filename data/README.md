@@ -11,6 +11,7 @@ This directory defines the machine-readable contracts for research data used in 
 | `snowflake.primary-delegator-stakes` | One Parquet row per delegation transaction since 2020-09-10 | Implemented, tested, and captured live |
 | `snowflake.primary-staking-rewards` | One Parquet row per reward transaction closing a staking period | Implemented, tested, and captured live |
 | `snowflake.primary-staking-supply` | One Parquet row per staking transaction with the block supply context behind its potential reward | Implemented, tested, and captured live |
+| `coingecko.avax-market-daily` | One Parquet row per day of AVAX price, market capitalization, volume, log return, and 30-day realized volatility | Implemented, tested, and captured live; public API serves the trailing 365 days only |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -100,6 +101,25 @@ The supply dataset, `snowflake.primary-staking-supply`, records for every stakin
 
 Amounts are preserved in nAVAX integers and converted once to AVAX. The delegation fee is preserved in millionths and converted once to a rate. Price observations and outside-option yields are separate datasets that do not exist yet.
 
+## Reproduce the AVAX market observations
+
+The public CoinGecko API needs no credential. It limits historical requests to the trailing 365 days (error code 10012); full history from the 2020 listing requires a paid CoinGecko plan, which this repository does not assume.
+
+```bash
+uv run --locked avalanche data fetch coingecko.avax-market-daily \
+  --output data/runs/avax-market-example/capture
+
+uv run --locked avalanche data build coingecko.avax-market-daily \
+  --from data/runs/avax-market-example/capture \
+  --output data/runs/avax-market-example/dataset
+
+uv run --locked avalanche data check coingecko.avax-market-daily \
+  --capture data/runs/avax-market-example/capture \
+  --dataset data/runs/avax-market-example/dataset
+```
+
+The capture preserves the raw response bytes and hash. The build aligns prices, market capitalizations, and volumes on their timestamps, keeps the latest partial-day point flagged, and derives daily log returns and annualized 30-day realized volatility. The check verifies unique observations, one-day spacing, partial-day placement, and the volatility window.
+
 ## Inspect the contract
 
 ```bash
@@ -111,6 +131,7 @@ uv run --locked avalanche data describe snowflake.primary-validator-stakes
 uv run --locked avalanche data describe snowflake.primary-delegator-stakes
 uv run --locked avalanche data describe snowflake.primary-staking-rewards
 uv run --locked avalanche data describe snowflake.primary-staking-supply
+uv run --locked avalanche data describe coingecko.avax-market-daily
 uv run --locked avalanche data manifest --json
 ```
 

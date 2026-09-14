@@ -64,7 +64,7 @@
     "rest_api_source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "source_type", "status", "authority", "documentation_url", "authentication", "reuse_status", "endpoints", "observed_site_cross_check"],
+      "required": ["id", "name", "source_type", "status", "authority", "documentation_url", "authentication", "reuse_status", "endpoints"],
       "properties": {
         "id": {"$ref": "#/$defs/source_properties/id"},
         "name": {"$ref": "#/$defs/source_properties/name"},

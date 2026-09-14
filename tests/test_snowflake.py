@@ -326,7 +326,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
     assert value["connection"] == "avalanche" and value["sql"] == "queries/primary-validator-stakes.sql"
     manifest = runner.invoke(cli.cli, ["data", "manifest", "--json"])
     assert [item["id"] for item in json.loads(manifest.output)["records"]] == [
-        "snowpeer.network-summary", *snowflake.DATASET_IDS,
+        "snowpeer.network-summary", *snowflake.DATASET_IDS, "coingecko.avax-market-daily",
     ]
 
 

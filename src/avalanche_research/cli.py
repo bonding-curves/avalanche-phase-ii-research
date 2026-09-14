@@ -10,6 +10,7 @@ from typing import Any
 import click
 
 from . import __version__
+from . import coingecko
 from . import snowflake
 from . import snowpeer
 from .catalog import DataError, load_catalog
@@ -18,7 +19,7 @@ from .model import protocol
 from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 
 
-MODULES = {snowpeer.DATASET_ID: snowpeer, **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS}}
+MODULES = {snowpeer.DATASET_ID: snowpeer, coingecko.DATASET_ID: coingecko, **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS}}
 
 
 def module_for(dataset_id: str) -> Any:

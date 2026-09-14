@@ -54,6 +54,23 @@
       }
     },
     {
+      "id": "coingecko",
+      "name": "CoinGecko public API",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Third-party market observations aggregated across exchanges. Use for AVAX price, volume, and market capitalization context, not as exchange-level truth.",
+      "documentation_url": "https://docs.coingecko.com/reference/coins-id-market-chart",
+      "authentication": "none; the keyless public API limits historical requests to the trailing 365 days (error code 10012). Full history requires a paid CoinGecko plan.",
+      "reuse_status": "Public access observed; CoinGecko attribution terms apply to redistribution.",
+      "endpoints": [
+        {
+          "id": "avax-market-chart",
+          "url": "https://api.coingecko.com/api/v3/coins/avalanche-2/market_chart?vs_currency=usd&days=365",
+          "response_fields": ["prices", "market_caps", "total_volumes"]
+        }
+      ]
+    },
+    {
       "id": "avalanche-snowflake",
       "name": "Avalanche Primary Network Data Snowflake share",
       "source_type": "database_share",
@@ -253,6 +270,24 @@
         {"name": "in_block_prior_delta_navax", "type": "integer", "unit": "nAVAX", "derivation": "sum of potential rewards added by earlier staking transactions in the block minus potential rewards removed by earlier unrewarded reward transactions"},
         {"name": "in_block_total_delta_navax", "type": "integer", "unit": "nAVAX", "derivation": "the same sum over every supply-changing transaction in the block"},
         {"name": "supply_before_navax", "type": "integer", "unit": "nAVAX; null for genesis", "derivation": "previous_block_supply_navax + in_block_prior_delta_navax"}
+      ]
+    },
+    {
+      "id": "coingecko.avax-market-daily",
+      "name": "AVAX daily market observations",
+      "source_id": "coingecko",
+      "status": "implemented",
+      "description": "Daily AVAX price, market capitalization, and volume in USD over the trailing 365 days the public CoinGecko API serves, with daily log returns and annualized 30-day realized volatility.",
+      "endpoint_ids": ["avax-market-chart"],
+      "fields": [
+        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "prices[i][0] milliseconds since the epoch"},
+        {"name": "observation_date", "type": "string", "unit": "UTC calendar date", "derivation": "observed_at truncated to the day"},
+        {"name": "partial_day", "type": "boolean", "unit": "true when the observation is not at midnight, which CoinGecko uses for the latest point", "derivation": "observed_at differs from its day start"},
+        {"name": "price_usd", "type": "number", "unit": "USD per AVAX", "derivation": "prices[i][1]"},
+        {"name": "market_cap_usd", "type": "number", "unit": "USD", "derivation": "market_caps[i][1]"},
+        {"name": "volume_usd", "type": "number", "unit": "USD over the trailing 24 hours", "derivation": "total_volumes[i][1]"},
+        {"name": "log_return", "type": "number", "unit": "natural log of consecutive price ratio; null on the first row", "derivation": "ln(price_usd / previous price_usd)"},
+        {"name": "realized_volatility_30d", "type": "number", "unit": "annualized; null until 30 returns exist", "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"}
       ]
     }
   ]
