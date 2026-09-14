@@ -15,7 +15,7 @@ from . import snowpeer
 from .catalog import DataError, load_catalog
 
 
-MODULES = {snowpeer.DATASET_ID: snowpeer, snowflake.DATASET_ID: snowflake}
+MODULES = {snowpeer.DATASET_ID: snowpeer, **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS}}
 
 
 def module_for(dataset_id: str) -> Any:

@@ -1,6 +1,6 @@
 # Research data
 
-This directory defines the machine-readable contracts for research data used in Avalanche Phase II. The first dataset reconstructs Snowpeer's six network-wide summary metrics. The second preserves every validator staking transaction on the Avalanche Primary Network from the Avalanche Snowflake share. Both keep the source evidence, transformation, and validation records required to inspect the result.
+This directory defines the machine-readable contracts for research data used in Avalanche Phase II. The first dataset reconstructs Snowpeer's six network-wide summary metrics. The second and third preserve every validator staking transaction and every delegation transaction on the Avalanche Primary Network from the Avalanche Snowflake share. All three keep the source evidence, transformation, and validation records required to inspect the result.
 
 ## Current coverage
 
@@ -8,6 +8,7 @@ This directory defines the machine-readable contracts for research data used in 
 | --- | --- | --- |
 | `snowpeer.network-summary` | One timestamped row in JSON and Parquet | Implemented and tested |
 | `snowflake.primary-validator-stakes` | One Parquet row per validator staking transaction since 2020-09-10 | Implemented, tested, and captured live |
+| `snowflake.primary-delegator-stakes` | One Parquet row per delegation transaction since 2020-09-10 | Implemented, tested, and captured live |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -40,7 +41,7 @@ The capture contains the original response bytes, URLs, timestamps, sizes, and S
 
 Generated captures are working data and are not committed by default. A reviewed study may publish a bounded snapshot when its evidence contract requires one.
 
-## Reproduce the validator staking transactions
+## Reproduce the validator and delegator staking transactions
 
 The Snowflake share requires authorized credentials. Install the optional connector and describe the connection once in the connector's own configuration file, outside the repository:
 
@@ -89,7 +90,9 @@ uv run --locked avalanche data check snowflake.primary-validator-stakes \
 
 The capture contains the exact SQL text, bound parameters, Snowflake query ID, session role, warehouse, database, and schema, the compressed result rows, and their SHA-256 hash. The build loads the compressed capture into DuckDB with declared column types and writes a typed Parquet table plus a receipt with row counts, time coverage, and null counts. The checks run as SQL over the same rows, so datasets with millions of rows build and check in seconds. The check verifies hashes, query text, field types, unique transaction hashes, the acceptance window, time ordering, duration bounds of 14 to 365 days, stake bounds of 2,000 to 3,000,000 AVAX, delegation fee bounds of 2% to 100%, and the staked-UTXO reconciliation of each declared stake weight. Rows without a staked UTXO record are counted in the summary rather than reported as findings, because the stake weight comes from the transaction itself.
 
-Amounts are preserved in nAVAX integers and converted once to AVAX. The delegation fee is preserved in millionths and converted once to a rate. Delegator transactions, reward outcomes, and price observations are separate datasets that do not exist yet.
+The delegator dataset follows the same commands with `snowflake.primary-delegator-stakes`. It is about 120 times larger, so its full-history capture takes minutes rather than seconds; use `--timeout 600` and, when a smaller window is enough, the `--param` dates. Each delegation row names the validator staking transaction whose period contains it, and the check reports any delegation that no validator period on its node contains. The funding address is the address behind the largest share of the staked UTXOs, with the number of funding addresses kept alongside it.
+
+Amounts are preserved in nAVAX integers and converted once to AVAX. The delegation fee is preserved in millionths and converted once to a rate. Realized reward outcomes and price observations are separate datasets that do not exist yet.
 
 ## Inspect the contract
 
@@ -99,6 +102,7 @@ uv run --locked avalanche data describe snowpeer
 uv run --locked avalanche data describe snowpeer.network-summary
 uv run --locked avalanche data describe avalanche-snowflake
 uv run --locked avalanche data describe snowflake.primary-validator-stakes
+uv run --locked avalanche data describe snowflake.primary-delegator-stakes
 uv run --locked avalanche data manifest --json
 ```
 

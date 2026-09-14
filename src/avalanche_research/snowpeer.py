@@ -15,7 +15,7 @@ import duckdb
 
 from . import __version__
 from .catalog import (
-    DataError, canonical_bytes, catalog_hash, dataset, load_catalog, now as _now, sha256, source,
+    DataError, canonical_bytes, contract_hash, dataset, load_catalog, now as _now, sha256, source,
 )
 
 
@@ -113,7 +113,7 @@ def capture(
             "dataset_id": dataset_id,
             "source_id": preview["source_id"],
             "completed_at": completed_at,
-            "catalog_sha256": catalog_hash(catalog),
+            "contract_sha256": contract_hash(catalog, dataset_id),
             "tool": f"avalanche-research@{__version__}",
             "responses": records,
         }
@@ -136,8 +136,8 @@ def read_capture(
         raise DataError(f"invalid capture receipt: {error}") from error
     if receipt.get("schema_version") != "snowpeer-capture/v1":
         raise DataError("unsupported capture receipt schema")
-    if receipt.get("catalog_sha256") != catalog_hash(catalog):
-        raise DataError("capture catalog hash differs from the current data contract")
+    if receipt.get("contract_sha256") != contract_hash(catalog, receipt.get("dataset_id", "")):
+        raise DataError("capture contract hash differs from the current data contract")
     values: dict[str, Any] = {}
     for item in receipt.get("responses", []):
         path = capture_dir / item["path"]

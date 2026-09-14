@@ -79,6 +79,21 @@
             "Genesis validators carry BLOCK_HEIGHT -1",
             "REWARDED is null while a staking period is still in progress"
           ]
+        },
+        {
+          "id": "primary-delegator-stakes",
+          "sql": "queries/primary-delegator-stakes.sql",
+          "relations": ["P_TRANSACTIONS", "UTXOS"],
+          "parameters": [
+            {"name": "start", "type": "date", "default": "2020-09-10", "meaning": "inclusive lower bound on the transaction acceptance timestamp, UTC"},
+            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper bound on the transaction acceptance timestamp, UTC"}
+          ],
+          "observed_semantics": [
+            "Delegation METADATA carries validator.weight as the delegated nAVAX and validator.nodeID as the target validator",
+            "Every delegation period observed on 2026-09-14 lies inside one validator staking period on the same node",
+            "The delegator identity is the address on the staked UTXOs; a small number of delegations are funded by several addresses",
+            "REWARDED is null while a delegation period is still in progress"
+          ]
         }
       ]
     }
@@ -131,6 +146,34 @@
         {"name": "potential_reward_navax", "type": "integer", "unit": "nAVAX; null when absent", "derivation": "P_TRANSACTIONS.POTENTIAL_REWARD"},
         {"name": "potential_reward_avax", "type": "number", "unit": "AVAX; null when absent", "derivation": "potential_reward_navax / 1e9"},
         {"name": "rewarded", "type": "boolean", "unit": "null while the staking period is in progress", "derivation": "P_TRANSACTIONS.REWARDED"},
+        {"name": "staked_utxo_count", "type": "integer", "unit": "distinct staked UTXOs", "derivation": "count of distinct UTXOS.UTXO_ID with STAKED = TRUE for the transaction"},
+        {"name": "utxo_stake_navax", "type": "integer", "unit": "nAVAX; null when no staked UTXO row exists", "derivation": "sum of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"}
+      ]
+    },
+    {
+      "id": "snowflake.primary-delegator-stakes",
+      "name": "Primary Network delegation transactions",
+      "source_id": "avalanche-snowflake",
+      "status": "implemented",
+      "description": "One row per accepted AddDelegatorTx or AddPermissionlessDelegatorTx on the Avalanche Primary Network with the target validator, the containing validator staking period, the funding address, duration, stake, potential reward, and a staked-UTXO reconciliation.",
+      "query_ids": ["primary-delegator-stakes"],
+      "fields": [
+        {"name": "transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "P_TRANSACTIONS.TRANSACTION_HASH"},
+        {"name": "accepted_at", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.TIMESTAMP"},
+        {"name": "block_height", "type": "integer", "unit": "P-Chain block height", "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT"},
+        {"name": "tx_type", "type": "string", "unit": "AddDelegatorTx or AddPermissionlessDelegatorTx", "derivation": "P_TRANSACTIONS.TYPE"},
+        {"name": "node_id", "type": "string", "unit": "target validator NodeID", "derivation": "P_TRANSACTIONS.NODE_ID"},
+        {"name": "validator_transaction_hash", "type": "string", "unit": "P-Chain transaction ID; null when no validator period contains the delegation", "derivation": "latest-starting validator staking transaction on the same node whose period contains the delegation period"},
+        {"name": "delegator_address", "type": "string", "unit": "P-Chain address; null when no staked UTXO row exists", "derivation": "address funding the largest share of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"},
+        {"name": "delegator_address_count", "type": "integer", "unit": "addresses", "derivation": "count of distinct UTXOS.ADDRESS on staked UTXOs for the transaction"},
+        {"name": "start_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.START_TIME"},
+        {"name": "end_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.END_TIME"},
+        {"name": "duration_days", "type": "number", "unit": "days", "derivation": "(end_time - start_time) / 86400 seconds"},
+        {"name": "stake_navax", "type": "integer", "unit": "nAVAX", "derivation": "P_TRANSACTIONS.METADATA validator.weight"},
+        {"name": "stake_avax", "type": "number", "unit": "AVAX", "derivation": "stake_navax / 1e9"},
+        {"name": "potential_reward_navax", "type": "integer", "unit": "nAVAX; null when absent", "derivation": "P_TRANSACTIONS.POTENTIAL_REWARD"},
+        {"name": "potential_reward_avax", "type": "number", "unit": "AVAX; null when absent", "derivation": "potential_reward_navax / 1e9"},
+        {"name": "rewarded", "type": "boolean", "unit": "null while the delegation period is in progress", "derivation": "P_TRANSACTIONS.REWARDED"},
         {"name": "staked_utxo_count", "type": "integer", "unit": "distinct staked UTXOs", "derivation": "count of distinct UTXOS.UTXO_ID with STAKED = TRUE for the transaction"},
         {"name": "utxo_stake_navax", "type": "integer", "unit": "nAVAX; null when no staked UTXO row exists", "derivation": "sum of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"}
       ]

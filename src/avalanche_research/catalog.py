@@ -61,8 +61,10 @@ def load_catalog(path: Path = CATALOG, schema_path: Path = SCHEMA) -> dict[str, 
     return catalog
 
 
-def catalog_hash(catalog: dict[str, Any]) -> str:
-    return sha256(canonical_bytes(catalog))
+def contract_hash(catalog: dict[str, Any], dataset_id: str) -> str:
+    """Hash the records that define one dataset: its source and its dataset entry."""
+    definition = dataset(catalog, dataset_id)
+    return sha256(canonical_bytes({"source": source(catalog, definition["source_id"]), "dataset": definition}))
 
 
 def source(catalog: dict[str, Any], source_id: str) -> dict[str, Any]:

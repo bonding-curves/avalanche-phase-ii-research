@@ -128,7 +128,7 @@ The generated site is written to `.site/public/`. Generated output and installed
 
 - Only one Essential Reading currently has an initialized study package.
 - No published empirical result has yet been independently reproduced and accepted in this repository.
-- The integrated cadCAD model, PSUU results, data adapters beyond Snowpeer and the Snowflake validator staking dataset, and main synthesis notebook remain under development.
+- The integrated cadCAD model, PSUU results, data adapters beyond Snowpeer and the Snowflake staking datasets, and main synthesis notebook remain under development.
 - Milestone pages preserve requirements and evidence structure; their presence does not establish completion or acceptance.
 - The ACP-285 page is a timestamped analytical video summary, not a verified verbatim transcript.
 - The January model is reconstructed from three indirectly attributed images with material definitions still missing.

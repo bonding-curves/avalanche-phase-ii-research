@@ -33,6 +33,25 @@ def raw_row(**overrides):
     return row
 
 
+DELEGATOR_ROWS = [
+    {
+        "transaction_hash": "del-1", "accepted_at": datetime(2021, 3, 2, 9, 0, 0), "block_height": 1300,
+        "tx_type": "AddDelegatorTx", "node_id": "NodeID-A", "validator_transaction_hash": "tx-legacy-1",
+        "delegator_address": "P-avax1delegator", "delegator_address_count": 1,
+        "start_time": datetime(2021, 3, 2, 9, 5, 0), "end_time": datetime(2021, 3, 30, 9, 5, 0),
+        "stake_navax": 25_000_000_000, "potential_reward_navax": 100_000_000, "rewarded": True,
+        "staked_utxo_count": 1, "utxo_stake_navax": 25_000_000_000,
+    },
+    {
+        "transaction_hash": "del-2", "accepted_at": datetime(2025, 1, 3, 0, 0, 0), "block_height": 9000,
+        "tx_type": "AddPermissionlessDelegatorTx", "node_id": "NodeID-B", "validator_transaction_hash": None,
+        "delegator_address": None, "delegator_address_count": 0,
+        "start_time": datetime(2025, 1, 3, 0, 5, 0), "end_time": datetime(2025, 1, 17, 0, 5, 0),
+        "stake_navax": 30_000_000_000, "potential_reward_navax": 90_000_000, "rewarded": None,
+        "staked_utxo_count": 0, "utxo_stake_navax": None,
+    },
+]
+
 ROWS = [
     raw_row(),
     raw_row(
@@ -49,8 +68,8 @@ ROWS = [
 
 
 class FakeCursor:
-    def __init__(self, rows, fail: bool):
-        self.rows, self.fail, self.sfqid = rows, fail, "01c7-fixture"
+    def __init__(self, rows, fail: bool, columns):
+        self.rows, self.fail, self.sfqid, self.columns = rows, fail, "01c7-fixture", columns
         self.description = []
         self.pending = []
 
@@ -62,8 +81,8 @@ class FakeCursor:
         assert "%(start)s" in sql and set(params) == {"start", "end"}
         if self.fail:
             raise OSError("fixture failure")
-        self.description = [(name.upper(),) for name in snowflake.RAW_COLUMNS]
-        self.pending = [tuple(row[name] for name in snowflake.RAW_COLUMNS) for row in self.rows]
+        self.description = [(name.upper(),) for name in self.columns]
+        self.pending = [tuple(row[name] for name in self.columns) for row in self.rows]
 
     def fetchall(self):
         rows, self.pending = self.pending, []
@@ -78,35 +97,37 @@ class FakeCursor:
 
 
 class FakeConnection:
-    def __init__(self, rows, fail=False):
-        self.rows, self.fail, self.closed = rows, fail, False
+    def __init__(self, rows, fail, columns):
+        self.rows, self.fail, self.columns, self.closed = rows, fail, columns, False
 
     def cursor(self):
-        return FakeCursor(self.rows, self.fail)
+        return FakeCursor(self.rows, self.fail, self.columns)
 
     def close(self):
         self.closed = True
 
 
-def connector(rows=ROWS, fail=False):
+def connector(rows=ROWS, fail=False, spec=snowflake.VALIDATOR_STAKES):
     def connect(name, timeout):
         assert name == "avalanche" and 1 <= timeout <= 600
-        return FakeConnection(rows, fail)
+        return FakeConnection(rows, fail, tuple(spec.raw_types))
 
     return connect
 
 
-def make_capture(tmp_path: Path, rows=ROWS, parameters=None) -> tuple[Path, dict]:
+def make_capture(tmp_path: Path, rows=ROWS, parameters=None, spec=snowflake.VALIDATOR_STAKES) -> tuple[Path, dict]:
     path = tmp_path / "capture"
-    receipt = snowflake.capture(snowflake.DATASET_ID, path, parameters=parameters, connector=connector(rows))
+    receipt = snowflake.capture(spec.dataset_id, path, parameters=parameters, connector=connector(rows, spec=spec))
     return path, receipt
 
 
-def test_catalog_declares_the_snowflake_query_dataset():
+@pytest.mark.parametrize("spec", [snowflake.VALIDATOR_STAKES, snowflake.DELEGATOR_STAKES])
+def test_catalog_declares_each_snowflake_query_dataset(spec):
     catalog = load_catalog()
-    query = snowflake.query_definition(catalog, snowflake.DATASET_ID)
+    query = snowflake.query_definition(catalog, spec.dataset_id)
     assert query["relations"] == ["P_TRANSACTIONS", "UTXOS"]
     assert "%(start)s" in snowflake.read_sql(query) and "%(end)s" in snowflake.read_sql(query)
+    assert [field["name"] for field in load_catalog()["datasets"][-1 if spec is snowflake.DELEGATOR_STAKES else -2]["fields"]] == list(spec.table_columns)
 
 
 def test_parameters_default_to_full_history_and_reject_bad_input():
@@ -215,6 +236,35 @@ def test_malformed_capture_values_are_rejected(tmp_path):
         snowflake.check(capture_dir)
 
 
+def test_delegator_dataset_builds_checks_and_reports_containment(tmp_path):
+    spec = snowflake.DELEGATOR_STAKES
+    capture_dir, receipt = make_capture(tmp_path, DELEGATOR_ROWS, spec=spec)
+    assert receipt["queries"][0]["columns"] == list(spec.raw_types)
+    dataset_dir = tmp_path / "dataset"
+    build = snowflake.build(spec.dataset_id, capture_dir, dataset_dir)
+    assert build["summary"]["rows_by_tx_type"] == {"AddDelegatorTx": 1, "AddPermissionlessDelegatorTx": 1}
+    assert build["summary"]["distinct_delegator_addresses"] == 1 and build["summary"]["rows_without_delegator_address"] == 1
+    validation = snowflake.check(capture_dir, dataset_dir)
+    assert validation["checked"][-3:] == ["validator period containment", "build hashes", "Parquet rows"]
+    assert validation["findings"] == ["1 rows fall outside every validator staking period on their node"]
+    table = snowflake.read_parquet(dataset_dir / "primary-delegator-stakes.parquet", spec)
+    assert table[0]["stake_avax"] == 25 and table[0]["validator_transaction_hash"] == "tx-legacy-1"
+    assert "delegation_fee_shares" not in table[0]
+    with pytest.raises(DataError, match="belongs to"):
+        snowflake.build(snowflake.DATASET_ID, capture_dir, tmp_path / "wrong")
+
+
+def test_capture_stays_valid_when_an_unrelated_catalog_record_changes(tmp_path, monkeypatch):
+    capture_dir, receipt = make_capture(tmp_path)
+    catalog = load_catalog()
+    catalog["datasets"].append({**catalog["datasets"][-1], "id": "snowflake.something-else", "query_ids": ["primary-delegator-stakes"]})
+    monkeypatch.setattr(snowflake, "load_catalog", lambda: catalog)
+    assert snowflake.read_capture(capture_dir) == receipt
+    catalog["sources"][-1]["queries"][0]["relations"].append("P_BLOCKS")
+    with pytest.raises(DataError, match="contract hash differs"):
+        snowflake.read_capture(capture_dir)
+
+
 def test_cli_preview_resolves_parameters_without_writing(tmp_path):
     runner = CliRunner()
     output = tmp_path / "capture"
@@ -229,7 +279,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
     assert value["connection"] == "avalanche" and value["sql"] == "queries/primary-validator-stakes.sql"
     manifest = runner.invoke(cli.cli, ["data", "manifest", "--json"])
     assert [item["id"] for item in json.loads(manifest.output)["records"]] == [
-        "snowpeer.network-summary", snowflake.DATASET_ID,
+        "snowpeer.network-summary", *snowflake.DATASET_IDS,
     ]
 
 

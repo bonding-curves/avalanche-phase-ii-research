@@ -10,19 +10,18 @@ import tempfile
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Any, Callable
 
 import duckdb
 
 from . import __version__
 from .catalog import (
-    DATA_DIR, DataError, canonical_bytes, catalog_hash, dataset, load_catalog, now, sha256, source,
+    DATA_DIR, DataError, canonical_bytes, contract_hash, dataset, load_catalog, now, sha256, source,
 )
 
 
 SOURCE_ID = "avalanche-snowflake"
-DATASET_ID = "snowflake.primary-validator-stakes"
-QUERY_ID = "primary-validator-stakes"
 CONNECTION_VARIABLE = "AVALANCHE_SNOWFLAKE_CONNECTION"
 DEFAULT_CONNECTION = "avalanche"
 QUERY_TAG = "avalanche-phase-ii-research"
@@ -30,46 +29,180 @@ GENESIS_DATE = "2020-09-10"
 NAVAX_PER_AVAX = 1_000_000_000
 FEE_SHARES_PER_UNIT = 1_000_000
 VALIDATOR_TYPES = ("AddValidatorTx", "AddPermissionlessValidatorTx")
+DELEGATOR_TYPES = ("AddDelegatorTx", "AddPermissionlessDelegatorTx")
 DURATION_DAYS = (14, 365)
-STAKE_NAVAX = (2_000 * NAVAX_PER_AVAX, 3_000_000 * NAVAX_PER_AVAX)
+VALIDATOR_STAKE_NAVAX = (2_000 * NAVAX_PER_AVAX, 3_000_000 * NAVAX_PER_AVAX)
+DELEGATOR_STAKE_NAVAX = (25 * NAVAX_PER_AVAX, 3_000_000 * NAVAX_PER_AVAX)
 FEE_SHARES = (20_000, FEE_SHARES_PER_UNIT)
-RAW_COLUMNS_TYPES = {
-    "transaction_hash": "VARCHAR",
-    "accepted_at": "TIMESTAMP",
-    "block_height": "BIGINT",
-    "tx_type": "VARCHAR",
-    "node_id": "VARCHAR",
-    "start_time": "TIMESTAMP",
-    "end_time": "TIMESTAMP",
-    "stake_navax": "BIGINT",
-    "delegation_fee_shares": "INTEGER",
-    "potential_reward_navax": "BIGINT",
-    "rewarded": "BOOLEAN",
-    "staked_utxo_count": "INTEGER",
-    "utxo_stake_navax": "BIGINT",
-}
-RAW_COLUMNS = tuple(RAW_COLUMNS_TYPES)
-TABLE_COLUMNS = {
-    "transaction_hash": "VARCHAR",
-    "accepted_at": "TIMESTAMP",
-    "block_height": "BIGINT",
-    "tx_type": "VARCHAR",
-    "node_id": "VARCHAR",
-    "start_time": "TIMESTAMP",
-    "end_time": "TIMESTAMP",
-    "duration_days": "DOUBLE",
-    "stake_navax": "BIGINT",
-    "stake_avax": "DOUBLE",
-    "delegation_fee_shares": "INTEGER",
-    "delegation_fee_rate": "DOUBLE",
-    "potential_reward_navax": "BIGINT",
-    "potential_reward_avax": "DOUBLE",
-    "rewarded": "BOOLEAN",
-    "staked_utxo_count": "INTEGER",
-    "utxo_stake_navax": "BIGINT",
-}
 SESSION_SQL = "SELECT CURRENT_ROLE(), CURRENT_WAREHOUSE(), CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_VERSION()"
 FETCH_SIZE = 10_000
+
+
+@dataclass(frozen=True)
+class DatasetSpec:
+    """One Snowflake dataset: its capture columns, typed table, and SQL checks."""
+
+    dataset_id: str
+    query_id: str
+    tx_types: tuple[str, ...]
+    raw_types: dict[str, str]
+    table_columns: dict[str, str]
+    transform_sql: str
+    stake_navax: tuple[int, int]
+    check_sql: str
+    check_labels: tuple[str, ...]
+    summary_sql: str
+    summary_keys: tuple[str, ...]
+
+
+_COMMON_RAW = {
+    "transaction_hash": "VARCHAR",
+    "accepted_at": "TIMESTAMP",
+    "block_height": "BIGINT",
+    "tx_type": "VARCHAR",
+    "node_id": "VARCHAR",
+}
+_COMMON_TAIL_RAW = {
+    "start_time": "TIMESTAMP",
+    "end_time": "TIMESTAMP",
+    "stake_navax": "BIGINT",
+    "potential_reward_navax": "BIGINT",
+    "rewarded": "BOOLEAN",
+    "staked_utxo_count": "INTEGER",
+    "utxo_stake_navax": "BIGINT",
+}
+_COMMON_CHECK_SQL = """
+    COUNT(*) - COUNT(DISTINCT transaction_hash),
+    COUNT_IF(accepted_at::DATE < ?::DATE OR accepted_at::DATE >= ?::DATE),
+    COUNT_IF(start_time < accepted_at OR end_time <= start_time),
+    COUNT_IF(duration_days < ? OR duration_days > ?),
+    COUNT_IF(stake_navax < ? OR stake_navax > ?),
+    COUNT_IF(utxo_stake_navax IS NOT NULL AND utxo_stake_navax <> stake_navax)"""
+_COMMON_CHECK_LABELS = (
+    "repeat a transaction hash",
+    "were accepted outside the requested window",
+    "start before acceptance or end before start",
+    "have a duration outside 14 to 365 days",
+    "have a stake outside {stake}",
+    "have staked UTXOs that do not sum to the declared stake",
+)
+_COMMON_SUMMARY_SQL = """
+    COUNT(*), MIN(accepted_at), MAX(accepted_at), COUNT_IF(tx_type = ?), COUNT_IF(tx_type = ?), COUNT(DISTINCT node_id),
+    COUNT_IF(staked_utxo_count = 0), COUNT_IF(rewarded IS NULL), COUNT_IF(potential_reward_navax IS NULL)"""
+_COMMON_SUMMARY_KEYS = (
+    "rows", "accepted_from", "accepted_to", "rows_by_tx_type", "rows_by_tx_type", "distinct_node_ids",
+    "rows_without_staked_utxo", "rows_without_reward_status", "rows_without_potential_reward",
+)
+
+VALIDATOR_STAKES = DatasetSpec(
+    dataset_id="snowflake.primary-validator-stakes",
+    query_id="primary-validator-stakes",
+    tx_types=VALIDATOR_TYPES,
+    raw_types={
+        **_COMMON_RAW,
+        "start_time": "TIMESTAMP",
+        "end_time": "TIMESTAMP",
+        "stake_navax": "BIGINT",
+        "delegation_fee_shares": "INTEGER",
+        "potential_reward_navax": "BIGINT",
+        "rewarded": "BOOLEAN",
+        "staked_utxo_count": "INTEGER",
+        "utxo_stake_navax": "BIGINT",
+    },
+    table_columns={
+        **_COMMON_RAW,
+        "start_time": "TIMESTAMP",
+        "end_time": "TIMESTAMP",
+        "duration_days": "DOUBLE",
+        "stake_navax": "BIGINT",
+        "stake_avax": "DOUBLE",
+        "delegation_fee_shares": "INTEGER",
+        "delegation_fee_rate": "DOUBLE",
+        "potential_reward_navax": "BIGINT",
+        "potential_reward_avax": "DOUBLE",
+        "rewarded": "BOOLEAN",
+        "staked_utxo_count": "INTEGER",
+        "utxo_stake_navax": "BIGINT",
+    },
+    transform_sql="""
+        SELECT transaction_hash, accepted_at, block_height, tx_type, node_id, start_time, end_time,
+               date_diff('second', start_time, end_time)::DOUBLE / 86400 AS duration_days,
+               stake_navax, stake_navax::DOUBLE / 1e9 AS stake_avax,
+               delegation_fee_shares, delegation_fee_shares::DOUBLE / 1e6 AS delegation_fee_rate,
+               potential_reward_navax, potential_reward_navax::DOUBLE / 1e9 AS potential_reward_avax,
+               rewarded, staked_utxo_count, utxo_stake_navax
+        FROM capture
+        ORDER BY accepted_at, transaction_hash""",
+    stake_navax=VALIDATOR_STAKE_NAVAX,
+    check_sql=_COMMON_CHECK_SQL + """,
+    COUNT_IF(delegation_fee_shares IS NULL OR delegation_fee_shares < ? OR delegation_fee_shares > ?)""",
+    check_labels=(
+        *_COMMON_CHECK_LABELS[:5],
+        "have a delegation fee outside 2% to 100%",
+        _COMMON_CHECK_LABELS[5],
+    ),
+    summary_sql=_COMMON_SUMMARY_SQL,
+    summary_keys=_COMMON_SUMMARY_KEYS,
+)
+
+DELEGATOR_STAKES = DatasetSpec(
+    dataset_id="snowflake.primary-delegator-stakes",
+    query_id="primary-delegator-stakes",
+    tx_types=DELEGATOR_TYPES,
+    raw_types={
+        **_COMMON_RAW,
+        "validator_transaction_hash": "VARCHAR",
+        "delegator_address": "VARCHAR",
+        "delegator_address_count": "INTEGER",
+        **_COMMON_TAIL_RAW,
+    },
+    table_columns={
+        **_COMMON_RAW,
+        "validator_transaction_hash": "VARCHAR",
+        "delegator_address": "VARCHAR",
+        "delegator_address_count": "INTEGER",
+        "start_time": "TIMESTAMP",
+        "end_time": "TIMESTAMP",
+        "duration_days": "DOUBLE",
+        "stake_navax": "BIGINT",
+        "stake_avax": "DOUBLE",
+        "potential_reward_navax": "BIGINT",
+        "potential_reward_avax": "DOUBLE",
+        "rewarded": "BOOLEAN",
+        "staked_utxo_count": "INTEGER",
+        "utxo_stake_navax": "BIGINT",
+    },
+    transform_sql="""
+        SELECT transaction_hash, accepted_at, block_height, tx_type, node_id, validator_transaction_hash,
+               delegator_address, delegator_address_count, start_time, end_time,
+               date_diff('second', start_time, end_time)::DOUBLE / 86400 AS duration_days,
+               stake_navax, stake_navax::DOUBLE / 1e9 AS stake_avax,
+               potential_reward_navax, potential_reward_navax::DOUBLE / 1e9 AS potential_reward_avax,
+               rewarded, staked_utxo_count, utxo_stake_navax
+        FROM capture
+        ORDER BY accepted_at, transaction_hash""",
+    stake_navax=DELEGATOR_STAKE_NAVAX,
+    check_sql=_COMMON_CHECK_SQL + """,
+    COUNT_IF(validator_transaction_hash IS NULL)""",
+    check_labels=(*_COMMON_CHECK_LABELS, "fall outside every validator staking period on their node"),
+    summary_sql=_COMMON_SUMMARY_SQL + """,
+    COUNT(DISTINCT delegator_address), COUNT_IF(delegator_address IS NULL), COUNT_IF(delegator_address_count > 1)""",
+    summary_keys=(
+        *_COMMON_SUMMARY_KEYS,
+        "distinct_delegator_addresses", "rows_without_delegator_address", "rows_with_several_delegator_addresses",
+    ),
+)
+
+SPECS = {spec.dataset_id: spec for spec in (VALIDATOR_STAKES, DELEGATOR_STAKES)}
+DATASET_IDS = tuple(SPECS)
+DATASET_ID = VALIDATOR_STAKES.dataset_id
+
+
+def spec_for(dataset_id: str) -> DatasetSpec:
+    try:
+        return SPECS[dataset_id]
+    except KeyError:
+        raise DataError(f"unknown Snowflake dataset: {dataset_id}") from None
 
 
 def connection_name() -> str:
@@ -100,11 +233,12 @@ def _connector_error(error: BaseException) -> bool:
 
 
 def query_definition(catalog: dict[str, Any], dataset_id: str) -> dict[str, Any]:
+    spec = spec_for(dataset_id)
     definition = dataset(catalog, dataset_id)
     provider = source(catalog, definition["source_id"])
-    if "queries" not in provider or definition.get("query_ids") != [QUERY_ID]:
+    if "queries" not in provider or definition.get("query_ids") != [spec.query_id]:
         raise DataError(f"dataset is not a Snowflake query dataset: {dataset_id}")
-    return next(item for item in provider["queries"] if item["id"] == QUERY_ID)
+    return next(item for item in provider["queries"] if item["id"] == spec.query_id)
 
 
 def read_sql(query: dict[str, Any]) -> str:
@@ -139,6 +273,7 @@ def capture_preview(
     catalog: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     catalog = catalog or load_catalog()
+    spec = spec_for(dataset_id)
     query = query_definition(catalog, dataset_id)
     sql_text = read_sql(query)
     return {
@@ -146,11 +281,11 @@ def capture_preview(
         "source_id": SOURCE_ID,
         "output": str(output),
         "connection": connection_name(),
-        "query_id": QUERY_ID,
+        "query_id": spec.query_id,
         "sql": query["sql"],
         "sql_sha256": sha256(sql_text.encode()),
         "parameters": resolve_parameters(parameters),
-        "writes": [f"raw/{QUERY_ID}.sql", f"raw/{QUERY_ID}.jsonl.gz", "capture.json"],
+        "writes": [f"raw/{spec.query_id}.sql", f"raw/{spec.query_id}.jsonl.gz", "capture.json"],
         "overwrite": False,
     }
 
@@ -189,8 +324,10 @@ def capture(
     connector: Callable[[str, float], Any] = connect,
 ) -> dict[str, Any]:
     catalog = catalog or load_catalog()
+    spec = spec_for(dataset_id)
     preview = capture_preview(dataset_id, output, parameters, catalog)
     sql_text = read_sql(query_definition(catalog, dataset_id))
+    expected_columns = tuple(spec.raw_types)
     if output.exists():
         raise DataError(f"output already exists: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -198,8 +335,8 @@ def capture(
     try:
         raw = temporary / "raw"
         raw.mkdir()
-        sql_path = raw / f"{QUERY_ID}.sql"
-        rows_path = raw / f"{QUERY_ID}.jsonl.gz"
+        sql_path = raw / f"{spec.query_id}.sql"
+        rows_path = raw / f"{spec.query_id}.jsonl.gz"
         sql_path.write_text(sql_text, encoding="utf-8")
         started_at = now()
         connection = connector(preview["connection"], timeout)
@@ -209,7 +346,7 @@ def capture(
             try:
                 cursor.execute(sql_text, preview["parameters"])
                 columns = tuple(item[0].lower() for item in cursor.description)
-                if columns != RAW_COLUMNS:
+                if columns != expected_columns:
                     raise DataError(f"query returned unexpected columns: {', '.join(columns)}")
                 rows = 0
                 with rows_path.open("wb") as file, gzip.GzipFile(fileobj=file, mode="wb", mtime=0) as handle:
@@ -226,7 +363,7 @@ def capture(
         completed_at = now()
         body = rows_path.read_bytes()
         record = {
-            "query_id": QUERY_ID,
+            "query_id": spec.query_id,
             "sql_path": f"raw/{sql_path.name}",
             "sql_sha256": preview["sql_sha256"],
             "parameters": preview["parameters"],
@@ -246,7 +383,7 @@ def capture(
             "dataset_id": dataset_id,
             "source_id": SOURCE_ID,
             "completed_at": completed_at,
-            "catalog_sha256": catalog_hash(catalog),
+            "contract_sha256": contract_hash(catalog, dataset_id),
             "tool": f"avalanche-research@{__version__}",
             "session": session,
             "queries": [record],
@@ -270,12 +407,13 @@ def read_capture(capture_dir: Path, catalog: dict[str, Any] | None = None) -> di
         raise DataError(f"invalid capture receipt: {error}") from error
     if receipt.get("schema_version") != "snowflake-capture/v1":
         raise DataError("unsupported capture receipt schema")
-    if receipt.get("catalog_sha256") != catalog_hash(catalog):
-        raise DataError("capture catalog hash differs from the current data contract")
-    if len(receipt.get("queries", [])) != 1 or receipt["queries"][0].get("query_id") != QUERY_ID:
+    spec = spec_for(receipt.get("dataset_id", ""))
+    if receipt.get("contract_sha256") != contract_hash(catalog, spec.dataset_id):
+        raise DataError("capture contract hash differs from the current data contract")
+    if len(receipt.get("queries", [])) != 1 or receipt["queries"][0].get("query_id") != spec.query_id:
         raise DataError("capture does not contain the expected query")
     record = receipt["queries"][0]
-    current_sql = read_sql(query_definition(catalog, receipt["dataset_id"]))
+    current_sql = read_sql(query_definition(catalog, spec.dataset_id))
     try:
         captured_sql = (capture_dir / record["sql_path"]).read_bytes()
         body = (capture_dir / record["path"]).read_bytes()
@@ -285,47 +423,23 @@ def read_capture(capture_dir: Path, catalog: dict[str, Any] | None = None) -> di
         raise DataError("captured query text differs from the current data contract")
     if sha256(body) != record.get("sha256") or len(body) != record.get("bytes"):
         raise DataError(f"captured result hash or size differs: {record['path']}")
-    if tuple(record.get("columns", ())) != RAW_COLUMNS or not isinstance(record.get("rows"), int):
+    if tuple(record.get("columns", ())) != tuple(spec.raw_types) or not isinstance(record.get("rows"), int):
         raise DataError("captured result columns differ from the data contract")
     return receipt
 
 
-TRANSFORM_SQL = """
-SELECT
-  transaction_hash,
-  accepted_at,
-  block_height,
-  tx_type,
-  node_id,
-  start_time,
-  end_time,
-  date_diff('second', start_time, end_time)::DOUBLE / 86400 AS duration_days,
-  stake_navax,
-  stake_navax::DOUBLE / 1e9 AS stake_avax,
-  delegation_fee_shares,
-  delegation_fee_shares::DOUBLE / 1e6 AS delegation_fee_rate,
-  potential_reward_navax,
-  potential_reward_navax::DOUBLE / 1e9 AS potential_reward_avax,
-  rewarded,
-  staked_utxo_count,
-  utxo_stake_navax
-FROM capture
-ORDER BY accepted_at, transaction_hash
-"""
-
-
-def load_capture(connection: Any, capture_dir: Path, receipt: dict[str, Any]) -> None:
+def load_capture(connection: Any, spec: DatasetSpec, capture_dir: Path, receipt: dict[str, Any]) -> None:
     """Read the compressed capture into DuckDB with the declared types and build the typed rows table."""
     record = receipt["queries"][0]
-    declared = ", ".join(f"{name}: '{kind}'" for name, kind in RAW_COLUMNS_TYPES.items())
-    typed = ", ".join(f"{name} {kind}" for name, kind in TABLE_COLUMNS.items())
+    declared = ", ".join(f"{name}: '{kind}'" for name, kind in spec.raw_types.items())
+    typed = ", ".join(f"{name} {kind}" for name, kind in spec.table_columns.items())
     path = str(capture_dir / record["path"]).replace("'", "''")
     try:
         connection.execute(
             f"CREATE VIEW capture AS SELECT * FROM read_json('{path}', columns={{{declared}}}, format='newline_delimited')"
         )
         connection.execute(f"CREATE TABLE rows({typed})")
-        connection.execute(f"INSERT INTO rows {TRANSFORM_SQL}")
+        connection.execute(f"INSERT INTO rows {spec.transform_sql}")
         count = connection.execute("SELECT COUNT(*) FROM rows").fetchone()[0]
     except duckdb.Error as error:
         raise DataError(f"captured rows do not match the declared types: {error}") from error
@@ -335,49 +449,38 @@ def load_capture(connection: Any, capture_dir: Path, receipt: dict[str, Any]) ->
         """
         SELECT COUNT_IF(transaction_hash IS NULL OR transaction_hash = '' OR node_id IS NULL OR node_id = ''
                         OR accepted_at IS NULL OR start_time IS NULL OR end_time IS NULL OR block_height IS NULL
-                        OR stake_navax IS NULL OR delegation_fee_shares IS NULL OR staked_utxo_count IS NULL),
+                        OR stake_navax IS NULL OR staked_utxo_count IS NULL),
                COUNT_IF(tx_type IS NULL OR tx_type NOT IN (?, ?)),
-               COUNT_IF(stake_navax < 0 OR delegation_fee_shares < 0 OR potential_reward_navax < 0
-                        OR staked_utxo_count < 0 OR utxo_stake_navax < 0)
+               COUNT_IF(stake_navax < 0 OR potential_reward_navax < 0 OR staked_utxo_count < 0 OR utxo_stake_navax < 0)
         FROM rows
         """,
-        list(VALIDATOR_TYPES),
+        list(spec.tx_types),
     ).fetchone()
-    for failed, label in zip(invalid, ("miss a required field", "are not validator transactions", "carry a negative amount")):
+    for failed, label in zip(invalid, ("miss a required field", "have an unexpected transaction type", "carry a negative amount")):
         if failed:
             raise DataError(f"{failed} captured rows {label}")
 
 
-def summarize(connection: Any) -> dict[str, Any]:
-    record = connection.execute(
-        """
-        SELECT COUNT(*), MIN(accepted_at), MAX(accepted_at),
-               COUNT_IF(tx_type = ?), COUNT_IF(tx_type = ?), COUNT(DISTINCT node_id),
-               COUNT_IF(staked_utxo_count = 0), COUNT_IF(rewarded IS NULL), COUNT_IF(potential_reward_navax IS NULL)
-        FROM rows
-        """,
-        list(VALIDATOR_TYPES),
-    ).fetchone()
-    return {
-        "rows": record[0],
-        "accepted_from": _json_value(record[1]),
-        "accepted_to": _json_value(record[2]),
-        "rows_by_tx_type": dict(zip(VALIDATOR_TYPES, record[3:5])),
-        "distinct_node_ids": record[5],
-        "rows_without_staked_utxo": record[6],
-        "rows_without_reward_status": record[7],
-        "rows_without_potential_reward": record[8],
-    }
+def summarize(connection: Any, spec: DatasetSpec) -> dict[str, Any]:
+    record = connection.execute(f"SELECT {spec.summary_sql} FROM rows", list(spec.tx_types)).fetchone()
+    summary: dict[str, Any] = {}
+    for key, value in zip(spec.summary_keys, record):
+        if key == "rows_by_tx_type":
+            summary.setdefault(key, {})[spec.tx_types[len(summary[key])]] = value
+        else:
+            summary[key] = _json_value(value)
+    return summary
 
 
 def build_preview(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     catalog = load_catalog()
+    spec = spec_for(dataset_id)
     query_definition(catalog, dataset_id)
     return {
         "dataset_id": dataset_id,
         "capture": str(capture_dir),
         "output": str(output),
-        "writes": [f"{QUERY_ID}.parquet", "build.json"],
+        "writes": [f"{spec.query_id}.parquet", "build.json"],
         "overwrite": False,
     }
 
@@ -386,6 +489,7 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     if output.exists():
         raise DataError(f"output already exists: {output}")
     catalog = load_catalog()
+    spec = spec_for(dataset_id)
     definition = dataset(catalog, dataset_id)
     query_definition(catalog, dataset_id)
     receipt = read_capture(capture_dir, catalog)
@@ -394,12 +498,12 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:
-        parquet_path = temporary / f"{QUERY_ID}.parquet"
+        parquet_path = temporary / f"{spec.query_id}.parquet"
         connection = duckdb.connect()
         try:
-            load_capture(connection, capture_dir, receipt)
+            load_capture(connection, spec, capture_dir, receipt)
             connection.execute("COPY rows TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(parquet_path)])
-            summary = summarize(connection)
+            summary = summarize(connection, spec)
         finally:
             connection.close()
         build_receipt = {
@@ -422,8 +526,8 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     return build_receipt
 
 
-def read_parquet(path: Path) -> list[dict[str, Any]]:
-    columns = list(TABLE_COLUMNS)
+def read_parquet(path: Path, spec: DatasetSpec = VALIDATOR_STAKES) -> list[dict[str, Any]]:
+    columns = list(spec.table_columns)
     connection = duckdb.connect()
     try:
         records = connection.execute(
@@ -437,39 +541,28 @@ def read_parquet(path: Path) -> list[dict[str, Any]]:
 def check(capture_dir: Path, dataset_dir: Path | None = None) -> dict[str, Any]:
     catalog = load_catalog()
     receipt = read_capture(capture_dir, catalog)
+    spec = spec_for(receipt["dataset_id"])
     window = receipt["queries"][0]["parameters"]
+    stake = f"{spec.stake_navax[0] // NAVAX_PER_AVAX:,} to {spec.stake_navax[1] // NAVAX_PER_AVAX:,} AVAX"
     findings: list[str] = []
     checked = [
         "capture hashes", "query text", "field types", "unique transaction hashes", "acceptance window",
-        "time ordering", "duration bounds", "stake bounds", "delegation fee bounds", "staked-UTXO reconciliation",
+        "time ordering", "duration bounds", "stake bounds", "staked-UTXO reconciliation",
     ]
+    checked.extend(
+        ["delegation fee bounds"] if spec is VALIDATOR_STAKES else ["validator period containment"]
+    )
     connection = duckdb.connect()
     try:
-        load_capture(connection, capture_dir, receipt)
-        counts = connection.execute(
-            """
-            SELECT COUNT(*) - COUNT(DISTINCT transaction_hash),
-                   COUNT_IF(accepted_at::DATE < ?::DATE OR accepted_at::DATE >= ?::DATE),
-                   COUNT_IF(start_time < accepted_at OR end_time <= start_time),
-                   COUNT_IF(duration_days < ? OR duration_days > ?),
-                   COUNT_IF(stake_navax < ? OR stake_navax > ?),
-                   COUNT_IF(delegation_fee_shares < ? OR delegation_fee_shares > ?),
-                   COUNT_IF(utxo_stake_navax IS NOT NULL AND utxo_stake_navax <> stake_navax)
-            FROM rows
-            """,
-            [window["start"], window["end"], *DURATION_DAYS, *STAKE_NAVAX, *FEE_SHARES],
-        ).fetchone()
-        labels = (
-            "repeat a transaction hash",
-            "were accepted outside the requested window",
-            "start before acceptance or end before start",
-            "have a duration outside 14 to 365 days",
-            "have a stake outside 2,000 to 3,000,000 AVAX",
-            "have a delegation fee outside 2% to 100%",
-            "have staked UTXOs that do not sum to the declared stake",
+        load_capture(connection, spec, capture_dir, receipt)
+        params = [window["start"], window["end"], *DURATION_DAYS, *spec.stake_navax]
+        if spec is VALIDATOR_STAKES:
+            params.extend(FEE_SHARES)
+        counts = connection.execute(f"SELECT {spec.check_sql} FROM rows", params).fetchone()
+        findings.extend(
+            f"{failed} rows {label.format(stake=stake)}" for failed, label in zip(counts, spec.check_labels) if failed
         )
-        findings.extend(f"{failed} rows {label}" for failed, label in zip(counts, labels) if failed)
-        summary = summarize(connection)
+        summary = summarize(connection, spec)
         if dataset_dir is not None:
             checked.extend(["build hashes", "Parquet rows"])
             try:
@@ -478,12 +571,12 @@ def check(capture_dir: Path, dataset_dir: Path | None = None) -> dict[str, Any]:
                     body = (dataset_dir / item["path"]).read_bytes()
                     if len(body) != item["bytes"] or sha256(body) != item["sha256"]:
                         findings.append(f"output hash or size differs: {item['path']}")
-                parquet = str(dataset_dir / f"{QUERY_ID}.parquet")
+                parquet = str(dataset_dir / f"{spec.query_id}.parquet")
                 schema = connection.execute("DESCRIBE SELECT * FROM read_parquet(?)", [parquet]).fetchall()
-                if [(item[0], item[1]) for item in schema] != list(TABLE_COLUMNS.items()):
+                if [(item[0], item[1]) for item in schema] != list(spec.table_columns.items()):
                     findings.append("Parquet schema differs from the dataset contract")
                 else:
-                    columns = ", ".join(TABLE_COLUMNS)
+                    columns = ", ".join(spec.table_columns)
                     differing = connection.execute(
                         f"""
                         SELECT (SELECT COUNT(*) FROM (SELECT {columns} FROM rows EXCEPT ALL SELECT {columns} FROM read_parquet(?)))
