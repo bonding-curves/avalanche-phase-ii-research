@@ -8,6 +8,7 @@ dependencies = [
   "click>=8.2,<9",
   "duckdb>=1.4,<2",
   "jsonschema>=4.25,<5",
+  "pandas>=2.2,<3",
 ]
 
 [project.scripts]

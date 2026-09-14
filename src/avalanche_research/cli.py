@@ -11,6 +11,7 @@ import click
 
 from . import __version__
 from . import coingecko
+from . import datasets
 from . import defillama
 from . import snowflake
 from . import snowpeer
@@ -171,6 +172,17 @@ def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, aga
         validation=value, findings=value["findings"],
     )
     finish(result, as_json)
+
+
+@data.command("runs")
+@click.argument("dataset_id", required=False)
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def list_runs(dataset_id: str | None, as_json: bool) -> None:
+    """List built runs under data/runs for one dataset or for every dataset."""
+    records = datasets.runs(dataset_id)
+    items = [f"{item['dataset_id']} | {item['run']} | captured {item['captured_at']} | rows {item['rows']}" for item in records]
+    serializable = [{key: (str(value) if isinstance(value, Path) else value) for key, value in item.items()} for item in records]
+    finish(envelope("data runs", "pass", {"text": f"{len(records)} runs"}, items=items, records=serializable), as_json)
 
 
 @data.command()

@@ -139,6 +139,21 @@ uv run --locked avalanche data check coingecko.avax-market-daily \
 
 The cross-check pairs each CoinGecko midnight observation with the DefiLlama observation nearest that day's start when it lies within three hours, reports the median and maximum relative difference and the days it could not align, and raises a finding for any aligned day beyond 10%.
 
+## Use datasets from a notebook
+
+Notebooks load built datasets by catalog ID. Nothing is fetched on load; the functions read the receipts and Parquet files that `fetch` and `build` wrote under `data/runs/`, verify the Parquet hash against the build receipt, and hand back typed tables.
+
+```python
+from avalanche_research import datasets
+
+validators = datasets.load("snowflake.primary-validator-stakes")          # latest built run, pandas DataFrame
+receipt = datasets.receipt("snowflake.primary-validator-stakes")          # capture and build receipts of that run
+db = datasets.connect()                                                   # DuckDB with one view per built dataset
+db.execute("SELECT COUNT(*) FROM delegator_stakes JOIN validator_stakes ON validator_transaction_hash = transaction_hash").fetchone()
+```
+
+`datasets.runs(dataset_id)` lists the built runs with capture time and row count; pass `run="<directory name>"` to any call to pin one. View names drop the source prefix and the `primary-` prefix: `validator_stakes`, `delegator_stakes`, `staking_rewards`, `staking_supply`, `avax_market_daily`, `avax_price_daily`, `network_summary`. The same listing is available as `avalanche data runs [dataset_id]`.
+
 ## Inspect the contract
 
 ```bash
