@@ -1,0 +1,83 @@
+{
+  "$schema": "data-catalog.schema.json",
+  "schema_version": "avalanche-data-catalog/v1",
+  "sources": [
+    {
+      "id": "snowpeer",
+      "name": "Snowpeer API",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Snowpeer-curated Avalanche network observations. Use for discovery and cross-checking, not as raw on-chain truth.",
+      "documentation_url": "https://api.snowpeer.io/docs",
+      "authentication": "none declared by the observed public API",
+      "reuse_status": "Public access observed; redistribution terms remain unassessed.",
+      "endpoints": [
+        {
+          "id": "total-market-cap",
+          "url": "https://api.snowpeer.io/v1/stats/subnets/total-market-cap",
+          "response_fields": ["mcap"]
+        },
+        {
+          "id": "general-stats",
+          "url": "https://api.snowpeer.io/v1/stats/subnets/general-stats",
+          "response_fields": ["activeL1Count", "l1ValidatorCount"]
+        },
+        {
+          "id": "primary-validator-count",
+          "url": "https://api.snowpeer.io/v1/subnets/11111111111111111111111111111111LpoYY/validator-count",
+          "response_fields": ["count", "subnetID"]
+        },
+        {
+          "id": "average-tps-30d",
+          "url": "https://api.snowpeer.io/v1/stats/subnets/30d-daily-average-tps",
+          "response_fields": ["dailyAvgTps"]
+        },
+        {
+          "id": "average-daily-transactions-30d",
+          "url": "https://api.snowpeer.io/v1/stats/subnets/30d-daily-average-tx-count",
+          "response_fields": ["dailyTxCount"]
+        },
+        {
+          "id": "average-daily-icm-30d",
+          "url": "https://api.snowpeer.io/v1/stats/subnets/30d-daily-average-icm-count",
+          "response_fields": ["dailyIcmCount"]
+        }
+      ],
+      "observed_site_cross_check": {
+        "url": "https://snowpeer.io/api/l1metrics?network=mainnet",
+        "stability": "site-internal observation; not used as the default public contract",
+        "relations": [
+          "l1Count = activeL1Count + Avalanche Primary Network",
+          "validatorCount = l1ValidatorCount + Primary Network validator count",
+          "dailyIcm / 2 = public 30-day daily average ICM count"
+        ]
+      }
+    }
+  ],
+  "datasets": [
+    {
+      "id": "snowpeer.network-summary",
+      "name": "Snowpeer network-wide summary",
+      "source_id": "snowpeer",
+      "status": "implemented",
+      "description": "Timestamped reconstruction of the six network-wide values displayed on Snowpeer's current statistics page.",
+      "endpoint_ids": [
+        "total-market-cap",
+        "general-stats",
+        "primary-validator-count",
+        "average-tps-30d",
+        "average-daily-transactions-30d",
+        "average-daily-icm-30d"
+      ],
+      "fields": [
+        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "capture completion time"},
+        {"name": "market_cap_usd", "type": "integer", "unit": "nominal USD", "derivation": "total-market-cap.mcap"},
+        {"name": "l1_count", "type": "integer", "unit": "networks", "derivation": "general-stats.activeL1Count + 1 Primary Network"},
+        {"name": "validator_count", "type": "integer", "unit": "validators", "derivation": "general-stats.l1ValidatorCount + primary-validator-count.count"},
+        {"name": "average_tps_30d", "type": "number", "unit": "transactions per second", "derivation": "average-tps-30d.dailyAvgTps"},
+        {"name": "average_daily_transactions_30d", "type": "integer", "unit": "transactions per day", "derivation": "average-daily-transactions-30d.dailyTxCount"},
+        {"name": "average_daily_icm_messages_30d", "type": "integer", "unit": "messages per day", "derivation": "average-daily-icm-30d.dailyIcmCount"}
+      ]
+    }
+  ]
+}
