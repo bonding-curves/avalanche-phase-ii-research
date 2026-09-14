@@ -33,11 +33,22 @@ VALIDATOR_TYPES = ("AddValidatorTx", "AddPermissionlessValidatorTx")
 DURATION_DAYS = (14, 365)
 STAKE_NAVAX = (2_000 * NAVAX_PER_AVAX, 3_000_000 * NAVAX_PER_AVAX)
 FEE_SHARES = (20_000, FEE_SHARES_PER_UNIT)
-RAW_COLUMNS = (
-    "transaction_hash", "accepted_at", "block_height", "tx_type", "node_id", "start_time", "end_time",
-    "stake_navax", "delegation_fee_shares", "potential_reward_navax", "rewarded",
-    "staked_utxo_count", "utxo_stake_navax",
-)
+RAW_COLUMNS_TYPES = {
+    "transaction_hash": "VARCHAR",
+    "accepted_at": "TIMESTAMP",
+    "block_height": "BIGINT",
+    "tx_type": "VARCHAR",
+    "node_id": "VARCHAR",
+    "start_time": "TIMESTAMP",
+    "end_time": "TIMESTAMP",
+    "stake_navax": "BIGINT",
+    "delegation_fee_shares": "INTEGER",
+    "potential_reward_navax": "BIGINT",
+    "rewarded": "BOOLEAN",
+    "staked_utxo_count": "INTEGER",
+    "utxo_stake_navax": "BIGINT",
+}
+RAW_COLUMNS = tuple(RAW_COLUMNS_TYPES)
 TABLE_COLUMNS = {
     "transaction_hash": "VARCHAR",
     "accepted_at": "TIMESTAMP",
@@ -250,10 +261,8 @@ def capture(
     return receipt
 
 
-def read_capture(
-    capture_dir: Path,
-    catalog: dict[str, Any] | None = None,
-) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def read_capture(capture_dir: Path, catalog: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Verify a capture's receipt, query text, and result hash, and return the receipt."""
     catalog = catalog or load_catalog()
     try:
         receipt = json.loads((capture_dir / "capture.json").read_text(encoding="utf-8"))
@@ -276,100 +285,88 @@ def read_capture(
         raise DataError("captured query text differs from the current data contract")
     if sha256(body) != record.get("sha256") or len(body) != record.get("bytes"):
         raise DataError(f"captured result hash or size differs: {record['path']}")
+    if tuple(record.get("columns", ())) != RAW_COLUMNS or not isinstance(record.get("rows"), int):
+        raise DataError("captured result columns differ from the data contract")
+    return receipt
+
+
+TRANSFORM_SQL = """
+SELECT
+  transaction_hash,
+  accepted_at,
+  block_height,
+  tx_type,
+  node_id,
+  start_time,
+  end_time,
+  date_diff('second', start_time, end_time)::DOUBLE / 86400 AS duration_days,
+  stake_navax,
+  stake_navax::DOUBLE / 1e9 AS stake_avax,
+  delegation_fee_shares,
+  delegation_fee_shares::DOUBLE / 1e6 AS delegation_fee_rate,
+  potential_reward_navax,
+  potential_reward_navax::DOUBLE / 1e9 AS potential_reward_avax,
+  rewarded,
+  staked_utxo_count,
+  utxo_stake_navax
+FROM capture
+ORDER BY accepted_at, transaction_hash
+"""
+
+
+def load_capture(connection: Any, capture_dir: Path, receipt: dict[str, Any]) -> None:
+    """Read the compressed capture into DuckDB with the declared types and build the typed rows table."""
+    record = receipt["queries"][0]
+    declared = ", ".join(f"{name}: '{kind}'" for name, kind in RAW_COLUMNS_TYPES.items())
+    typed = ", ".join(f"{name} {kind}" for name, kind in TABLE_COLUMNS.items())
+    path = str(capture_dir / record["path"]).replace("'", "''")
     try:
-        lines = gzip.decompress(body).decode("utf-8").splitlines()
-        rows = [json.loads(line) for line in lines]
-    except (OSError, ValueError) as error:
-        raise DataError(f"captured result is not compressed JSON lines: {error}") from error
-    if len(rows) != record.get("rows") or tuple(record.get("columns", ())) != RAW_COLUMNS:
-        raise DataError("captured result rows or columns differ from the receipt")
-    for index, row in enumerate(rows):
-        if not isinstance(row, dict) or tuple(sorted(row)) != tuple(sorted(RAW_COLUMNS)):
-            raise DataError(f"captured row {index} has unexpected fields")
-    return receipt, rows
+        connection.execute(
+            f"CREATE VIEW capture AS SELECT * FROM read_json('{path}', columns={{{declared}}}, format='newline_delimited')"
+        )
+        connection.execute(f"CREATE TABLE rows({typed})")
+        connection.execute(f"INSERT INTO rows {TRANSFORM_SQL}")
+        count = connection.execute("SELECT COUNT(*) FROM rows").fetchone()[0]
+    except duckdb.Error as error:
+        raise DataError(f"captured rows do not match the declared types: {error}") from error
+    if count != record["rows"]:
+        raise DataError(f"captured result holds {count} rows, receipt declares {record['rows']}")
+    invalid = connection.execute(
+        """
+        SELECT COUNT_IF(transaction_hash IS NULL OR transaction_hash = '' OR node_id IS NULL OR node_id = ''
+                        OR accepted_at IS NULL OR start_time IS NULL OR end_time IS NULL OR block_height IS NULL
+                        OR stake_navax IS NULL OR delegation_fee_shares IS NULL OR staked_utxo_count IS NULL),
+               COUNT_IF(tx_type IS NULL OR tx_type NOT IN (?, ?)),
+               COUNT_IF(stake_navax < 0 OR delegation_fee_shares < 0 OR potential_reward_navax < 0
+                        OR staked_utxo_count < 0 OR utxo_stake_navax < 0)
+        FROM rows
+        """,
+        list(VALIDATOR_TYPES),
+    ).fetchone()
+    for failed, label in zip(invalid, ("miss a required field", "are not validator transactions", "carry a negative amount")):
+        if failed:
+            raise DataError(f"{failed} captured rows {label}")
 
 
-def _text(row: dict[str, Any], field: str) -> str:
-    value = row[field]
-    if not isinstance(value, str) or not value:
-        raise DataError(f"{field} must be a non-empty string")
-    return value
-
-
-def _integer(row: dict[str, Any], field: str, nullable: bool = False, minimum: int | None = 0) -> int | None:
-    value = row[field]
-    if value is None and nullable:
-        return None
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise DataError(f"{field} must be an integer")
-    if minimum is not None and value < minimum:
-        raise DataError(f"{field} has an invalid value: {value}")
-    return value
-
-
-def _timestamp(row: dict[str, Any], field: str) -> str:
-    value = row[field]
-    try:
-        if not isinstance(value, str) or not value.endswith("Z"):
-            raise ValueError(value)
-        datetime.fromisoformat(value[:-1])
-    except ValueError as error:
-        raise DataError(f"{field} must be an ISO 8601 UTC timestamp") from error
-    return value
-
-
-def _instant(value: str) -> datetime:
-    return datetime.fromisoformat(value[:-1]).replace(tzinfo=timezone.utc)
-
-
-def transform_row(raw: dict[str, Any]) -> dict[str, Any]:
-    tx_type = _text(raw, "tx_type")
-    if tx_type not in VALIDATOR_TYPES:
-        raise DataError(f"tx_type is not a validator transaction: {tx_type}")
-    rewarded = raw["rewarded"]
-    if rewarded is not None and not isinstance(rewarded, bool):
-        raise DataError("rewarded must be a boolean or null")
-    start_time = _timestamp(raw, "start_time")
-    end_time = _timestamp(raw, "end_time")
-    stake_navax = _integer(raw, "stake_navax")
-    delegation_fee_shares = _integer(raw, "delegation_fee_shares")
-    potential_reward_navax = _integer(raw, "potential_reward_navax", nullable=True)
+def summarize(connection: Any) -> dict[str, Any]:
+    record = connection.execute(
+        """
+        SELECT COUNT(*), MIN(accepted_at), MAX(accepted_at),
+               COUNT_IF(tx_type = ?), COUNT_IF(tx_type = ?), COUNT(DISTINCT node_id),
+               COUNT_IF(staked_utxo_count = 0), COUNT_IF(rewarded IS NULL), COUNT_IF(potential_reward_navax IS NULL)
+        FROM rows
+        """,
+        list(VALIDATOR_TYPES),
+    ).fetchone()
     return {
-        "transaction_hash": _text(raw, "transaction_hash"),
-        "accepted_at": _timestamp(raw, "accepted_at"),
-        "block_height": _integer(raw, "block_height", minimum=None),
-        "tx_type": tx_type,
-        "node_id": _text(raw, "node_id"),
-        "start_time": start_time,
-        "end_time": end_time,
-        "duration_days": (_instant(end_time) - _instant(start_time)).total_seconds() / 86_400,
-        "stake_navax": stake_navax,
-        "stake_avax": stake_navax / NAVAX_PER_AVAX,
-        "delegation_fee_shares": delegation_fee_shares,
-        "delegation_fee_rate": delegation_fee_shares / FEE_SHARES_PER_UNIT,
-        "potential_reward_navax": potential_reward_navax,
-        "potential_reward_avax": None if potential_reward_navax is None else potential_reward_navax / NAVAX_PER_AVAX,
-        "rewarded": rewarded,
-        "staked_utxo_count": _integer(raw, "staked_utxo_count"),
-        "utxo_stake_navax": _integer(raw, "utxo_stake_navax", nullable=True),
-    }
-
-
-def transform(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [transform_row(row) for row in rows]
-
-
-def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    accepted = [row["accepted_at"] for row in rows]
-    return {
-        "rows": len(rows),
-        "accepted_from": min(accepted) if accepted else None,
-        "accepted_to": max(accepted) if accepted else None,
-        "rows_by_tx_type": {kind: sum(row["tx_type"] == kind for row in rows) for kind in VALIDATOR_TYPES},
-        "distinct_node_ids": len({row["node_id"] for row in rows}),
-        "rows_without_staked_utxo": sum(row["staked_utxo_count"] == 0 for row in rows),
-        "rows_without_reward_status": sum(row["rewarded"] is None for row in rows),
-        "rows_without_potential_reward": sum(row["potential_reward_navax"] is None for row in rows),
+        "rows": record[0],
+        "accepted_from": _json_value(record[1]),
+        "accepted_to": _json_value(record[2]),
+        "rows_by_tx_type": dict(zip(VALIDATOR_TYPES, record[3:5])),
+        "distinct_node_ids": record[5],
+        "rows_without_staked_utxo": record[6],
+        "rows_without_reward_status": record[7],
+        "rows_without_potential_reward": record[8],
     }
 
 
@@ -391,15 +388,20 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     catalog = load_catalog()
     definition = dataset(catalog, dataset_id)
     query_definition(catalog, dataset_id)
-    receipt, raw_rows = read_capture(capture_dir, catalog)
+    receipt = read_capture(capture_dir, catalog)
     if receipt["dataset_id"] != dataset_id:
         raise DataError(f"capture belongs to {receipt['dataset_id']}, not {dataset_id}")
-    rows = transform(raw_rows)
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:
         parquet_path = temporary / f"{QUERY_ID}.parquet"
-        write_parquet(rows, parquet_path)
+        connection = duckdb.connect()
+        try:
+            load_capture(connection, capture_dir, receipt)
+            connection.execute("COPY rows TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(parquet_path)])
+            summary = summarize(connection)
+        finally:
+            connection.close()
         build_receipt = {
             "schema_version": "snowflake-build/v1",
             "dataset_id": dataset_id,
@@ -407,7 +409,7 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
             "source_capture_id": receipt["capture_id"],
             "completed_at": now(),
             "tool": f"avalanche-research@{__version__}",
-            "summary": summarize(rows),
+            "summary": summary,
             "outputs": [
                 {"path": parquet_path.name, "bytes": parquet_path.stat().st_size, "sha256": sha256(parquet_path.read_bytes())},
             ],
@@ -418,27 +420,6 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
         shutil.rmtree(temporary, ignore_errors=True)
         raise
     return build_receipt
-
-
-def write_parquet(rows: list[dict[str, Any]], path: Path) -> None:
-    """Write typed rows to Parquet by loading a temporary JSON lines file into DuckDB in one statement."""
-    timestamps = {name for name, kind in TABLE_COLUMNS.items() if kind == "TIMESTAMP"}
-    staging = path.with_suffix(".jsonl")
-    with staging.open("w", encoding="utf-8") as handle:
-        for row in rows:
-            record = {name: (row[name][:-1] if name in timestamps and row[name] is not None else row[name]) for name in TABLE_COLUMNS}
-            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
-    declared = ", ".join(f"{name}: '{kind}'" for name, kind in TABLE_COLUMNS.items())
-    connection = duckdb.connect()
-    try:
-        connection.execute(
-            f"CREATE TABLE validator_stakes AS SELECT * FROM read_json(?, columns={{{declared}}}, format='newline_delimited')",
-            [str(staging)],
-        )
-        connection.execute("COPY validator_stakes TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(path)])
-    finally:
-        connection.close()
-        staging.unlink(missing_ok=True)
 
 
 def read_parquet(path: Path) -> list[dict[str, Any]]:
@@ -455,57 +436,72 @@ def read_parquet(path: Path) -> list[dict[str, Any]]:
 
 def check(capture_dir: Path, dataset_dir: Path | None = None) -> dict[str, Any]:
     catalog = load_catalog()
-    receipt, raw_rows = read_capture(capture_dir, catalog)
-    rows = transform(raw_rows)
+    receipt = read_capture(capture_dir, catalog)
     window = receipt["queries"][0]["parameters"]
     findings: list[str] = []
     checked = [
         "capture hashes", "query text", "field types", "unique transaction hashes", "acceptance window",
         "time ordering", "duration bounds", "stake bounds", "delegation fee bounds", "staked-UTXO reconciliation",
     ]
-
-    def count(label: str, failed: int) -> None:
-        if failed:
-            findings.append(f"{failed} rows {label}")
-
-    hashes = [row["transaction_hash"] for row in rows]
-    count("repeat a transaction hash", len(hashes) - len(set(hashes)))
-    count("were accepted outside the requested window", sum(
-        not (window["start"] <= row["accepted_at"][:10] < window["end"]) for row in rows
-    ))
-    count("start before acceptance or end before start", sum(
-        row["start_time"] < row["accepted_at"] or row["end_time"] <= row["start_time"] for row in rows
-    ))
-    count("have a duration outside 14 to 365 days", sum(
-        not DURATION_DAYS[0] <= row["duration_days"] <= DURATION_DAYS[1] for row in rows
-    ))
-    count("have a stake outside 2,000 to 3,000,000 AVAX", sum(
-        not STAKE_NAVAX[0] <= row["stake_navax"] <= STAKE_NAVAX[1] for row in rows
-    ))
-    count("have a delegation fee outside 2% to 100%", sum(
-        not FEE_SHARES[0] <= row["delegation_fee_shares"] <= FEE_SHARES[1] for row in rows
-    ))
-    count("have staked UTXOs that do not sum to the declared stake", sum(
-        row["utxo_stake_navax"] is not None and row["utxo_stake_navax"] != row["stake_navax"] for row in rows
-    ))
-    if dataset_dir is not None:
-        checked.extend(["build hashes", "Parquet rows"])
-        try:
-            build_receipt = json.loads((dataset_dir / "build.json").read_text(encoding="utf-8"))
-            for item in build_receipt["outputs"]:
-                body = (dataset_dir / item["path"]).read_bytes()
-                if len(body) != item["bytes"] or sha256(body) != item["sha256"]:
-                    findings.append(f"output hash or size differs: {item['path']}")
-            expected = sorted(rows, key=lambda row: (row["accepted_at"], row["transaction_hash"]))
-            if read_parquet(dataset_dir / f"{QUERY_ID}.parquet") != expected:
-                findings.append("Parquet rows differ from the captured inputs")
-        except (OSError, KeyError, TypeError, json.JSONDecodeError, duckdb.Error) as error:
-            findings.append(f"invalid dataset output: {error}")
+    connection = duckdb.connect()
+    try:
+        load_capture(connection, capture_dir, receipt)
+        counts = connection.execute(
+            """
+            SELECT COUNT(*) - COUNT(DISTINCT transaction_hash),
+                   COUNT_IF(accepted_at::DATE < ?::DATE OR accepted_at::DATE >= ?::DATE),
+                   COUNT_IF(start_time < accepted_at OR end_time <= start_time),
+                   COUNT_IF(duration_days < ? OR duration_days > ?),
+                   COUNT_IF(stake_navax < ? OR stake_navax > ?),
+                   COUNT_IF(delegation_fee_shares < ? OR delegation_fee_shares > ?),
+                   COUNT_IF(utxo_stake_navax IS NOT NULL AND utxo_stake_navax <> stake_navax)
+            FROM rows
+            """,
+            [window["start"], window["end"], *DURATION_DAYS, *STAKE_NAVAX, *FEE_SHARES],
+        ).fetchone()
+        labels = (
+            "repeat a transaction hash",
+            "were accepted outside the requested window",
+            "start before acceptance or end before start",
+            "have a duration outside 14 to 365 days",
+            "have a stake outside 2,000 to 3,000,000 AVAX",
+            "have a delegation fee outside 2% to 100%",
+            "have staked UTXOs that do not sum to the declared stake",
+        )
+        findings.extend(f"{failed} rows {label}" for failed, label in zip(counts, labels) if failed)
+        summary = summarize(connection)
+        if dataset_dir is not None:
+            checked.extend(["build hashes", "Parquet rows"])
+            try:
+                build_receipt = json.loads((dataset_dir / "build.json").read_text(encoding="utf-8"))
+                for item in build_receipt["outputs"]:
+                    body = (dataset_dir / item["path"]).read_bytes()
+                    if len(body) != item["bytes"] or sha256(body) != item["sha256"]:
+                        findings.append(f"output hash or size differs: {item['path']}")
+                parquet = str(dataset_dir / f"{QUERY_ID}.parquet")
+                schema = connection.execute("DESCRIBE SELECT * FROM read_parquet(?)", [parquet]).fetchall()
+                if [(item[0], item[1]) for item in schema] != list(TABLE_COLUMNS.items()):
+                    findings.append("Parquet schema differs from the dataset contract")
+                else:
+                    columns = ", ".join(TABLE_COLUMNS)
+                    differing = connection.execute(
+                        f"""
+                        SELECT (SELECT COUNT(*) FROM (SELECT {columns} FROM rows EXCEPT ALL SELECT {columns} FROM read_parquet(?)))
+                             + (SELECT COUNT(*) FROM (SELECT {columns} FROM read_parquet(?) EXCEPT ALL SELECT {columns} FROM rows))
+                        """,
+                        [parquet, parquet],
+                    ).fetchone()[0]
+                    if differing:
+                        findings.append("Parquet rows differ from the captured inputs")
+            except (OSError, KeyError, TypeError, json.JSONDecodeError, duckdb.Error) as error:
+                findings.append(f"invalid dataset output: {error}")
+    finally:
+        connection.close()
     return {
         "dataset_id": receipt["dataset_id"],
         "capture_id": receipt["capture_id"],
         "status": "pass" if not findings else "attention",
         "checked": checked,
-        "summary": summarize(rows),
+        "summary": summary,
         "findings": findings,
     }

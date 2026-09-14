@@ -129,8 +129,8 @@ def test_capture_preserves_query_rows_and_receipt(tmp_path):
     assert (path / record["sql_path"]).read_text() == snowflake.read_sql(
         snowflake.query_definition(load_catalog(), snowflake.DATASET_ID)
     )
-    observed, rows = snowflake.read_capture(path)
-    assert observed == receipt
+    assert snowflake.read_capture(path) == receipt
+    rows = [json.loads(line) for line in gzip.decompress((path / record["path"]).read_bytes()).decode().splitlines()]
     assert rows[1]["accepted_at"] == "2020-09-10T00:00:00Z" and rows[1]["block_height"] == -1
 
 
@@ -200,6 +200,19 @@ def test_tampered_or_stale_capture_is_rejected(tmp_path):
     (stale_dir / "raw/primary-validator-stakes.sql").write_text("SELECT 1")
     with pytest.raises(DataError, match="query text differs"):
         snowflake.read_capture(stale_dir)
+
+
+def test_malformed_capture_values_are_rejected(tmp_path):
+    capture_dir, receipt = make_capture(tmp_path)
+    target = capture_dir / receipt["queries"][0]["path"]
+    lines = gzip.decompress(target.read_bytes()).decode().splitlines()
+    lines[0] = lines[0].replace('"stake_navax": 2000000000000', '"stake_navax": "two thousand"')
+    body = gzip.compress(("\n".join(lines) + "\n").encode(), mtime=0)
+    target.write_bytes(body)
+    receipt["queries"][0].update({"sha256": snowflake.sha256(body), "bytes": len(body)})
+    (capture_dir / "capture.json").write_bytes(snowflake.canonical_bytes(receipt))
+    with pytest.raises(DataError, match="declared types"):
+        snowflake.check(capture_dir)
 
 
 def test_cli_preview_resolves_parameters_without_writing(tmp_path):
