@@ -1,5 +1,6 @@
 ---
-title: "How Do Avalanche Validators Actually Think About Staking Rewards?"
+title: "Source Article"
+source_title: "How Do Avalanche Validators Actually Think About Staking Rewards?"
 description: "Faithful local reproduction of the canonical LinkedIn article."
 date: 2026-04-28
 author: "Siyu (Eric) Lu, PhD"
@@ -17,9 +18,7 @@ topics: [Avalanche, validator economics, staking rewards, ACP-275, ACP-285]
 
 **Article** · Siyu (Eric) Lu, PhD · Published April 28, 2026 · [Original article on LinkedIn](https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc)
 
-**Related study:** [Exploratory analysis, reproduction, and dynamic modeling](/Phase-II/Studies/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/)
-
-![How Do Avalanche Validators Actually Think About Staking Rewards?](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/cover.jpg)
+![How Do Avalanche Validators Actually Think About Staking Rewards?](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/cover.jpg)
 
 At the Avalanche Foundation, we are in the process of evolving how we support and develop the ecosystem. A core part of that evolution is building a more rigorous, evidence-based foundation for the decisions we make, whether that means how we allocate grants, how we measure ecosystem health, or how we evaluate proposed changes to protocol mechanics.
 
@@ -100,9 +99,9 @@ Thank you for reading and we look forward to discussing more with you.
 
 MNL log-odds via Berry (1994) inversion. Weekly market shares are computed from delegation volumes, then log-odds (relative to the outside option of not delegating) are regressed on product characteristics using OLS.
 
-![Table A1. Delegator model — fit statistics](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/figure-01.png)
+![Table A1. Delegator model — fit statistics](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/figure-01.png)
 
-![Table A2. Delegator MNL log-odds coefficient estimates](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/figure-02.png)
+![Table A2. Delegator MNL log-odds coefficient estimates](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/figure-02.png)
 
 Delegators prefer higher APY, shorter durations, and larger validators. The negative log(weeks) x volatility interaction indicates delegators are especially averse to long commitments during volatile periods. The only insignificant feature is the volatility level effect itself.
 
@@ -110,17 +109,17 @@ Delegators prefer higher APY, shorter durations, and larger validators. The nega
 
 ## Appendix B: Validator Estimation
 
-![Table B1. Validator model specification comparison](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/figure-03.png)
+![Table B1. Validator model specification comparison](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/figure-03.png)
 
 The APY-thinking spec achieves roughly 3x better pseudo R-squared and vastly lower AIC/BIC with the same number of parameters.
 
 ### Validator Utility Function
 
-![Validator utility function](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/figure-04.png)
+![Validator utility function](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/figure-04.png)
 
 where X_i denotes interaction terms between the core variables and the same exogenous state variables. log(52/w) captures renewal cost, which diminishes as staking duration increases. The term sigma \* w_i captures the optionality cost of locking up stakes.
 
-![Table B2. APY-thinking specification — core coefficients](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/figure-05.png)
+![Table B2. APY-thinking specification — core coefficients](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/figure-05.png)
 
 log_apy_income (36.6) and renewal_cost (5.4) are both large and highly significant. optionality_cost is negative and significant, meaning validators are worse off when locked into stakes during periods when the option value of that capital is high.
 
@@ -130,7 +129,7 @@ log_apy_income (36.6) and renewal_cost (5.4) are both large and highly significa
 
 The MRS measures how much additional annualized yield a validator requires to accept one more week of validation duration, holding utility constant. Evaluated at the median point (9-week duration, 2,000 AVAX stake, 10% fee, median price/volatility):
 
-![Table C. Marginal Rate of Substitution (yield vs. duration)](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/figure-06.png)
+![Table C. Marginal Rate of Substitution (yield vs. duration)](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/figure-06.png)
 
 Under the APY-thinking spec, validators require approximately 0.80-0.85 percentage points per year of additional annualized yield to accept one more week of staking duration. This is remarkably stable across market conditions, varying by less than 7% across the full price-volatility grid. This consistency indicates well-defined, stable preferences over the yield-duration tradeoff.
 
@@ -142,7 +141,7 @@ Under the period-yield spec, the MRS is erratic: it flips sign in low-volatility
 
 ### Protocol Yield Formula
 
-![Protocol yield formula](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/figure-07.png)
+![Protocol yield formula](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/figure-07.png)
 
 where kappa(t) is the time-varying reward pool scarcity factor, d is duration, T is max duration, r_min = min_consumption_rate, and r_max = max_consumption_rate.
 
@@ -159,7 +158,7 @@ where kappa(t) is the time-varying reward pool scarcity factor, d is duration, T
 
 Validation Duration Distribution
 
-![Validation Duration Distribution — APY-thinking Model](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/figure-08.png)
+![Validation Duration Distribution — APY-thinking Model](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/figure-08.png)
 
 The baseline concentrates around 5-13 weeks. Lowering r_min shifts mass rightward. At r_min = 0.07 (Scenario 6), validators concentrate in 20-52 week durations as short-duration APY collapses. The graduated response from r_min = 0.09 through 0.07 is visible as a progressive rightward shift. The sawtooth-shape towards the longer duration is due to discretization of the choice grid to reduce computation time.
 
@@ -167,7 +166,7 @@ The baseline concentrates around 5-13 weeks. Lowering r_min shifts mass rightwar
 
 Validation Yield Distribution
 
-![Validation Yield Distribution — APY-thinking Model](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/raw/assets/figure-09.png)
+![Validation Yield Distribution — APY-thinking Model](/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/raw/assets/figure-09.png)
 
 Unlike the period-yield model, the yield distribution reshapes as r_min decreases: scenarios with lower r_min develop broader, leftward-shifted distributions as validators split across different duration-yield combinations. The behavioral response (longer durations) partially offsets the mechanical yield decline. The sawtooth-shape towards the longer duration is due to discretization of the choice grid to reduce computation time.
 

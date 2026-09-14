@@ -14,49 +14,55 @@ REQUIRED_CONTENT = (
     "content/index.md",
     "content/Phase I/index.md",
     "content/Phase II/index.md",
+    "content/Phase II/Validator Interviews/index.md",
     "content/Phase II/Studies/index.md",
     "content/Phase II/Studies/Essential Readings/index.md",
+    "content/Phase II/Studies/Essential Readings/The Avalanche Foundation Unveils its Economic Research Agenda/index.md",
+    "content/Phase II/Studies/Essential Readings/The Avalanche Foundation Unveils its Economic Research Agenda/Source Article.md",
+    "content/Phase II/Studies/Essential Readings/Value Accrual as Equilibrium How We Think About AVAX Tokenomics/index.md",
+    "content/Phase II/Studies/Essential Readings/Value Accrual as Equilibrium How We Think About AVAX Tokenomics/Source Article.md",
     "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md",
-    "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/Exploratory Data Analysis.md",
-    "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/Reproduction.md",
-    "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/Dynamic Model.md",
+    "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/Source Article.md",
+    "content/Phase II/Studies/Essential Readings/From Gross Chain Product to Gross Chain Income Where the Value Goes/index.md",
+    "content/Phase II/Studies/Essential Readings/From Gross Chain Product to Gross Chain Income Where the Value Goes/Source Article.md",
+    "content/Phase II/Studies/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/index.md",
+    "content/Phase II/Studies/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/Source Video.md",
+    "content/Phase II/Studies/Essential Readings/January Staking and Price Model A Three-Image Reconstruction/index.md",
+    "content/Phase II/Studies/Essential Readings/January Staking and Price Model A Three-Image Reconstruction/Source Model Artifact.md",
     "content/Phase II/Milestone 1/1-1 Data Ingestion.md",
     "content/Phase II/Milestone 1/1-2 Data Manifest.md",
     "content/Phase II/Milestone 1/1-3 Staking Model Spec.md",
     "content/Phase II/Milestone 1/1-4 Behavioral Calibration.md",
     "content/Wiki/Avalanche/index.md",
-    "content/Wiki/Avalanche/Essential Readings/index.md",
-    "content/Wiki/Avalanche/Essential Readings/The Avalanche Foundation Unveils its Economic Research Agenda/index.md",
-    "content/Wiki/Avalanche/Essential Readings/Value Accrual as Equilibrium How We Think About AVAX Tokenomics/index.md",
-    "content/Wiki/Avalanche/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md",
-    "content/Wiki/Avalanche/Essential Readings/From Gross Chain Product to Gross Chain Income Where the Value Goes/index.md",
-    "content/Wiki/Avalanche/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/index.md",
-    "content/Wiki/Avalanche/Essential Readings/January Staking and Price Model A Three-Image Reconstruction/index.md",
 )
 
 REQUIRED_PUBLIC = (
     ".site/public/index.html",
     ".site/public/Phase-II/index.html",
+    ".site/public/Phase-II/Validator-Interviews/index.html",
     ".site/public/Phase-II/Studies/index.html",
     ".site/public/Phase-II/Studies/Essential-Readings/index.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/index.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/Source-Article.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/index.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/Source-Article.html",
     ".site/public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/index.html",
-    ".site/public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Exploratory-Data-Analysis.html",
-    ".site/public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Reproduction.html",
-    ".site/public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Dynamic-Model.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Source-Article.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/index.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/Source-Article.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/index.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/Source-Video.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/index.html",
+    ".site/public/Phase-II/Studies/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/Source-Model-Artifact.html",
     ".site/public/Phase-II/Milestone-1/1-1-Data-Ingestion.html",
     ".site/public/Phase-II/Milestone-1/1-2-Data-Manifest.html",
     ".site/public/Phase-II/Milestone-1/1-3-Staking-Model-Spec.html",
     ".site/public/Phase-II/Milestone-1/1-4-Behavioral-Calibration.html",
     ".site/public/Wiki/Avalanche/index.html",
-    ".site/public/Wiki/Avalanche/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/index.html",
-    ".site/public/Wiki/Avalanche/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/index.html",
-    ".site/public/Wiki/Avalanche/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/index.html",
-    ".site/public/Wiki/Avalanche/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/index.html",
-    ".site/public/Wiki/Avalanche/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/index.html",
 )
 
 REQUIRED_TEXT = {
-    "content/Wiki/Avalanche/Essential Readings/index.md": (
+    "content/Phase II/Studies/Essential Readings/index.md": (
         "The Avalanche Foundation Unveils its Economic Research Agenda",
         "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics",
         "How Do Avalanche Validators Actually Think About Staking Rewards?",
@@ -64,27 +70,38 @@ REQUIRED_TEXT = {
         "ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment",
         "January Staking and Price Model: A Three-Image Reconstruction",
     ),
-    "content/Phase II/Studies/Essential Readings/index.md": (
-        "How Do Avalanche Validators Actually Think About Staking Rewards?",
-    ),
     "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md": (
-        "/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/",
+        "Source Article",
     ),
-    "content/Wiki/Avalanche/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md": (
-        "/Phase-II/Studies/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/",
+    "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/Source Article.md": (
+        "## The Question",
+        "## The Model",
     ),
-    "content/Wiki/Avalanche/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/index.md": (
+    "content/Phase II/Studies/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/Source Video.md": (
         "timestamped analytical reading view",
         "ACP-285: Reduce Minimum Consumption Rate",
         "automatic captions were used to locate sections",
     ),
-    "content/Wiki/Avalanche/Essential Readings/January Staking and Price Model A Three-Image Reconstruction/index.md": (
+    "content/Phase II/Studies/Essential Readings/January Staking and Price Model A Three-Image Reconstruction/Source Model Artifact.md": (
         "Original evidence",
         "Mathematical reconstruction",
         "Unresolved",
         "status: conceptual-reconstruction",
     ),
+    "content/Phase II/Validator Interviews/index.md": (
+        "No interview findings are published yet.",
+    ),
 }
+
+FORBIDDEN_PATHS = (
+    "content/Wiki/BCRG",
+    ".site/public/Wiki/BCRG",
+    "content/Wiki/Avalanche/Essential Readings",
+    ".site/public/Wiki/Avalanche/Essential-Readings",
+    "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/Exploratory Data Analysis.md",
+    "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/Reproduction.md",
+    "content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/Dynamic Model.md",
+)
 
 FORBIDDEN_TEXT = (
     "/home/",
@@ -106,12 +123,13 @@ def _local_asset(root: Path, page: Path, target: str) -> Path | None:
         return None
     decoded = unquote(parsed.path)
     if decoded.startswith("/"):
-        parts = decoded.lstrip("/").split("/")
-        if parts[0] == "Phase-I":
-            parts[0] = "Phase I"
-        elif parts[0] == "Phase-II":
-            parts[0] = "Phase II"
-        return root / "content" / Path(*parts)
+        public_route = decoded.lstrip("/")
+        for candidate in (root / "content").rglob(Path(public_route).name):
+            relative = candidate.relative_to(root / "content")
+            candidate_route = "/".join(part.replace(" ", "-") for part in relative.parts)
+            if candidate_route == public_route:
+                return candidate
+        return root / "content" / public_route
     return page.parent / decoded
 
 
@@ -129,11 +147,7 @@ def _public_asset(root: Path, page: Path, target: str) -> Path | None:
 def check(root: Path) -> dict[str, object]:
     root = root.resolve()
     missing = [path for path in REQUIRED_CONTENT + REQUIRED_PUBLIC if not (root / path).is_file()]
-    forbidden_paths = [
-        path
-        for path in ("content/Wiki/BCRG", ".site/public/Wiki/BCRG")
-        if (root / path).exists()
-    ]
+    forbidden_paths = [path for path in FORBIDDEN_PATHS if (root / path).exists()]
     forbidden_matches = []
     missing_required_text = []
     missing_local_assets = []

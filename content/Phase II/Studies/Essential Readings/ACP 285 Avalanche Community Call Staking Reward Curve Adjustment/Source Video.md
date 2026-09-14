@@ -1,5 +1,6 @@
 ---
-title: "ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment"
+title: "Source Video"
+source_title: "ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment"
 description: "A timestamped reading view of the ACP-285 presentation and community discussion."
 source_id: "lit:acp-285-community-call"
 source_type: video
