@@ -108,6 +108,24 @@
       ]
     },
     {
+      "id": "avalanche-p-chain-rpc",
+      "name": "Avalanche P-Chain public RPC",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Direct response of a public Avalanche node about the current Primary Network validator set. Authoritative for current protocol state at the observation instant; it holds no history.",
+      "documentation_url": "https://build.avax.network/docs/rpcs/p-chain/validators/platform_getCurrentValidators",
+      "authentication": "none; the public endpoint at api.avax.network answers JSON-RPC POST requests",
+      "reuse_status": "Public access observed; node operators may rate-limit.",
+      "endpoints": [
+        {
+          "id": "current-validators",
+          "url": "https://api.avax.network/ext/bc/P",
+          "request_json": {"jsonrpc": "2.0", "method": "platform.getCurrentValidators", "params": {}, "id": 1},
+          "response_fields": ["result"]
+        }
+      ]
+    },
+    {
       "id": "avalanche-snowflake",
       "name": "Avalanche Primary Network Data Snowflake share",
       "source_type": "database_share",
@@ -342,6 +360,32 @@
         {"name": "lineage", "type": "string", "unit": "DefiLlama coin identifier", "derivation": "the coins key, coingecko:avalanche-2"},
         {"name": "log_return", "type": "number", "unit": "natural log of consecutive price ratio; null on the first row", "derivation": "ln(price_usd / previous price_usd)"},
         {"name": "realized_volatility_30d", "type": "number", "unit": "annualized; null until 30 returns exist", "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"}
+      ]
+    },
+    {
+      "id": "p-chain-rpc.current-validators",
+      "name": "Primary Network current validator snapshot",
+      "source_id": "avalanche-p-chain-rpc",
+      "status": "implemented",
+      "description": "One row per validator in the current Primary Network validator set at the capture instant: node, staking transaction, period, stake weight, delegation fee, observed uptime, connection state, delegator totals, potential reward, and reward owners. Uptime is the answering node's current observation, not a history.",
+      "endpoint_ids": ["current-validators"],
+      "fields": [
+        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "capture completion time"},
+        {"name": "node_id", "type": "string", "unit": "validator NodeID", "derivation": "result.validators[i].nodeID"},
+        {"name": "transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "result.validators[i].txID"},
+        {"name": "start_time", "type": "timestamp", "unit": "UTC", "derivation": "result.validators[i].startTime seconds since the epoch"},
+        {"name": "end_time", "type": "timestamp", "unit": "UTC", "derivation": "result.validators[i].endTime seconds since the epoch"},
+        {"name": "stake_navax", "type": "integer", "unit": "nAVAX", "derivation": "result.validators[i].weight"},
+        {"name": "stake_avax", "type": "number", "unit": "AVAX", "derivation": "stake_navax / 1e9"},
+        {"name": "delegation_fee_rate", "type": "number", "unit": "fraction of delegation rewards", "derivation": "result.validators[i].delegationFee percent / 100"},
+        {"name": "uptime", "type": "number", "unit": "fraction, as observed by the answering node", "derivation": "result.validators[i].uptime percent / 100"},
+        {"name": "connected", "type": "boolean", "unit": "answering node's current peer connection", "derivation": "result.validators[i].connected"},
+        {"name": "delegator_count", "type": "integer", "unit": "delegations", "derivation": "result.validators[i].delegatorCount"},
+        {"name": "delegator_weight_navax", "type": "integer", "unit": "nAVAX", "derivation": "result.validators[i].delegatorWeight"},
+        {"name": "potential_reward_navax", "type": "integer", "unit": "nAVAX", "derivation": "result.validators[i].potentialReward"},
+        {"name": "accrued_delegatee_reward_navax", "type": "integer", "unit": "nAVAX", "derivation": "result.validators[i].accruedDelegateeReward"},
+        {"name": "validation_reward_address", "type": "string", "unit": "P-Chain address; first of the owner's addresses", "derivation": "result.validators[i].validationRewardOwner.addresses[0]"},
+        {"name": "delegation_reward_address", "type": "string", "unit": "P-Chain address; first of the owner's addresses", "derivation": "result.validators[i].delegationRewardOwner.addresses[0]"}
       ]
     }
   ]

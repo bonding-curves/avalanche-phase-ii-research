@@ -327,6 +327,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
     manifest = runner.invoke(cli.cli, ["data", "manifest", "--json"])
     assert [item["id"] for item in json.loads(manifest.output)["records"]] == [
         "snowpeer.network-summary", *snowflake.DATASET_IDS, "coingecko.avax-market-daily", "defillama.avax-price-daily",
+        "p-chain-rpc.current-validators",
     ]
 
 

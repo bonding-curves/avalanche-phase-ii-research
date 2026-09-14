@@ -13,6 +13,7 @@ from . import __version__
 from . import coingecko
 from . import datasets
 from . import defillama
+from . import pchain
 from . import snowflake
 from . import snowpeer
 from .catalog import DataError, load_catalog
@@ -25,6 +26,7 @@ MODULES = {
     snowpeer.DATASET_ID: snowpeer,
     coingecko.DATASET_ID: coingecko,
     defillama.DATASET_ID: defillama,
+    pchain.DATASET_ID: pchain,
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
 }
 

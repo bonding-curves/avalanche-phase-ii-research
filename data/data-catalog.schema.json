@@ -84,6 +84,8 @@
             "properties": {
               "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]+$"},
               "url": {"type": "string", "format": "uri"},
+              "request_json": {"type": "object", "description": "JSON body; its presence makes the request a POST"},
+              "content": {"enum": ["json", "xml"], "description": "response body type; json when absent"},
               "response_fields": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true}
             }
           }

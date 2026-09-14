@@ -13,6 +13,7 @@ This directory defines the machine-readable contracts for research data used in 
 | `snowflake.primary-staking-supply` | One Parquet row per staking transaction with the block supply context behind its potential reward | Implemented, tested, and captured live |
 | `coingecko.avax-market-daily` | One Parquet row per day of AVAX price, market capitalization, volume, log return, and 30-day realized volatility | Implemented, tested, and captured live; public API serves the trailing 365 days only |
 | `defillama.avax-price-daily` | One Parquet row per daily AVAX price observation since 2020-09-22 with log return and 30-day realized volatility | Implemented, tested, and captured live |
+| `p-chain-rpc.current-validators` | One Parquet row per validator in the current Primary Network set with stake, fee, observed uptime, connection, and delegator totals | Implemented, tested, and captured live; a snapshot, not a history |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -139,6 +140,26 @@ uv run --locked avalanche data check coingecko.avax-market-daily \
 
 The cross-check pairs each CoinGecko midnight observation with the DefiLlama observation nearest that day's start when it lies within three hours, reports the median and maximum relative difference and the days it could not align, and raises a finding for any aligned day beyond 10%.
 
+## Reproduce the current validator snapshot
+
+The public P-Chain RPC needs no credential. The capture posts `platform.getCurrentValidators` and preserves the JSON-RPC response; the receipt records the request body. Uptime is the answering node's current observation of each validator, so the dataset is a dated snapshot and does not supply an uptime history.
+
+```bash
+uv run --locked avalanche data fetch p-chain-rpc.current-validators \
+  --output data/runs/current-validators-example/capture
+
+uv run --locked avalanche data build p-chain-rpc.current-validators \
+  --from data/runs/current-validators-example/capture \
+  --output data/runs/current-validators-example/dataset
+
+uv run --locked avalanche data check p-chain-rpc.current-validators \
+  --capture data/runs/current-validators-example/capture \
+  --dataset data/runs/current-validators-example/dataset \
+  --against data/runs/validator-stakes-example/dataset
+```
+
+With `--against`, the check reconciles every snapshot validator against the Snowflake validator dataset by staking transaction hash and reports validators absent from the reference despite starting before its last row, and matched validators whose node, period, stake, or fee differ.
+
 ## Use datasets from a notebook
 
 Notebooks load built datasets by catalog ID. Nothing is fetched on load; the functions read the receipts and Parquet files that `fetch` and `build` wrote under `data/runs/`, verify the Parquet hash against the build receipt, and hand back typed tables.
@@ -167,6 +188,7 @@ uv run --locked avalanche data describe snowflake.primary-staking-rewards
 uv run --locked avalanche data describe snowflake.primary-staking-supply
 uv run --locked avalanche data describe coingecko.avax-market-daily
 uv run --locked avalanche data describe defillama.avax-price-daily
+uv run --locked avalanche data describe p-chain-rpc.current-validators
 uv run --locked avalanche data manifest --json
 ```
 

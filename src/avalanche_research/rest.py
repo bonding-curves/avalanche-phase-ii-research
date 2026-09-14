@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import urllib.error
 import urllib.request
+from xml.etree import ElementTree
 from pathlib import Path
 from typing import Any, Callable
 
@@ -21,11 +22,16 @@ def _request(
     url: str,
     timeout: float,
     opener: Callable[..., Any] = urllib.request.urlopen,
+    body_json: dict[str, Any] | None = None,
+    content: str = "json",
 ) -> tuple[bytes, dict[str, Any]]:
-    request = urllib.request.Request(
-        url,
-        headers={"Accept": "application/json", "User-Agent": "avalanche-phase-ii-research/0.1"},
-    )
+    """Fetch one endpoint. A JSON body turns the request into a POST; content selects the response validation."""
+    headers = {"Accept": "application/json" if content == "json" else "application/xml, text/xml", "User-Agent": "avalanche-phase-ii-research/0.1"}
+    data = None
+    if body_json is not None:
+        data = json.dumps(body_json, separators=(",", ":"), sort_keys=True).encode()
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(url, data=data, headers=headers, method="POST" if data is not None else "GET")
     try:
         with opener(request, timeout=timeout) as response:
             body = response.read()
@@ -35,12 +41,20 @@ def _request(
         raise DataError(f"request failed for {url}: {error}") from error
     if status != 200:
         raise DataError(f"request returned HTTP {status} for {url}")
-    try:
-        value = json.loads(body)
-    except json.JSONDecodeError as error:
-        raise DataError(f"response is not JSON for {url}: {error}") from error
-    if not isinstance(value, dict):
-        raise DataError(f"response is not a JSON object for {url}")
+    if content == "json":
+        try:
+            value = json.loads(body)
+        except json.JSONDecodeError as error:
+            raise DataError(f"response is not JSON for {url}: {error}") from error
+        if not isinstance(value, dict):
+            raise DataError(f"response is not a JSON object for {url}")
+    elif content == "xml":
+        try:
+            ElementTree.fromstring(body)
+        except ElementTree.ParseError as error:
+            raise DataError(f"response is not well-formed XML for {url}: {error}") from error
+    else:
+        raise DataError(f"unsupported endpoint content type: {content}")
     return body, {"http_status": status, "content_type": content_type}
 
 
@@ -57,7 +71,13 @@ def capture_preview(
     provider = source(catalog, definition["source_id"])
     endpoints = {item["id"]: item for item in provider["endpoints"]}
     requests = [
-        {"endpoint_id": endpoint_id, "url": endpoints[endpoint_id]["url"]}
+        {
+            "endpoint_id": endpoint_id,
+            "url": endpoints[endpoint_id]["url"],
+            "method": "POST" if "request_json" in endpoints[endpoint_id] else "GET",
+            "content": endpoints[endpoint_id].get("content", "json"),
+            **({"request_json": endpoints[endpoint_id]["request_json"]} if "request_json" in endpoints[endpoint_id] else {}),
+        }
         for endpoint_id in definition["endpoint_ids"]
     ]
     return {
@@ -89,12 +109,14 @@ def capture(
         raw = temporary / "raw"
         raw.mkdir()
         for item in preview["requests"]:
-            body, metadata = _request(item["url"], timeout, opener)
-            relative = Path("raw") / f"{item['endpoint_id']}.json"
+            body, metadata = _request(item["url"], timeout, opener, item.get("request_json"), item["content"])
+            relative = Path("raw") / f"{item['endpoint_id']}.{item['content']}"
             (temporary / relative).write_bytes(body)
             records.append({
                 "endpoint_id": item["endpoint_id"],
                 "url": item["url"],
+                "method": item["method"],
+                **({"request_json": item["request_json"]} if "request_json" in item else {}),
                 "path": str(relative),
                 "bytes": len(body),
                 "sha256": sha256(body),
@@ -142,6 +164,13 @@ def read_capture(
             raise DataError(f"missing captured response: {item.get('path')}") from error
         if sha256(body) != item.get("sha256") or len(body) != item.get("bytes"):
             raise DataError(f"captured response hash or size differs: {item.get('path')}")
+        if item["path"].endswith(".xml"):
+            try:
+                ElementTree.fromstring(body)
+            except ElementTree.ParseError as error:
+                raise DataError(f"captured response is not well-formed XML: {item.get('path')}") from error
+            values[item["endpoint_id"]] = body.decode("utf-8", errors="replace")
+            continue
         try:
             value = json.loads(body)
         except json.JSONDecodeError as error:
