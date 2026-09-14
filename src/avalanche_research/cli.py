@@ -13,6 +13,9 @@ from . import __version__
 from . import snowflake
 from . import snowpeer
 from .catalog import DataError, load_catalog
+from .model import backtest as model_backtest
+from .model import protocol
+from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 
 
 MODULES = {snowpeer.DATASET_ID: snowpeer, **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS}}
@@ -177,16 +180,84 @@ def manifest(as_json: bool) -> None:
     finish(envelope("data manifest", "pass", {"text": f"{len(records)} datasets"}, items=items, records=records), as_json)
 
 
+@cli.group()
+def model() -> None:
+    """Inspect and check the source-linked protocol staking model."""
+
+
+@model.command("describe")
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def describe_model(as_json: bool) -> None:
+    """Show the mainnet staking parameters, upgrade schedule, and mechanism sources."""
+    value = protocol.describe()
+    items = [
+        *(f"{key}: {item}" for key, item in value["reward"].items()),
+        *(f"{item['acp']}: {item['name']} | upgrade {item['upgrade'] or 'none'} | keyed by {item['keyed_by']}" for item in value["mechanisms"]),
+    ]
+    finish(envelope("model describe", "pass", {"text": f"{len(value['mechanisms'])} mechanisms"}, items=items, model=value), as_json)
+
+
+@model.command("reward")
+@click.option("stake_avax", "--stake", type=click.FloatRange(min=0), required=True, help="Staked amount in AVAX.")
+@click.option("duration_days", "--duration", type=click.FloatRange(min=0), required=True, help="Staking duration in days.")
+@click.option("start", "--start", type=click.DateTime(), required=True, help="Stake start time, UTC.")
+@click.option("supply_avax", "--supply", type=click.FloatRange(min=0), required=True, help="Current AVAX supply at the stake start.")
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def model_reward(stake_avax: float, duration_days: float, start: Any, supply_avax: float, as_json: bool) -> None:
+    """Compute the Primary Network potential reward for one stake."""
+    stake = round(stake_avax * NAVAX_PER_AVAX)
+    duration = round(duration_days * SECONDS_PER_DAY)
+    supply = round(supply_avax * NAVAX_PER_AVAX)
+    start_utc = as_utc(start)
+    config = protocol.reward_config_for_stake_start(start_utc)
+    reward = protocol.primary_network_reward(start_utc, duration, stake, supply)
+    value = {
+        "stake_navax": stake,
+        "duration_seconds": duration,
+        "stake_start": start_utc.isoformat().replace("+00:00", "Z"),
+        "current_supply_navax": supply,
+        "regime": protocol.MAINNET_UPGRADES.regime(start_utc),
+        "min_consumption_rate": config.min_consumption_rate,
+        "potential_reward_navax": reward,
+        "potential_reward_avax": reward / NAVAX_PER_AVAX,
+        "annualized_reward_rate": protocol.annualized_reward_rate(start_utc, duration, stake, supply) if stake and duration else None,
+    }
+    items = [f"{key}: {item}" for key, item in value.items()]
+    finish(envelope("model reward", "pass", {"text": f"{value['potential_reward_avax']:.9f} AVAX"}, items=items, reward=value), as_json)
+
+
+@model.command("check")
+@click.option("validators", "--validators", type=click.Path(path_type=Path), required=True, help="Built primary-validator-stakes dataset directory.")
+@click.option("delegators", "--delegators", type=click.Path(path_type=Path), required=True, help="Built primary-delegator-stakes dataset directory.")
+@click.option("supply", "--supply", type=click.Path(path_type=Path), required=True, help="Built primary-staking-supply dataset directory.")
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def check_model(validators: Path, delegators: Path, supply: Path, as_json: bool) -> None:
+    """Recompute every captured potential reward from the formula and report disagreement by regime."""
+    value = model_backtest.backtest(validators, delegators, supply)
+    items = [
+        f"{name} | rows {bucket['rows']} | immediate {bucket['immediate_matched']}/{bucket['immediate_matched'] + bucket['immediate_mismatched']}"
+        f" | pending {bucket['pending_matched']}/{bucket['pending_matched'] + bucket['pending_mismatched']} | best candidate {bucket['best_candidate']}"
+        for name, bucket in value["regimes"].items()
+    ]
+    summary = value["summary"]
+    result = envelope(
+        "model check", value["status"],
+        {"text": f"immediate {summary['immediate_matched']}/{summary['immediate_rows']} reproduced; pending {summary['pending_rows']} rows; {len(value['findings'])} findings"},
+        validation=value, items=items, findings=value["findings"],
+    )
+    finish(result, as_json)
+
+
 def main() -> int:
     try:
-        cli(standalone_mode=False)
-    except DataError as error:
+        code = cli(standalone_mode=False)
+    except (DataError, ModelError) as error:
         click.echo(f"ERROR: {error}", err=True)
         return 2
     except click.ClickException as error:
         error.show(file=sys.stderr)
         return error.exit_code
-    return 0
+    return code if isinstance(code, int) else 0
 
 
 if __name__ == "__main__":

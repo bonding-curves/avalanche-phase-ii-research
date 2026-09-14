@@ -330,6 +330,13 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
     ]
 
 
+def test_cli_check_with_findings_exits_one(tmp_path, monkeypatch, capsys):
+    capture_dir, _ = make_capture(tmp_path, DELEGATOR_ROWS, spec=snowflake.DELEGATOR_STAKES)
+    monkeypatch.setattr(sys, "argv", ["avalanche", "data", "check", snowflake.DELEGATOR_STAKES.dataset_id, "--capture", str(capture_dir)])
+    assert cli.main() == 1
+    assert "ATTENTION" in capsys.readouterr().out
+
+
 def test_cli_rejects_parameters_for_snowpeer_and_malformed_values(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["avalanche", "data", "fetch", "snowpeer.network-summary", "--output", "x", "--param", "start=2024-01-01", "--preview"])
     assert cli.main() == 2

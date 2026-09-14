@@ -118,7 +118,10 @@ uv sync --locked
 uv run --locked pytest
 uv run --locked avalanche data list
 uv run --locked avalanche data manifest
+uv run --locked avalanche model describe
 ```
+
+The `avalanche model` commands expose the source-linked Primary Network staking rules: the reward formula with the ACP-285 ramp, the ACP-273 minimum duration, the ACP-267 uptime requirement, and the ACP-247 delegation multiplier. `avalanche model check` recomputes every captured potential reward from the formula and reports disagreement by protocol regime.
 
 See the [`data/` guide](data/) for the preview, capture, build, and validation workflow.
 

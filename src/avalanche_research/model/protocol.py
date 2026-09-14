@@ -1,0 +1,260 @@
+"""Source-linked Avalanche Primary Network staking and reward rules.
+
+Every rule cites the pinned ACP text (avalanche-foundation/ACPs at b80ea34682b419603f0241f114560dea5d61e03a)
+and the AvalancheGo v1.15.0 code path (ava-labs/avalanchego at 70bd6d063b7343fd2cd8217200aaf77b57f19f68).
+Integer arithmetic reproduces the Go big-integer operation order exactly, so results are consensus values,
+not floating-point approximations.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Any
+
+from .types import (
+    NANOSECONDS_PER_SECOND, NAVAX_PER_AVAX, PERCENT_DENOMINATOR, SECONDS_PER_DAY, Mechanism, ModelError,
+    RewardConfig, StakingConfig, Upgrade, UpgradeSchedule, as_utc,
+)
+
+
+ACPS = "https://github.com/avalanche-foundation/ACPs/blob/b80ea34682b419603f0241f114560dea5d61e03a/ACPs"
+AVALANCHEGO = "https://github.com/ava-labs/avalanchego/blob/70bd6d063b7343fd2cd8217200aaf77b57f19f68"
+
+# genesis/genesis_mainnet.go MainnetParams.StakingConfig
+MAINNET_REWARD = RewardConfig(
+    max_consumption_rate=120_000,
+    min_consumption_rate=100_000,
+    minting_period_seconds=365 * SECONDS_PER_DAY,
+    supply_cap_navax=720_000_000 * NAVAX_PER_AVAX,
+)
+MAINNET = StakingConfig(
+    uptime_requirement=0.8,
+    min_validator_stake_navax=2_000 * NAVAX_PER_AVAX,
+    max_validator_stake_navax=3_000_000 * NAVAX_PER_AVAX,
+    min_delegator_stake_navax=25 * NAVAX_PER_AVAX,
+    min_delegation_fee_shares=20_000,
+    min_stake_duration_seconds=14 * SECONDS_PER_DAY,
+    max_stake_duration_seconds=365 * SECONDS_PER_DAY,
+    helicon_min_stake_duration_seconds=48 * 3_600,
+    reward=MAINNET_REWARD,
+)
+
+# upgrade/upgrade.go Mainnet
+MAINNET_UPGRADES = UpgradeSchedule((
+    Upgrade("apricot_phase_1", datetime(2021, 3, 31, 14, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_2", datetime(2021, 5, 10, 11, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_3", datetime(2021, 8, 24, 14, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_4", datetime(2021, 9, 22, 21, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_5", datetime(2021, 12, 2, 18, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_pre_6", datetime(2022, 9, 5, 1, 30, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_6", datetime(2022, 9, 6, 20, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_post_6", datetime(2022, 9, 7, 3, tzinfo=timezone.utc)),
+    Upgrade("banff", datetime(2022, 10, 18, 16, tzinfo=timezone.utc)),
+    Upgrade("cortina", datetime(2023, 4, 25, 15, tzinfo=timezone.utc)),
+    Upgrade("durango", datetime(2024, 3, 6, 16, tzinfo=timezone.utc)),
+    Upgrade("etna", datetime(2024, 12, 16, 17, tzinfo=timezone.utc)),
+    Upgrade("fortuna", datetime(2025, 4, 8, 15, tzinfo=timezone.utc)),
+    Upgrade("granite", datetime(2025, 11, 19, 16, tzinfo=timezone.utc)),
+    Upgrade("helicon", datetime(2026, 9, 22, 15, tzinfo=timezone.utc)),
+))
+
+# ACP-285 and vms/platformvm/reward/calculator.go configForStakeStart
+ACP285_TARGET_MIN_CONSUMPTION_RATE = 75_000
+ACP285_RAMP_SECONDS = 90 * SECONDS_PER_DAY
+# genesis/params.go ACP267UptimeRequirement
+ACP267_UPTIME_REQUIREMENT = 0.9
+# ACP-247 README: current DelegationMultiplier = 4, proposed 24 (not part of Helicon)
+ACP247_CURRENT_DELEGATION_MULTIPLIER = 4
+ACP247_PROPOSED_DELEGATION_MULTIPLIER = 24
+
+MECHANISMS = (
+    Mechanism(
+        "protocol", "Primary Network staking reward", None, "stake duration, amount, and current supply",
+        (f"{AVALANCHEGO}/vms/platformvm/reward/calculator.go", f"{AVALANCHEGO}/genesis/genesis_mainnet.go"),
+    ),
+    Mechanism(
+        "ACP-285", "Minimum consumption rate 10% to 7.5% over a 90-day ramp", "helicon", "stake start time",
+        (f"{ACPS}/285-reduce-minimum-consumption-rate/README.md", f"{AVALANCHEGO}/vms/platformvm/reward/calculator.go"),
+    ),
+    Mechanism(
+        "ACP-273", "Minimum validator duration 14 days to 48 hours", "helicon", "chain time when the validator is added",
+        (f"{ACPS}/273-reduce-minimum-staking-duration/README.md", f"{AVALANCHEGO}/genesis/genesis_mainnet.go",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification_helpers.go"),
+    ),
+    Mechanism(
+        "ACP-267", "Uptime requirement 80% to 90%", "helicon", "validator start time",
+        (f"{ACPS}/267-uptime-requirement-increase/README.md", f"{AVALANCHEGO}/genesis/params.go",
+         f"{AVALANCHEGO}/vms/platformvm/block/executor/options.go"),
+    ),
+    Mechanism(
+        "ACP-247", "Delegation multiplier 4 to 24", None, "not scheduled; proposal text only",
+        (f"{ACPS}/247-delegation-multiplier-increase/README.md",),
+    ),
+)
+
+
+def reward_config_for_stake_start(
+    stake_start: datetime,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> RewardConfig:
+    """ACP-285 ramp: vms/platformvm/reward/calculator.go configForStakeStart.
+
+    Stakes starting before Helicon keep the genesis configuration. From activation the minimum consumption rate
+    moves linearly toward 75,000 millionths over 90 days, evaluated once at the stake's start time, with the
+    change truncated to an integer. Networks whose maximum is below the target keep their configuration.
+    """
+    start = as_utc(stake_start)
+    if not upgrades.activated("helicon", start) or config.min_consumption_rate == ACP285_TARGET_MIN_CONSUMPTION_RATE:
+        return config
+    if config.max_consumption_rate < ACP285_TARGET_MIN_CONSUMPTION_RATE:
+        return config
+    full_change = abs(config.min_consumption_rate - ACP285_TARGET_MIN_CONSUMPTION_RATE)
+    change = full_change
+    elapsed_ns = int((start - upgrades.time("helicon")).total_seconds()) * NANOSECONDS_PER_SECOND
+    ramp_ns = ACP285_RAMP_SECONDS * NANOSECONDS_PER_SECOND
+    if elapsed_ns < ramp_ns:
+        change = full_change * elapsed_ns // ramp_ns
+    if config.min_consumption_rate < ACP285_TARGET_MIN_CONSUMPTION_RATE:
+        minimum = config.min_consumption_rate + change
+    else:
+        minimum = config.min_consumption_rate - change
+    return RewardConfig(config.max_consumption_rate, minimum, config.minting_period_seconds, config.supply_cap_navax)
+
+
+def potential_reward(
+    stake_navax: int,
+    duration_seconds: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+) -> int:
+    """vms/platformvm/reward/calculator.go Calculate, with the Go big-integer operation order.
+
+    Reward = RemainingSupply * (StakedAmount / CurrentSupply) * MintingRate * (Duration / MintingPeriod), where
+    MintingRate = MinRate + (MaxRate - MinRate) * Duration / MintingPeriod. Durations are nanoseconds in Go, so
+    the seconds given here are scaled before the arithmetic. The result is capped at the remaining supply.
+    """
+    if stake_navax < 0 or duration_seconds < 0 or current_supply_navax <= 0:
+        raise ModelError("stake and duration must be non-negative and current supply positive")
+    if current_supply_navax > config.supply_cap_navax:
+        raise ModelError("current supply exceeds the supply cap")
+    duration_ns = duration_seconds * NANOSECONDS_PER_SECOND
+    minting_period_ns = config.minting_period_nanoseconds
+    numerator = (config.max_consumption_rate - config.min_consumption_rate) * duration_ns
+    numerator += config.min_consumption_rate * minting_period_ns
+    denominator = minting_period_ns * PERCENT_DENOMINATOR
+    remaining = config.supply_cap_navax - current_supply_navax
+    reward = remaining * numerator * stake_navax * duration_ns
+    reward //= denominator
+    reward //= current_supply_navax
+    reward //= minting_period_ns
+    if reward >= 2**64:
+        return remaining
+    return min(remaining, reward)
+
+
+def primary_network_reward(
+    stake_start: datetime,
+    duration_seconds: int,
+    stake_navax: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> int:
+    """vms/platformvm/reward/calculator.go primaryNetworkCalculator.Calculate: ACP-285 applied per stake start."""
+    return potential_reward(stake_navax, duration_seconds, current_supply_navax, reward_config_for_stake_start(stake_start, config, upgrades))
+
+
+def annualized_reward_rate(
+    stake_start: datetime,
+    duration_seconds: int,
+    stake_navax: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> float:
+    """Reward per unit staked, scaled to the minting period. Matches the ARR tables in ACP-285."""
+    if stake_navax <= 0 or duration_seconds <= 0:
+        raise ModelError("annualized rate needs a positive stake and duration")
+    reward = primary_network_reward(stake_start, duration_seconds, stake_navax, current_supply_navax, config, upgrades)
+    return reward / stake_navax * config.minting_period_seconds / duration_seconds
+
+
+def split_reward(total_navax: int, shares: int) -> tuple[int, int]:
+    """vms/platformvm/reward/calculator.go Split: (amount from shares, remainder).
+
+    For a delegation reward, the first value is the validator's fee and the second the delegator's payout.
+    """
+    if not 0 <= shares <= PERCENT_DENOMINATOR or total_navax < 0:
+        raise ModelError("shares must lie in [0, PercentDenominator] and the amount must be non-negative")
+    remainder_shares = PERCENT_DENOMINATOR - shares
+    remainder = remainder_shares * (total_navax // PERCENT_DENOMINATOR)
+    optimistic = remainder_shares * total_navax
+    if optimistic < 2**64:
+        remainder = optimistic // PERCENT_DENOMINATOR
+    return total_navax - remainder, remainder
+
+
+def min_stake_duration_seconds(
+    at: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> int:
+    """ACP-273: the Helicon minimum applies to Primary Network validators added at or after activation."""
+    if upgrades.activated("helicon", at):
+        return config.helicon_min_stake_duration_seconds
+    return config.min_stake_duration_seconds
+
+
+def uptime_requirement(
+    validator_start: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> float:
+    """ACP-267: 90% for validation periods starting at or after Helicon, else the genesis 80%."""
+    if upgrades.activated("helicon", validator_start):
+        return ACP267_UPTIME_REQUIREMENT
+    return config.uptime_requirement
+
+
+def max_validator_weight_navax(
+    self_stake_navax: int,
+    delegation_multiplier: int = ACP247_CURRENT_DELEGATION_MULTIPLIER,
+    config: StakingConfig = MAINNET,
+) -> int:
+    """Total weight a validator may carry: self stake plus delegations up to the multiplier, capped by the maximum stake.
+
+    ACP-247 README: MaxDelegatorStake = Min(ValidatorStake * multiplier, MaxValidatorWeight - ValidatorStake).
+    """
+    if self_stake_navax < 0 or delegation_multiplier < 0:
+        raise ModelError("self stake and multiplier must be non-negative")
+    return min(self_stake_navax * (1 + delegation_multiplier), config.max_validator_stake_navax)
+
+
+def describe(config: StakingConfig = MAINNET, upgrades: UpgradeSchedule = MAINNET_UPGRADES) -> dict[str, Any]:
+    return {
+        "staking": {
+            "uptime_requirement": config.uptime_requirement,
+            "min_validator_stake_avax": config.min_validator_stake_navax // NAVAX_PER_AVAX,
+            "max_validator_stake_avax": config.max_validator_stake_navax // NAVAX_PER_AVAX,
+            "min_delegator_stake_avax": config.min_delegator_stake_navax // NAVAX_PER_AVAX,
+            "min_delegation_fee_shares": config.min_delegation_fee_shares,
+            "min_stake_duration_days": config.min_stake_duration_seconds / SECONDS_PER_DAY,
+            "helicon_min_stake_duration_days": config.helicon_min_stake_duration_seconds / SECONDS_PER_DAY,
+            "max_stake_duration_days": config.max_stake_duration_seconds / SECONDS_PER_DAY,
+        },
+        "reward": {
+            "max_consumption_rate": config.reward.max_consumption_rate,
+            "min_consumption_rate": config.reward.min_consumption_rate,
+            "acp285_target_min_consumption_rate": ACP285_TARGET_MIN_CONSUMPTION_RATE,
+            "acp285_ramp_days": ACP285_RAMP_SECONDS / SECONDS_PER_DAY,
+            "minting_period_days": config.reward.minting_period_seconds / SECONDS_PER_DAY,
+            "supply_cap_avax": config.reward.supply_cap_navax // NAVAX_PER_AVAX,
+            "percent_denominator": PERCENT_DENOMINATOR,
+        },
+        "upgrades": [{"name": item.name, "activated_at": item.activated_at.isoformat().replace("+00:00", "Z")} for item in upgrades.upgrades],
+        "mechanisms": [
+            {"acp": item.acp, "name": item.name, "upgrade": item.upgrade, "keyed_by": item.keyed_by, "sources": list(item.sources)}
+            for item in MECHANISMS
+        ],
+    }
