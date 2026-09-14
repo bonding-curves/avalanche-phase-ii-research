@@ -104,7 +104,31 @@
           "id": "avax-price-window-5",
           "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1773532800&span=500&period=1d",
           "response_fields": ["coins"]
+        },
+        {
+          "id": "pool-yields",
+          "url": "https://yields.llama.fi/pools",
+          "response_fields": ["status", "data"]
         }
+      ]
+    },
+    {
+      "id": "us-treasury",
+      "name": "US Treasury daily par yield curve",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "The US Department of the Treasury's published daily par yield curve rates. Authoritative for the benchmark rates it publishes; one yearly Atom feed per request.",
+      "documentation_url": "https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics",
+      "authentication": "none; the XML feed is public and keyless",
+      "reuse_status": "US government work; public domain.",
+      "endpoints": [
+        {"id": "daily-yield-curve-2020", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2020", "content": "xml", "response_fields": ["entry"]},
+        {"id": "daily-yield-curve-2021", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2021", "content": "xml", "response_fields": ["entry"]},
+        {"id": "daily-yield-curve-2022", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2022", "content": "xml", "response_fields": ["entry"]},
+        {"id": "daily-yield-curve-2023", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2023", "content": "xml", "response_fields": ["entry"]},
+        {"id": "daily-yield-curve-2024", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2024", "content": "xml", "response_fields": ["entry"]},
+        {"id": "daily-yield-curve-2025", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2025", "content": "xml", "response_fields": ["entry"]},
+        {"id": "daily-yield-curve-2026", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026", "content": "xml", "response_fields": ["entry"]}
       ]
     },
     {
@@ -386,6 +410,58 @@
         {"name": "accrued_delegatee_reward_navax", "type": "integer", "unit": "nAVAX", "derivation": "result.validators[i].accruedDelegateeReward"},
         {"name": "validation_reward_address", "type": "string", "unit": "P-Chain address; first of the owner's addresses", "derivation": "result.validators[i].validationRewardOwner.addresses[0]"},
         {"name": "delegation_reward_address", "type": "string", "unit": "P-Chain address; first of the owner's addresses", "derivation": "result.validators[i].delegationRewardOwner.addresses[0]"}
+      ]
+    },
+    {
+      "id": "defillama.pool-yields",
+      "name": "DeFi pool yields on Avalanche and proof-of-stake staking products",
+      "source_id": "defillama",
+      "status": "implemented",
+      "description": "One row per DefiLlama pool at the capture instant, kept when the pool is on Avalanche or belongs to a declared proof-of-stake staking project on any chain, with yield, TVL, and risk descriptors and the opportunity-cost fields the study must still supply.",
+      "endpoint_ids": ["pool-yields"],
+      "fields": [
+        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "capture completion time"},
+        {"name": "pool_id", "type": "string", "unit": "DefiLlama pool identifier", "derivation": "data[i].pool"},
+        {"name": "selection", "type": "string", "unit": "avalanche or proof-of-stake", "derivation": "avalanche when chain = Avalanche, else proof-of-stake for the declared project list"},
+        {"name": "chain", "type": "string", "unit": "DefiLlama chain name", "derivation": "data[i].chain"},
+        {"name": "project", "type": "string", "unit": "DefiLlama project slug", "derivation": "data[i].project"},
+        {"name": "symbol", "type": "string", "unit": "pool symbol", "derivation": "data[i].symbol"},
+        {"name": "tvl_usd", "type": "number", "unit": "USD", "derivation": "data[i].tvlUsd"},
+        {"name": "liquidity_usd", "type": "number", "unit": "USD; total value locked as the liquidity proxy", "derivation": "data[i].tvlUsd"},
+        {"name": "apy", "type": "number", "unit": "percent per year", "derivation": "data[i].apy"},
+        {"name": "apy_base", "type": "number", "unit": "percent per year", "derivation": "data[i].apyBase"},
+        {"name": "apy_reward", "type": "number", "unit": "percent per year", "derivation": "data[i].apyReward"},
+        {"name": "apy_mean_30d", "type": "number", "unit": "percent per year", "derivation": "data[i].apyMean30d"},
+        {"name": "apy_base_7d", "type": "number", "unit": "percent per year", "derivation": "data[i].apyBase7d"},
+        {"name": "apy_base_inception", "type": "number", "unit": "percent per year", "derivation": "data[i].apyBaseInception"},
+        {"name": "horizon_days", "type": "integer", "unit": "days; null because DefiLlama reports annualized rates without a holding horizon", "derivation": "not provided; the study declares it"},
+        {"name": "fee_rate", "type": "number", "unit": "fraction; null because DefiLlama does not report protocol or withdrawal fees", "derivation": "not provided; the study declares it"},
+        {"name": "lockup_days", "type": "integer", "unit": "days; null because DefiLlama does not report lockups or unbonding", "derivation": "not provided; the study declares it"},
+        {"name": "stablecoin", "type": "boolean", "unit": "DefiLlama classification", "derivation": "data[i].stablecoin"},
+        {"name": "il_risk", "type": "string", "unit": "DefiLlama impermanent-loss classification", "derivation": "data[i].ilRisk"},
+        {"name": "exposure", "type": "string", "unit": "single or multi asset", "derivation": "data[i].exposure"},
+        {"name": "reward_tokens", "type": "string", "unit": "comma-separated token addresses", "derivation": "data[i].rewardTokens"},
+        {"name": "underlying_tokens", "type": "string", "unit": "comma-separated token addresses", "derivation": "data[i].underlyingTokens"},
+        {"name": "pool_meta", "type": "string", "unit": "DefiLlama pool note", "derivation": "data[i].poolMeta"},
+        {"name": "outlier", "type": "boolean", "unit": "DefiLlama outlier flag", "derivation": "data[i].outlier"},
+        {"name": "apy_mu", "type": "number", "unit": "percent per year; DefiLlama APY mean estimate", "derivation": "data[i].mu"},
+        {"name": "apy_sigma", "type": "number", "unit": "percent per year; DefiLlama APY dispersion estimate", "derivation": "data[i].sigma"},
+        {"name": "observation_count", "type": "integer", "unit": "DefiLlama observations behind the estimates", "derivation": "data[i].count"}
+      ]
+    },
+    {
+      "id": "us-treasury.par-yield-daily",
+      "name": "US Treasury daily par yields",
+      "source_id": "us-treasury",
+      "status": "implemented",
+      "description": "One row per business day and tenor of the US Treasury par yield curve from 2020 through the capture day, as the dated non-crypto benchmark for opportunity-cost comparisons.",
+      "endpoint_ids": ["daily-yield-curve-2020", "daily-yield-curve-2021", "daily-yield-curve-2022", "daily-yield-curve-2023", "daily-yield-curve-2024", "daily-yield-curve-2025", "daily-yield-curve-2026"],
+      "fields": [
+        {"name": "observation_date", "type": "string", "unit": "US business day", "derivation": "entry.content.properties.NEW_DATE"},
+        {"name": "tenor", "type": "string", "unit": "1m, 1.5m, 2m, 3m, 4m, 6m, 1y, 2y, 3y, 5y, 7y, 10y, 20y, 30y", "derivation": "entry.content.properties.BC_* element name"},
+        {"name": "maturity_months", "type": "number", "unit": "months", "derivation": "tenor expressed in months"},
+        {"name": "yield_rate", "type": "number", "unit": "fraction per year", "derivation": "BC_* percent / 100; empty values are omitted"},
+        {"name": "source_year", "type": "integer", "unit": "feed year", "derivation": "the yearly endpoint that supplied the entry"}
       ]
     }
   ]

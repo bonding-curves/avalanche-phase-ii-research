@@ -59,7 +59,7 @@ def make_capture(tmp_path: Path, skip: set[int] = frozenset()) -> tuple[Path, di
 
 def test_catalog_declares_five_fixed_windows():
     catalog = load_catalog()
-    endpoints = source(catalog, "defillama")["endpoints"]
+    endpoints = [item for item in source(catalog, "defillama")["endpoints"] if item["id"].startswith("avax-price-window")]
     starts = [int(parse_qs(urlparse(item["url"]).query)["start"][0]) for item in endpoints]
     assert starts[0] == int(SERIES_START.timestamp()) and all(b - a == 500 * 86_400 for a, b in zip(starts, starts[1:]))
     definition = next(item for item in catalog["datasets"] if item["id"] == defillama.DATASET_ID)

@@ -16,6 +16,8 @@ from . import defillama
 from . import pchain
 from . import snowflake
 from . import snowpeer
+from . import treasury
+from . import yields
 from .catalog import DataError, load_catalog
 from .model import backtest as model_backtest
 from .model import protocol
@@ -27,6 +29,8 @@ MODULES = {
     coingecko.DATASET_ID: coingecko,
     defillama.DATASET_ID: defillama,
     pchain.DATASET_ID: pchain,
+    yields.DATASET_ID: yields,
+    treasury.DATASET_ID: treasury,
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
 }
 
