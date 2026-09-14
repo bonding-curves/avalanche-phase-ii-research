@@ -69,6 +69,7 @@ def test_catalog_schema_and_references_are_valid():
     assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "avalanche-snowflake"]
     assert [item["id"] for item in catalog["datasets"]] == [
         snowpeer.DATASET_ID, "snowflake.primary-validator-stakes", "snowflake.primary-delegator-stakes",
+        "snowflake.primary-staking-rewards",
     ]
 
 

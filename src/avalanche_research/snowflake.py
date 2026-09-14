@@ -30,6 +30,8 @@ NAVAX_PER_AVAX = 1_000_000_000
 FEE_SHARES_PER_UNIT = 1_000_000
 VALIDATOR_TYPES = ("AddValidatorTx", "AddPermissionlessValidatorTx")
 DELEGATOR_TYPES = ("AddDelegatorTx", "AddPermissionlessDelegatorTx")
+STAKING_TYPES = (*VALIDATOR_TYPES, *DELEGATOR_TYPES)
+REWARD_TYPE = "RewardValidatorTx"
 DURATION_DAYS = (14, 365)
 VALIDATOR_STAKE_NAVAX = (2_000 * NAVAX_PER_AVAX, 3_000_000 * NAVAX_PER_AVAX)
 DELEGATOR_STAKE_NAVAX = (25 * NAVAX_PER_AVAX, 3_000_000 * NAVAX_PER_AVAX)
@@ -40,7 +42,12 @@ FETCH_SIZE = 10_000
 
 @dataclass(frozen=True)
 class DatasetSpec:
-    """One Snowflake dataset: its capture columns, typed table, and SQL checks."""
+    """One Snowflake dataset: its capture columns, typed table, and SQL checks.
+
+    validity_sql counts rows that make the capture unusable; any count raises.
+    check_sql counts rows that fail a domain check; any count becomes a finding.
+    Both run over the typed ``rows`` table; check_params binds the ``?`` placeholders from the capture window.
+    """
 
     dataset_id: str
     query_id: str
@@ -48,11 +55,18 @@ class DatasetSpec:
     raw_types: dict[str, str]
     table_columns: dict[str, str]
     transform_sql: str
-    stake_navax: tuple[int, int]
+    validity_sql: str
+    validity_labels: tuple[str, ...]
+    check_names: tuple[str, ...]
     check_sql: str
     check_labels: tuple[str, ...]
+    check_params: Callable[[dict[str, str]], list[Any]]
     summary_sql: str
     summary_keys: tuple[str, ...]
+
+
+def _avax_range(bounds: tuple[int, int]) -> str:
+    return f"{bounds[0] // NAVAX_PER_AVAX:,} to {bounds[1] // NAVAX_PER_AVAX:,} AVAX"
 
 
 _COMMON_RAW = {
@@ -71,14 +85,25 @@ _COMMON_TAIL_RAW = {
     "staked_utxo_count": "INTEGER",
     "utxo_stake_navax": "BIGINT",
 }
-_COMMON_CHECK_SQL = """
+_STAKE_VALIDITY_SQL = """
+    COUNT_IF(transaction_hash IS NULL OR transaction_hash = '' OR node_id IS NULL OR node_id = ''
+             OR accepted_at IS NULL OR start_time IS NULL OR end_time IS NULL OR block_height IS NULL
+             OR stake_navax IS NULL OR staked_utxo_count IS NULL),
+    COUNT_IF(tx_type IS NULL OR tx_type NOT IN (?, ?)),
+    COUNT_IF(stake_navax < 0 OR potential_reward_navax < 0 OR staked_utxo_count < 0 OR utxo_stake_navax < 0)"""
+_STAKE_VALIDITY_LABELS = ("miss a required field", "have an unexpected transaction type", "carry a negative amount")
+_STAKE_CHECK_NAMES = (
+    "unique transaction hashes", "acceptance window", "time ordering", "duration bounds", "stake bounds",
+    "staked-UTXO reconciliation",
+)
+_STAKE_CHECK_SQL = """
     COUNT(*) - COUNT(DISTINCT transaction_hash),
     COUNT_IF(accepted_at::DATE < ?::DATE OR accepted_at::DATE >= ?::DATE),
     COUNT_IF(start_time < accepted_at OR end_time <= start_time),
     COUNT_IF(duration_days < ? OR duration_days > ?),
     COUNT_IF(stake_navax < ? OR stake_navax > ?),
     COUNT_IF(utxo_stake_navax IS NOT NULL AND utxo_stake_navax <> stake_navax)"""
-_COMMON_CHECK_LABELS = (
+_STAKE_CHECK_LABELS = (
     "repeat a transaction hash",
     "were accepted outside the requested window",
     "start before acceptance or end before start",
@@ -133,14 +158,17 @@ VALIDATOR_STAKES = DatasetSpec(
                rewarded, staked_utxo_count, utxo_stake_navax
         FROM capture
         ORDER BY accepted_at, transaction_hash""",
-    stake_navax=VALIDATOR_STAKE_NAVAX,
-    check_sql=_COMMON_CHECK_SQL + """,
+    validity_sql=_STAKE_VALIDITY_SQL,
+    validity_labels=_STAKE_VALIDITY_LABELS,
+    check_names=(*_STAKE_CHECK_NAMES[:5], "delegation fee bounds", _STAKE_CHECK_NAMES[5]),
+    check_sql=_STAKE_CHECK_SQL + """,
     COUNT_IF(delegation_fee_shares IS NULL OR delegation_fee_shares < ? OR delegation_fee_shares > ?)""",
     check_labels=(
-        *_COMMON_CHECK_LABELS[:5],
+        *_STAKE_CHECK_LABELS[:5],
         "have a delegation fee outside 2% to 100%",
-        _COMMON_CHECK_LABELS[5],
+        _STAKE_CHECK_LABELS[5],
     ),
+    check_params=lambda window: [window["start"], window["end"], *DURATION_DAYS, *VALIDATOR_STAKE_NAVAX, *FEE_SHARES],
     summary_sql=_COMMON_SUMMARY_SQL,
     summary_keys=_COMMON_SUMMARY_KEYS,
 )
@@ -181,10 +209,13 @@ DELEGATOR_STAKES = DatasetSpec(
                rewarded, staked_utxo_count, utxo_stake_navax
         FROM capture
         ORDER BY accepted_at, transaction_hash""",
-    stake_navax=DELEGATOR_STAKE_NAVAX,
-    check_sql=_COMMON_CHECK_SQL + """,
+    validity_sql=_STAKE_VALIDITY_SQL,
+    validity_labels=_STAKE_VALIDITY_LABELS,
+    check_names=(*_STAKE_CHECK_NAMES, "validator period containment"),
+    check_sql=_STAKE_CHECK_SQL + """,
     COUNT_IF(validator_transaction_hash IS NULL)""",
-    check_labels=(*_COMMON_CHECK_LABELS, "fall outside every validator staking period on their node"),
+    check_labels=(*_STAKE_CHECK_LABELS, "fall outside every validator staking period on their node"),
+    check_params=lambda window: [window["start"], window["end"], *DURATION_DAYS, *DELEGATOR_STAKE_NAVAX],
     summary_sql=_COMMON_SUMMARY_SQL + """,
     COUNT(DISTINCT delegator_address), COUNT_IF(delegator_address IS NULL), COUNT_IF(delegator_address_count > 1)""",
     summary_keys=(
@@ -193,7 +224,97 @@ DELEGATOR_STAKES = DatasetSpec(
     ),
 )
 
-SPECS = {spec.dataset_id: spec for spec in (VALIDATOR_STAKES, DELEGATOR_STAKES)}
+STAKING_REWARDS = DatasetSpec(
+    dataset_id="snowflake.primary-staking-rewards",
+    query_id="primary-staking-rewards",
+    tx_types=STAKING_TYPES,
+    raw_types={
+        "reward_transaction_hash": "VARCHAR",
+        "rewarded_at": "TIMESTAMP",
+        "block_height": "BIGINT",
+        "staking_transaction_hash": "VARCHAR",
+        "staking_tx_type": "VARCHAR",
+        "node_id": "VARCHAR",
+        "period_start_time": "TIMESTAMP",
+        "period_end_time": "TIMESTAMP",
+        "rewarded": "BOOLEAN",
+        "potential_reward_navax": "BIGINT",
+        "realized_reward_navax": "BIGINT",
+        "reward_utxo_count": "INTEGER",
+    },
+    table_columns={
+        "reward_transaction_hash": "VARCHAR",
+        "rewarded_at": "TIMESTAMP",
+        "block_height": "BIGINT",
+        "staking_transaction_hash": "VARCHAR",
+        "staking_tx_type": "VARCHAR",
+        "node_id": "VARCHAR",
+        "period_start_time": "TIMESTAMP",
+        "period_end_time": "TIMESTAMP",
+        "rewarded": "BOOLEAN",
+        "potential_reward_navax": "BIGINT",
+        "potential_reward_avax": "DOUBLE",
+        "realized_reward_navax": "BIGINT",
+        "realized_reward_avax": "DOUBLE",
+        "fee_transfer_navax": "BIGINT",
+        "fee_transfer_avax": "DOUBLE",
+        "reward_utxo_count": "INTEGER",
+    },
+    transform_sql="""
+        SELECT reward_transaction_hash, rewarded_at, block_height, staking_transaction_hash, staking_tx_type, node_id,
+               period_start_time, period_end_time, rewarded,
+               potential_reward_navax, potential_reward_navax::DOUBLE / 1e9 AS potential_reward_avax,
+               realized_reward_navax, realized_reward_navax::DOUBLE / 1e9 AS realized_reward_avax,
+               realized_reward_navax - potential_reward_navax AS fee_transfer_navax,
+               (realized_reward_navax - potential_reward_navax)::DOUBLE / 1e9 AS fee_transfer_avax,
+               reward_utxo_count
+        FROM capture
+        ORDER BY rewarded_at, reward_transaction_hash""",
+    validity_sql="""
+    COUNT_IF(reward_transaction_hash IS NULL OR reward_transaction_hash = '' OR rewarded_at IS NULL OR block_height IS NULL
+             OR staking_transaction_hash IS NULL OR staking_transaction_hash = '' OR realized_reward_navax IS NULL
+             OR reward_utxo_count IS NULL),
+    COUNT_IF(staking_tx_type IS NOT NULL AND staking_tx_type NOT IN (?, ?, ?, ?)),
+    COUNT_IF(realized_reward_navax < 0 OR potential_reward_navax < 0 OR reward_utxo_count < 0)""",
+    validity_labels=("miss a required field", "have an unexpected staking transaction type", "carry a negative amount"),
+    check_names=(
+        "unique reward and staking hashes", "reward window", "staking period link", "reward timing",
+        "reward status agreement", "validator fee direction", "delegator fee direction",
+    ),
+    check_sql="""
+    (COUNT(*) - COUNT(DISTINCT reward_transaction_hash)) + (COUNT(*) - COUNT(DISTINCT staking_transaction_hash)),
+    COUNT_IF(rewarded_at::DATE < ?::DATE OR rewarded_at::DATE >= ?::DATE),
+    COUNT_IF(staking_tx_type IS NULL),
+    COUNT_IF(period_end_time IS NOT NULL AND (rewarded_at < period_end_time OR rewarded_at > period_end_time + INTERVAL 1 DAY)),
+    COUNT_IF((rewarded = TRUE AND reward_utxo_count > 0 AND realized_reward_navax = 0)
+             OR (rewarded = FALSE AND staking_tx_type IN (?, ?) AND realized_reward_navax > 0)
+             OR (rewarded = FALSE AND realized_reward_navax > potential_reward_navax)),
+    COUNT_IF(staking_tx_type IN (?, ?) AND rewarded = TRUE AND realized_reward_navax < potential_reward_navax),
+    COUNT_IF(staking_tx_type IN (?, ?) AND realized_reward_navax > potential_reward_navax)""",
+    check_labels=(
+        "repeat a reward or staking transaction hash",
+        "were rewarded outside the requested window",
+        "have no Primary Network staking period",
+        "were rewarded before the period end or more than a day after it",
+        "disagree between the rewarded flag and the paid amount",
+        "are rewarded validator periods paid less than the potential reward",
+        "are delegator periods paid more than the potential reward",
+    ),
+    check_params=lambda window: [window["start"], window["end"], *DELEGATOR_TYPES, *VALIDATOR_TYPES, *DELEGATOR_TYPES],
+    summary_sql="""
+    COUNT(*), MIN(rewarded_at), MAX(rewarded_at),
+    COUNT_IF(staking_tx_type = ?), COUNT_IF(staking_tx_type = ?), COUNT_IF(staking_tx_type = ?), COUNT_IF(staking_tx_type = ?),
+    COUNT(DISTINCT node_id), COUNT_IF(rewarded = TRUE), COUNT_IF(rewarded = FALSE), COUNT_IF(rewarded IS NULL),
+    COUNT_IF(reward_utxo_count = 0), COUNT_IF(rewarded = TRUE AND reward_utxo_count = 0),
+    SUM(realized_reward_navax), SUM(fee_transfer_navax)""",
+    summary_keys=(
+        "rows", "rewarded_from", "rewarded_to", "rows_by_tx_type", "rows_by_tx_type", "rows_by_tx_type", "rows_by_tx_type",
+        "distinct_node_ids", "rows_rewarded", "rows_unrewarded", "rows_without_reward_status",
+        "rows_without_reward_utxo", "rows_rewarded_without_reward_utxo", "realized_reward_navax_total", "fee_transfer_navax_total",
+    ),
+)
+
+SPECS = {spec.dataset_id: spec for spec in (VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS)}
 DATASET_IDS = tuple(SPECS)
 DATASET_ID = VALIDATOR_STAKES.dataset_id
 
@@ -445,18 +566,8 @@ def load_capture(connection: Any, spec: DatasetSpec, capture_dir: Path, receipt:
         raise DataError(f"captured rows do not match the declared types: {error}") from error
     if count != record["rows"]:
         raise DataError(f"captured result holds {count} rows, receipt declares {record['rows']}")
-    invalid = connection.execute(
-        """
-        SELECT COUNT_IF(transaction_hash IS NULL OR transaction_hash = '' OR node_id IS NULL OR node_id = ''
-                        OR accepted_at IS NULL OR start_time IS NULL OR end_time IS NULL OR block_height IS NULL
-                        OR stake_navax IS NULL OR staked_utxo_count IS NULL),
-               COUNT_IF(tx_type IS NULL OR tx_type NOT IN (?, ?)),
-               COUNT_IF(stake_navax < 0 OR potential_reward_navax < 0 OR staked_utxo_count < 0 OR utxo_stake_navax < 0)
-        FROM rows
-        """,
-        list(spec.tx_types),
-    ).fetchone()
-    for failed, label in zip(invalid, ("miss a required field", "have an unexpected transaction type", "carry a negative amount")):
+    invalid = connection.execute(f"SELECT {spec.validity_sql} FROM rows", list(spec.tx_types)).fetchone()
+    for failed, label in zip(invalid, spec.validity_labels):
         if failed:
             raise DataError(f"{failed} captured rows {label}")
 
@@ -531,7 +642,7 @@ def read_parquet(path: Path, spec: DatasetSpec = VALIDATOR_STAKES) -> list[dict[
     connection = duckdb.connect()
     try:
         records = connection.execute(
-            f"SELECT {', '.join(columns)} FROM read_parquet(?) ORDER BY accepted_at, transaction_hash", [str(path)]
+            f"SELECT {', '.join(columns)} FROM read_parquet(?) ORDER BY {columns[1]}, {columns[0]}", [str(path)]
         ).fetchall()
     finally:
         connection.close()
@@ -543,22 +654,13 @@ def check(capture_dir: Path, dataset_dir: Path | None = None) -> dict[str, Any]:
     receipt = read_capture(capture_dir, catalog)
     spec = spec_for(receipt["dataset_id"])
     window = receipt["queries"][0]["parameters"]
-    stake = f"{spec.stake_navax[0] // NAVAX_PER_AVAX:,} to {spec.stake_navax[1] // NAVAX_PER_AVAX:,} AVAX"
+    stake = _avax_range(VALIDATOR_STAKE_NAVAX if spec is VALIDATOR_STAKES else DELEGATOR_STAKE_NAVAX)
     findings: list[str] = []
-    checked = [
-        "capture hashes", "query text", "field types", "unique transaction hashes", "acceptance window",
-        "time ordering", "duration bounds", "stake bounds", "staked-UTXO reconciliation",
-    ]
-    checked.extend(
-        ["delegation fee bounds"] if spec is VALIDATOR_STAKES else ["validator period containment"]
-    )
+    checked = ["capture hashes", "query text", "field types", *spec.check_names]
     connection = duckdb.connect()
     try:
         load_capture(connection, spec, capture_dir, receipt)
-        params = [window["start"], window["end"], *DURATION_DAYS, *spec.stake_navax]
-        if spec is VALIDATOR_STAKES:
-            params.extend(FEE_SHARES)
-        counts = connection.execute(f"SELECT {spec.check_sql} FROM rows", params).fetchone()
+        counts = connection.execute(f"SELECT {spec.check_sql} FROM rows", spec.check_params(window)).fetchone()
         findings.extend(
             f"{failed} rows {label.format(stake=stake)}" for failed, label in zip(counts, spec.check_labels) if failed
         )

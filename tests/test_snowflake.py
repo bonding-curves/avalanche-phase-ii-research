@@ -52,6 +52,33 @@ DELEGATOR_ROWS = [
     },
 ]
 
+REWARD_ROWS = [
+    {
+        "reward_transaction_hash": "rw-1", "rewarded_at": datetime(2021, 5, 1, 12, 6, 0), "block_height": 5000,
+        "staking_transaction_hash": "tx-legacy-1", "staking_tx_type": "AddValidatorTx", "node_id": "NodeID-A",
+        "period_start_time": datetime(2021, 3, 1, 12, 5, 0), "period_end_time": datetime(2021, 5, 1, 12, 5, 0),
+        "rewarded": True, "potential_reward_navax": 41_095_890_410, "realized_reward_navax": 43_000_000_000, "reward_utxo_count": 2,
+    },
+    {
+        "reward_transaction_hash": "rw-2", "rewarded_at": datetime(2021, 3, 30, 9, 6, 0), "block_height": 4000,
+        "staking_transaction_hash": "del-1", "staking_tx_type": "AddDelegatorTx", "node_id": "NodeID-A",
+        "period_start_time": datetime(2021, 3, 2, 9, 5, 0), "period_end_time": datetime(2021, 3, 30, 9, 5, 0),
+        "rewarded": True, "potential_reward_navax": 100_000_000, "realized_reward_navax": 98_000_000, "reward_utxo_count": 1,
+    },
+    {
+        "reward_transaction_hash": "rw-4", "rewarded_at": datetime(2021, 6, 1, 0, 0, 0), "block_height": 5500,
+        "staking_transaction_hash": "del-9", "staking_tx_type": "AddDelegatorTx", "node_id": "NodeID-A",
+        "period_start_time": datetime(2021, 5, 1, 0, 0, 0), "period_end_time": datetime(2021, 5, 31, 23, 59, 0),
+        "rewarded": True, "potential_reward_navax": 50_000_000, "realized_reward_navax": 0, "reward_utxo_count": 0,
+    },
+    {
+        "reward_transaction_hash": "rw-3", "rewarded_at": datetime(2022, 1, 1, 0, 0, 0), "block_height": 6000,
+        "staking_transaction_hash": "unknown", "staking_tx_type": None, "node_id": None,
+        "period_start_time": None, "period_end_time": None,
+        "rewarded": None, "potential_reward_navax": None, "realized_reward_navax": 0, "reward_utxo_count": 0,
+    },
+]
+
 ROWS = [
     raw_row(),
     raw_row(
@@ -121,13 +148,15 @@ def make_capture(tmp_path: Path, rows=ROWS, parameters=None, spec=snowflake.VALI
     return path, receipt
 
 
-@pytest.mark.parametrize("spec", [snowflake.VALIDATOR_STAKES, snowflake.DELEGATOR_STAKES])
+@pytest.mark.parametrize("spec", list(snowflake.SPECS.values()))
 def test_catalog_declares_each_snowflake_query_dataset(spec):
     catalog = load_catalog()
     query = snowflake.query_definition(catalog, spec.dataset_id)
     assert query["relations"] == ["P_TRANSACTIONS", "UTXOS"]
     assert "%(start)s" in snowflake.read_sql(query) and "%(end)s" in snowflake.read_sql(query)
-    assert [field["name"] for field in load_catalog()["datasets"][-1 if spec is snowflake.DELEGATOR_STAKES else -2]["fields"]] == list(spec.table_columns)
+    definition = next(item for item in catalog["datasets"] if item["id"] == spec.dataset_id)
+    assert [field["name"] for field in definition["fields"]] == list(spec.table_columns)
+    assert len(spec.check_names) == len(spec.check_labels) == spec.check_sql.count(",\n") + 1
 
 
 def test_parameters_default_to_full_history_and_reject_bad_input():
@@ -263,6 +292,24 @@ def test_capture_stays_valid_when_an_unrelated_catalog_record_changes(tmp_path, 
     catalog["sources"][-1]["queries"][0]["relations"].append("P_BLOCKS")
     with pytest.raises(DataError, match="contract hash differs"):
         snowflake.read_capture(capture_dir)
+
+
+def test_reward_dataset_builds_checks_and_reports_unlinked_rewards(tmp_path):
+    spec = snowflake.STAKING_REWARDS
+    capture_dir, _ = make_capture(tmp_path, REWARD_ROWS, spec=spec)
+    dataset_dir = tmp_path / "dataset"
+    build = snowflake.build(spec.dataset_id, capture_dir, dataset_dir)
+    assert build["summary"]["rows_by_tx_type"] == {
+        "AddValidatorTx": 1, "AddPermissionlessValidatorTx": 0, "AddDelegatorTx": 2, "AddPermissionlessDelegatorTx": 0,
+    }
+    assert build["summary"]["fee_transfer_navax_total"] == 1_904_109_590 - 2_000_000 - 50_000_000
+    assert build["summary"]["rows_rewarded_without_reward_utxo"] == 1 and build["summary"]["rows_without_reward_utxo"] == 2
+    validation = snowflake.check(capture_dir, dataset_dir)
+    assert validation["checked"][3:] == [*spec.check_names, "build hashes", "Parquet rows"]
+    assert validation["findings"] == ["1 rows have no Primary Network staking period"]
+    table = snowflake.read_parquet(dataset_dir / "primary-staking-rewards.parquet", spec)
+    assert [row["reward_transaction_hash"] for row in table] == ["rw-2", "rw-1", "rw-4", "rw-3"]
+    assert table[1]["fee_transfer_avax"] == pytest.approx(1.90410959) and table[0]["fee_transfer_navax"] == -2_000_000
 
 
 def test_cli_preview_resolves_parameters_without_writing(tmp_path):

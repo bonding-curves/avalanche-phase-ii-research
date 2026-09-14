@@ -94,6 +94,22 @@
             "The delegator identity is the address on the staked UTXOs; a small number of delegations are funded by several addresses",
             "REWARDED is null while a delegation period is still in progress"
           ]
+        },
+        {
+          "id": "primary-staking-rewards",
+          "sql": "queries/primary-staking-rewards.sql",
+          "relations": ["P_TRANSACTIONS", "UTXOS"],
+          "parameters": [
+            {"name": "start", "type": "date", "default": "2020-09-10", "meaning": "inclusive lower bound on the reward transaction timestamp, UTC"},
+            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper bound on the reward transaction timestamp, UTC"}
+          ],
+          "observed_semantics": [
+            "RewardValidatorTx.STAKING_TX_HASH is null on every row; METADATA txID names the staking transaction, exactly one reward per staking period",
+            "Reward UTXOs (REWARD = TRUE) carry the staking transaction hash, not the reward transaction hash",
+            "Rewarded validator periods receive at least the potential reward; the excess is delegation fee income",
+            "Rewarded delegator periods receive at most the potential reward; the shortfall is the validator's fee",
+            "Reward transactions land within one hour of the period end; a period with REWARDED = NULL has no reward transaction yet"
+          ]
         }
       ]
     }
@@ -176,6 +192,32 @@
         {"name": "rewarded", "type": "boolean", "unit": "null while the delegation period is in progress", "derivation": "P_TRANSACTIONS.REWARDED"},
         {"name": "staked_utxo_count", "type": "integer", "unit": "distinct staked UTXOs", "derivation": "count of distinct UTXOS.UTXO_ID with STAKED = TRUE for the transaction"},
         {"name": "utxo_stake_navax", "type": "integer", "unit": "nAVAX; null when no staked UTXO row exists", "derivation": "sum of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"}
+      ]
+    },
+    {
+      "id": "snowflake.primary-staking-rewards",
+      "name": "Primary Network staking reward outcomes",
+      "source_id": "avalanche-snowflake",
+      "status": "implemented",
+      "description": "One row per reward transaction closing a validator or delegator staking period on the Avalanche Primary Network, with the linked staking period, its rewarded flag, potential reward, realized reward from reward UTXOs, and the resulting fee transfer.",
+      "query_ids": ["primary-staking-rewards"],
+      "fields": [
+        {"name": "reward_transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "P_TRANSACTIONS.TRANSACTION_HASH where TYPE = RewardValidatorTx"},
+        {"name": "rewarded_at", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.TIMESTAMP of the reward transaction"},
+        {"name": "block_height", "type": "integer", "unit": "P-Chain block height", "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT of the reward transaction"},
+        {"name": "staking_transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "reward transaction METADATA txID"},
+        {"name": "staking_tx_type", "type": "string", "unit": "one of the four staking types; null when no Primary Network staking period matches", "derivation": "P_TRANSACTIONS.TYPE of the staking transaction"},
+        {"name": "node_id", "type": "string", "unit": "validator NodeID", "derivation": "P_TRANSACTIONS.NODE_ID of the staking transaction"},
+        {"name": "period_start_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.START_TIME of the staking transaction"},
+        {"name": "period_end_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.END_TIME of the staking transaction"},
+        {"name": "rewarded", "type": "boolean", "unit": "protocol reward decision", "derivation": "P_TRANSACTIONS.REWARDED of the staking transaction"},
+        {"name": "potential_reward_navax", "type": "integer", "unit": "nAVAX", "derivation": "P_TRANSACTIONS.POTENTIAL_REWARD of the staking transaction"},
+        {"name": "potential_reward_avax", "type": "number", "unit": "AVAX", "derivation": "potential_reward_navax / 1e9"},
+        {"name": "realized_reward_navax", "type": "integer", "unit": "nAVAX; 0 when no reward UTXO exists", "derivation": "sum of distinct UTXOS.AMOUNT with REWARD = TRUE keyed by the staking transaction hash"},
+        {"name": "realized_reward_avax", "type": "number", "unit": "AVAX", "derivation": "realized_reward_navax / 1e9"},
+        {"name": "fee_transfer_navax", "type": "integer", "unit": "nAVAX; positive is delegation fee income to a validator, negative is fee paid by a delegator", "derivation": "realized_reward_navax - potential_reward_navax"},
+        {"name": "fee_transfer_avax", "type": "number", "unit": "AVAX", "derivation": "fee_transfer_navax / 1e9"},
+        {"name": "reward_utxo_count", "type": "integer", "unit": "distinct reward UTXOs", "derivation": "count of distinct UTXOS.UTXO_ID with REWARD = TRUE keyed by the staking transaction hash"}
       ]
     }
   ]
