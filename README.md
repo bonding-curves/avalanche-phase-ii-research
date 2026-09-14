@@ -18,7 +18,7 @@ Phase II focuses on validator and delegator behavior, staking rewards, economic 
 
 ## Executive summary
 
-The repository currently provides the Phase II requirements, the Phase I research archive, six Essential Reading source editions, one initialized validator-rewards study, and a standalone Quartz research site. The Essential Readings establish the Foundation's Measure, Capture, Distribute agenda, value-accrual and ecosystem-income frameworks, a published model of validator and delegator choices, ACP-285 community discussion, and the January staking-and-price model artifacts.
+The repository currently provides the Phase II requirements, the Phase I research archive, six Essential Reading source editions, one initialized validator-rewards study, a reproducible Snowpeer network-summary dataset, and a standalone Quartz research site. The Essential Readings establish the Foundation's Measure, Capture, Distribute agenda, value-accrual and ecosystem-income frameworks, a published model of validator and delegator choices, ACP-285 community discussion, and the January staking-and-price model artifacts.
 
 The research implementation remains in development. Published claims have not yet been independently reproduced here, the dynamic Avalanche model is not complete, and the milestone pages are evidence maps rather than assertions of contractual acceptance. Source publication, implementation verification, empirical validation, research review, and client acceptance are separate states.
 
@@ -84,7 +84,8 @@ Not every source requires every analytical method. A study may classify a compon
 | Path | Purpose |
 | --- | --- |
 | [`content/`](content/) | Phase I archive, Phase II studies, milestone evidence, and the source-linked Wiki |
-| [`data/`](data/) | Client-safe research navigation and structured records |
+| [`data/`](data/) | Data-source contracts, dataset schemas, reproducible capture instructions, and research navigation |
+| [`src/avalanche_research/`](src/avalanche_research/) | Reusable data retrieval, transformation, and validation code |
 | [`scripts/`](scripts/) | Deterministic content, link, site, and publication checks |
 | [`.site/`](.site/) | Pinned Quartz publication engine and Node environment |
 | [`.codex/`](.codex/) | Client-safe agent instructions and reusable capabilities |
@@ -110,13 +111,24 @@ cd .site
 npm run verify
 ```
 
+Install the Python environment and inspect the implemented data sources:
+
+```bash
+uv sync --locked
+uv run --locked pytest
+uv run --locked avalanche data list
+uv run --locked avalanche data manifest
+```
+
+See the [`data/` guide](data/) for the preview, capture, build, and validation workflow.
+
 The generated site is written to `.site/public/`. Generated output and installed dependencies are not committed.
 
 ## Current limitations
 
 - Only one Essential Reading currently has an initialized study package.
 - No published empirical result has yet been independently reproduced and accepted in this repository.
-- The integrated cadCAD model, PSUU results, data adapters, and main synthesis notebook remain under development.
+- The integrated cadCAD model, PSUU results, data adapters beyond Snowpeer, and main synthesis notebook remain under development.
 - Milestone pages preserve requirements and evidence structure; their presence does not establish completion or acceptance.
 - The ACP-285 page is a timestamped analytical video summary, not a verified verbatim transcript.
 - The January model is reconstructed from three indirectly attributed images with material definitions still missing.
