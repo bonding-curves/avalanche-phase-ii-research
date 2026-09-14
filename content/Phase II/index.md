@@ -13,11 +13,11 @@ The research moves from sources and observed data to independent reproduction, d
 
 | Program | Purpose | Current state |
 | --- | --- | --- |
-| [Essential Readings](../Wiki/Avalanche/Essential%20Readings/index.md) | Establish the Foundation agenda, published evidence, economic boundaries, ACP-285 discussion, and first model targets | Six source editions available |
+| [Essential Readings](Studies/Essential%20Readings/index.md) | Establish the Foundation agenda, published evidence, economic boundaries, ACP-285 discussion, and first model targets | Six source editions available |
 | [Research Studies](Studies/index.md) | Connect source material to exploratory analysis, reproduction, and dynamic modeling | One validator-rewards study initialized |
 | Economic ACPs | Connect proposals, discussions, code, activation, data, and modeled effects | Collection intake planned |
 | Supplementary Research Papers | Supply economic theory, empirical methods, simulation patterns, and comparison models | Collection development underway |
-| Validator Interviews | Gather structured operator evidence about costs, rewards, duration, delegation, liquidity, protocol changes, and security | Method and corpus development underway |
+| [Validator Interviews](Validator%20Interviews/index.md) | Gather structured operator evidence about costs, rewards, duration, delegation, liquidity, protocol changes, and security | No findings published yet |
 | Integrated Modeling | Join Avalanche data, mechanisms, behavior, scenarios, metrics, cadCAD experiments, and PSUU | Under development |
 
 ## Study structure
@@ -34,7 +34,7 @@ A study may mark a component blocked or not applicable. An empty page, rendered 
 
 The first initialized study is [How Do Avalanche Validators Actually Think About Staking Rewards?](Studies/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/index.md). It examines the article's validator and delegator choice models, reported policy counterfactuals, required data, and possible dynamic extensions.
 
-The [canonical source edition](../Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/index.md) and research study remain separate. Source fidelity does not establish empirical validity.
+Its [source article](Studies/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/Source%20Article.md) is preserved inside the study package. Source fidelity does not establish empirical validity.
 
 ## Milestone evidence
 
@@ -65,7 +65,8 @@ Essential Readings and protocol sources
 
 - [About Phase II](About.md)
 - [Studies](Studies/index.md)
-- [Essential Reading source editions](../Wiki/Avalanche/Essential%20Readings/index.md)
+- [Essential Readings](Studies/Essential%20Readings/index.md)
+- [Validator Interviews](Validator%20Interviews/index.md)
 - [Phase I research](../Phase%20I/index.md)
 - [Milestone 0](Milestone%200/index.md)
 - [Milestone 1](Milestone%201/index.md)

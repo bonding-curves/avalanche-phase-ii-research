@@ -21,6 +21,11 @@ SOURCE_TYPES = {
     "video": "Video",
     "model_artifact": "Model artifact",
 }
+SOURCE_PAGE_TITLES = {
+    "article": "Source Article",
+    "video": "Source Video",
+    "model_artifact": "Source Model Artifact",
+}
 
 
 class RegistryError(ValueError):
@@ -97,7 +102,7 @@ def _relative_link(source: Path, target: Path) -> str:
 
 
 def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
-    if registry.get("schema_version") != "research-navigation/v2":
+    if registry.get("schema_version") != "research-navigation/v3":
         raise RegistryError("unsupported schema_version")
     sources = _unique(_records(registry.get("sources"), "sources"), "source")
     collections = _unique(_records(registry.get("collections"), "collections"), "collection")
@@ -120,8 +125,8 @@ def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
             page = _page(root, source["local_page"], f"{source['id']}.local_page")
             if not page.is_file():
                 raise RegistryError(f"{source['id']}: missing local page")
-            if _title(page) != source["title"]:
-                raise RegistryError(f"{source['id']}: local page title drift")
+            if _title(page) != SOURCE_PAGE_TITLES[source_type]:
+                raise RegistryError(f"{source['id']}: source page title drift")
 
     for collection in collections.values():
         if not isinstance(collection.get("title"), str) or not collection["title"].strip():
@@ -132,8 +137,7 @@ def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
         missing = [source_id for source_id in member_ids if source_id not in sources]
         if missing:
             raise RegistryError(f"{collection['id']}: missing sources {missing}")
-        _page(root, collection.get("wiki_index"), f"{collection['id']}.wiki_index")
-        _page(root, collection.get("studies_index"), f"{collection['id']}.studies_index")
+        _page(root, collection.get("index"), f"{collection['id']}.index")
 
     for study in studies.values():
         source_id = study.get("source_id")
@@ -145,19 +149,15 @@ def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
         if source_id not in collections[collection_id]["source_ids"]:
             raise RegistryError(f"{study['id']}: source is not a collection member")
         page = _page(root, study.get("page"), f"{study['id']}.page")
-        if not page.is_file() or _title(page) != sources[source_id]["title"]:
-            raise RegistryError(f"{study['id']}: missing page or source-title drift")
+        source_page = _page(root, sources[source_id]["local_page"], f"{source_id}.local_page")
+        if page != source_page.parent / "index.md":
+            raise RegistryError(f"{study['id']}: study page must be the source package index")
+        if page.is_file() and _title(page) != sources[source_id]["title"]:
+            raise RegistryError(f"{study['id']}: study page title drift")
         for component in _records(study.get("components"), f"{study['id']}.components"):
             component_page = _page(root, component.get("page"), f"{study['id']}.component.page")
             if not component_page.is_file() or _title(component_page) != component.get("title"):
                 raise RegistryError(f"{study['id']}: missing component or title drift")
-        source_page_value = sources[source_id].get("local_page")
-        if source_page_value:
-            source_page = _page(root, source_page_value, f"{source_id}.local_page")
-            if _route(root, page) not in source_page.read_text(encoding="utf-8"):
-                raise RegistryError(f"{study['id']}: source page lacks reciprocal study link")
-            if _route(root, source_page) not in page.read_text(encoding="utf-8"):
-                raise RegistryError(f"{study['id']}: study page lacks reciprocal source link")
 
     return {"sources": sources, "collections": collections, "studies": studies}
 
@@ -166,38 +166,50 @@ def render(registry: dict[str, Any], root: Path = ROOT) -> dict[Path, str]:
     resolved = validate(registry, root)
     sources = resolved["sources"]
     studies = resolved["studies"]
+    studies_by_source = {study["source_id"]: study for study in studies.values()}
     outputs: dict[Path, str] = {}
     for collection in resolved["collections"].values():
-        wiki_index = _page(root, collection["wiki_index"], "wiki_index")
-        studies_index = _page(root, collection["studies_index"], "studies_index")
-        wiki_items = []
+        collection_index = _page(root, collection["index"], "index")
+        collection_items = []
         for source_id in collection["source_ids"]:
             source = sources[source_id]
-            local_page = source.get("local_page")
-            link = _relative_link(wiki_index, _page(root, local_page, "local_page")) if local_page else source["canonical_url"]
+            source_page = _page(root, source["local_page"], "local_page")
+            package_index = source_page.parent / "index.md"
             source_type = SOURCE_TYPES[source["source_type"]]
-            wiki_items.append(f"- [{source['title']}]({link}) · {source_type}")
-        study_items = []
-        for study in studies.values():
-            if study["collection_id"] == collection["id"]:
-                title = sources[study["source_id"]]["title"]
-                study_items.append(f"- [{title}]({_relative_link(studies_index, _page(root, study['page'], 'study.page'))})")
-        outputs[wiki_index] = (
+            collection_items.append(
+                f"- [{source['title']}]({_relative_link(collection_index, package_index)}) · {source_type}"
+            )
+            study = studies_by_source.get(source_id)
+            component_items = [
+                f"- [{SOURCE_PAGE_TITLES[source['source_type']]}]({_relative_link(package_index, source_page)})"
+            ]
+            if study:
+                component_items.extend(
+                    f"- [{component['title']}]({_relative_link(package_index, _page(root, component['page'], 'component.page'))})"
+                    for component in study["components"]
+                )
+                description = "Source material and reviewed research components for this study."
+            else:
+                description = "Source material admitted to the Essential Readings collection."
+            outputs[package_index] = (
+                "---\n"
+                f"title: \"{source['title']}\"\n"
+                f"description: \"{description}\"\n"
+                f"source_id: \"{source_id}\"\n"
+                "---\n\n"
+                f"# {source['title']}\n\n"
+                f"{description}\n\n"
+                "## Contents\n\n"
+                + "\n".join(component_items)
+                + "\n"
+            )
+        outputs[collection_index] = (
             "---\n"
             f"title: {collection['title']}\n"
-            "description: Primary research sources and available faithful local editions.\n"
+            "description: Primary sources and their reviewed research components.\n"
             "---\n\n"
             f"# {collection['title']}\n\n"
-            + "\n".join(wiki_items)
-            + "\n"
-        )
-        outputs[studies_index] = (
-            "---\n"
-            f"title: {collection['title']}\n"
-            "description: Research studies grounded in the project's essential source materials.\n"
-            "---\n\n"
-            f"# {collection['title']}\n\n"
-            + "\n".join(study_items)
+            + "\n".join(collection_items)
             + "\n"
         )
     return outputs

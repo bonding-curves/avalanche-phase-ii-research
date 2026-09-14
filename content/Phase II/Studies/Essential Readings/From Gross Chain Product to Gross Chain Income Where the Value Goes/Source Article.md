@@ -1,5 +1,6 @@
 ---
-title: "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
+title: "Source Article"
+source_title: "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
 description: "A faithful local reading view of Eric Lu's GCP/GCI article, generated from the frozen official page."
 date: 2026-08-12
 author: "Siyu (Eric) Lu, PhD"
@@ -14,7 +15,7 @@ status: source-reproduced
 
 **Article** · Siyu (Eric) Lu, PhD · Published August 12, 2026 · [Original article](https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes)
 
-![GCP to GCI article cover](/Wiki/Avalanche/Essential%20Readings/From%20Gross%20Chain%20Product%20to%20Gross%20Chain%20Income%20Where%20the%20Value%20Goes/raw/assets/cover.png)
+![GCP to GCI article cover](/Phase-II/Studies/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/raw/assets/cover.png)
 
 ## A three-step roadmap for value accrual
 
@@ -38,15 +39,15 @@ Avalanche has the same distinction, and GCI is built to mirror it across three n
 
 **GCI (Gross Chain Income)** is the GNI analog. It starts from GCP and adds **holder yield**: income earned outside the on-chain economy that accrues directly to Avalanche-resident holders of tokenized funds and yield-bearing stablecoins. This is the on-chain equivalent of a resident collecting a coupon on a foreign bond.
 
-![gci identity - embed](/Wiki/Avalanche/Essential%20Readings/From%20Gross%20Chain%20Product%20to%20Gross%20Chain%20Income%20Where%20the%20Value%20Goes/raw/assets/figure-01.png)
+![gci identity - embed](/Phase-II/Studies/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/raw/assets/figure-01.png)
 
 **GCI-general** goes one step further than GCI. It adds **issuer reserve income**: the yield that token issuers or fund managers retained on the assets backing the Avalanche-resident float of their tokens. This income exists because of balances held on Avalanche, but under today's arrangements it accrues to the issuer, off-chain, rather than to residents. GCI would not count it, because it does not flow to residents. We track it anyway, precisely because it sizes an opportunity: it is value the ecosystem generates but does not yet receive.
 
-![gci general identity](/Wiki/Avalanche/Essential%20Readings/From%20Gross%20Chain%20Product%20to%20Gross%20Chain%20Income%20Where%20the%20Value%20Goes/raw/assets/figure-02.png)
+![gci general identity](/Phase-II/Studies/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/raw/assets/figure-02.png)
 
 Stacking the three levels for every month gives the shape of the whole income system.
 
-![gci article nested levels](/Wiki/Avalanche/Essential%20Readings/From%20Gross%20Chain%20Product%20to%20Gross%20Chain%20Income%20Where%20the%20Value%20Goes/raw/assets/figure-03.png)
+![gci article nested levels](/Phase-II/Studies/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/raw/assets/figure-03.png)
 
 In the latest full month (June 2026), on-chain production was $3.1M of NGCP (Nominal GCP). Holder yield added $2.7M to reach $5.8M of NGCI (Nominal GCI). Issuer reserve income then added $6.9M to reach $12.7M of NGCI-general. The single-month issuer increment alone was larger than all of on-chain NGCP. Over the full history, the ecosystem has produced roughly $954.8M of NGCP, channeled $32.3M of holder yield, and generated $242.8M of issuer reserve income.
 
@@ -78,11 +79,11 @@ Capturing value from holder yield faces similar challenges as GCP: any value cap
 
 The largest layer is the one hardest to capture. NGCI-general adds issuer reserve income, and that increment is by far the biggest of the three: currently, it consists mainly of the yield that stablecoin issuers earn on the reserves backing their Avalanche-resident float. The income mix below shows how thoroughly it dominates the total in most months.
 
-![gci article increment composition](/Wiki/Avalanche/Essential%20Readings/From%20Gross%20Chain%20Product%20to%20Gross%20Chain%20Income%20Where%20the%20Value%20Goes/raw/assets/figure-04.png)
+![gci article increment composition](/Phase-II/Studies/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/raw/assets/figure-04.png)
 
 Two properties make this layer strategically important. The first is stability. On-chain production is highly cyclical, rising and falling with crypto market conditions, but reserve income tracks short-term interest rates and the stablecoin float, both of which move slowly and are driven primarily by factors far less sensitive to crypto cycles. Over the 30 months of overlapping history (January 2024 to June 2026), NGCP had a coefficient of variation of 0.51 and swung 7.5x peak to trough, while issuer reserve income had a coefficient of variation of just 0.16 and swung only 2.1x. It is roughly three times steadier than GCP.
 
-![gci article cyclicality contrast](/Wiki/Avalanche/Essential%20Readings/From%20Gross%20Chain%20Product%20to%20Gross%20Chain%20Income%20Where%20the%20Value%20Goes/raw/assets/figure-05.png)
+![gci article cyclicality contrast](/Phase-II/Studies/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/raw/assets/figure-05.png)
 
 That steadiness is exactly what a token economy dominated by a volatile production base lacks. A sustainable claim on even part of this layer would provide downside protection denominated in fiat, income that keeps arriving when on-chain activity is depressed.
 

@@ -26,8 +26,8 @@ The research implementation remains in development. Published claims have not ye
 
 | Reader | Recommended path |
 | --- | --- |
-| Avalanche economic team | Begin with the [Phase II overview](<content/Phase II/index.md>), then inspect the [Essential Readings](<content/Wiki/Avalanche/Essential Readings/index.md>) and [milestone evidence](<content/Phase II/Milestone 0/index.md>). |
-| Research reviewer | Read the [validator-rewards source](<content/Wiki/Avalanche/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md>) beside its [research study](<content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md>). |
+| Avalanche economic team | Begin with the [Phase II overview](<content/Phase II/index.md>), then inspect the [Essential Readings](<content/Phase II/Studies/Essential Readings/index.md>) and [milestone evidence](<content/Phase II/Milestone 0/index.md>). |
+| Research reviewer | Open the [validator-rewards study package](<content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md>) to read its source and, when published, its research components. |
 | Engineer or agent | Read [AGENTS.md](AGENTS.md), run the verification command below, and follow links from the [research program](<content/Phase II/index.md>). |
 | Phase I reviewer | Open the preserved [Phase I research overview](<content/Phase I/index.md>) and [source index](<content/Phase I/source-index.md>). |
 
@@ -46,7 +46,7 @@ The signed agreement and accepted proposal are preserved under Milestone 0. Each
 
 ### Essential Readings
 
-The [six-source collection](<content/Wiki/Avalanche/Essential Readings/index.md>) is the current research foundation:
+The [six-source collection](<content/Phase II/Studies/Essential Readings/index.md>) is the current research foundation:
 
 1. The Avalanche Foundation's economic research agenda.
 2. AVAX value accrual as an equilibrium outcome.
@@ -55,11 +55,11 @@ The [six-source collection](<content/Wiki/Avalanche/Essential Readings/index.md>
 5. The ACP-285 community call on the staking reward curve.
 6. The January staking-and-price model reconstruction.
 
-Each source edition preserves its evidence boundary. The [Studies collection](<content/Phase II/Studies/Essential Readings/index.md>) connects source material to BCRG analysis as study packages become reviewable.
+Each study package preserves its source evidence boundary and adds research components only after they become reviewable.
 
 ### Current study
 
-[How Do Avalanche Validators Actually Think About Staking Rewards?](<content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md>) is the first initialized research node. Its EDA, Reproduction, and Dynamic Model pages define separate analytical responsibilities. They do not yet constitute an accepted end-to-end result.
+[How Do Avalanche Validators Actually Think About Staking Rewards?](<content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md>) is the first initialized research node. Its source is published; EDA, Reproduction, and Dynamic Model work remains private until reviewed.
 
 ### Next research collections
 

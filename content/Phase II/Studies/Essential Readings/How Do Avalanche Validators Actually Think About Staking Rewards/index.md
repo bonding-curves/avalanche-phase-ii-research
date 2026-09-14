@@ -1,18 +1,13 @@
 ---
 title: "How Do Avalanche Validators Actually Think About Staking Rewards?"
-description: Study of validator and delegator behavior, staking rewards, and related mechanism questions.
+description: "Source material and reviewed research components for this study."
+source_id: "lit:eric-validator-rewards"
 ---
 
 # How Do Avalanche Validators Actually Think About Staking Rewards?
 
-This study examines validator and delegator behavior, reproduces relevant empirical results, and explores clearly identified dynamic extensions.
+Source material and reviewed research components for this study.
 
-**Source:** [Read the canonical article](/Wiki/Avalanche/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/)
+## Contents
 
-## Study components
-
-- [Exploratory Data Analysis](Exploratory%20Data%20Analysis)
-- [Reproduction](Reproduction)
-- [Dynamic Model](Dynamic%20Model)
-
-Results will be added as the study develops.
+- [Source Article](Source%20Article)

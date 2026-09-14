@@ -5,6 +5,6 @@ description: Question-driven research integrating evidence, analysis, reproducti
 
 # Studies
 
-Studies organize scientific questions and results. Contractual obligations remain under Milestones; durable concepts remain in the Wiki.
+Studies keep each source beside the research developed from it. Contractual obligations remain under Milestones; durable concepts and synthesis remain in the Wiki.
 
 - [Essential Readings](Essential%20Readings/)

@@ -1,5 +1,6 @@
 ---
-title: "The Avalanche Foundation Unveils its Economic Research Agenda"
+title: "Source Article"
+source_title: "The Avalanche Foundation Unveils its Economic Research Agenda"
 description: "A faithful local reading view of the Foundation economic research agenda, generated from the frozen official page."
 date: 2026-07-30
 author: Avalanche Foundation
@@ -14,7 +15,7 @@ status: source-reproduced
 
 **Article** · Avalanche Foundation · Published July 30, 2026 · [Original article](https://www.avax.network/about/blog/the-avalanche-foundation-unveils-its-economic-research-agenda)
 
-![Foundation Economics Research Agenda](/Wiki/Avalanche/Essential%20Readings/The%20Avalanche%20Foundation%20Unveils%20its%20Economic%20Research%20Agenda/raw/assets/cover.png)
+![Foundation Economics Research Agenda](/Phase-II/Studies/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/raw/assets/cover.png)
 
 The Avalanche Foundation (the “Foundation”) was established with a clear mandate: to ensure the long-term economic sustainability and growth of the Avalanche ecosystem.
 
@@ -28,7 +29,7 @@ Today, the Foundation is publishing its economic research agenda. This document 
 
 ## Measure, Capture, Distribute
 
-![Economics of Blockchain - Measure Capture Distribute Image](/Wiki/Avalanche/Essential%20Readings/The%20Avalanche%20Foundation%20Unveils%20its%20Economic%20Research%20Agenda/raw/assets/measure-capture-distribute.png)
+![Economics of Blockchain - Measure Capture Distribute Image](/Phase-II/Studies/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/raw/assets/measure-capture-distribute.png)
 
 The Foundation's economic research is organised around a simple sequence: measure the value the Avalanche ecosystem creates, capture that value at the protocol level, and distribute it in a way that maximises AVAX value accrual.
 
@@ -46,7 +47,7 @@ The most important gap in that chain today is the connection between ecosystem v
 
 ## Research Streams
 
-![Economics of Blockchain - Research Streams Image](/Wiki/Avalanche/Essential%20Readings/The%20Avalanche%20Foundation%20Unveils%20its%20Economic%20Research%20Agenda/raw/assets/research-streams.png)
+![Economics of Blockchain - Research Streams Image](/Phase-II/Studies/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/raw/assets/research-streams.png)
 
 Measure, capture, and distribute are not abstract steps. They are being actively investigated across three connected areas of research.
 
@@ -70,7 +71,7 @@ The third stream investigates how captured value should ultimately be distribute
 
 ## Introducing Economics of Blockchain
 
-![Introducing Economics of Blockchain Image](/Wiki/Avalanche/Essential%20Readings/The%20Avalanche%20Foundation%20Unveils%20its%20Economic%20Research%20Agenda/raw/assets/economics-of-blockchain.png)
+![Introducing Economics of Blockchain Image](/Phase-II/Studies/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/raw/assets/economics-of-blockchain.png)
 
 The Economics of Blockchain is the Avalanche Foundation's public research series and the ongoing home for this work. Each piece published in the series connects explicitly to this research agenda - advancing the central hypothesis, answering one of the research questions, or documenting what the evidence shows and where it points next.
 
