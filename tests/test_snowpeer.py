@@ -66,8 +66,10 @@ def make_capture(tmp_path: Path) -> tuple[Path, dict]:
 
 def test_catalog_schema_and_references_are_valid():
     catalog = snowpeer.load_catalog()
-    assert [item["id"] for item in catalog["sources"]] == ["snowpeer"]
-    assert [item["id"] for item in catalog["datasets"]] == [snowpeer.DATASET_ID]
+    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "avalanche-snowflake"]
+    assert [item["id"] for item in catalog["datasets"]] == [
+        snowpeer.DATASET_ID, "snowflake.primary-validator-stakes",
+    ]
 
 
 def test_capture_preserves_raw_bytes_and_receipt(tmp_path):

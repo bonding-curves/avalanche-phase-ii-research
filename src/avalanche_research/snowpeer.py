@@ -2,85 +2,24 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import shutil
 import tempfile
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
 import duckdb
-import jsonschema
 
 from . import __version__
+from .catalog import (
+    DataError, canonical_bytes, catalog_hash, dataset, load_catalog, now as _now, sha256, source,
+)
 
 
-ROOT = Path(__file__).resolve().parents[2]
-CATALOG = ROOT / "data/data-catalog.json"
-SCHEMA = ROOT / "data/data-catalog.schema.json"
 DATASET_ID = "snowpeer.network-summary"
-
-
-class DataError(RuntimeError):
-    """The requested data operation could not complete safely."""
-
-
-def canonical_bytes(value: Any) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()
-
-
-def sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
-def load_catalog(path: Path = CATALOG, schema_path: Path = SCHEMA) -> dict[str, Any]:
-    try:
-        catalog = json.loads(path.read_text(encoding="utf-8"))
-        schema = json.loads(schema_path.read_text(encoding="utf-8"))
-        jsonschema.Draft202012Validator(schema).validate(catalog)
-    except (OSError, json.JSONDecodeError, jsonschema.ValidationError) as error:
-        raise DataError(f"invalid data catalog: {error}") from error
-    source_ids = [item["id"] for item in catalog["sources"]]
-    dataset_ids = [item["id"] for item in catalog["datasets"]]
-    if len(source_ids) != len(set(source_ids)) or len(dataset_ids) != len(set(dataset_ids)):
-        raise DataError("data catalog contains duplicate source or dataset IDs")
-    for definition in catalog["datasets"]:
-        if definition["source_id"] not in source_ids:
-            raise DataError(f"dataset has unknown source: {definition['id']}")
-        provider = source(catalog, definition["source_id"])
-        endpoint_ids = [item["id"] for item in provider["endpoints"]]
-        if len(endpoint_ids) != len(set(endpoint_ids)):
-            raise DataError(f"source has duplicate endpoint IDs: {provider['id']}")
-        missing = sorted(set(definition["endpoint_ids"]) - set(endpoint_ids))
-        if missing:
-            raise DataError(f"dataset has unknown endpoints: {definition['id']}: {', '.join(missing)}")
-    return catalog
-
-
-def catalog_hash(catalog: dict[str, Any]) -> str:
-    return sha256(canonical_bytes(catalog))
-
-
-def source(catalog: dict[str, Any], source_id: str) -> dict[str, Any]:
-    for item in catalog["sources"]:
-        if item["id"] == source_id:
-            return item
-    raise DataError(f"unknown source: {source_id}")
-
-
-def dataset(catalog: dict[str, Any], dataset_id: str) -> dict[str, Any]:
-    for item in catalog["datasets"]:
-        if item["id"] == dataset_id:
-            return item
-    raise DataError(f"unknown dataset: {dataset_id}")
-
-
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def _request(
@@ -113,8 +52,11 @@ def _request(
 def capture_preview(
     dataset_id: str,
     output: Path,
+    parameters: dict[str, str] | None = None,
     catalog: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if parameters:
+        raise DataError(f"{dataset_id} accepts no parameters")
     catalog = catalog or load_catalog()
     definition = dataset(catalog, dataset_id)
     provider = source(catalog, definition["source_id"])
@@ -137,11 +79,12 @@ def capture(
     dataset_id: str,
     output: Path,
     timeout: float = 20,
+    parameters: dict[str, str] | None = None,
     catalog: dict[str, Any] | None = None,
     opener: Callable[..., Any] = urllib.request.urlopen,
 ) -> dict[str, Any]:
     catalog = catalog or load_catalog()
-    preview = capture_preview(dataset_id, output, catalog)
+    preview = capture_preview(dataset_id, output, parameters, catalog)
     if output.exists():
         raise DataError(f"output already exists: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)

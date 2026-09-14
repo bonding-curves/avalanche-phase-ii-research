@@ -10,7 +10,29 @@ from typing import Any
 import click
 
 from . import __version__
+from . import snowflake
 from . import snowpeer
+from .catalog import DataError, load_catalog
+
+
+MODULES = {snowpeer.DATASET_ID: snowpeer, snowflake.DATASET_ID: snowflake}
+
+
+def module_for(dataset_id: str) -> Any:
+    try:
+        return MODULES[dataset_id]
+    except KeyError:
+        raise DataError(f"unknown dataset: {dataset_id}") from None
+
+
+def parse_parameters(values: tuple[str, ...]) -> dict[str, str]:
+    parameters: dict[str, str] = {}
+    for item in values:
+        key, separator, value = item.partition("=")
+        if not separator or not key:
+            raise DataError(f"parameters must look like key=value: {item}")
+        parameters[key] = value
+    return parameters
 
 
 def envelope(command: str, status: str, summary: dict[str, Any], **values: Any) -> dict[str, Any]:
@@ -57,7 +79,7 @@ def data() -> None:
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
 def list_data(as_json: bool) -> None:
     """List implemented sources and datasets."""
-    catalog = snowpeer.load_catalog()
+    catalog = load_catalog()
     items = [
         *(f"source {item['id']}: {item['name']}" for item in catalog["sources"]),
         *(f"dataset {item['id']}: {item['name']}" for item in catalog["datasets"]),
@@ -70,11 +92,11 @@ def list_data(as_json: bool) -> None:
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
 def describe(identity: str, as_json: bool) -> None:
     """Describe one source or dataset ID."""
-    catalog = snowpeer.load_catalog()
+    catalog = load_catalog()
     records = [*catalog["sources"], *catalog["datasets"]]
     match = next((item for item in records if item["id"] == identity), None)
     if match is None:
-        raise snowpeer.DataError(f"unknown source or dataset: {identity}")
+        raise DataError(f"unknown source or dataset: {identity}")
     items = [f"authority: {match.get('authority', 'defined by source contract')}"]
     finish(envelope("data describe", "pass", {"text": identity}, items=items, record=match), as_json)
 
@@ -82,16 +104,19 @@ def describe(identity: str, as_json: bool) -> None:
 @data.command()
 @click.argument("dataset_id")
 @click.option("output", "--output", type=click.Path(path_type=Path), required=True)
+@click.option("params", "--param", multiple=True, metavar="KEY=VALUE", help="Bound a parameterized query.")
 @click.option("--preview", is_flag=True, help="Resolve requests and writes without network access.")
-@click.option("--timeout", type=click.FloatRange(min=1, max=120), default=20, show_default=True)
+@click.option("--timeout", type=click.FloatRange(min=1, max=600), default=20, show_default=True, help="Request and statement timeout in seconds.")
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
-def fetch(dataset_id: str, output: Path, preview: bool, timeout: float, as_json: bool) -> None:
+def fetch(dataset_id: str, output: Path, params: tuple[str, ...], preview: bool, timeout: float, as_json: bool) -> None:
     """Fetch one immutable source capture into a new directory."""
+    module = module_for(dataset_id)
+    parameters = parse_parameters(params)
     if preview:
-        value = snowpeer.capture_preview(dataset_id, output)
+        value = module.capture_preview(dataset_id, output, parameters)
         result = envelope("data fetch", "pass", {"text": f"preview {dataset_id}"}, preview=value)
     else:
-        value = snowpeer.capture(dataset_id, output, timeout)
+        value = module.capture(dataset_id, output, timeout, parameters)
         result = envelope(
             "data fetch", "pass", {"text": value["capture_id"]},
             capture=value, output=str(output),
@@ -106,12 +131,13 @@ def fetch(dataset_id: str, output: Path, preview: bool, timeout: float, as_json:
 @click.option("--preview", is_flag=True, help="Resolve inputs and writes without creating output.")
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
 def build(dataset_id: str, capture_dir: Path, output: Path, preview: bool, as_json: bool) -> None:
-    """Build a normalized JSON and Parquet dataset from a capture."""
+    """Build a normalized Parquet dataset from a capture."""
+    module = module_for(dataset_id)
     if preview:
-        value = snowpeer.build_preview(dataset_id, capture_dir, output)
+        value = module.build_preview(dataset_id, capture_dir, output)
         result = envelope("data build", "pass", {"text": f"preview {dataset_id}"}, preview=value)
     else:
-        value = snowpeer.build(dataset_id, capture_dir, output)
+        value = module.build(dataset_id, capture_dir, output)
         result = envelope(
             "data build", "pass", {"text": dataset_id}, build=value, output=str(output)
         )
@@ -125,9 +151,9 @@ def build(dataset_id: str, capture_dir: Path, output: Path, preview: bool, as_js
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
 def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, as_json: bool) -> None:
     """Check capture integrity and optional built output."""
-    if dataset_id != snowpeer.DATASET_ID:
-        raise snowpeer.DataError(f"unknown dataset: {dataset_id}")
-    value = snowpeer.check(capture_dir, dataset_dir)
+    value = module_for(dataset_id).check(capture_dir, dataset_dir)
+    if value["dataset_id"] != dataset_id:
+        raise DataError(f"capture belongs to {value['dataset_id']}, not {dataset_id}")
     result = envelope(
         "data check", value["status"],
         {"text": f"{dataset_id}; {len(value['checked'])} checks; {len(value['findings'])} findings"},
@@ -140,7 +166,7 @@ def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, as_
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
 def manifest(as_json: bool) -> None:
     """Show the declared dataset manifest."""
-    catalog = snowpeer.load_catalog()
+    catalog = load_catalog()
     records = [{
         "id": item["id"],
         "source_id": item["source_id"],
@@ -154,7 +180,7 @@ def manifest(as_json: bool) -> None:
 def main() -> int:
     try:
         cli(standalone_mode=False)
-    except snowpeer.DataError as error:
+    except DataError as error:
         click.echo(f"ERROR: {error}", err=True)
         return 2
     except click.ClickException as error:
