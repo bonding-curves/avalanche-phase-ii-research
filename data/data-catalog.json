@@ -110,6 +110,21 @@
             "Rewarded delegator periods receive at most the potential reward; the shortfall is the validator's fee",
             "Reward transactions land within one hour of the period end; a period with REWARDED = NULL has no reward transaction yet"
           ]
+        },
+        {
+          "id": "primary-staking-supply",
+          "sql": "queries/primary-staking-supply.sql",
+          "relations": ["P_TRANSACTIONS", "P_BLOCKS"],
+          "parameters": [
+            {"name": "start", "type": "date", "default": "2020-09-10", "meaning": "inclusive lower bound on the transaction acceptance timestamp, UTC"},
+            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper bound on the transaction acceptance timestamp, UTC"}
+          ],
+          "observed_semantics": [
+            "P_BLOCKS.CURRENT_SUPPLY is a JSON object keyed by subnet ID; the Primary Network value is the supply after the block, null only at height 0",
+            "Block heights are contiguous from 0, so the previous block is height minus one",
+            "The protocol supply counter rises by each new staker's potential reward and falls by the potential reward of a staker that ends unrewarded",
+            "Genesis validators carry BLOCK_HEIGHT -1 and have no block supply context"
+          ]
         }
       ]
     }
@@ -218,6 +233,26 @@
         {"name": "fee_transfer_navax", "type": "integer", "unit": "nAVAX; positive is delegation fee income to a validator, negative is fee paid by a delegator", "derivation": "realized_reward_navax - potential_reward_navax"},
         {"name": "fee_transfer_avax", "type": "number", "unit": "AVAX", "derivation": "fee_transfer_navax / 1e9"},
         {"name": "reward_utxo_count", "type": "integer", "unit": "distinct reward UTXOs", "derivation": "count of distinct UTXOS.UTXO_ID with REWARD = TRUE keyed by the staking transaction hash"}
+      ]
+    },
+    {
+      "id": "snowflake.primary-staking-supply",
+      "name": "Primary Network staking supply context",
+      "source_id": "avalanche-snowflake",
+      "status": "implemented",
+      "description": "One row per staking transaction on the Avalanche Primary Network with the AVAX supply before and after its block and the in-block supply deltas, the inputs the protocol reward formula used for the transaction's potential reward.",
+      "query_ids": ["primary-staking-supply"],
+      "fields": [
+        {"name": "transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "P_TRANSACTIONS.TRANSACTION_HASH"},
+        {"name": "accepted_at", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.TIMESTAMP"},
+        {"name": "tx_type", "type": "string", "unit": "one of the four staking types", "derivation": "P_TRANSACTIONS.TYPE"},
+        {"name": "block_height", "type": "integer", "unit": "P-Chain block height; -1 for genesis validators", "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT"},
+        {"name": "tx_block_position", "type": "integer", "unit": "position within the block", "derivation": "P_TRANSACTIONS.TX_BLOCK_POSITION"},
+        {"name": "previous_block_supply_navax", "type": "integer", "unit": "nAVAX; null for genesis", "derivation": "P_BLOCKS.CURRENT_SUPPLY of the block at height minus one, Primary Network key"},
+        {"name": "block_supply_navax", "type": "integer", "unit": "nAVAX; null for genesis", "derivation": "P_BLOCKS.CURRENT_SUPPLY of the containing block, Primary Network key"},
+        {"name": "in_block_prior_delta_navax", "type": "integer", "unit": "nAVAX", "derivation": "sum of potential rewards added by earlier staking transactions in the block minus potential rewards removed by earlier unrewarded reward transactions"},
+        {"name": "in_block_total_delta_navax", "type": "integer", "unit": "nAVAX", "derivation": "the same sum over every supply-changing transaction in the block"},
+        {"name": "supply_before_navax", "type": "integer", "unit": "nAVAX; null for genesis", "derivation": "previous_block_supply_navax + in_block_prior_delta_navax"}
       ]
     }
   ]

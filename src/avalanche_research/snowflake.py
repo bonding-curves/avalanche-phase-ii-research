@@ -36,6 +36,8 @@ DURATION_DAYS = (14, 365)
 VALIDATOR_STAKE_NAVAX = (2_000 * NAVAX_PER_AVAX, 3_000_000 * NAVAX_PER_AVAX)
 DELEGATOR_STAKE_NAVAX = (25 * NAVAX_PER_AVAX, 3_000_000 * NAVAX_PER_AVAX)
 FEE_SHARES = (20_000, FEE_SHARES_PER_UNIT)
+GENESIS_SUPPLY_NAVAX = 360_000_000 * NAVAX_PER_AVAX
+SUPPLY_CAP_NAVAX = 720_000_000 * NAVAX_PER_AVAX
 SESSION_SQL = "SELECT CURRENT_ROLE(), CURRENT_WAREHOUSE(), CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_VERSION()"
 FETCH_SIZE = 10_000
 
@@ -314,7 +316,72 @@ STAKING_REWARDS = DatasetSpec(
     ),
 )
 
-SPECS = {spec.dataset_id: spec for spec in (VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS)}
+STAKING_SUPPLY = DatasetSpec(
+    dataset_id="snowflake.primary-staking-supply",
+    query_id="primary-staking-supply",
+    tx_types=STAKING_TYPES,
+    raw_types={
+        "transaction_hash": "VARCHAR",
+        "accepted_at": "TIMESTAMP",
+        "tx_type": "VARCHAR",
+        "block_height": "BIGINT",
+        "tx_block_position": "INTEGER",
+        "previous_block_supply_navax": "BIGINT",
+        "block_supply_navax": "BIGINT",
+        "in_block_prior_delta_navax": "BIGINT",
+        "in_block_total_delta_navax": "BIGINT",
+    },
+    table_columns={
+        "transaction_hash": "VARCHAR",
+        "accepted_at": "TIMESTAMP",
+        "tx_type": "VARCHAR",
+        "block_height": "BIGINT",
+        "tx_block_position": "INTEGER",
+        "previous_block_supply_navax": "BIGINT",
+        "block_supply_navax": "BIGINT",
+        "in_block_prior_delta_navax": "BIGINT",
+        "in_block_total_delta_navax": "BIGINT",
+        "supply_before_navax": "BIGINT",
+    },
+    transform_sql="""
+        SELECT transaction_hash, accepted_at, tx_type, block_height, tx_block_position,
+               previous_block_supply_navax, block_supply_navax, in_block_prior_delta_navax, in_block_total_delta_navax,
+               previous_block_supply_navax + in_block_prior_delta_navax AS supply_before_navax
+        FROM capture
+        ORDER BY accepted_at, transaction_hash""",
+    validity_sql="""
+    COUNT_IF(transaction_hash IS NULL OR transaction_hash = '' OR accepted_at IS NULL OR block_height IS NULL),
+    COUNT_IF(tx_type IS NULL OR tx_type NOT IN (?, ?, ?, ?)),
+    COUNT_IF(previous_block_supply_navax < 0 OR block_supply_navax < 0)""",
+    validity_labels=("miss a required field", "have an unexpected transaction type", "carry a negative supply"),
+    check_names=("unique transaction hashes", "acceptance window", "supply bounds", "supply monotonicity"),
+    check_sql="""
+    COUNT(*) - COUNT(DISTINCT transaction_hash),
+    COUNT_IF(accepted_at::DATE < ?::DATE OR accepted_at::DATE >= ?::DATE),
+    COUNT_IF(supply_before_navax < ? OR supply_before_navax > ? OR block_supply_navax > ?),
+    COUNT_IF(block_height >= 0 AND (tx_block_position IS NULL OR previous_block_supply_navax > block_supply_navax + in_block_total_delta_navax + ?))""",
+    check_labels=(
+        "repeat a transaction hash",
+        "were accepted outside the requested window",
+        "have a supply outside the genesis supply and the 720,000,000 AVAX cap",
+        "lack a block position or sit in a block whose supply falls by more than its unrewarded potential rewards",
+    ),
+    check_params=lambda window: [window["start"], window["end"], GENESIS_SUPPLY_NAVAX, SUPPLY_CAP_NAVAX, SUPPLY_CAP_NAVAX, 0],
+    summary_sql="""
+    COUNT(*), MIN(accepted_at), MAX(accepted_at),
+    COUNT_IF(tx_type = ?), COUNT_IF(tx_type = ?), COUNT_IF(tx_type = ?), COUNT_IF(tx_type = ?),
+    COUNT_IF(block_height < 0), COUNT_IF(block_height >= 0 AND (previous_block_supply_navax IS NULL OR block_supply_navax IS NULL)),
+    COUNT_IF(in_block_prior_delta_navax <> 0),
+    COUNT_IF(block_height >= 0 AND block_supply_navax - previous_block_supply_navax <> in_block_total_delta_navax),
+    MIN(supply_before_navax), MAX(supply_before_navax)""",
+    summary_keys=(
+        "rows", "accepted_from", "accepted_to", "rows_by_tx_type", "rows_by_tx_type", "rows_by_tx_type", "rows_by_tx_type",
+        "genesis_rows", "rows_without_block_supply", "rows_after_earlier_supply_changes_in_block",
+        "rows_in_blocks_where_supply_change_differs_from_staking_deltas", "supply_before_navax_min", "supply_before_navax_max",
+    ),
+)
+
+SPECS = {spec.dataset_id: spec for spec in (VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS, STAKING_SUPPLY)}
 DATASET_IDS = tuple(SPECS)
 DATASET_ID = VALIDATOR_STAKES.dataset_id
 

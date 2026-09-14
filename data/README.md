@@ -10,6 +10,7 @@ This directory defines the machine-readable contracts for research data used in 
 | `snowflake.primary-validator-stakes` | One Parquet row per validator staking transaction since 2020-09-10 | Implemented, tested, and captured live |
 | `snowflake.primary-delegator-stakes` | One Parquet row per delegation transaction since 2020-09-10 | Implemented, tested, and captured live |
 | `snowflake.primary-staking-rewards` | One Parquet row per reward transaction closing a staking period | Implemented, tested, and captured live |
+| `snowflake.primary-staking-supply` | One Parquet row per staking transaction with the block supply context behind its potential reward | Implemented, tested, and captured live |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -95,6 +96,8 @@ The delegator dataset follows the same commands with `snowflake.primary-delegato
 
 The rewards dataset, `snowflake.primary-staking-rewards`, is the same size as the delegator dataset and follows the same commands. Each row is one reward transaction, linked to its staking period through the reward transaction's metadata, with the realized reward summed from reward UTXOs and the difference from the potential reward recorded as the fee transfer: positive for a validator's delegation fee income, negative for a delegator's fee paid. The check confirms the link, the reward timing, agreement between the rewarded flag and the paid amount, and the fee direction for each side. Rewarded periods with no reward UTXO record in the share are counted in the summary rather than reported as findings, like staked UTXOs that are absent from the other two datasets.
 
+The supply dataset, `snowflake.primary-staking-supply`, records for every staking transaction the Primary Network supply after the previous block and after its own block, plus the in-block deltas from earlier staking additions and unrewarded removals. It exists so the protocol reward formula can be backtested against captured potential rewards without a live connection. Its summary reports how often the provider's block supply change differs from the summed staking deltas; the backtest establishes which supply reading the protocol used in each regime.
+
 Amounts are preserved in nAVAX integers and converted once to AVAX. The delegation fee is preserved in millionths and converted once to a rate. Price observations and outside-option yields are separate datasets that do not exist yet.
 
 ## Inspect the contract
@@ -107,6 +110,7 @@ uv run --locked avalanche data describe avalanche-snowflake
 uv run --locked avalanche data describe snowflake.primary-validator-stakes
 uv run --locked avalanche data describe snowflake.primary-delegator-stakes
 uv run --locked avalanche data describe snowflake.primary-staking-rewards
+uv run --locked avalanche data describe snowflake.primary-staking-supply
 uv run --locked avalanche data manifest --json
 ```
 
