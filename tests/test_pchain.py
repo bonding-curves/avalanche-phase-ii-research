@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import pchain
+from avalanche_research import pchain, rest
 from avalanche_research.catalog import DataError, load_catalog
 
 
@@ -79,7 +79,9 @@ def test_capture_build_and_check_round_trip(tmp_path):
     assert rows[1] == ("NodeID-B", 0.8525, 1.0, 25655.676993789, "P-avax1nodeid-b")
 
 
-def test_check_reports_domain_findings(tmp_path):
+def test_check_reports_domain_findings(tmp_path, monkeypatch):
+    observed = datetime.fromtimestamp(NOW, tz=timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    monkeypatch.setattr(rest, "_now", lambda: observed)
     bad = [validator("NodeID-A", "tx-a", NOW - 10, NOW + 10, 1_000_000_000, uptime="120", fee="1.0000"), validator("NodeID-A", "tx-c", NOW + 100, NOW + 200, 2_000_000_000_000)]
     capture_dir, _ = make_capture(tmp_path, bad)
     validation = pchain.check(capture_dir)
