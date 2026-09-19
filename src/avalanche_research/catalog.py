@@ -61,10 +61,35 @@ def load_catalog(path: Path = CATALOG, schema_path: Path = SCHEMA) -> dict[str, 
     return catalog
 
 
-def contract_hash(catalog: dict[str, Any], dataset_id: str) -> str:
-    """Hash the records that define one dataset: its source and its dataset entry."""
+INPUT_KEYS = ("id", "url", "request_json", "content", "response_fields", "sql", "relations", "parameters")
+
+
+def contract(catalog: dict[str, Any], dataset_id: str) -> dict[str, Any]:
+    """The parts of the catalog a capture depends on: the dataset's inputs and its fields.
+
+    Names, descriptions, statuses, consumer studies, provider notes, and observed semantics are documentation and
+    may change without invalidating captures. The referenced endpoints or queries and the field list may not.
+    """
     definition = dataset(catalog, dataset_id)
-    return sha256(canonical_bytes({"source": source(catalog, definition["source_id"]), "dataset": definition}))
+    provider = source(catalog, definition["source_id"])
+    kind = "endpoints" if "endpoints" in provider else "queries"
+    wanted = set(definition["endpoint_ids" if kind == "endpoints" else "query_ids"])
+    inputs = [
+        {key: item[key] for key in INPUT_KEYS if key in item}
+        for item in provider[kind] if item["id"] in wanted
+    ]
+    return {
+        "dataset_id": definition["id"],
+        "source_id": provider["id"],
+        "database": provider.get("database"),
+        "schema": provider.get("schema"),
+        "inputs": inputs,
+        "fields": definition["fields"],
+    }
+
+
+def contract_hash(catalog: dict[str, Any], dataset_id: str) -> str:
+    return sha256(canonical_bytes(contract(catalog, dataset_id)))
 
 
 def source(catalog: dict[str, Any], source_id: str) -> dict[str, Any]:

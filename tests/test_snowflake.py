@@ -289,6 +289,10 @@ def test_capture_stays_valid_when_an_unrelated_catalog_record_changes(tmp_path, 
     catalog["datasets"].append({**catalog["datasets"][-1], "id": "snowflake.something-else", "query_ids": ["primary-delegator-stakes"]})
     monkeypatch.setattr(snowflake, "load_catalog", lambda: catalog)
     assert snowflake.read_capture(capture_dir) == receipt
+    catalog["datasets"][1]["studies"] = ["Another study"]
+    catalog["datasets"][1]["description"] = "reworded"
+    catalog["sources"][-1]["queries"][0]["observed_semantics"].append("a new note")
+    assert snowflake.read_capture(capture_dir) == receipt
     catalog["sources"][-1]["queries"][0]["relations"].append("P_BLOCKS")
     with pytest.raises(DataError, match="contract hash differs"):
         snowflake.read_capture(capture_dir)
