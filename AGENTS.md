@@ -89,6 +89,13 @@ foc = `Focus on what matters most here. Whats the true signal? Whats the true va
 ref = `Rewrite your responses with reference points`
 prios = `Please reply in one sentence`
 
+### 5. Version control
+
+- Commit your own work directly to `main`, one commit per outcome, on paths only your lane writes. Stage explicit paths.
+- Do not create branches, worktrees, or pull requests by default. A branch exists only when two lanes must change the same path, and the project manager creates and retires it.
+- Never amend or rebase a commit that exists on `main`. Fix forward with a new commit.
+- Run the tests, lint, and the client delivery check before pushing.
+
 ### Examples
 
 Here are concrete examples of how we DO and DO NOT communicate together. 
