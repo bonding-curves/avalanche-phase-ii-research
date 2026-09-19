@@ -48,11 +48,15 @@ def load_catalog(path: Path = CATALOG, schema_path: Path = SCHEMA) -> dict[str, 
         if definition["source_id"] not in source_ids:
             raise DataError(f"dataset has unknown source: {definition['id']}")
         provider = source(catalog, definition["source_id"])
-        kind = "endpoints" if "endpoints" in provider else "queries"
+        kind = input_kind(provider)
         input_ids = [item["id"] for item in provider[kind]]
         if len(input_ids) != len(set(input_ids)):
             raise DataError(f"source has duplicate {kind[:-1]} IDs: {provider['id']}")
-        wanted = definition.get("endpoint_ids" if kind == "endpoints" else "query_ids")
+        if kind == "inputs":
+            unknown = sorted({item["dataset_id"] for item in provider["inputs"]} - set(dataset_ids))
+            if unknown:
+                raise DataError(f"derived source names unknown datasets: {provider['id']}: {', '.join(unknown)}")
+        wanted = definition.get(INPUT_ID_KEYS[kind])
         if wanted is None:
             raise DataError(f"dataset inputs do not match the source type: {definition['id']}")
         missing = sorted(set(wanted) - set(input_ids))
@@ -61,7 +65,16 @@ def load_catalog(path: Path = CATALOG, schema_path: Path = SCHEMA) -> dict[str, 
     return catalog
 
 
-INPUT_KEYS = ("id", "url", "request_json", "content", "response_fields", "sql", "relations", "parameters")
+INPUT_KEYS = ("id", "url", "request_json", "content", "response_fields", "sql", "relations", "parameters", "dataset_id", "role")
+INPUT_ID_KEYS = {"endpoints": "endpoint_ids", "queries": "query_ids", "inputs": "input_ids"}
+
+
+def input_kind(provider: dict[str, Any]) -> str:
+    """``endpoints`` for a REST source, ``queries`` for a database share, ``inputs`` for a derived source."""
+    for kind in INPUT_ID_KEYS:
+        if kind in provider:
+            return kind
+    raise DataError(f"source declares no inputs: {provider['id']}")
 
 
 def contract(catalog: dict[str, Any], dataset_id: str) -> dict[str, Any]:
@@ -72,8 +85,8 @@ def contract(catalog: dict[str, Any], dataset_id: str) -> dict[str, Any]:
     """
     definition = dataset(catalog, dataset_id)
     provider = source(catalog, definition["source_id"])
-    kind = "endpoints" if "endpoints" in provider else "queries"
-    wanted = set(definition["endpoint_ids" if kind == "endpoints" else "query_ids"])
+    kind = input_kind(provider)
+    wanted = set(definition[INPUT_ID_KEYS[kind]])
     inputs = [
         {key: item[key] for key in INPUT_KEYS if key in item}
         for item in provider[kind] if item["id"] in wanted

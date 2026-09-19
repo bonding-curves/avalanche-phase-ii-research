@@ -52,11 +52,14 @@ def latest_runs(runs_root: Path) -> dict[str, dict[str, Any]]:
 
 
 def raw_hash(capture: dict[str, Any]) -> str:
-    items = capture.get("responses") or capture.get("queries") or []
+    items = capture.get("responses") or capture.get("queries") or capture.get("inputs") or []
     return ", ".join(item["sha256"][:12] for item in items[:2]) + (" ..." if len(items) > 2 else "")
 
 
 def request_text(source: dict[str, Any], definition: dict[str, Any]) -> str:
+    if "inputs" in source:
+        wanted = [item["dataset_id"] for item in source["inputs"] if item["id"] in definition["input_ids"]]
+        return "derived from " + ", ".join(f"`{dataset_id}`" for dataset_id in wanted)
     if "queries" in source:
         return ", ".join(f"`{item['sql']}`" for item in source["queries"] if item["id"] in definition["query_ids"])
     count = len(definition["endpoint_ids"])

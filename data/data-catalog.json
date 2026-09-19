@@ -15,32 +15,46 @@
         {
           "id": "total-market-cap",
           "url": "https://api.snowpeer.io/v1/stats/subnets/total-market-cap",
-          "response_fields": ["mcap"]
+          "response_fields": [
+            "mcap"
+          ]
         },
         {
           "id": "general-stats",
           "url": "https://api.snowpeer.io/v1/stats/subnets/general-stats",
-          "response_fields": ["activeL1Count", "l1ValidatorCount"]
+          "response_fields": [
+            "activeL1Count",
+            "l1ValidatorCount"
+          ]
         },
         {
           "id": "primary-validator-count",
           "url": "https://api.snowpeer.io/v1/subnets/11111111111111111111111111111111LpoYY/validator-count",
-          "response_fields": ["count", "subnetID"]
+          "response_fields": [
+            "count",
+            "subnetID"
+          ]
         },
         {
           "id": "average-tps-30d",
           "url": "https://api.snowpeer.io/v1/stats/subnets/30d-daily-average-tps",
-          "response_fields": ["dailyAvgTps"]
+          "response_fields": [
+            "dailyAvgTps"
+          ]
         },
         {
           "id": "average-daily-transactions-30d",
           "url": "https://api.snowpeer.io/v1/stats/subnets/30d-daily-average-tx-count",
-          "response_fields": ["dailyTxCount"]
+          "response_fields": [
+            "dailyTxCount"
+          ]
         },
         {
           "id": "average-daily-icm-30d",
           "url": "https://api.snowpeer.io/v1/stats/subnets/30d-daily-average-icm-count",
-          "response_fields": ["dailyIcmCount"]
+          "response_fields": [
+            "dailyIcmCount"
+          ]
         }
       ],
       "observed_site_cross_check": {
@@ -66,7 +80,11 @@
         {
           "id": "avax-market-chart",
           "url": "https://api.coingecko.com/api/v3/coins/avalanche-2/market_chart?vs_currency=usd&days=365",
-          "response_fields": ["prices", "market_caps", "total_volumes"]
+          "response_fields": [
+            "prices",
+            "market_caps",
+            "total_volumes"
+          ]
         }
       ]
     },
@@ -83,32 +101,45 @@
         {
           "id": "avax-price-window-1",
           "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1600732800&span=500&period=1d",
-          "response_fields": ["coins"]
+          "response_fields": [
+            "coins"
+          ]
         },
         {
           "id": "avax-price-window-2",
           "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1643932800&span=500&period=1d",
-          "response_fields": ["coins"]
+          "response_fields": [
+            "coins"
+          ]
         },
         {
           "id": "avax-price-window-3",
           "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1687132800&span=500&period=1d",
-          "response_fields": ["coins"]
+          "response_fields": [
+            "coins"
+          ]
         },
         {
           "id": "avax-price-window-4",
           "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1730332800&span=500&period=1d",
-          "response_fields": ["coins"]
+          "response_fields": [
+            "coins"
+          ]
         },
         {
           "id": "avax-price-window-5",
           "url": "https://coins.llama.fi/chart/coingecko:avalanche-2?start=1773532800&span=500&period=1d",
-          "response_fields": ["coins"]
+          "response_fields": [
+            "coins"
+          ]
         },
         {
           "id": "pool-yields",
           "url": "https://yields.llama.fi/pools",
-          "response_fields": ["status", "data"]
+          "response_fields": [
+            "status",
+            "data"
+          ]
         }
       ]
     },
@@ -130,33 +161,222 @@
         "Reconciliation on 2026-09-19 against the end-of-day active set rebuilt from the Snowflake validator and delegator datasets: validator counts differ by a median 1.1 percent in 2021 to 2023, 2.1 percent in 2024, 2.8 percent in 2025, and 3.4 percent in 2026; delegator counts by 1.5 to 2.4 percent in 2021 to 2022 and 5.5 to 8 percent from 2023. Sampled days in 2022 and 2024 match exactly at end of day, so the residual reflects the API's undocumented aggregation instant plus an undercount from 2025 that also skips nine days between 2025-10-12 and 2025-12-01."
       ],
       "endpoints": [
-        {"id": "staking-validator-count-2021-2022", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-validator-count-2023-2024", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-validator-count-2025-2026", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-delegator-count-2021-2022", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-delegator-count-2023-2024", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-delegator-count-2025-2026", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-validator-weight-2021-2022", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-validator-weight-2023-2024", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-validator-weight-2025-2026", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-delegator-weight-2021-2022", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-delegator-weight-2023-2024", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "staking-delegator-weight-2025-2026", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-active-addresses-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-active-addresses-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-active-addresses-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-tx-count-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/txCount?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-tx-count-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/txCount?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-tx-count-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/txCount?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-gas-used-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/gasUsed?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-gas-used-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/gasUsed?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-gas-used-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/gasUsed?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-fees-paid-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/feesPaid?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-fees-paid-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/feesPaid?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-fees-paid-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/feesPaid?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-avg-gas-price-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/avgGasPrice?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-avg-gas-price-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/avgGasPrice?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
-        {"id": "chain-avg-gas-price-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/avgGasPrice?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]}
+        {
+          "id": "staking-validator-count-2021-2022",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-validator-count-2023-2024",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-validator-count-2025-2026",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-delegator-count-2021-2022",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-delegator-count-2023-2024",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-delegator-count-2025-2026",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-validator-weight-2021-2022",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-validator-weight-2023-2024",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-validator-weight-2025-2026",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-delegator-weight-2021-2022",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-delegator-weight-2023-2024",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "staking-delegator-weight-2025-2026",
+          "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-active-addresses-2021-2022",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-active-addresses-2023-2024",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-active-addresses-2025-2026",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-tx-count-2021-2022",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/txCount?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-tx-count-2023-2024",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/txCount?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-tx-count-2025-2026",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/txCount?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-gas-used-2021-2022",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/gasUsed?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-gas-used-2023-2024",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/gasUsed?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-gas-used-2025-2026",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/gasUsed?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-fees-paid-2021-2022",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/feesPaid?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-fees-paid-2023-2024",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/feesPaid?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-fees-paid-2025-2026",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/feesPaid?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-avg-gas-price-2021-2022",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/avgGasPrice?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-avg-gas-price-2023-2024",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/avgGasPrice?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        },
+        {
+          "id": "chain-avg-gas-price-2025-2026",
+          "url": "https://metrics.avax.network/v2/chains/43114/metrics/avgGasPrice?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160",
+          "response_fields": [
+            "results",
+            "nextPageToken"
+          ]
+        }
       ]
     },
     {
@@ -177,7 +397,19 @@
         {
           "id": "avax-supply",
           "url": "https://glacier-api.avax.network/v1/avax/supply",
-          "response_fields": ["totalSupply", "circulatingSupply", "totalPBurned", "totalCBurned", "totalXBurned", "totalStaked", "totalLocked", "totalRewards", "lastUpdated", "genesisUnlock", "l1ValidatorFees"]
+          "response_fields": [
+            "totalSupply",
+            "circulatingSupply",
+            "totalPBurned",
+            "totalCBurned",
+            "totalXBurned",
+            "totalStaked",
+            "totalLocked",
+            "totalRewards",
+            "lastUpdated",
+            "genesisUnlock",
+            "l1ValidatorFees"
+          ]
         }
       ]
     },
@@ -191,13 +423,62 @@
       "authentication": "none; the XML feed is public and keyless",
       "reuse_status": "US government work; public domain.",
       "endpoints": [
-        {"id": "daily-yield-curve-2020", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2020", "content": "xml", "response_fields": ["entry"]},
-        {"id": "daily-yield-curve-2021", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2021", "content": "xml", "response_fields": ["entry"]},
-        {"id": "daily-yield-curve-2022", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2022", "content": "xml", "response_fields": ["entry"]},
-        {"id": "daily-yield-curve-2023", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2023", "content": "xml", "response_fields": ["entry"]},
-        {"id": "daily-yield-curve-2024", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2024", "content": "xml", "response_fields": ["entry"]},
-        {"id": "daily-yield-curve-2025", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2025", "content": "xml", "response_fields": ["entry"]},
-        {"id": "daily-yield-curve-2026", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026", "content": "xml", "response_fields": ["entry"]}
+        {
+          "id": "daily-yield-curve-2020",
+          "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2020",
+          "content": "xml",
+          "response_fields": [
+            "entry"
+          ]
+        },
+        {
+          "id": "daily-yield-curve-2021",
+          "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2021",
+          "content": "xml",
+          "response_fields": [
+            "entry"
+          ]
+        },
+        {
+          "id": "daily-yield-curve-2022",
+          "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2022",
+          "content": "xml",
+          "response_fields": [
+            "entry"
+          ]
+        },
+        {
+          "id": "daily-yield-curve-2023",
+          "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2023",
+          "content": "xml",
+          "response_fields": [
+            "entry"
+          ]
+        },
+        {
+          "id": "daily-yield-curve-2024",
+          "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2024",
+          "content": "xml",
+          "response_fields": [
+            "entry"
+          ]
+        },
+        {
+          "id": "daily-yield-curve-2025",
+          "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2025",
+          "content": "xml",
+          "response_fields": [
+            "entry"
+          ]
+        },
+        {
+          "id": "daily-yield-curve-2026",
+          "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026",
+          "content": "xml",
+          "response_fields": [
+            "entry"
+          ]
+        }
       ]
     },
     {
@@ -213,8 +494,15 @@
         {
           "id": "current-validators",
           "url": "https://api.avax.network/ext/bc/P",
-          "request_json": {"jsonrpc": "2.0", "method": "platform.getCurrentValidators", "params": {}, "id": 1},
-          "response_fields": ["result"]
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "platform.getCurrentValidators",
+            "params": {},
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
         }
       ]
     },
@@ -233,10 +521,23 @@
         {
           "id": "primary-validator-stakes",
           "sql": "queries/primary-validator-stakes.sql",
-          "relations": ["P_TRANSACTIONS", "UTXOS"],
+          "relations": [
+            "P_TRANSACTIONS",
+            "UTXOS"
+          ],
           "parameters": [
-            {"name": "start", "type": "date", "default": "2020-09-10", "meaning": "inclusive lower bound on the transaction acceptance timestamp, UTC"},
-            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper bound on the transaction acceptance timestamp, UTC"}
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-10",
+              "meaning": "inclusive lower bound on the transaction acceptance timestamp, UTC"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper bound on the transaction acceptance timestamp, UTC"
+            }
           ],
           "observed_semantics": [
             "P_TRANSACTIONS.METADATA is JSON; validator.weight is the staked nAVAX and shares is the delegation fee in millionths",
@@ -248,10 +549,23 @@
         {
           "id": "primary-delegator-stakes",
           "sql": "queries/primary-delegator-stakes.sql",
-          "relations": ["P_TRANSACTIONS", "UTXOS"],
+          "relations": [
+            "P_TRANSACTIONS",
+            "UTXOS"
+          ],
           "parameters": [
-            {"name": "start", "type": "date", "default": "2020-09-10", "meaning": "inclusive lower bound on the transaction acceptance timestamp, UTC"},
-            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper bound on the transaction acceptance timestamp, UTC"}
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-10",
+              "meaning": "inclusive lower bound on the transaction acceptance timestamp, UTC"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper bound on the transaction acceptance timestamp, UTC"
+            }
           ],
           "observed_semantics": [
             "Delegation METADATA carries validator.weight as the delegated nAVAX and validator.nodeID as the target validator",
@@ -263,10 +577,23 @@
         {
           "id": "primary-staking-rewards",
           "sql": "queries/primary-staking-rewards.sql",
-          "relations": ["P_TRANSACTIONS", "UTXOS"],
+          "relations": [
+            "P_TRANSACTIONS",
+            "UTXOS"
+          ],
           "parameters": [
-            {"name": "start", "type": "date", "default": "2020-09-10", "meaning": "inclusive lower bound on the reward transaction timestamp, UTC"},
-            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper bound on the reward transaction timestamp, UTC"}
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-10",
+              "meaning": "inclusive lower bound on the reward transaction timestamp, UTC"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper bound on the reward transaction timestamp, UTC"
+            }
           ],
           "observed_semantics": [
             "RewardValidatorTx.STAKING_TX_HASH is null on every row; METADATA txID names the staking transaction, exactly one reward per staking period",
@@ -279,10 +606,23 @@
         {
           "id": "primary-staking-supply",
           "sql": "queries/primary-staking-supply.sql",
-          "relations": ["P_TRANSACTIONS", "P_BLOCKS"],
+          "relations": [
+            "P_TRANSACTIONS",
+            "P_BLOCKS"
+          ],
           "parameters": [
-            {"name": "start", "type": "date", "default": "2020-09-10", "meaning": "inclusive lower bound on the transaction acceptance timestamp, UTC"},
-            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper bound on the transaction acceptance timestamp, UTC"}
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-10",
+              "meaning": "inclusive lower bound on the transaction acceptance timestamp, UTC"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper bound on the transaction acceptance timestamp, UTC"
+            }
           ],
           "observed_semantics": [
             "P_BLOCKS.CURRENT_SUPPLY is a JSON object keyed by subnet ID; the Primary Network value is the supply after the block, null only at height 0",
@@ -290,6 +630,42 @@
             "The protocol supply counter rises by each new staker's potential reward and falls by the potential reward of a staker that ends unrewarded",
             "Genesis validators carry BLOCK_HEIGHT -1 and have no block supply context"
           ]
+        }
+      ]
+    },
+    {
+      "id": "derived",
+      "name": "Derived datasets",
+      "source_type": "derived",
+      "status": "implemented",
+      "authority": "No external authority. A derived dataset is a deterministic transformation of built runs of other datasets in this catalog, and inherits their authority and limits. Its receipt records the exact input runs and their hashes.",
+      "documentation_url": "https://github.com/bonding-curves/avalanche-phase-ii-research/blob/main/data/README.md",
+      "authentication": "none; built locally from data/runs",
+      "reuse_status": "Follows the reuse status of its inputs.",
+      "notes": [
+        "Built with `avalanche data derive`, which selects the newest built run of each input unless a run is pinned, and writes a capture receipt naming the input runs beside the Parquet build.",
+        "The staking-period log adds the network upgrade regime at acceptance and the reward the protocol kernel computes for each row, so the recorded potential reward can be checked row by row."
+      ],
+      "inputs": [
+        {
+          "id": "validator-stakes",
+          "dataset_id": "snowflake.primary-validator-stakes",
+          "role": "validator staking transactions"
+        },
+        {
+          "id": "delegator-stakes",
+          "dataset_id": "snowflake.primary-delegator-stakes",
+          "role": "delegator staking transactions"
+        },
+        {
+          "id": "staking-rewards",
+          "dataset_id": "snowflake.primary-staking-rewards",
+          "role": "reward transactions closing staking periods"
+        },
+        {
+          "id": "staking-supply",
+          "dataset_id": "snowflake.primary-staking-supply",
+          "role": "supply reading before each staking transaction's block"
         }
       ]
     }
@@ -300,8 +676,12 @@
       "name": "Snowpeer network-wide summary",
       "source_id": "snowpeer",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["The Avalanche Foundation Unveils its Economic Research Agenda"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "The Avalanche Foundation Unveils its Economic Research Agenda"
+      ],
       "description": "Timestamped reconstruction of the six network-wide values displayed on Snowpeer's current statistics page.",
       "endpoint_ids": [
         "total-market-cap",
@@ -312,13 +692,48 @@
         "average-daily-icm-30d"
       ],
       "fields": [
-        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "capture completion time"},
-        {"name": "market_cap_usd", "type": "integer", "unit": "nominal USD", "derivation": "total-market-cap.mcap"},
-        {"name": "l1_count", "type": "integer", "unit": "networks", "derivation": "general-stats.activeL1Count + 1 Primary Network"},
-        {"name": "validator_count", "type": "integer", "unit": "validators", "derivation": "general-stats.l1ValidatorCount + primary-validator-count.count"},
-        {"name": "average_tps_30d", "type": "number", "unit": "transactions per second", "derivation": "average-tps-30d.dailyAvgTps"},
-        {"name": "average_daily_transactions_30d", "type": "integer", "unit": "transactions per day", "derivation": "average-daily-transactions-30d.dailyTxCount"},
-        {"name": "average_daily_icm_messages_30d", "type": "integer", "unit": "messages per day", "derivation": "average-daily-icm-30d.dailyIcmCount"}
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "capture completion time"
+        },
+        {
+          "name": "market_cap_usd",
+          "type": "integer",
+          "unit": "nominal USD",
+          "derivation": "total-market-cap.mcap"
+        },
+        {
+          "name": "l1_count",
+          "type": "integer",
+          "unit": "networks",
+          "derivation": "general-stats.activeL1Count + 1 Primary Network"
+        },
+        {
+          "name": "validator_count",
+          "type": "integer",
+          "unit": "validators",
+          "derivation": "general-stats.l1ValidatorCount + primary-validator-count.count"
+        },
+        {
+          "name": "average_tps_30d",
+          "type": "number",
+          "unit": "transactions per second",
+          "derivation": "average-tps-30d.dailyAvgTps"
+        },
+        {
+          "name": "average_daily_transactions_30d",
+          "type": "integer",
+          "unit": "transactions per day",
+          "derivation": "average-daily-transactions-30d.dailyTxCount"
+        },
+        {
+          "name": "average_daily_icm_messages_30d",
+          "type": "integer",
+          "unit": "messages per day",
+          "derivation": "average-daily-icm-30d.dailyIcmCount"
+        }
       ]
     },
     {
@@ -326,28 +741,120 @@
       "name": "Primary Network validator staking transactions",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
-      "contract_quantities": ["validator flows", "durations"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "contract_quantities": [
+        "validator flows",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
       "description": "One row per accepted AddValidatorTx or AddPermissionlessValidatorTx on the Avalanche Primary Network with the chosen duration, delegation fee, stake weight, potential reward, and a staked-UTXO reconciliation.",
-      "query_ids": ["primary-validator-stakes"],
+      "query_ids": [
+        "primary-validator-stakes"
+      ],
       "fields": [
-        {"name": "transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "P_TRANSACTIONS.TRANSACTION_HASH"},
-        {"name": "accepted_at", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.TIMESTAMP"},
-        {"name": "block_height", "type": "integer", "unit": "P-Chain block height; -1 for genesis validators", "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT"},
-        {"name": "tx_type", "type": "string", "unit": "AddValidatorTx or AddPermissionlessValidatorTx", "derivation": "P_TRANSACTIONS.TYPE"},
-        {"name": "node_id", "type": "string", "unit": "validator NodeID", "derivation": "P_TRANSACTIONS.NODE_ID"},
-        {"name": "start_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.START_TIME"},
-        {"name": "end_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.END_TIME"},
-        {"name": "duration_days", "type": "number", "unit": "days", "derivation": "(end_time - start_time) / 86400 seconds"},
-        {"name": "stake_navax", "type": "integer", "unit": "nAVAX", "derivation": "P_TRANSACTIONS.METADATA validator.weight"},
-        {"name": "stake_avax", "type": "number", "unit": "AVAX", "derivation": "stake_navax / 1e9"},
-        {"name": "delegation_fee_shares", "type": "integer", "unit": "millionths", "derivation": "P_TRANSACTIONS.METADATA shares"},
-        {"name": "delegation_fee_rate", "type": "number", "unit": "fraction of delegation rewards", "derivation": "delegation_fee_shares / 1e6"},
-        {"name": "potential_reward_navax", "type": "integer", "unit": "nAVAX; null when absent", "derivation": "P_TRANSACTIONS.POTENTIAL_REWARD"},
-        {"name": "potential_reward_avax", "type": "number", "unit": "AVAX; null when absent", "derivation": "potential_reward_navax / 1e9"},
-        {"name": "rewarded", "type": "boolean", "unit": "null while the staking period is in progress", "derivation": "P_TRANSACTIONS.REWARDED"},
-        {"name": "staked_utxo_count", "type": "integer", "unit": "distinct staked UTXOs", "derivation": "count of distinct UTXOS.UTXO_ID with STAKED = TRUE for the transaction"},
-        {"name": "utxo_stake_navax", "type": "integer", "unit": "nAVAX; null when no staked UTXO row exists", "derivation": "sum of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"}
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "P_TRANSACTIONS.TRANSACTION_HASH"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.TIMESTAMP"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height; -1 for genesis validators",
+          "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "AddValidatorTx or AddPermissionlessValidatorTx",
+          "derivation": "P_TRANSACTIONS.TYPE"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "validator NodeID",
+          "derivation": "P_TRANSACTIONS.NODE_ID"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.START_TIME"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.END_TIME"
+        },
+        {
+          "name": "duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "(end_time - start_time) / 86400 seconds"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "P_TRANSACTIONS.METADATA validator.weight"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "stake_navax / 1e9"
+        },
+        {
+          "name": "delegation_fee_shares",
+          "type": "integer",
+          "unit": "millionths",
+          "derivation": "P_TRANSACTIONS.METADATA shares"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction of delegation rewards",
+          "derivation": "delegation_fee_shares / 1e6"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when absent",
+          "derivation": "P_TRANSACTIONS.POTENTIAL_REWARD"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX; null when absent",
+          "derivation": "potential_reward_navax / 1e9"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "null while the staking period is in progress",
+          "derivation": "P_TRANSACTIONS.REWARDED"
+        },
+        {
+          "name": "staked_utxo_count",
+          "type": "integer",
+          "unit": "distinct staked UTXOs",
+          "derivation": "count of distinct UTXOS.UTXO_ID with STAKED = TRUE for the transaction"
+        },
+        {
+          "name": "utxo_stake_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when no staked UTXO row exists",
+          "derivation": "sum of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"
+        }
       ]
     },
     {
@@ -355,29 +862,126 @@
       "name": "Primary Network delegation transactions",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
-      "contract_quantities": ["delegator flows", "durations"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "contract_quantities": [
+        "delegator flows",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
       "description": "One row per accepted AddDelegatorTx or AddPermissionlessDelegatorTx on the Avalanche Primary Network with the target validator, the containing validator staking period, the funding address, duration, stake, potential reward, and a staked-UTXO reconciliation.",
-      "query_ids": ["primary-delegator-stakes"],
+      "query_ids": [
+        "primary-delegator-stakes"
+      ],
       "fields": [
-        {"name": "transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "P_TRANSACTIONS.TRANSACTION_HASH"},
-        {"name": "accepted_at", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.TIMESTAMP"},
-        {"name": "block_height", "type": "integer", "unit": "P-Chain block height", "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT"},
-        {"name": "tx_type", "type": "string", "unit": "AddDelegatorTx or AddPermissionlessDelegatorTx", "derivation": "P_TRANSACTIONS.TYPE"},
-        {"name": "node_id", "type": "string", "unit": "target validator NodeID", "derivation": "P_TRANSACTIONS.NODE_ID"},
-        {"name": "validator_transaction_hash", "type": "string", "unit": "P-Chain transaction ID; null when no validator period contains the delegation", "derivation": "latest-starting validator staking transaction on the same node whose period contains the delegation period"},
-        {"name": "delegator_address", "type": "string", "unit": "P-Chain address; null when no staked UTXO row exists", "derivation": "address funding the largest share of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"},
-        {"name": "delegator_address_count", "type": "integer", "unit": "addresses", "derivation": "count of distinct UTXOS.ADDRESS on staked UTXOs for the transaction"},
-        {"name": "start_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.START_TIME"},
-        {"name": "end_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.END_TIME"},
-        {"name": "duration_days", "type": "number", "unit": "days", "derivation": "(end_time - start_time) / 86400 seconds"},
-        {"name": "stake_navax", "type": "integer", "unit": "nAVAX", "derivation": "P_TRANSACTIONS.METADATA validator.weight"},
-        {"name": "stake_avax", "type": "number", "unit": "AVAX", "derivation": "stake_navax / 1e9"},
-        {"name": "potential_reward_navax", "type": "integer", "unit": "nAVAX; null when absent", "derivation": "P_TRANSACTIONS.POTENTIAL_REWARD"},
-        {"name": "potential_reward_avax", "type": "number", "unit": "AVAX; null when absent", "derivation": "potential_reward_navax / 1e9"},
-        {"name": "rewarded", "type": "boolean", "unit": "null while the delegation period is in progress", "derivation": "P_TRANSACTIONS.REWARDED"},
-        {"name": "staked_utxo_count", "type": "integer", "unit": "distinct staked UTXOs", "derivation": "count of distinct UTXOS.UTXO_ID with STAKED = TRUE for the transaction"},
-        {"name": "utxo_stake_navax", "type": "integer", "unit": "nAVAX; null when no staked UTXO row exists", "derivation": "sum of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"}
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "P_TRANSACTIONS.TRANSACTION_HASH"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.TIMESTAMP"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height",
+          "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "AddDelegatorTx or AddPermissionlessDelegatorTx",
+          "derivation": "P_TRANSACTIONS.TYPE"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "target validator NodeID",
+          "derivation": "P_TRANSACTIONS.NODE_ID"
+        },
+        {
+          "name": "validator_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID; null when no validator period contains the delegation",
+          "derivation": "latest-starting validator staking transaction on the same node whose period contains the delegation period"
+        },
+        {
+          "name": "delegator_address",
+          "type": "string",
+          "unit": "P-Chain address; null when no staked UTXO row exists",
+          "derivation": "address funding the largest share of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"
+        },
+        {
+          "name": "delegator_address_count",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "count of distinct UTXOS.ADDRESS on staked UTXOs for the transaction"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.START_TIME"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.END_TIME"
+        },
+        {
+          "name": "duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "(end_time - start_time) / 86400 seconds"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "P_TRANSACTIONS.METADATA validator.weight"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "stake_navax / 1e9"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when absent",
+          "derivation": "P_TRANSACTIONS.POTENTIAL_REWARD"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX; null when absent",
+          "derivation": "potential_reward_navax / 1e9"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "null while the delegation period is in progress",
+          "derivation": "P_TRANSACTIONS.REWARDED"
+        },
+        {
+          "name": "staked_utxo_count",
+          "type": "integer",
+          "unit": "distinct staked UTXOs",
+          "derivation": "count of distinct UTXOS.UTXO_ID with STAKED = TRUE for the transaction"
+        },
+        {
+          "name": "utxo_stake_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when no staked UTXO row exists",
+          "derivation": "sum of distinct UTXOS.AMOUNT with STAKED = TRUE for the transaction"
+        }
       ]
     },
     {
@@ -385,27 +989,113 @@
       "name": "Primary Network staking reward outcomes",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
-      "contract_quantities": ["rewards"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "contract_quantities": [
+        "rewards"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
       "description": "One row per reward transaction closing a validator or delegator staking period on the Avalanche Primary Network, with the linked staking period, its rewarded flag, potential reward, realized reward from reward UTXOs, and the resulting fee transfer.",
-      "query_ids": ["primary-staking-rewards"],
+      "query_ids": [
+        "primary-staking-rewards"
+      ],
       "fields": [
-        {"name": "reward_transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "P_TRANSACTIONS.TRANSACTION_HASH where TYPE = RewardValidatorTx"},
-        {"name": "rewarded_at", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.TIMESTAMP of the reward transaction"},
-        {"name": "block_height", "type": "integer", "unit": "P-Chain block height", "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT of the reward transaction"},
-        {"name": "staking_transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "reward transaction METADATA txID"},
-        {"name": "staking_tx_type", "type": "string", "unit": "one of the four staking types; null when no Primary Network staking period matches", "derivation": "P_TRANSACTIONS.TYPE of the staking transaction"},
-        {"name": "node_id", "type": "string", "unit": "validator NodeID", "derivation": "P_TRANSACTIONS.NODE_ID of the staking transaction"},
-        {"name": "period_start_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.START_TIME of the staking transaction"},
-        {"name": "period_end_time", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.END_TIME of the staking transaction"},
-        {"name": "rewarded", "type": "boolean", "unit": "protocol reward decision", "derivation": "P_TRANSACTIONS.REWARDED of the staking transaction"},
-        {"name": "potential_reward_navax", "type": "integer", "unit": "nAVAX", "derivation": "P_TRANSACTIONS.POTENTIAL_REWARD of the staking transaction"},
-        {"name": "potential_reward_avax", "type": "number", "unit": "AVAX", "derivation": "potential_reward_navax / 1e9"},
-        {"name": "realized_reward_navax", "type": "integer", "unit": "nAVAX; 0 when no reward UTXO exists", "derivation": "sum of distinct UTXOS.AMOUNT with REWARD = TRUE keyed by the staking transaction hash"},
-        {"name": "realized_reward_avax", "type": "number", "unit": "AVAX", "derivation": "realized_reward_navax / 1e9"},
-        {"name": "fee_transfer_navax", "type": "integer", "unit": "nAVAX; positive is delegation fee income to a validator, negative is fee paid by a delegator", "derivation": "realized_reward_navax - potential_reward_navax"},
-        {"name": "fee_transfer_avax", "type": "number", "unit": "AVAX", "derivation": "fee_transfer_navax / 1e9"},
-        {"name": "reward_utxo_count", "type": "integer", "unit": "distinct reward UTXOs", "derivation": "count of distinct UTXOS.UTXO_ID with REWARD = TRUE keyed by the staking transaction hash"}
+        {
+          "name": "reward_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "P_TRANSACTIONS.TRANSACTION_HASH where TYPE = RewardValidatorTx"
+        },
+        {
+          "name": "rewarded_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.TIMESTAMP of the reward transaction"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height",
+          "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT of the reward transaction"
+        },
+        {
+          "name": "staking_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "reward transaction METADATA txID"
+        },
+        {
+          "name": "staking_tx_type",
+          "type": "string",
+          "unit": "one of the four staking types; null when no Primary Network staking period matches",
+          "derivation": "P_TRANSACTIONS.TYPE of the staking transaction"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "validator NodeID",
+          "derivation": "P_TRANSACTIONS.NODE_ID of the staking transaction"
+        },
+        {
+          "name": "period_start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.START_TIME of the staking transaction"
+        },
+        {
+          "name": "period_end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.END_TIME of the staking transaction"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "protocol reward decision",
+          "derivation": "P_TRANSACTIONS.REWARDED of the staking transaction"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "P_TRANSACTIONS.POTENTIAL_REWARD of the staking transaction"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "potential_reward_navax / 1e9"
+        },
+        {
+          "name": "realized_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX; 0 when no reward UTXO exists",
+          "derivation": "sum of distinct UTXOS.AMOUNT with REWARD = TRUE keyed by the staking transaction hash"
+        },
+        {
+          "name": "realized_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "realized_reward_navax / 1e9"
+        },
+        {
+          "name": "fee_transfer_navax",
+          "type": "integer",
+          "unit": "nAVAX; positive is delegation fee income to a validator, negative is fee paid by a delegator",
+          "derivation": "realized_reward_navax - potential_reward_navax"
+        },
+        {
+          "name": "fee_transfer_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "fee_transfer_navax / 1e9"
+        },
+        {
+          "name": "reward_utxo_count",
+          "type": "integer",
+          "unit": "distinct reward UTXOs",
+          "derivation": "count of distinct UTXOS.UTXO_ID with REWARD = TRUE keyed by the staking transaction hash"
+        }
       ]
     },
     {
@@ -413,21 +1103,78 @@
       "name": "Primary Network staking supply context",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
-      "contract_quantities": ["rewards", "context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "contract_quantities": [
+        "rewards",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
       "description": "One row per staking transaction on the Avalanche Primary Network with the AVAX supply before and after its block and the in-block supply deltas, the inputs the protocol reward formula used for the transaction's potential reward.",
-      "query_ids": ["primary-staking-supply"],
+      "query_ids": [
+        "primary-staking-supply"
+      ],
       "fields": [
-        {"name": "transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "P_TRANSACTIONS.TRANSACTION_HASH"},
-        {"name": "accepted_at", "type": "timestamp", "unit": "UTC", "derivation": "P_TRANSACTIONS.TIMESTAMP"},
-        {"name": "tx_type", "type": "string", "unit": "one of the four staking types", "derivation": "P_TRANSACTIONS.TYPE"},
-        {"name": "block_height", "type": "integer", "unit": "P-Chain block height; -1 for genesis validators", "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT"},
-        {"name": "tx_block_position", "type": "integer", "unit": "position within the block", "derivation": "P_TRANSACTIONS.TX_BLOCK_POSITION"},
-        {"name": "previous_block_supply_navax", "type": "integer", "unit": "nAVAX; null for genesis", "derivation": "P_BLOCKS.CURRENT_SUPPLY of the block at height minus one, Primary Network key"},
-        {"name": "block_supply_navax", "type": "integer", "unit": "nAVAX; null for genesis", "derivation": "P_BLOCKS.CURRENT_SUPPLY of the containing block, Primary Network key"},
-        {"name": "in_block_prior_delta_navax", "type": "integer", "unit": "nAVAX", "derivation": "sum of potential rewards added by earlier staking transactions in the block minus potential rewards removed by earlier unrewarded reward transactions"},
-        {"name": "in_block_total_delta_navax", "type": "integer", "unit": "nAVAX", "derivation": "the same sum over every supply-changing transaction in the block"},
-        {"name": "supply_before_navax", "type": "integer", "unit": "nAVAX; null for genesis", "derivation": "previous_block_supply_navax + in_block_prior_delta_navax"}
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "P_TRANSACTIONS.TRANSACTION_HASH"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.TIMESTAMP"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "one of the four staking types",
+          "derivation": "P_TRANSACTIONS.TYPE"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height; -1 for genesis validators",
+          "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT"
+        },
+        {
+          "name": "tx_block_position",
+          "type": "integer",
+          "unit": "position within the block",
+          "derivation": "P_TRANSACTIONS.TX_BLOCK_POSITION"
+        },
+        {
+          "name": "previous_block_supply_navax",
+          "type": "integer",
+          "unit": "nAVAX; null for genesis",
+          "derivation": "P_BLOCKS.CURRENT_SUPPLY of the block at height minus one, Primary Network key"
+        },
+        {
+          "name": "block_supply_navax",
+          "type": "integer",
+          "unit": "nAVAX; null for genesis",
+          "derivation": "P_BLOCKS.CURRENT_SUPPLY of the containing block, Primary Network key"
+        },
+        {
+          "name": "in_block_prior_delta_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum of potential rewards added by earlier staking transactions in the block minus potential rewards removed by earlier unrewarded reward transactions"
+        },
+        {
+          "name": "in_block_total_delta_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the same sum over every supply-changing transaction in the block"
+        },
+        {
+          "name": "supply_before_navax",
+          "type": "integer",
+          "unit": "nAVAX; null for genesis",
+          "derivation": "previous_block_supply_navax + in_block_prior_delta_navax"
+        }
       ]
     },
     {
@@ -435,19 +1182,66 @@
       "name": "AVAX daily market observations",
       "source_id": "coingecko",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"
+      ],
       "description": "Daily AVAX price, market capitalization, and volume in USD over the trailing 365 days the public CoinGecko API serves, with daily log returns and annualized 30-day realized volatility.",
-      "endpoint_ids": ["avax-market-chart"],
+      "endpoint_ids": [
+        "avax-market-chart"
+      ],
       "fields": [
-        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "prices[i][0] milliseconds since the epoch"},
-        {"name": "observation_date", "type": "string", "unit": "UTC calendar date", "derivation": "observed_at truncated to the day"},
-        {"name": "partial_day", "type": "boolean", "unit": "true when the observation is not at midnight, which CoinGecko uses for the latest point", "derivation": "observed_at differs from its day start"},
-        {"name": "price_usd", "type": "number", "unit": "USD per AVAX", "derivation": "prices[i][1]"},
-        {"name": "market_cap_usd", "type": "number", "unit": "USD", "derivation": "market_caps[i][1]"},
-        {"name": "volume_usd", "type": "number", "unit": "USD over the trailing 24 hours", "derivation": "total_volumes[i][1]"},
-        {"name": "log_return", "type": "number", "unit": "natural log of consecutive price ratio; null on the first row", "derivation": "ln(price_usd / previous price_usd)"},
-        {"name": "realized_volatility_30d", "type": "number", "unit": "annualized; null until 30 returns exist", "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"}
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "prices[i][0] milliseconds since the epoch"
+        },
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC calendar date",
+          "derivation": "observed_at truncated to the day"
+        },
+        {
+          "name": "partial_day",
+          "type": "boolean",
+          "unit": "true when the observation is not at midnight, which CoinGecko uses for the latest point",
+          "derivation": "observed_at differs from its day start"
+        },
+        {
+          "name": "price_usd",
+          "type": "number",
+          "unit": "USD per AVAX",
+          "derivation": "prices[i][1]"
+        },
+        {
+          "name": "market_cap_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "market_caps[i][1]"
+        },
+        {
+          "name": "volume_usd",
+          "type": "number",
+          "unit": "USD over the trailing 24 hours",
+          "derivation": "total_volumes[i][1]"
+        },
+        {
+          "name": "log_return",
+          "type": "number",
+          "unit": "natural log of consecutive price ratio; null on the first row",
+          "derivation": "ln(price_usd / previous price_usd)"
+        },
+        {
+          "name": "realized_volatility_30d",
+          "type": "number",
+          "unit": "annualized; null until 30 returns exist",
+          "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"
+        }
       ]
     },
     {
@@ -455,18 +1249,64 @@
       "name": "AVAX daily price history",
       "source_id": "defillama",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"
+      ],
       "description": "One row per daily AVAX price observation in USD from the DefiLlama coins series with CoinGecko lineage, from the 2020-09-22 series start through the capture day, with daily log returns and annualized 30-day realized volatility. Windows past the capture day return only the points that exist.",
-      "endpoint_ids": ["avax-price-window-1", "avax-price-window-2", "avax-price-window-3", "avax-price-window-4", "avax-price-window-5"],
+      "endpoint_ids": [
+        "avax-price-window-1",
+        "avax-price-window-2",
+        "avax-price-window-3",
+        "avax-price-window-4",
+        "avax-price-window-5"
+      ],
       "fields": [
-        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "coins.coingecko:avalanche-2.prices[i].timestamp seconds since the epoch"},
-        {"name": "observation_date", "type": "string", "unit": "UTC calendar date", "derivation": "observed_at truncated to the day"},
-        {"name": "price_usd", "type": "number", "unit": "USD per AVAX", "derivation": "coins.coingecko:avalanche-2.prices[i].price"},
-        {"name": "confidence", "type": "number", "unit": "DefiLlama series confidence, 0 to 1", "derivation": "coins.coingecko:avalanche-2.confidence of the window that supplied the point"},
-        {"name": "lineage", "type": "string", "unit": "DefiLlama coin identifier", "derivation": "the coins key, coingecko:avalanche-2"},
-        {"name": "log_return", "type": "number", "unit": "natural log of consecutive price ratio; null on the first row", "derivation": "ln(price_usd / previous price_usd)"},
-        {"name": "realized_volatility_30d", "type": "number", "unit": "annualized; null until 30 returns exist", "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"}
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "coins.coingecko:avalanche-2.prices[i].timestamp seconds since the epoch"
+        },
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC calendar date",
+          "derivation": "observed_at truncated to the day"
+        },
+        {
+          "name": "price_usd",
+          "type": "number",
+          "unit": "USD per AVAX",
+          "derivation": "coins.coingecko:avalanche-2.prices[i].price"
+        },
+        {
+          "name": "confidence",
+          "type": "number",
+          "unit": "DefiLlama series confidence, 0 to 1",
+          "derivation": "coins.coingecko:avalanche-2.confidence of the window that supplied the point"
+        },
+        {
+          "name": "lineage",
+          "type": "string",
+          "unit": "DefiLlama coin identifier",
+          "derivation": "the coins key, coingecko:avalanche-2"
+        },
+        {
+          "name": "log_return",
+          "type": "number",
+          "unit": "natural log of consecutive price ratio; null on the first row",
+          "derivation": "ln(price_usd / previous price_usd)"
+        },
+        {
+          "name": "realized_volatility_30d",
+          "type": "number",
+          "unit": "annualized; null until 30 returns exist",
+          "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"
+        }
       ]
     },
     {
@@ -474,27 +1314,114 @@
       "name": "Primary Network current validator snapshot",
       "source_id": "avalanche-p-chain-rpc",
       "status": "implemented",
-      "contract_quantities": ["validator flows", "context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "contract_quantities": [
+        "validator flows",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
       "description": "One row per validator in the current Primary Network validator set at the capture instant: node, staking transaction, period, stake weight, delegation fee, observed uptime, connection state, delegator totals, potential reward, and reward owners. Uptime is the answering node's current observation, not a history.",
-      "endpoint_ids": ["current-validators"],
+      "endpoint_ids": [
+        "current-validators"
+      ],
       "fields": [
-        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "capture completion time"},
-        {"name": "node_id", "type": "string", "unit": "validator NodeID", "derivation": "result.validators[i].nodeID"},
-        {"name": "transaction_hash", "type": "string", "unit": "P-Chain transaction ID", "derivation": "result.validators[i].txID"},
-        {"name": "start_time", "type": "timestamp", "unit": "UTC", "derivation": "result.validators[i].startTime seconds since the epoch"},
-        {"name": "end_time", "type": "timestamp", "unit": "UTC", "derivation": "result.validators[i].endTime seconds since the epoch"},
-        {"name": "stake_navax", "type": "integer", "unit": "nAVAX", "derivation": "result.validators[i].weight"},
-        {"name": "stake_avax", "type": "number", "unit": "AVAX", "derivation": "stake_navax / 1e9"},
-        {"name": "delegation_fee_rate", "type": "number", "unit": "fraction of delegation rewards", "derivation": "result.validators[i].delegationFee percent / 100"},
-        {"name": "uptime", "type": "number", "unit": "fraction, as observed by the answering node", "derivation": "result.validators[i].uptime percent / 100"},
-        {"name": "connected", "type": "boolean", "unit": "answering node's current peer connection", "derivation": "result.validators[i].connected"},
-        {"name": "delegator_count", "type": "integer", "unit": "delegations", "derivation": "result.validators[i].delegatorCount"},
-        {"name": "delegator_weight_navax", "type": "integer", "unit": "nAVAX", "derivation": "result.validators[i].delegatorWeight"},
-        {"name": "potential_reward_navax", "type": "integer", "unit": "nAVAX", "derivation": "result.validators[i].potentialReward"},
-        {"name": "accrued_delegatee_reward_navax", "type": "integer", "unit": "nAVAX", "derivation": "result.validators[i].accruedDelegateeReward"},
-        {"name": "validation_reward_address", "type": "string", "unit": "P-Chain address; first of the owner's addresses", "derivation": "result.validators[i].validationRewardOwner.addresses[0]"},
-        {"name": "delegation_reward_address", "type": "string", "unit": "P-Chain address; first of the owner's addresses", "derivation": "result.validators[i].delegationRewardOwner.addresses[0]"}
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "capture completion time"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "validator NodeID",
+          "derivation": "result.validators[i].nodeID"
+        },
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "result.validators[i].txID"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "result.validators[i].startTime seconds since the epoch"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "result.validators[i].endTime seconds since the epoch"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "result.validators[i].weight"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "stake_navax / 1e9"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction of delegation rewards",
+          "derivation": "result.validators[i].delegationFee percent / 100"
+        },
+        {
+          "name": "uptime",
+          "type": "number",
+          "unit": "fraction, as observed by the answering node",
+          "derivation": "result.validators[i].uptime percent / 100"
+        },
+        {
+          "name": "connected",
+          "type": "boolean",
+          "unit": "answering node's current peer connection",
+          "derivation": "result.validators[i].connected"
+        },
+        {
+          "name": "delegator_count",
+          "type": "integer",
+          "unit": "delegations",
+          "derivation": "result.validators[i].delegatorCount"
+        },
+        {
+          "name": "delegator_weight_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "result.validators[i].delegatorWeight"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "result.validators[i].potentialReward"
+        },
+        {
+          "name": "accrued_delegatee_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "result.validators[i].accruedDelegateeReward"
+        },
+        {
+          "name": "validation_reward_address",
+          "type": "string",
+          "unit": "P-Chain address; first of the owner's addresses",
+          "derivation": "result.validators[i].validationRewardOwner.addresses[0]"
+        },
+        {
+          "name": "delegation_reward_address",
+          "type": "string",
+          "unit": "P-Chain address; first of the owner's addresses",
+          "derivation": "result.validators[i].delegationRewardOwner.addresses[0]"
+        }
       ]
     },
     {
@@ -502,38 +1429,180 @@
       "name": "DeFi pool yields on Avalanche and proof-of-stake staking products",
       "source_id": "defillama",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"
+      ],
       "description": "One row per DefiLlama pool at the capture instant, kept when the pool is on Avalanche or belongs to a declared proof-of-stake staking project on any chain, with yield, TVL, and risk descriptors and the opportunity-cost fields the study must still supply.",
-      "endpoint_ids": ["pool-yields"],
+      "endpoint_ids": [
+        "pool-yields"
+      ],
       "fields": [
-        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "capture completion time"},
-        {"name": "pool_id", "type": "string", "unit": "DefiLlama pool identifier", "derivation": "data[i].pool"},
-        {"name": "selection", "type": "string", "unit": "avalanche or proof-of-stake", "derivation": "avalanche when chain = Avalanche, else proof-of-stake for the declared project list"},
-        {"name": "chain", "type": "string", "unit": "DefiLlama chain name", "derivation": "data[i].chain"},
-        {"name": "project", "type": "string", "unit": "DefiLlama project slug", "derivation": "data[i].project"},
-        {"name": "symbol", "type": "string", "unit": "pool symbol", "derivation": "data[i].symbol"},
-        {"name": "tvl_usd", "type": "number", "unit": "USD", "derivation": "data[i].tvlUsd"},
-        {"name": "liquidity_usd", "type": "number", "unit": "USD; total value locked as the liquidity proxy", "derivation": "data[i].tvlUsd"},
-        {"name": "apy", "type": "number", "unit": "percent per year", "derivation": "data[i].apy"},
-        {"name": "apy_base", "type": "number", "unit": "percent per year", "derivation": "data[i].apyBase"},
-        {"name": "apy_reward", "type": "number", "unit": "percent per year", "derivation": "data[i].apyReward"},
-        {"name": "apy_mean_30d", "type": "number", "unit": "percent per year", "derivation": "data[i].apyMean30d"},
-        {"name": "apy_base_7d", "type": "number", "unit": "percent per year", "derivation": "data[i].apyBase7d"},
-        {"name": "apy_base_inception", "type": "number", "unit": "percent per year", "derivation": "data[i].apyBaseInception"},
-        {"name": "horizon_days", "type": "integer", "unit": "days; null because DefiLlama reports annualized rates without a holding horizon", "derivation": "not provided; the study declares it"},
-        {"name": "fee_rate", "type": "number", "unit": "fraction; null because DefiLlama does not report protocol or withdrawal fees", "derivation": "not provided; the study declares it"},
-        {"name": "lockup_days", "type": "integer", "unit": "days; null because DefiLlama does not report lockups or unbonding", "derivation": "not provided; the study declares it"},
-        {"name": "stablecoin", "type": "boolean", "unit": "DefiLlama classification", "derivation": "data[i].stablecoin"},
-        {"name": "il_risk", "type": "string", "unit": "DefiLlama impermanent-loss classification", "derivation": "data[i].ilRisk"},
-        {"name": "exposure", "type": "string", "unit": "single or multi asset", "derivation": "data[i].exposure"},
-        {"name": "reward_tokens", "type": "string", "unit": "comma-separated token addresses", "derivation": "data[i].rewardTokens"},
-        {"name": "underlying_tokens", "type": "string", "unit": "comma-separated token addresses", "derivation": "data[i].underlyingTokens"},
-        {"name": "pool_meta", "type": "string", "unit": "DefiLlama pool note", "derivation": "data[i].poolMeta"},
-        {"name": "outlier", "type": "boolean", "unit": "DefiLlama outlier flag", "derivation": "data[i].outlier"},
-        {"name": "apy_mu", "type": "number", "unit": "percent per year; DefiLlama APY mean estimate", "derivation": "data[i].mu"},
-        {"name": "apy_sigma", "type": "number", "unit": "percent per year; DefiLlama APY dispersion estimate", "derivation": "data[i].sigma"},
-        {"name": "observation_count", "type": "integer", "unit": "DefiLlama observations behind the estimates", "derivation": "data[i].count"}
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "capture completion time"
+        },
+        {
+          "name": "pool_id",
+          "type": "string",
+          "unit": "DefiLlama pool identifier",
+          "derivation": "data[i].pool"
+        },
+        {
+          "name": "selection",
+          "type": "string",
+          "unit": "avalanche or proof-of-stake",
+          "derivation": "avalanche when chain = Avalanche, else proof-of-stake for the declared project list"
+        },
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "DefiLlama chain name",
+          "derivation": "data[i].chain"
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "unit": "DefiLlama project slug",
+          "derivation": "data[i].project"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "unit": "pool symbol",
+          "derivation": "data[i].symbol"
+        },
+        {
+          "name": "tvl_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "data[i].tvlUsd"
+        },
+        {
+          "name": "liquidity_usd",
+          "type": "number",
+          "unit": "USD; total value locked as the liquidity proxy",
+          "derivation": "data[i].tvlUsd"
+        },
+        {
+          "name": "apy",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apy"
+        },
+        {
+          "name": "apy_base",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apyBase"
+        },
+        {
+          "name": "apy_reward",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apyReward"
+        },
+        {
+          "name": "apy_mean_30d",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apyMean30d"
+        },
+        {
+          "name": "apy_base_7d",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apyBase7d"
+        },
+        {
+          "name": "apy_base_inception",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apyBaseInception"
+        },
+        {
+          "name": "horizon_days",
+          "type": "integer",
+          "unit": "days; null because DefiLlama reports annualized rates without a holding horizon",
+          "derivation": "not provided; the study declares it"
+        },
+        {
+          "name": "fee_rate",
+          "type": "number",
+          "unit": "fraction; null because DefiLlama does not report protocol or withdrawal fees",
+          "derivation": "not provided; the study declares it"
+        },
+        {
+          "name": "lockup_days",
+          "type": "integer",
+          "unit": "days; null because DefiLlama does not report lockups or unbonding",
+          "derivation": "not provided; the study declares it"
+        },
+        {
+          "name": "stablecoin",
+          "type": "boolean",
+          "unit": "DefiLlama classification",
+          "derivation": "data[i].stablecoin"
+        },
+        {
+          "name": "il_risk",
+          "type": "string",
+          "unit": "DefiLlama impermanent-loss classification",
+          "derivation": "data[i].ilRisk"
+        },
+        {
+          "name": "exposure",
+          "type": "string",
+          "unit": "single or multi asset",
+          "derivation": "data[i].exposure"
+        },
+        {
+          "name": "reward_tokens",
+          "type": "string",
+          "unit": "comma-separated token addresses",
+          "derivation": "data[i].rewardTokens"
+        },
+        {
+          "name": "underlying_tokens",
+          "type": "string",
+          "unit": "comma-separated token addresses",
+          "derivation": "data[i].underlyingTokens"
+        },
+        {
+          "name": "pool_meta",
+          "type": "string",
+          "unit": "DefiLlama pool note",
+          "derivation": "data[i].poolMeta"
+        },
+        {
+          "name": "outlier",
+          "type": "boolean",
+          "unit": "DefiLlama outlier flag",
+          "derivation": "data[i].outlier"
+        },
+        {
+          "name": "apy_mu",
+          "type": "number",
+          "unit": "percent per year; DefiLlama APY mean estimate",
+          "derivation": "data[i].mu"
+        },
+        {
+          "name": "apy_sigma",
+          "type": "number",
+          "unit": "percent per year; DefiLlama APY dispersion estimate",
+          "derivation": "data[i].sigma"
+        },
+        {
+          "name": "observation_count",
+          "type": "integer",
+          "unit": "DefiLlama observations behind the estimates",
+          "derivation": "data[i].count"
+        }
       ]
     },
     {
@@ -541,16 +1610,54 @@
       "name": "US Treasury daily par yields",
       "source_id": "us-treasury",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"
+      ],
       "description": "One row per business day and tenor of the US Treasury par yield curve from 2020 through the capture day, as the dated non-crypto benchmark for opportunity-cost comparisons.",
-      "endpoint_ids": ["daily-yield-curve-2020", "daily-yield-curve-2021", "daily-yield-curve-2022", "daily-yield-curve-2023", "daily-yield-curve-2024", "daily-yield-curve-2025", "daily-yield-curve-2026"],
+      "endpoint_ids": [
+        "daily-yield-curve-2020",
+        "daily-yield-curve-2021",
+        "daily-yield-curve-2022",
+        "daily-yield-curve-2023",
+        "daily-yield-curve-2024",
+        "daily-yield-curve-2025",
+        "daily-yield-curve-2026"
+      ],
       "fields": [
-        {"name": "observation_date", "type": "string", "unit": "US business day", "derivation": "entry.content.properties.NEW_DATE"},
-        {"name": "tenor", "type": "string", "unit": "1m, 1.5m, 2m, 3m, 4m, 6m, 1y, 2y, 3y, 5y, 7y, 10y, 20y, 30y", "derivation": "entry.content.properties.BC_* element name"},
-        {"name": "maturity_months", "type": "number", "unit": "months", "derivation": "tenor expressed in months"},
-        {"name": "yield_rate", "type": "number", "unit": "fraction per year", "derivation": "BC_* percent / 100; empty values are omitted"},
-        {"name": "source_year", "type": "integer", "unit": "feed year", "derivation": "the yearly endpoint that supplied the entry"}
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "US business day",
+          "derivation": "entry.content.properties.NEW_DATE"
+        },
+        {
+          "name": "tenor",
+          "type": "string",
+          "unit": "1m, 1.5m, 2m, 3m, 4m, 6m, 1y, 2y, 3y, 5y, 7y, 10y, 20y, 30y",
+          "derivation": "entry.content.properties.BC_* element name"
+        },
+        {
+          "name": "maturity_months",
+          "type": "number",
+          "unit": "months",
+          "derivation": "tenor expressed in months"
+        },
+        {
+          "name": "yield_rate",
+          "type": "number",
+          "unit": "fraction per year",
+          "derivation": "BC_* percent / 100; empty values are omitted"
+        },
+        {
+          "name": "source_year",
+          "type": "integer",
+          "unit": "feed year",
+          "derivation": "the yearly endpoint that supplied the entry"
+        }
       ]
     },
     {
@@ -558,18 +1665,72 @@
       "name": "Primary Network daily staking metrics",
       "source_id": "avalanche-metrics-api",
       "status": "implemented",
-      "contract_quantities": ["validator flows", "delegator flows"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "The Avalanche Foundation Unveils its Economic Research Agenda"],
+      "contract_quantities": [
+        "validator flows",
+        "delegator flows"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "The Avalanche Foundation Unveils its Economic Research Agenda"
+      ],
       "description": "One row per day of the Metrics API's Primary Network validator count, delegator count, validator weight, and delegator weight from 2021-02-28 through the capture day, reconciled against the Snowflake validator and delegator datasets.",
-      "endpoint_ids": ["staking-validator-count-2021-2022", "staking-validator-count-2023-2024", "staking-validator-count-2025-2026", "staking-delegator-count-2021-2022", "staking-delegator-count-2023-2024", "staking-delegator-count-2025-2026", "staking-validator-weight-2021-2022", "staking-validator-weight-2023-2024", "staking-validator-weight-2025-2026", "staking-delegator-weight-2021-2022", "staking-delegator-weight-2023-2024", "staking-delegator-weight-2025-2026"],
+      "endpoint_ids": [
+        "staking-validator-count-2021-2022",
+        "staking-validator-count-2023-2024",
+        "staking-validator-count-2025-2026",
+        "staking-delegator-count-2021-2022",
+        "staking-delegator-count-2023-2024",
+        "staking-delegator-count-2025-2026",
+        "staking-validator-weight-2021-2022",
+        "staking-validator-weight-2023-2024",
+        "staking-validator-weight-2025-2026",
+        "staking-delegator-weight-2021-2022",
+        "staking-delegator-weight-2023-2024",
+        "staking-delegator-weight-2025-2026"
+      ],
       "fields": [
-        {"name": "observation_date", "type": "string", "unit": "UTC calendar day of the timestamp", "derivation": "results[i].timestamp, start of day"},
-        {"name": "validator_count", "type": "integer", "unit": "validators", "derivation": "validatorCount results[i].value"},
-        {"name": "delegator_count", "type": "integer", "unit": "delegations", "derivation": "delegatorCount results[i].value"},
-        {"name": "validator_weight_navax", "type": "integer", "unit": "nAVAX; scale confirmed by reconciliation against Snowflake stake weights", "derivation": "validatorWeight results[i].value"},
-        {"name": "delegator_weight_navax", "type": "integer", "unit": "nAVAX", "derivation": "delegatorWeight results[i].value"},
-        {"name": "validator_weight_avax", "type": "number", "unit": "AVAX", "derivation": "validator_weight_navax / 1e9"},
-        {"name": "delegator_weight_avax", "type": "number", "unit": "AVAX", "derivation": "delegator_weight_navax / 1e9"}
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC calendar day of the timestamp",
+          "derivation": "results[i].timestamp, start of day"
+        },
+        {
+          "name": "validator_count",
+          "type": "integer",
+          "unit": "validators",
+          "derivation": "validatorCount results[i].value"
+        },
+        {
+          "name": "delegator_count",
+          "type": "integer",
+          "unit": "delegations",
+          "derivation": "delegatorCount results[i].value"
+        },
+        {
+          "name": "validator_weight_navax",
+          "type": "integer",
+          "unit": "nAVAX; scale confirmed by reconciliation against Snowflake stake weights",
+          "derivation": "validatorWeight results[i].value"
+        },
+        {
+          "name": "delegator_weight_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "delegatorWeight results[i].value"
+        },
+        {
+          "name": "validator_weight_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "validator_weight_navax / 1e9"
+        },
+        {
+          "name": "delegator_weight_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "delegator_weight_navax / 1e9"
+        }
       ]
     },
     {
@@ -577,17 +1738,68 @@
       "name": "C-Chain daily activity and fees",
       "source_id": "avalanche-metrics-api",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["The Avalanche Foundation Unveils its Economic Research Agenda", "From Gross Chain Product to Gross Chain Income: Where the Value Goes"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "The Avalanche Foundation Unveils its Economic Research Agenda",
+        "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
+      ],
       "description": "One row per day of the Metrics API's C-Chain active addresses, transaction count, gas used, fees paid, and average gas price from 2021-03-21 through the capture day.",
-      "endpoint_ids": ["chain-active-addresses-2021-2022", "chain-active-addresses-2023-2024", "chain-active-addresses-2025-2026", "chain-tx-count-2021-2022", "chain-tx-count-2023-2024", "chain-tx-count-2025-2026", "chain-gas-used-2021-2022", "chain-gas-used-2023-2024", "chain-gas-used-2025-2026", "chain-fees-paid-2021-2022", "chain-fees-paid-2023-2024", "chain-fees-paid-2025-2026", "chain-avg-gas-price-2021-2022", "chain-avg-gas-price-2023-2024", "chain-avg-gas-price-2025-2026"],
+      "endpoint_ids": [
+        "chain-active-addresses-2021-2022",
+        "chain-active-addresses-2023-2024",
+        "chain-active-addresses-2025-2026",
+        "chain-tx-count-2021-2022",
+        "chain-tx-count-2023-2024",
+        "chain-tx-count-2025-2026",
+        "chain-gas-used-2021-2022",
+        "chain-gas-used-2023-2024",
+        "chain-gas-used-2025-2026",
+        "chain-fees-paid-2021-2022",
+        "chain-fees-paid-2023-2024",
+        "chain-fees-paid-2025-2026",
+        "chain-avg-gas-price-2021-2022",
+        "chain-avg-gas-price-2023-2024",
+        "chain-avg-gas-price-2025-2026"
+      ],
       "fields": [
-        {"name": "observation_date", "type": "string", "unit": "UTC calendar day of the timestamp", "derivation": "results[i].timestamp, start of day"},
-        {"name": "active_addresses", "type": "integer", "unit": "addresses", "derivation": "activeAddresses results[i].value"},
-        {"name": "tx_count", "type": "integer", "unit": "transactions", "derivation": "txCount results[i].value"},
-        {"name": "gas_used", "type": "integer", "unit": "gas units", "derivation": "gasUsed results[i].value"},
-        {"name": "fees_paid", "type": "number", "unit": "as served; the API does not document the unit, observed scale consistent with AVAX", "derivation": "feesPaid results[i].value"},
-        {"name": "avg_gas_price", "type": "number", "unit": "as served; the API does not document the unit, observed scale consistent with nAVAX", "derivation": "avgGasPrice results[i].value"}
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC calendar day of the timestamp",
+          "derivation": "results[i].timestamp, start of day"
+        },
+        {
+          "name": "active_addresses",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "activeAddresses results[i].value"
+        },
+        {
+          "name": "tx_count",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "txCount results[i].value"
+        },
+        {
+          "name": "gas_used",
+          "type": "integer",
+          "unit": "gas units",
+          "derivation": "gasUsed results[i].value"
+        },
+        {
+          "name": "fees_paid",
+          "type": "number",
+          "unit": "as served; the API does not document the unit, observed scale consistent with AVAX",
+          "derivation": "feesPaid results[i].value"
+        },
+        {
+          "name": "avg_gas_price",
+          "type": "number",
+          "unit": "as served; the API does not document the unit, observed scale consistent with nAVAX",
+          "derivation": "avgGasPrice results[i].value"
+        }
       ]
     },
     {
@@ -595,23 +1807,271 @@
       "name": "AVAX supply snapshot",
       "source_id": "avalanche-data-api",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics", "From Gross Chain Product to Gross Chain Income: Where the Value Goes"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics",
+        "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
+      ],
       "description": "One row per capture with the Data API's current AVAX supply, circulating supply, staked, locked, cumulative rewards, cumulative burns by chain, and L1 validator fees. A history is built only by repeated captures; the API publishes none.",
-      "endpoint_ids": ["avax-supply"],
+      "endpoint_ids": [
+        "avax-supply"
+      ],
       "fields": [
-        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "lastUpdated"},
-        {"name": "total_supply_avax", "type": "number", "unit": "AVAX", "derivation": "totalSupply"},
-        {"name": "circulating_supply_avax", "type": "number", "unit": "AVAX", "derivation": "circulatingSupply"},
-        {"name": "total_staked_avax", "type": "number", "unit": "AVAX", "derivation": "totalStaked"},
-        {"name": "total_locked_avax", "type": "number", "unit": "AVAX", "derivation": "totalLocked"},
-        {"name": "total_rewards_avax", "type": "number", "unit": "AVAX; cumulative staking rewards minted", "derivation": "totalRewards"},
-        {"name": "total_p_burned_avax", "type": "number", "unit": "AVAX", "derivation": "totalPBurned"},
-        {"name": "total_c_burned_avax", "type": "number", "unit": "AVAX", "derivation": "totalCBurned"},
-        {"name": "total_x_burned_avax", "type": "number", "unit": "AVAX", "derivation": "totalXBurned"},
-        {"name": "l1_validator_fees_avax", "type": "number", "unit": "AVAX", "derivation": "l1ValidatorFees"},
-        {"name": "genesis_unlock_avax", "type": "number", "unit": "AVAX", "derivation": "genesisUnlock"},
-        {"name": "supply_identity_gap_avax", "type": "number", "unit": "AVAX; totalSupply minus (genesisUnlock + totalRewards - burns)", "derivation": "total_supply_avax - (genesis_unlock_avax + total_rewards_avax - total_p_burned_avax - total_c_burned_avax - total_x_burned_avax)"}
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "lastUpdated"
+        },
+        {
+          "name": "total_supply_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "totalSupply"
+        },
+        {
+          "name": "circulating_supply_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "circulatingSupply"
+        },
+        {
+          "name": "total_staked_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "totalStaked"
+        },
+        {
+          "name": "total_locked_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "totalLocked"
+        },
+        {
+          "name": "total_rewards_avax",
+          "type": "number",
+          "unit": "AVAX; cumulative staking rewards minted",
+          "derivation": "totalRewards"
+        },
+        {
+          "name": "total_p_burned_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "totalPBurned"
+        },
+        {
+          "name": "total_c_burned_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "totalCBurned"
+        },
+        {
+          "name": "total_x_burned_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "totalXBurned"
+        },
+        {
+          "name": "l1_validator_fees_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "l1ValidatorFees"
+        },
+        {
+          "name": "genesis_unlock_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "genesisUnlock"
+        },
+        {
+          "name": "supply_identity_gap_avax",
+          "type": "number",
+          "unit": "AVAX; totalSupply minus (genesisUnlock + totalRewards - burns)",
+          "derivation": "total_supply_avax - (genesis_unlock_avax + total_rewards_avax - total_p_burned_avax - total_c_burned_avax - total_x_burned_avax)"
+        }
+      ]
+    },
+    {
+      "id": "derived.staking-periods",
+      "name": "Primary Network staking periods",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "delegator flows",
+        "rewards",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per staking period on the Avalanche Primary Network, validators and delegators together, joined to its reward outcome and its supply reading, with the network upgrade regime at acceptance and the reward the protocol kernel computes for the row.",
+      "input_ids": [
+        "validator-stakes",
+        "delegator-stakes",
+        "staking-rewards",
+        "staking-supply"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "the staking transaction, from validator or delegator stakes"
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "unit": "validator or delegator",
+          "derivation": "which input table the row came from"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "one of the four staking types",
+          "derivation": "copied from the stake row"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "copied from the stake row"
+        },
+        {
+          "name": "validator_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID, null for validators",
+          "derivation": "the delegated validator's staking transaction"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "block time the staking transaction was accepted"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height",
+          "derivation": "copied from the stake row"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "staking period start"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "staking period end"
+        },
+        {
+          "name": "duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "end_time minus start_time"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "staked weight"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "stake_navax / 1e9"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "reward the protocol committed to at acceptance, from the stake row"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "potential_reward_navax / 1e9"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "whether the period ended with a reward, from the stake row"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction, null for delegators",
+          "derivation": "validator delegation fee"
+        },
+        {
+          "name": "regime",
+          "type": "string",
+          "unit": "upgrade name or genesis",
+          "derivation": "latest mainnet upgrade activated at accepted_at, from the protocol kernel's schedule"
+        },
+        {
+          "name": "start_kind",
+          "type": "string",
+          "unit": "immediate or pending",
+          "derivation": "pending when start_time is after accepted_at"
+        },
+        {
+          "name": "rewarded_at",
+          "type": "timestamp",
+          "unit": "UTC, null while the period is open",
+          "derivation": "reward transaction time from staking rewards"
+        },
+        {
+          "name": "realized_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX, null while open",
+          "derivation": "minted reward from staking rewards, zero on uptime failure"
+        },
+        {
+          "name": "realized_reward_avax",
+          "type": "number",
+          "unit": "AVAX, null while open",
+          "derivation": "realized_reward_navax / 1e9"
+        },
+        {
+          "name": "fee_transfer_navax",
+          "type": "integer",
+          "unit": "nAVAX, null while open",
+          "derivation": "delegation fee transfer from staking rewards"
+        },
+        {
+          "name": "supply_before_navax",
+          "type": "integer",
+          "unit": "nAVAX, null when no supply row",
+          "derivation": "previous block supply plus earlier in-block deltas, from staking supply"
+        },
+        {
+          "name": "kernel_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX, null when no supply row",
+          "derivation": "primary_network_reward(start_time, duration, stake_navax, supply_before_navax) from the protocol kernel"
+        },
+        {
+          "name": "kernel_gap_navax",
+          "type": "integer",
+          "unit": "nAVAX, null when no kernel value",
+          "derivation": "kernel_reward_navax minus potential_reward_navax"
+        },
+        {
+          "name": "reproduced",
+          "type": "boolean",
+          "unit": "flag, null when no kernel value",
+          "derivation": "kernel_reward_navax equals potential_reward_navax"
+        }
       ]
     }
   ]

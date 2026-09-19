@@ -15,7 +15,7 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 
 ## Evidence status
 
-13 of 13 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
+14 of 14 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
 
 ### Coverage by contract quantity
 
@@ -24,12 +24,16 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 | validator flows | `snowflake.primary-validator-stakes` | 2020-09-10 to 2026-09-19 | 57521 | pass, 12 checks, 0 findings |
 | validator flows | `p-chain-rpc.current-validators` | snapshot 2026-09-19T11:04:26 | 593 | pass, 11 checks, 0 findings |
 | validator flows | `metrics-api.primary-staking-daily` | 2021-01-01 to 2026-08-31 | 2058 | attention, 10 checks, 5 findings |
+| validator flows | `derived.staking-periods` | 2020-09-10 to 2026-09-19 | 7110868 | pass, 7 checks, 0 findings |
 | delegator flows | `snowflake.primary-delegator-stakes` | 2020-09-22 to 2026-09-19 | 7053347 | pass, 12 checks, 0 findings |
 | delegator flows | `metrics-api.primary-staking-daily` | 2021-01-01 to 2026-08-31 | 2058 | attention, 10 checks, 5 findings |
+| delegator flows | `derived.staking-periods` | 2020-09-10 to 2026-09-19 | 7110868 | pass, 7 checks, 0 findings |
 | rewards | `snowflake.primary-staking-rewards` | 2020-10-06 to 2026-09-19 | 7078063 | pass, 12 checks, 0 findings |
 | rewards | `snowflake.primary-staking-supply` | 2020-09-10 to 2026-09-19 | 7110868 | pass, 9 checks, 0 findings |
+| rewards | `derived.staking-periods` | 2020-09-10 to 2026-09-19 | 7110868 | pass, 7 checks, 0 findings |
 | durations | `snowflake.primary-validator-stakes` | 2020-09-10 to 2026-09-19 | 57521 | pass, 12 checks, 0 findings |
 | durations | `snowflake.primary-delegator-stakes` | 2020-09-22 to 2026-09-19 | 7053347 | pass, 12 checks, 0 findings |
+| durations | `derived.staking-periods` | 2020-09-10 to 2026-09-19 | 7110868 | pass, 7 checks, 0 findings |
 | context | `snowpeer.network-summary` | n/a | n/a | pass, 7 checks, 0 findings |
 | context | `snowflake.primary-staking-supply` | 2020-09-10 to 2026-09-19 | 7110868 | pass, 9 checks, 0 findings |
 | context | `coingecko.avax-market-daily` | 2025-09-20 to 2026-09-19 | 366 | pass, 11 checks, 0 findings |

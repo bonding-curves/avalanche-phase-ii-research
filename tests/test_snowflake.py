@@ -286,14 +286,16 @@ def test_delegator_dataset_builds_checks_and_reports_containment(tmp_path):
 def test_capture_stays_valid_when_an_unrelated_catalog_record_changes(tmp_path, monkeypatch):
     capture_dir, receipt = make_capture(tmp_path)
     catalog = load_catalog()
-    catalog["datasets"].append({**catalog["datasets"][-1], "id": "snowflake.something-else", "query_ids": ["primary-delegator-stakes"]})
+    supply = next(item for item in catalog["datasets"] if item["id"] == "snowflake.primary-staking-supply")
+    catalog["datasets"].append({**supply, "id": "snowflake.something-else", "query_ids": ["primary-delegator-stakes"]})
     monkeypatch.setattr(snowflake, "load_catalog", lambda: catalog)
     assert snowflake.read_capture(capture_dir) == receipt
     catalog["datasets"][1]["studies"] = ["Another study"]
     catalog["datasets"][1]["description"] = "reworded"
-    catalog["sources"][-1]["queries"][0]["observed_semantics"].append("a new note")
+    share = next(item for item in catalog["sources"] if item["id"] == "avalanche-snowflake")
+    share["queries"][0]["observed_semantics"].append("a new note")
     assert snowflake.read_capture(capture_dir) == receipt
-    catalog["sources"][-1]["queries"][0]["relations"].append("P_BLOCKS")
+    share["queries"][0]["relations"].append("P_BLOCKS")
     with pytest.raises(DataError, match="contract hash differs"):
         snowflake.read_capture(capture_dir)
 
@@ -333,6 +335,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "snowpeer.network-summary", *snowflake.DATASET_IDS, "coingecko.avax-market-daily", "defillama.avax-price-daily",
         "p-chain-rpc.current-validators", "defillama.pool-yields", "us-treasury.par-yield-daily",
         "metrics-api.primary-staking-daily", "metrics-api.c-chain-activity-daily", "data-api.avax-supply",
+        "derived.staking-periods",
     ]
 
 

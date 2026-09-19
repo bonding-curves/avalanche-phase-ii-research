@@ -14,6 +14,7 @@ from . import coingecko
 from . import dataapi
 from . import datasets
 from . import defillama
+from . import derived
 from . import metrics
 from . import pchain
 from . import snowflake
@@ -34,6 +35,7 @@ MODULES = {
     pchain.DATASET_ID: pchain,
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,
+    derived.DATASET_ID: derived,
     **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
 }
@@ -162,6 +164,24 @@ def build(dataset_id: str, capture_dir: Path, output: Path, preview: bool, as_js
         result = envelope(
             "data build", "pass", {"text": dataset_id}, build=value, output=str(output)
         )
+    finish(result, as_json)
+
+
+@data.command()
+@click.argument("dataset_id")
+@click.option("output", "--output", type=click.Path(path_type=Path), required=True)
+@click.option("inputs", "--input", multiple=True, metavar="DATASET_ID=RUN", help="Pin an input run; the newest built run of each input is used otherwise.")
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def derive(dataset_id: str, output: Path, inputs: tuple[str, ...], as_json: bool) -> None:
+    """Build a derived dataset from built runs into a new run directory with capture and dataset receipts."""
+    module = module_for(dataset_id)
+    if not hasattr(module, "derive"):
+        raise DataError(f"{dataset_id} is captured from a provider; use `avalanche data fetch` and `build`")
+    value = module.derive(dataset_id, output, parse_parameters(inputs) or None)
+    result = envelope(
+        "data derive", "pass", {"text": value["capture"]["capture_id"]},
+        capture=value["capture"], build=value["build"], output=str(output),
+    )
     finish(result, as_json)
 
 

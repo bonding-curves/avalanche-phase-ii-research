@@ -29,6 +29,7 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `us-treasury` | The US Department of the Treasury's published daily par yield curve rates. Authoritative for the benchmark rates it publishes; one yearly Atom feed per request. | none; the XML feed is public and keyless |
 | `avalanche-p-chain-rpc` | Direct response of a public Avalanche node about the current Primary Network validator set. Authoritative for current protocol state at the observation instant; it holds no history. | none; the public endpoint at api.avax.network answers JSON-RPC POST requests |
 | `avalanche-snowflake` | Avalanche-published SQL share of observed C-Chain, P-Chain, and X-Chain records. Authoritative for the rows it exposes, not for economic interpretation. | Named Snowflake connection resolved by snowflake-connector-python from its connections.toml file. No credential enters this repository, a capture, or a receipt. |
+| `derived` | No external authority. A derived dataset is a deterministic transformation of built runs of other datasets in this catalog, and inherits their authority and limits. Its receipt records the exact input runs and their hashes. | none; built locally from data/runs |
 
 ### Datasets
 
@@ -47,6 +48,7 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `metrics-api.primary-staking-daily` | `avalanche-metrics-api` | 12 requests to `https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount` | 7 | How Do Avalanche Validators Actually Think About Staking Rewards?; The Avalanche Foundation Unveils its Economic Research Agenda |
 | `metrics-api.c-chain-activity-daily` | `avalanche-metrics-api` | 15 requests to `https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses` | 6 | The Avalanche Foundation Unveils its Economic Research Agenda; From Gross Chain Product to Gross Chain Income: Where the Value Goes |
 | `data-api.avax-supply` | `avalanche-data-api` | 1 request to `https://glacier-api.avax.network/v1/avax/supply` | 12 | How Do Avalanche Validators Actually Think About Staking Rewards?; Value Accrual as Equilibrium: How We Think About AVAX Tokenomics; From Gross Chain Product to Gross Chain Income: Where the Value Goes |
+| `derived.staking-periods` | `derived` | derived from `snowflake.primary-validator-stakes`, `snowflake.primary-delegator-stakes`, `snowflake.primary-staking-rewards`, `snowflake.primary-staking-supply` | 26 | How Do Avalanche Validators Actually Think About Staking Rewards? |
 
 ### Latest runs
 
@@ -65,6 +67,7 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `metrics-api.primary-staking-daily` | 2026-09-19T11:04:32Z | `capture:avalanche-metrics-api:2026-09-19T11:04:32Z:a23febb62f64` | `6912c7805ee1, 60bdb1f27928 ...` | 2058 | attention, 10 checks, 5 findings | 9 rows follow a gap of more than one day; 823 of 2058 days differ from the Snowflake validator count by more than 2%; 437 of 2058 days differ from the Snowflake validator weight by more than 2%; 1571 of 2058 days differ from the Snowflake delegator count by more than 2%; 1269 of 2058 days differ from the Snowflake delegator weight by more than 2%; skipped dates: 9 |
 | `metrics-api.c-chain-activity-daily` | 2026-09-19T11:04:34Z | `capture:avalanche-metrics-api:2026-09-19T11:04:34Z:84448c350671` | `f91849cccb43, a5cf17db4254 ...` | 2087 | attention, 9 checks, 1 findings | 3 rows lack one of the series before the last complete day; days with a missing series: 6 |
 | `data-api.avax-supply` | 2026-09-19T11:05:10Z | `capture:avalanche-data-api:2026-09-19T11:05:10Z:87e218314c95` | `3dad3d97bcf9` | 1 | pass, 9 checks, 0 findings | none recorded |
+| `derived.staking-periods` | 2026-09-19T16:57:35Z | `capture:derived:2026-09-19T16:57:35Z:8ae5d8eb8a11` | `0f4e2089f162, 06d296da1030 ...` | 7110868 | pass, 7 checks, 0 findings | none recorded |
 
 Units are preserved as served and converted once where the catalog says so. Internal review-ready evidence; not Avalanche acceptance.
 
