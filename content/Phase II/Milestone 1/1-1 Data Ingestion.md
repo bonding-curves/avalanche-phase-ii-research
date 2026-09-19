@@ -15,7 +15,7 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 
 ## Evidence status
 
-12 of 12 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
+13 of 13 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
 
 ### Coverage by contract quantity
 
@@ -38,6 +38,7 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 | context | `defillama.pool-yields` | snapshot 2026-09-19T11:04:28 | 318 | pass, 8 checks, 0 findings |
 | context | `us-treasury.par-yield-daily` | 2020-01-02 to 2026-09-18 | 21537 | pass, 9 checks, 0 findings |
 | context | `metrics-api.c-chain-activity-daily` | 2021-01-01 to 2026-09-18 | 2087 | attention, 9 checks, 1 findings |
+| context | `data-api.avax-supply` | snapshot 2026-09-19T11:00:18 | 1 | pass, 9 checks, 0 findings |
 
 ### Known gaps
 

@@ -11,6 +11,7 @@ import click
 
 from . import __version__
 from . import coingecko
+from . import dataapi
 from . import datasets
 from . import defillama
 from . import metrics
@@ -28,6 +29,7 @@ from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 MODULES = {
     snowpeer.DATASET_ID: snowpeer,
     coingecko.DATASET_ID: coingecko,
+    dataapi.DATASET_ID: dataapi,
     defillama.DATASET_ID: defillama,
     pchain.DATASET_ID: pchain,
     yields.DATASET_ID: yields,

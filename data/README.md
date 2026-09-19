@@ -18,6 +18,7 @@ This directory defines the machine-readable contracts for research data used in 
 | `us-treasury.par-yield-daily` | One Parquet row per business day and tenor of the US Treasury par yield curve since 2020 | Implemented, tested, and captured live |
 | `metrics-api.primary-staking-daily` | One Parquet row per day of Metrics API validator and delegator counts and weights since 2021-02-28 | Implemented, tested, captured live, and reconciled against the Snowflake datasets |
 | `metrics-api.c-chain-activity-daily` | One Parquet row per day of Metrics API C-Chain active addresses, transactions, gas, fees, and gas price since 2021-03-21 | Implemented, tested, and captured live |
+| `data-api.avax-supply` | One Parquet row per capture with the Data API's current supply, staked, locked, cumulative reward, and burn totals | Implemented, tested, and captured live; the API publishes no history |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -196,6 +197,16 @@ uv run --locked avalanche data check metrics-api.primary-staking-daily \
 
 The C-Chain activity dataset follows the same commands with `metrics-api.c-chain-activity-daily`. The API serves no P-Chain chain metrics; P-Chain fees and burn stay with the Snowflake transaction columns. Units for fees and gas price are not documented by the API and are recorded as served.
 
+## Reproduce the AVAX supply snapshot
+
+The Data API's supply endpoint answers keyless requests and returns only the current state, so this dataset is one row per capture; a history exists only through repeated captures or the Snowflake block supply counter. The check verifies the API's own identity, total supply equals genesis unlock plus cumulative rewards minus the three burn totals, and with `--against` reports the gap to the Snowflake protocol supply counter, which runs ahead of minted rewards by the potential rewards of periods still in progress.
+
+```bash
+uv run --locked avalanche data fetch data-api.avax-supply --output data/runs/avax-supply-example/capture
+uv run --locked avalanche data build data-api.avax-supply --from data/runs/avax-supply-example/capture --output data/runs/avax-supply-example/dataset
+uv run --locked avalanche data check data-api.avax-supply --capture data/runs/avax-supply-example/capture --dataset data/runs/avax-supply-example/dataset --against data/runs/staking-supply-example/dataset
+```
+
 ## Use datasets from a notebook
 
 Notebooks load built datasets by catalog ID. Nothing is fetched on load; the functions read the receipts and Parquet files that `fetch` and `build` wrote under `data/runs/`, verify the Parquet hash against the build receipt, and hand back typed tables.
@@ -229,6 +240,7 @@ uv run --locked avalanche data describe defillama.pool-yields
 uv run --locked avalanche data describe us-treasury.par-yield-daily
 uv run --locked avalanche data describe metrics-api.primary-staking-daily
 uv run --locked avalanche data describe metrics-api.c-chain-activity-daily
+uv run --locked avalanche data describe data-api.avax-supply
 uv run --locked avalanche data manifest --json
 ```
 

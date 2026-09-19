@@ -160,6 +160,28 @@
       ]
     },
     {
+      "id": "avalanche-data-api",
+      "name": "Avalanche Data API",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Ava Labs' official indexed data behind the Avalanche explorer. Authoritative for the current supply, staking, lock, reward, and burn totals it publishes; the supply endpoint holds no history.",
+      "documentation_url": "https://build.avax.network/docs/api-reference/data-api",
+      "authentication": "optional; the OpenAPI security scheme is an x-glacier-api-key header, and the supply endpoint answered keyless requests on 2026-09-19. A key raises rate limits and is never stored in the repository.",
+      "reuse_status": "Public access observed; Ava Labs terms apply to redistribution.",
+      "notes": [
+        "OpenAPI GET /v1/avax/supply: Get AVAX supply information that includes total supply, circulating supply, total p burned, total c burned, total x burned, total staked, total locked, total rewards, and last updated. The operation takes no parameters.",
+        "Blocker recorded 2026-09-19: the Data API exposes no historical supply, circulating supply, staked supply, or cumulative burn series; the supply endpoint returns one current state with lastUpdated. A history can only be assembled by repeated captures or from the Snowflake block supply counter.",
+        "Observed 2026-09-19: totalSupply equals genesisUnlock plus totalRewards minus the three burn totals to within one AVAX, so the API's totals are internally consistent."
+      ],
+      "endpoints": [
+        {
+          "id": "avax-supply",
+          "url": "https://glacier-api.avax.network/v1/avax/supply",
+          "response_fields": ["totalSupply", "circulatingSupply", "totalPBurned", "totalCBurned", "totalXBurned", "totalStaked", "totalLocked", "totalRewards", "lastUpdated", "genesisUnlock", "l1ValidatorFees"]
+        }
+      ]
+    },
+    {
       "id": "us-treasury",
       "name": "US Treasury daily par yield curve",
       "source_type": "rest_api",
@@ -566,6 +588,30 @@
         {"name": "gas_used", "type": "integer", "unit": "gas units", "derivation": "gasUsed results[i].value"},
         {"name": "fees_paid", "type": "number", "unit": "as served; the API does not document the unit, observed scale consistent with AVAX", "derivation": "feesPaid results[i].value"},
         {"name": "avg_gas_price", "type": "number", "unit": "as served; the API does not document the unit, observed scale consistent with nAVAX", "derivation": "avgGasPrice results[i].value"}
+      ]
+    },
+    {
+      "id": "data-api.avax-supply",
+      "name": "AVAX supply snapshot",
+      "source_id": "avalanche-data-api",
+      "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics", "From Gross Chain Product to Gross Chain Income: Where the Value Goes"],
+      "description": "One row per capture with the Data API's current AVAX supply, circulating supply, staked, locked, cumulative rewards, cumulative burns by chain, and L1 validator fees. A history is built only by repeated captures; the API publishes none.",
+      "endpoint_ids": ["avax-supply"],
+      "fields": [
+        {"name": "observed_at", "type": "timestamp", "unit": "UTC", "derivation": "lastUpdated"},
+        {"name": "total_supply_avax", "type": "number", "unit": "AVAX", "derivation": "totalSupply"},
+        {"name": "circulating_supply_avax", "type": "number", "unit": "AVAX", "derivation": "circulatingSupply"},
+        {"name": "total_staked_avax", "type": "number", "unit": "AVAX", "derivation": "totalStaked"},
+        {"name": "total_locked_avax", "type": "number", "unit": "AVAX", "derivation": "totalLocked"},
+        {"name": "total_rewards_avax", "type": "number", "unit": "AVAX; cumulative staking rewards minted", "derivation": "totalRewards"},
+        {"name": "total_p_burned_avax", "type": "number", "unit": "AVAX", "derivation": "totalPBurned"},
+        {"name": "total_c_burned_avax", "type": "number", "unit": "AVAX", "derivation": "totalCBurned"},
+        {"name": "total_x_burned_avax", "type": "number", "unit": "AVAX", "derivation": "totalXBurned"},
+        {"name": "l1_validator_fees_avax", "type": "number", "unit": "AVAX", "derivation": "l1ValidatorFees"},
+        {"name": "genesis_unlock_avax", "type": "number", "unit": "AVAX", "derivation": "genesisUnlock"},
+        {"name": "supply_identity_gap_avax", "type": "number", "unit": "AVAX; totalSupply minus (genesisUnlock + totalRewards - burns)", "derivation": "total_supply_avax - (genesis_unlock_avax + total_rewards_avax - total_p_burned_avax - total_c_burned_avax - total_x_burned_avax)"}
       ]
     }
   ]
