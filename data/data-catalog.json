@@ -113,6 +113,53 @@
       ]
     },
     {
+      "id": "avalanche-metrics-api",
+      "name": "Avalanche Metrics API",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Ava Labs' official derived metrics behind the Avalanche explorer. Authoritative for the aggregates it defines; definitions are endpoint-specific and units are not documented, so each series is reconciled against raw-data datasets where one exists.",
+      "documentation_url": "https://build.avax.network/docs/api-reference/metrics-api",
+      "authentication": "none; the public endpoint answers keyless requests with a page limit of 2160 points, so each series is captured as fixed two-year windows",
+      "reuse_status": "Public access observed; Ava Labs terms apply to redistribution.",
+      "notes": [
+        "OpenAPI /v2/networks/{network}/metrics/{metric}: Gets staking metrics for a given subnet. NetworkMetric enum: delegatorCount, delegatorWeight, validatorCount, validatorWeight.",
+        "OpenAPI /v2/chains/{chainId}/metrics/{metric}: EVM chain metrics are available for all Avalanche L1s on Mainnet and Fuji. All metrics are updated several times every hour. Each metric data point has a value and timestamp (Unix timestamp in seconds). All metric values include data within the duration of the associated timestamp plus the requested timeInterval. All timestamps are fixed to the hour.",
+        "OpenAPI MetricsValue.value: Aggregated value for the current metrics. MetricsValue.timestamp: Unix Epoch timestamp for which metrics are aggregated; for a day interval this is the start of the day.",
+        "Chain 43114 is the C-Chain. The API serves no P-Chain chain metrics (HTTP 404 for the Primary Network subnet ID), so P-Chain fees and burn come from the Snowflake P_TRANSACTIONS columns FEE and BURNED_AVAX instead.",
+        "Both series begin 2021-01-01; earlier dates are absent from the API although the Primary Network has staking history from 2020-09-10.",
+        "Reconciliation on 2026-09-19 against the end-of-day active set rebuilt from the Snowflake validator and delegator datasets: validator counts differ by a median 1.1 percent in 2021 to 2023, 2.1 percent in 2024, 2.8 percent in 2025, and 3.4 percent in 2026; delegator counts by 1.5 to 2.4 percent in 2021 to 2022 and 5.5 to 8 percent from 2023. Sampled days in 2022 and 2024 match exactly at end of day, so the residual reflects the API's undocumented aggregation instant plus an undercount from 2025 that also skips nine days between 2025-10-12 and 2025-12-01."
+      ],
+      "endpoints": [
+        {"id": "staking-validator-count-2021-2022", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-validator-count-2023-2024", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-validator-count-2025-2026", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-delegator-count-2021-2022", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-delegator-count-2023-2024", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-delegator-count-2025-2026", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-validator-weight-2021-2022", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-validator-weight-2023-2024", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-validator-weight-2025-2026", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-delegator-weight-2021-2022", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-delegator-weight-2023-2024", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "staking-delegator-weight-2025-2026", "url": "https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-active-addresses-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-active-addresses-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-active-addresses-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/activeAddresses?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-tx-count-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/txCount?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-tx-count-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/txCount?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-tx-count-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/txCount?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-gas-used-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/gasUsed?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-gas-used-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/gasUsed?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-gas-used-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/gasUsed?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-fees-paid-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/feesPaid?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-fees-paid-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/feesPaid?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-fees-paid-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/feesPaid?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-avg-gas-price-2021-2022", "url": "https://metrics.avax.network/v2/chains/43114/metrics/avgGasPrice?startTimestamp=1609459200&endTimestamp=1672531200&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-avg-gas-price-2023-2024", "url": "https://metrics.avax.network/v2/chains/43114/metrics/avgGasPrice?startTimestamp=1672531200&endTimestamp=1735689600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]},
+        {"id": "chain-avg-gas-price-2025-2026", "url": "https://metrics.avax.network/v2/chains/43114/metrics/avgGasPrice?startTimestamp=1735689600&endTimestamp=1798761600&timeInterval=day&pageSize=2160", "response_fields": ["results", "nextPageToken"]}
+      ]
+    },
+    {
       "id": "us-treasury",
       "name": "US Treasury daily par yield curve",
       "source_type": "rest_api",
@@ -462,6 +509,39 @@
         {"name": "maturity_months", "type": "number", "unit": "months", "derivation": "tenor expressed in months"},
         {"name": "yield_rate", "type": "number", "unit": "fraction per year", "derivation": "BC_* percent / 100; empty values are omitted"},
         {"name": "source_year", "type": "integer", "unit": "feed year", "derivation": "the yearly endpoint that supplied the entry"}
+      ]
+    },
+    {
+      "id": "metrics-api.primary-staking-daily",
+      "name": "Primary Network daily staking metrics",
+      "source_id": "avalanche-metrics-api",
+      "status": "implemented",
+      "description": "One row per day of the Metrics API's Primary Network validator count, delegator count, validator weight, and delegator weight from 2021-02-28 through the capture day, reconciled against the Snowflake validator and delegator datasets.",
+      "endpoint_ids": ["staking-validator-count-2021-2022", "staking-validator-count-2023-2024", "staking-validator-count-2025-2026", "staking-delegator-count-2021-2022", "staking-delegator-count-2023-2024", "staking-delegator-count-2025-2026", "staking-validator-weight-2021-2022", "staking-validator-weight-2023-2024", "staking-validator-weight-2025-2026", "staking-delegator-weight-2021-2022", "staking-delegator-weight-2023-2024", "staking-delegator-weight-2025-2026"],
+      "fields": [
+        {"name": "observation_date", "type": "string", "unit": "UTC calendar day of the timestamp", "derivation": "results[i].timestamp, start of day"},
+        {"name": "validator_count", "type": "integer", "unit": "validators", "derivation": "validatorCount results[i].value"},
+        {"name": "delegator_count", "type": "integer", "unit": "delegations", "derivation": "delegatorCount results[i].value"},
+        {"name": "validator_weight_navax", "type": "integer", "unit": "nAVAX; scale confirmed by reconciliation against Snowflake stake weights", "derivation": "validatorWeight results[i].value"},
+        {"name": "delegator_weight_navax", "type": "integer", "unit": "nAVAX", "derivation": "delegatorWeight results[i].value"},
+        {"name": "validator_weight_avax", "type": "number", "unit": "AVAX", "derivation": "validator_weight_navax / 1e9"},
+        {"name": "delegator_weight_avax", "type": "number", "unit": "AVAX", "derivation": "delegator_weight_navax / 1e9"}
+      ]
+    },
+    {
+      "id": "metrics-api.c-chain-activity-daily",
+      "name": "C-Chain daily activity and fees",
+      "source_id": "avalanche-metrics-api",
+      "status": "implemented",
+      "description": "One row per day of the Metrics API's C-Chain active addresses, transaction count, gas used, fees paid, and average gas price from 2021-03-21 through the capture day.",
+      "endpoint_ids": ["chain-active-addresses-2021-2022", "chain-active-addresses-2023-2024", "chain-active-addresses-2025-2026", "chain-tx-count-2021-2022", "chain-tx-count-2023-2024", "chain-tx-count-2025-2026", "chain-gas-used-2021-2022", "chain-gas-used-2023-2024", "chain-gas-used-2025-2026", "chain-fees-paid-2021-2022", "chain-fees-paid-2023-2024", "chain-fees-paid-2025-2026", "chain-avg-gas-price-2021-2022", "chain-avg-gas-price-2023-2024", "chain-avg-gas-price-2025-2026"],
+      "fields": [
+        {"name": "observation_date", "type": "string", "unit": "UTC calendar day of the timestamp", "derivation": "results[i].timestamp, start of day"},
+        {"name": "active_addresses", "type": "integer", "unit": "addresses", "derivation": "activeAddresses results[i].value"},
+        {"name": "tx_count", "type": "integer", "unit": "transactions", "derivation": "txCount results[i].value"},
+        {"name": "gas_used", "type": "integer", "unit": "gas units", "derivation": "gasUsed results[i].value"},
+        {"name": "fees_paid", "type": "number", "unit": "as served; the API does not document the unit, observed scale consistent with AVAX", "derivation": "feesPaid results[i].value"},
+        {"name": "avg_gas_price", "type": "number", "unit": "as served; the API does not document the unit, observed scale consistent with nAVAX", "derivation": "avgGasPrice results[i].value"}
       ]
     }
   ]

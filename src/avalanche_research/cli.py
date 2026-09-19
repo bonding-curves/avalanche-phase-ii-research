@@ -13,6 +13,7 @@ from . import __version__
 from . import coingecko
 from . import datasets
 from . import defillama
+from . import metrics
 from . import pchain
 from . import snowflake
 from . import snowpeer
@@ -31,6 +32,7 @@ MODULES = {
     pchain.DATASET_ID: pchain,
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,
+    **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
 }
 
@@ -165,11 +167,18 @@ def build(dataset_id: str, capture_dir: Path, output: Path, preview: bool, as_js
 @click.argument("dataset_id")
 @click.option("capture_dir", "--capture", type=click.Path(path_type=Path), required=True)
 @click.option("dataset_dir", "--dataset", type=click.Path(path_type=Path))
-@click.option("against", "--against", type=click.Path(path_type=Path), help="Built reference dataset directory for a cross-check.")
+@click.option("against", "--against", type=click.Path(path_type=Path), multiple=True, help="Built reference dataset directory for a cross-check; repeatable where a check takes several.")
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
-def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, against: Path | None, as_json: bool) -> None:
+def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, against: tuple[Path, ...], as_json: bool) -> None:
     """Check capture integrity, optional built output, and an optional reference cross-check."""
-    value = module_for(dataset_id).check(capture_dir, dataset_dir, against)
+    module = module_for(dataset_id)
+    if module is metrics:
+        reference: Any = against or None
+    elif len(against) > 1:
+        raise DataError(f"{dataset_id} takes at most one --against directory")
+    else:
+        reference = against[0] if against else None
+    value = module.check(capture_dir, dataset_dir, reference)
     if value["dataset_id"] != dataset_id:
         raise DataError(f"capture belongs to {value['dataset_id']}, not {dataset_id}")
     result = envelope(
