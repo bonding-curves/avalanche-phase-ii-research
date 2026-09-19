@@ -278,6 +278,8 @@
       "name": "Snowpeer network-wide summary",
       "source_id": "snowpeer",
       "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["The Avalanche Foundation Unveils its Economic Research Agenda"],
       "description": "Timestamped reconstruction of the six network-wide values displayed on Snowpeer's current statistics page.",
       "endpoint_ids": [
         "total-market-cap",
@@ -302,6 +304,8 @@
       "name": "Primary Network validator staking transactions",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
+      "contract_quantities": ["validator flows", "durations"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
       "description": "One row per accepted AddValidatorTx or AddPermissionlessValidatorTx on the Avalanche Primary Network with the chosen duration, delegation fee, stake weight, potential reward, and a staked-UTXO reconciliation.",
       "query_ids": ["primary-validator-stakes"],
       "fields": [
@@ -329,6 +333,8 @@
       "name": "Primary Network delegation transactions",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
+      "contract_quantities": ["delegator flows", "durations"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
       "description": "One row per accepted AddDelegatorTx or AddPermissionlessDelegatorTx on the Avalanche Primary Network with the target validator, the containing validator staking period, the funding address, duration, stake, potential reward, and a staked-UTXO reconciliation.",
       "query_ids": ["primary-delegator-stakes"],
       "fields": [
@@ -357,6 +363,8 @@
       "name": "Primary Network staking reward outcomes",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
+      "contract_quantities": ["rewards"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
       "description": "One row per reward transaction closing a validator or delegator staking period on the Avalanche Primary Network, with the linked staking period, its rewarded flag, potential reward, realized reward from reward UTXOs, and the resulting fee transfer.",
       "query_ids": ["primary-staking-rewards"],
       "fields": [
@@ -383,6 +391,8 @@
       "name": "Primary Network staking supply context",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
+      "contract_quantities": ["rewards", "context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
       "description": "One row per staking transaction on the Avalanche Primary Network with the AVAX supply before and after its block and the in-block supply deltas, the inputs the protocol reward formula used for the transaction's potential reward.",
       "query_ids": ["primary-staking-supply"],
       "fields": [
@@ -403,6 +413,8 @@
       "name": "AVAX daily market observations",
       "source_id": "coingecko",
       "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"],
       "description": "Daily AVAX price, market capitalization, and volume in USD over the trailing 365 days the public CoinGecko API serves, with daily log returns and annualized 30-day realized volatility.",
       "endpoint_ids": ["avax-market-chart"],
       "fields": [
@@ -421,6 +433,8 @@
       "name": "AVAX daily price history",
       "source_id": "defillama",
       "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"],
       "description": "One row per daily AVAX price observation in USD from the DefiLlama coins series with CoinGecko lineage, from the 2020-09-22 series start through the capture day, with daily log returns and annualized 30-day realized volatility. Windows past the capture day return only the points that exist.",
       "endpoint_ids": ["avax-price-window-1", "avax-price-window-2", "avax-price-window-3", "avax-price-window-4", "avax-price-window-5"],
       "fields": [
@@ -438,6 +452,8 @@
       "name": "Primary Network current validator snapshot",
       "source_id": "avalanche-p-chain-rpc",
       "status": "implemented",
+      "contract_quantities": ["validator flows", "context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
       "description": "One row per validator in the current Primary Network validator set at the capture instant: node, staking transaction, period, stake weight, delegation fee, observed uptime, connection state, delegator totals, potential reward, and reward owners. Uptime is the answering node's current observation, not a history.",
       "endpoint_ids": ["current-validators"],
       "fields": [
@@ -464,6 +480,8 @@
       "name": "DeFi pool yields on Avalanche and proof-of-stake staking products",
       "source_id": "defillama",
       "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"],
       "description": "One row per DefiLlama pool at the capture instant, kept when the pool is on Avalanche or belongs to a declared proof-of-stake staking project on any chain, with yield, TVL, and risk descriptors and the opportunity-cost fields the study must still supply.",
       "endpoint_ids": ["pool-yields"],
       "fields": [
@@ -501,6 +519,8 @@
       "name": "US Treasury daily par yields",
       "source_id": "us-treasury",
       "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"],
       "description": "One row per business day and tenor of the US Treasury par yield curve from 2020 through the capture day, as the dated non-crypto benchmark for opportunity-cost comparisons.",
       "endpoint_ids": ["daily-yield-curve-2020", "daily-yield-curve-2021", "daily-yield-curve-2022", "daily-yield-curve-2023", "daily-yield-curve-2024", "daily-yield-curve-2025", "daily-yield-curve-2026"],
       "fields": [
@@ -516,6 +536,8 @@
       "name": "Primary Network daily staking metrics",
       "source_id": "avalanche-metrics-api",
       "status": "implemented",
+      "contract_quantities": ["validator flows", "delegator flows"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?", "The Avalanche Foundation Unveils its Economic Research Agenda"],
       "description": "One row per day of the Metrics API's Primary Network validator count, delegator count, validator weight, and delegator weight from 2021-02-28 through the capture day, reconciled against the Snowflake validator and delegator datasets.",
       "endpoint_ids": ["staking-validator-count-2021-2022", "staking-validator-count-2023-2024", "staking-validator-count-2025-2026", "staking-delegator-count-2021-2022", "staking-delegator-count-2023-2024", "staking-delegator-count-2025-2026", "staking-validator-weight-2021-2022", "staking-validator-weight-2023-2024", "staking-validator-weight-2025-2026", "staking-delegator-weight-2021-2022", "staking-delegator-weight-2023-2024", "staking-delegator-weight-2025-2026"],
       "fields": [
@@ -533,6 +555,8 @@
       "name": "C-Chain daily activity and fees",
       "source_id": "avalanche-metrics-api",
       "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["The Avalanche Foundation Unveils its Economic Research Agenda", "From Gross Chain Product to Gross Chain Income: Where the Value Goes"],
       "description": "One row per day of the Metrics API's C-Chain active addresses, transaction count, gas used, fees paid, and average gas price from 2021-03-21 through the capture day.",
       "endpoint_ids": ["chain-active-addresses-2021-2022", "chain-active-addresses-2023-2024", "chain-active-addresses-2025-2026", "chain-tx-count-2021-2022", "chain-tx-count-2023-2024", "chain-tx-count-2025-2026", "chain-gas-used-2021-2022", "chain-gas-used-2023-2024", "chain-gas-used-2025-2026", "chain-fees-paid-2021-2022", "chain-fees-paid-2023-2024", "chain-fees-paid-2025-2026", "chain-avg-gas-price-2021-2022", "chain-avg-gas-price-2023-2024", "chain-avg-gas-price-2025-2026"],
       "fields": [

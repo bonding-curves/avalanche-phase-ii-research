@@ -19,7 +19,7 @@ from . import snowflake
 from . import snowpeer
 from . import treasury
 from . import yields
-from .catalog import DataError, load_catalog
+from .catalog import DataError, canonical_bytes, load_catalog, now
 from .model import backtest as model_backtest
 from .model import protocol
 from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
@@ -181,6 +181,9 @@ def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, aga
     value = module.check(capture_dir, dataset_dir, reference)
     if value["dataset_id"] != dataset_id:
         raise DataError(f"capture belongs to {value['dataset_id']}, not {dataset_id}")
+    if dataset_dir is not None:
+        record = {"schema_version": "avalanche-check/v1", "checked_at": now(), "tool_version": __version__, **value}
+        (dataset_dir / "check.json").write_bytes(canonical_bytes(record))
     result = envelope(
         "data check", value["status"],
         {"text": f"{dataset_id}; {len(value['checked'])} checks; {len(value['findings'])} findings"},

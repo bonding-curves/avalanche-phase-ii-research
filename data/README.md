@@ -50,6 +50,8 @@ The capture contains the original response bytes, URLs, timestamps, sizes, and S
 
 Generated captures are working data and are not committed by default. A reviewed study may publish a bounded snapshot when its evidence contract requires one.
 
+Every capture receipt carries `contract_sha256`, the hash of the dataset's inputs (its endpoints or queries) and its field list. Documentation in the catalog, such as descriptions, provider notes, and consumer studies, can change without invalidating captures; a change to an input or a field makes earlier captures stale and requires a new one. `avalanche data check --dataset` writes its result to `check.json` beside the build receipt, and `scripts/milestone_pages.py build` renders the Milestone 1.1 and 1.2 pages from the catalog and the latest receipts.
+
 ## Reproduce the staking transactions and reward outcomes
 
 The Snowflake share requires authorized credentials. Install the optional connector and describe the connection once in the connector's own configuration file, outside the repository:
