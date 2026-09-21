@@ -26,6 +26,7 @@ CONNECTION_VARIABLE = "AVALANCHE_SNOWFLAKE_CONNECTION"
 DEFAULT_CONNECTION = "avalanche"
 QUERY_TAG = "avalanche-phase-ii-research"
 GENESIS_DATE = "2020-09-10"
+C_CHAIN_FIRST_DATE = "2020-09-23"
 NAVAX_PER_AVAX = 1_000_000_000
 FEE_SHARES_PER_UNIT = 1_000_000
 VALIDATOR_TYPES = ("AddValidatorTx", "AddPermissionlessValidatorTx")
@@ -427,8 +428,69 @@ PRIMARY_BURN_EVENTS = DatasetSpec(
     ),
 )
 
+C_CHAIN_EVM_BURN_DAILY = DatasetSpec(
+    dataset_id="snowflake.c-chain-evm-burn-daily",
+    query_id="c-chain-evm-burn-daily",
+    tx_types=(),
+    raw_types={
+        "date_utc": "DATE", "burned_wei": "DECIMAL(38,0)",
+        "block_count": "BIGINT", "distinct_blocks": "BIGINT",
+        "first_block": "BIGINT", "last_block": "BIGINT", "previous_last_block": "BIGINT",
+        "next_first_block": "BIGINT",
+        "expected_receipts": "BIGINT", "receipt_count": "BIGINT", "distinct_receipts": "BIGINT",
+        "missing_fee_inputs": "BIGINT", "first_epoch": "BIGINT", "last_epoch": "BIGINT",
+    },
+    table_columns={
+        "date_utc": "DATE", "burned_wei": "DECIMAL(38,0)",
+        "block_count": "BIGINT", "distinct_blocks": "BIGINT",
+        "first_block": "BIGINT", "last_block": "BIGINT", "previous_last_block": "BIGINT",
+        "next_first_block": "BIGINT",
+        "expected_receipts": "BIGINT", "receipt_count": "BIGINT", "distinct_receipts": "BIGINT",
+        "missing_fee_inputs": "BIGINT", "first_epoch": "BIGINT", "last_epoch": "BIGINT",
+    },
+    transform_sql="SELECT * FROM capture ORDER BY date_utc",
+    validity_sql="""
+        COUNT_IF(date_utc IS NULL OR burned_wei IS NULL OR block_count IS NULL
+                 OR first_block IS NULL OR last_block IS NULL OR expected_receipts IS NULL
+                 OR first_epoch IS NULL OR last_epoch IS NULL),
+        COUNT_IF(burned_wei < 0 OR block_count < 0 OR expected_receipts < 0
+                 OR receipt_count < 0 OR missing_fee_inputs < 0)""",
+    validity_labels=("miss a required daily field", "have a negative count or burn"),
+    check_names=(
+        "unique dates", "acceptance window", "calendar coverage", "block coverage",
+        "consecutive days", "receipt count", "unique receipts", "fee inputs", "block timestamps",
+    ),
+    check_sql="""
+        COUNT(*) - COUNT(DISTINCT date_utc),
+        COUNT_IF(date_utc < ?::DATE OR date_utc >= ?::DATE),
+        date_diff('day', ?::DATE, ?::DATE) - COUNT(*),
+        COUNT_IF(last_block - first_block + 1 <> block_count OR distinct_blocks <> block_count),
+        COUNT_IF((date_utc > ?::DATE
+                  AND (previous_last_block IS NULL OR first_block <> previous_last_block + 1))
+                 OR next_first_block IS NULL OR next_first_block <> last_block + 1),
+        COUNT_IF(receipt_count <> expected_receipts),
+        COUNT_IF(distinct_receipts <> receipt_count),
+        SUM(missing_fee_inputs),
+        COUNT_IF(first_epoch < epoch(date_utc) OR last_epoch >= epoch(date_utc + INTERVAL 1 DAY))""",
+    check_labels=(
+        "repeat a UTC date", "are outside the requested UTC window", "calendar days are missing",
+        "have missing or duplicate C blocks", "do not connect to adjacent C block days",
+        "have a receipt count different from block transaction counts", "have duplicate transaction receipts",
+        "receipts are missing gas used or effective gas price", "have block timestamps outside their UTC date",
+    ),
+    check_params=lambda window: [window["start"], window["end"], window["start"], window["end"], C_CHAIN_FIRST_DATE],
+    summary_sql="""
+        COUNT(*), MIN(date_utc), MAX(date_utc), SUM(burned_wei), SUM(block_count),
+        SUM(expected_receipts), SUM(receipt_count), SUM(missing_fee_inputs)""",
+    summary_keys=(
+        "days", "first_date", "last_date", "burned_wei", "blocks",
+        "expected_receipts", "receipts", "missing_fee_inputs",
+    ),
+)
+
 SPECS = {spec.dataset_id: spec for spec in (
-    VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS, STAKING_SUPPLY, PRIMARY_BURN_EVENTS,
+    VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS, STAKING_SUPPLY,
+    PRIMARY_BURN_EVENTS, C_CHAIN_EVM_BURN_DAILY,
 )}
 DATASET_IDS = tuple(SPECS)
 DATASET_ID = VALIDATOR_STAKES.dataset_id
@@ -512,6 +574,10 @@ def capture_preview(
     spec = spec_for(dataset_id)
     query = query_definition(catalog, dataset_id)
     sql_text = read_sql(query)
+    values = dict(parameters or {})
+    if dataset_id == C_CHAIN_EVM_BURN_DAILY.dataset_id:
+        values.setdefault("start", C_CHAIN_FIRST_DATE)
+        values.setdefault("end", (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat())
     return {
         "dataset_id": dataset_id,
         "source_id": SOURCE_ID,
@@ -520,7 +586,7 @@ def capture_preview(
         "query_id": spec.query_id,
         "sql": query["sql"],
         "sql_sha256": sha256(sql_text.encode()),
-        "parameters": resolve_parameters(parameters),
+        "parameters": resolve_parameters(values),
         "writes": [f"raw/{spec.query_id}.sql", f"raw/{spec.query_id}.jsonl.gz", "capture.json"],
         "overwrite": False,
     }

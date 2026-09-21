@@ -3,7 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 import sys
-from datetime import datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import duckdb
@@ -36,6 +36,50 @@ def test_primary_burn_events_preserve_recorded_burn_and_zero_system_transactions
         ).fetchall() == [("reward", 0), ("send", 1_000_000), ("stake", 500_000_000)]
     finally:
         connection.close()
+
+
+def c_burn_day(day, burned_wei, first_block, last_block, previous_last_block, receipts):
+    epoch = int(datetime(day.year, day.month, day.day, tzinfo=UTC).timestamp())
+    return {
+        "date_utc": day, "burned_wei": burned_wei,
+        "block_count": last_block - first_block + 1,
+        "distinct_blocks": last_block - first_block + 1,
+        "first_block": first_block, "last_block": last_block,
+        "previous_last_block": previous_last_block,
+        "next_first_block": last_block + 1,
+        "expected_receipts": receipts, "receipt_count": receipts,
+        "distinct_receipts": receipts, "missing_fee_inputs": 0,
+        "first_epoch": epoch, "last_epoch": epoch + 86399,
+    }
+
+
+def test_c_evm_burn_daily_preserves_wei_and_checks_coverage(tmp_path):
+    assert snowflake.capture_preview(
+        snowflake.C_CHAIN_EVM_BURN_DAILY.dataset_id, tmp_path / "preview"
+    )["parameters"]["start"] == snowflake.C_CHAIN_FIRST_DATE
+    rows = [
+        c_burn_day(date(2026, 9, 16), 1_000_000_001, 10, 11, 9, 3),
+        c_burn_day(date(2026, 9, 17), 20, 12, 13, 11, 2),
+    ]
+    window = {"start": "2026-09-16", "end": "2026-09-18"}
+    capture_dir, _ = make_capture(tmp_path, rows, window, snowflake.C_CHAIN_EVM_BURN_DAILY)
+    dataset_dir = tmp_path / "dataset"
+    build = snowflake.build(snowflake.C_CHAIN_EVM_BURN_DAILY.dataset_id, capture_dir, dataset_dir)
+    assert build["summary"]["burned_wei"] == 1_000_000_021
+    assert snowflake.check(capture_dir, dataset_dir)["status"] == "pass"
+
+    broken = [dict(row) for row in rows]
+    broken[1]["receipt_count"] = 1
+    broken[1]["first_block"] = 15
+    broken_capture, _ = make_capture(tmp_path / "broken", broken, window, snowflake.C_CHAIN_EVM_BURN_DAILY)
+    findings = snowflake.check(broken_capture)["findings"]
+    assert any("receipt count" in finding for finding in findings)
+    assert any("adjacent C block days" in finding for finding in findings)
+
+    no_next_day = [dict(row) for row in rows]
+    no_next_day[1]["next_first_block"] = None
+    no_next_capture, _ = make_capture(tmp_path / "no-next", no_next_day, window, snowflake.C_CHAIN_EVM_BURN_DAILY)
+    assert any("adjacent C block days" in finding for finding in snowflake.check(no_next_capture)["findings"])
 
 
 def raw_row(**overrides):
@@ -177,7 +221,7 @@ def make_capture(tmp_path: Path, rows=ROWS, parameters=None, spec=snowflake.VALI
 def test_catalog_declares_each_snowflake_query_dataset(spec):
     catalog = load_catalog()
     query = snowflake.query_definition(catalog, spec.dataset_id)
-    assert query["relations"][0] == "P_TRANSACTIONS" and len(query["relations"]) == 2
+    assert len(query["relations"]) == 2
     assert "%(start)s" in snowflake.read_sql(query) and "%(end)s" in snowflake.read_sql(query)
     definition = next(item for item in catalog["datasets"] if item["id"] == spec.dataset_id)
     assert [field["name"] for field in definition["fields"]] == list(spec.table_columns)

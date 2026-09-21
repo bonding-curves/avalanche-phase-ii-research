@@ -71,6 +71,7 @@ def test_catalog_schema_and_references_are_valid():
     assert [item["id"] for item in catalog["datasets"]] == [
         snowpeer.DATASET_ID, "snowflake.primary-validator-stakes", "snowflake.primary-delegator-stakes",
         "snowflake.primary-staking-rewards", "snowflake.primary-staking-supply", "snowflake.primary-burn-events",
+        "snowflake.c-chain-evm-burn-daily",
         "coingecko.avax-market-daily",
         "defillama.avax-price-daily", "p-chain-rpc.current-validators", "defillama.pool-yields", "us-treasury.par-yield-daily",
         "metrics-api.primary-staking-daily", "metrics-api.c-chain-activity-daily", "data-api.avax-supply",

@@ -651,6 +651,21 @@
             "AdvanceTimeTx and RewardValidatorTx with null BURNED_AVAX are zero-burn system transactions; another null burn remains missing and raises a check finding",
             "FEE is not a substitute for BURNED_AVAX, especially before Etna"
           ]
+        },
+        {
+          "id": "c-chain-evm-burn-daily",
+          "sql": "queries/c-chain-evm-burn-daily.sql",
+          "relations": ["C_BLOCKS", "C_RECEIPTS"],
+          "parameters": [
+            {"name": "start", "type": "date", "default": "2020-09-23", "meaning": "inclusive lower UTC block date; earliest observed C block partition"},
+            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper UTC block date"}
+          ],
+          "observed_semantics": [
+            "C-Chain EVM burn is the integer-wei sum of receipt gas used times effective gas price",
+            "C_BLOCKS.BLOCKTRANSACTIONLEN provides an independent expected receipt count per day",
+            "The query reads one neighboring C block day on each side to check block-height continuity across the capture boundary",
+            "Atomic AVAX burns are excluded and require the separate C-Chain atomic dataset"
+          ]
         }
       ]
     },
@@ -1215,6 +1230,32 @@
         {"name": "tx_type", "type": "string", "unit": "transaction type", "derivation": "TYPE"},
         {"name": "burned_navax", "type": "integer", "unit": "nAVAX", "derivation": "BURNED_AVAX; zero for verified zero-burn system transaction types"},
         {"name": "fee_navax", "type": "integer", "unit": "nAVAX; provider field, not used as a burn replacement", "derivation": "FEE"}
+      ]
+    },
+    {
+      "id": "snowflake.c-chain-evm-burn-daily",
+      "name": "C-Chain EVM fee burns by UTC date",
+      "source_id": "avalanche-snowflake",
+      "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "description": "One UTC day per row with exact EVM receipt-fee burn in wei and independent block/receipt coverage counts. C-Chain atomic burns are excluded.",
+      "query_ids": ["c-chain-evm-burn-daily"],
+      "fields": [
+        {"name": "date_utc", "type": "string", "unit": "UTC ISO date", "derivation": "C block partition date"},
+        {"name": "burned_wei", "type": "integer", "unit": "wei", "derivation": "sum of TRANSACTIONRECEIPTGASUSED × TRANSACTIONRECEIPTEFFECTIVEGASPRICE"},
+        {"name": "block_count", "type": "integer", "unit": "blocks", "derivation": "C_BLOCKS row count"},
+        {"name": "distinct_blocks", "type": "integer", "unit": "blocks", "derivation": "distinct C block numbers"},
+        {"name": "first_block", "type": "integer", "unit": "block number", "derivation": "minimum C block number"},
+        {"name": "last_block", "type": "integer", "unit": "block number", "derivation": "maximum C block number"},
+        {"name": "previous_last_block", "type": "integer", "unit": "block number; null at C genesis", "derivation": "last C block of preceding UTC day"},
+        {"name": "next_first_block", "type": "integer", "unit": "block number; null if the next UTC day is unavailable", "derivation": "first C block of following UTC day"},
+        {"name": "expected_receipts", "type": "integer", "unit": "transactions", "derivation": "sum of C_BLOCKS.BLOCKTRANSACTIONLEN"},
+        {"name": "receipt_count", "type": "integer", "unit": "receipts", "derivation": "C_RECEIPTS row count"},
+        {"name": "distinct_receipts", "type": "integer", "unit": "transactions", "derivation": "distinct C receipt transaction hashes"},
+        {"name": "missing_fee_inputs", "type": "integer", "unit": "receipts", "derivation": "receipts with missing gas used or effective gas price"},
+        {"name": "first_epoch", "type": "integer", "unit": "UTC epoch seconds", "derivation": "earliest C block timestamp of the day"},
+        {"name": "last_epoch", "type": "integer", "unit": "UTC epoch seconds", "derivation": "latest C block timestamp of the day"}
       ]
     },
     {
