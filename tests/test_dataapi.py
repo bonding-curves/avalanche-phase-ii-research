@@ -6,7 +6,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import dataapi
+from avalanche_research import dataapi, rest
 from avalanche_research.catalog import DataError, load_catalog
 
 
@@ -43,7 +43,8 @@ def test_catalog_declares_the_supply_snapshot():
     assert [field["name"] for field in definition["fields"]] == list(dataapi.TABLE_COLUMNS)
 
 
-def test_build_check_and_identity(tmp_path):
+def test_build_check_and_identity(tmp_path, monkeypatch):
+    monkeypatch.setattr(rest, "_now", lambda: "2026-09-19T10:45:15Z")
     capture_dir = make_capture(tmp_path)
     dataset_dir = tmp_path / "dataset"
     build = dataapi.build(dataapi.DATASET_ID, capture_dir, dataset_dir)
