@@ -6,14 +6,14 @@ Status: checked P/X and C atomic one-day sources, 2026-09-21. Historical total s
 
 | Measure | Source | Current result | Remaining check |
 | --- | --- | --- | --- |
-| P/X burn | Snowflake `P_TRANSACTIONS` and `X_TRANSACTIONS`, `BURNED_AVAX` | `snowflake.primary-burn-events` is a checked, timestamped transaction dataset. Amounts are nAVAX; repeated P hashes are deduplicated before summing. | Capture and reconcile the full date range against independent cumulative P/X totals. |
+| P/X burn | Snowflake `P_TRANSACTIONS` and `X_TRANSACTIONS`, `BURNED_AVAX` | `snowflake.primary-burn-events` is a checked, timestamped transaction dataset. Amounts are nAVAX; repeated P hashes are deduplicated before summing. The 320 historical P nulls have been classified in a separate audit, not yet applied to this dataset. | Integrate the audited P repairs, capture the full date range, and reconcile against independent cumulative P/X totals. |
 | C-Chain EVM burn | Snowflake `C_RECEIPTS`, `TRANSACTIONRECEIPTGASUSED × TRANSACTIONRECEIPTEFFECTIVEGASPRICE` | The product is wei. On 2026-09-16, the sum agrees with the Metrics API `feesPaid` value expressed in AVAX. | Capture a complete range and validate coverage and lag. |
 | C-Chain atomic burn | Data API C-Chain import/export transactions, AVAX unlocked minus AVAX created | `data-api.c-chain-atomic-burn` preserves paginated transaction responses and checks the AVAX amounts against each transaction's inputs and outputs. The 2026-09-16 result matches every Snowflake C block carrying atomic gas. | Capture the historical range and reconcile cumulative C burn against a dated Data API supply checkpoint. The endpoint pages backward from latest and cannot date-filter an all-address query. |
 | Staking issuance | Existing `snowflake.primary-staking-rewards` reward UTXOs | Payout-time realized rewards are timestamped; a transfer of delegation fees is not new issuance. | Reconcile cumulative rewards to the Data API snapshot and examine missing UTXOs over the full history. |
-| Historical realized supply | Genesis unlock + cumulative payout-time issuance − cumulative P/C/X burn | Cannot be completed until all sources cover the historical range. The current Data API snapshot is a checkpoint, not a historical series. | Resolve missing P burns and reconcile a replay to multiple dated supply snapshots. |
+| Historical realized supply | Genesis unlock + cumulative payout-time issuance − cumulative P/C/X burn | Cannot be completed until all sources cover the historical range. The current Data API snapshot is a checkpoint, not a historical series. | Integrate audited P repairs and reconcile a replay to multiple dated supply snapshots. |
 | Active stake | Existing `derived.staking-periods`, start/end intervals | Self-stake and delegated stake can be reconstructed at declared UTC instants. | Reconcile sampled days to the Metrics API and disclose its aggregation-time differences. |
 
-A full-share P-Chain probe found 320 deduplicated transaction hashes outside the two known zero-burn system types with null `BURNED_AVAX`, including 200 delegations and 75 genesis validators. The dataset preserves these as missing and its check reports them; it never replaces them with `FEE` or zero. The one-day checked sample below has no such missing transaction.
+A full-share P-Chain probe found 320 deduplicated transaction hashes outside the two known zero-burn system types with null `BURNED_AVAX`. The dataset preserves these as missing and its check reports them; it never replaces them with `FEE` or zero. The one-day checked sample below has no such missing transaction. Their separate resolution audit appears below.
 
 The [Avalanche transaction-fee guide](https://build.avax.network/docs/rpcs/other/guides/txn-fees) confirms that fees burn, that C-Chain base and priority fees both burn, and that atomic transactions charge separately. [AvalancheGo's atomic fee code](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/plugin/evm/atomic/tx.go) rounds the protocol minimum upward per transaction: `ceil(gas_used × block_base_fee_wei / 1e9)` nAVAX. The same code accepts AVAX burned above that minimum as a block fee contribution. Therefore `C_BLOCKS.BLOCKEXTDATAGASUSED` alone cannot reconstruct actual atomic burn. The [Snowflake share documentation](https://build.avax.network/docs/api-reference/data-api/snowflake) names the source tables. The [Data API supply endpoint](https://build.avax.network/docs/api-reference/data-api/avax-supply/getAvaxSupply) reports current cumulative rewards and P/C/X burns, with no date parameter.
 
@@ -67,4 +67,16 @@ uv run --locked avalanche data check data-api.c-chain-atomic-burn \
   --dataset data/runs/atomic-burn-example/dataset
 ```
 
-Next: check full historical coverage of C receipts and atomic transactions, classify the 320 unresolved P burn records, then reconcile all three chain totals with a dated supply checkpoint. Until then, do not derive historical total supply or report a complete C or all-chain burn total.
+Next: check full historical coverage of C receipts and atomic transactions, integrate the P burn audit with archived evidence, then reconcile all three chain totals with a dated supply checkpoint. Until then, do not derive historical total supply or report a complete C or all-chain burn total.
+
+## Historical P burn gaps
+
+[`primary-burn-gap-audit.sql`](queries/primary-burn-gap-audit.sql) identifies the 320 unique P transaction hashes whose `BURNED_AVAX` is null and joins their AVAX UTXOs. It deduplicates UTXO IDs and excludes `REWARD=true` outputs: those are rewards minted when a staking period ends, even though their `TRANSACTION_HASH` points back to the original staking transaction. For ordinary transactions, AVAX consumed minus non-reward AVAX created is the burn. The Snowflake query ID is `01c739f2-0208-94e8-000f-0d5e0077100e`.
+
+| Gap class | Transactions | Burn | Evidence |
+| --- | ---: | ---: | --- |
+| Complete UTXO input/output pairs | 219 | 3,107,308 nAVAX | All have nonnegative input-minus-output. A separate 30-transaction sample with populated `BURNED_AVAX` reproduced that field exactly by the same method; query ID `01c739f7-0208-9403-000f-0d5e00769066`. |
+| Genesis validators and chain creations | 77 | 0 nAVAX | All 77 individual Data API transaction responses returned zero AVAX burn; query ID selecting the genesis set: `01c739f5-0208-93b4-000f-0d5e0076703e`. |
+| Older imports without consumed UTXOs in the Snowflake share | 24 | 0 nAVAX | All 24 individual Data API transaction responses returned zero AVAX burn. Their output-minus-input cannot be calculated from the incomplete Snowflake UTXO record. |
+
+The total missing-field burn is 3,107,308 nAVAX, or 0.003107308 AVAX. The Data API checks were live probes, not immutable captures. This audit has **not** yet changed the P/X dataset or supplied a historical P burn series. The next implementation must preserve the 101 Data API responses or reproduce their checks before applying these repairs; null is safer than an unaudited zero.
