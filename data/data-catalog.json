@@ -513,6 +513,23 @@
       ]
     },
     {
+      "id": "avalanche-c-chain-rpc",
+      "name": "Avalanche C-Chain public JSON-RPC",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Direct public C-Chain block and transaction-receipt responses, retained only for explicitly identified gaps in the Snowflake share.",
+      "documentation_url": "https://build.avax.network/docs/rpcs/c-chain/eth/eth_getBlockByNumber",
+      "authentication": "none; the public endpoint at api.avax.network answers JSON-RPC POST requests",
+      "reuse_status": "Public access observed; node operators may rate-limit.",
+      "endpoints": [
+        {
+          "id": "block-and-receipts",
+          "url": "https://api.avax.network/ext/bc/C/rpc",
+          "response_fields": ["result"]
+        }
+      ]
+    },
+    {
       "id": "avalanche-snowflake",
       "name": "Avalanche Primary Network Data Snowflake share",
       "source_type": "database_share",
@@ -1388,6 +1405,26 @@
           "unit": "annualized; null until 30 returns exist",
           "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"
         }
+      ]
+    },
+    {
+      "id": "c-chain-rpc.receipt-gap-repairs",
+      "name": "Archived C-Chain receipt-gap repairs",
+      "source_id": "avalanche-c-chain-rpc",
+      "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "description": "One receipt per transaction in an explicitly requested C block absent from the Snowflake share. Raw block and receipt JSON-RPC responses remain hashed in the capture; this source does not alter Snowflake rows or imply the full day is repaired.",
+      "endpoint_ids": ["block-and-receipts"],
+      "fields": [
+        {"name": "block_height", "type": "integer", "unit": "C block number", "derivation": "eth_getBlockByNumber.result.number"},
+        {"name": "block_hash", "type": "string", "unit": "C block hash", "derivation": "eth_getBlockByNumber.result.hash"},
+        {"name": "block_timestamp", "type": "timestamp", "unit": "UTC", "derivation": "eth_getBlockByNumber.result.timestamp"},
+        {"name": "transaction_hash", "type": "string", "unit": "C transaction hash", "derivation": "block transaction list and matching receipt"},
+        {"name": "transaction_index", "type": "integer", "unit": "position in C block", "derivation": "receipt.transactionIndex matched to block transaction list"},
+        {"name": "gas_used", "type": "integer", "unit": "gas", "derivation": "receipt.gasUsed"},
+        {"name": "effective_gas_price_wei", "type": "integer", "unit": "wei per gas", "derivation": "receipt.effectiveGasPrice"},
+        {"name": "burned_wei", "type": "integer", "unit": "wei", "derivation": "gas_used × effective_gas_price_wei"}
       ]
     },
     {

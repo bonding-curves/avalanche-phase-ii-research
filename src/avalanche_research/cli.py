@@ -11,6 +11,7 @@ import click
 
 from . import __version__
 from . import atomic
+from . import cchain_rpc
 from . import coingecko
 from . import dataapi
 from . import datasets
@@ -30,6 +31,7 @@ from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 
 MODULES = {
     atomic.DATASET_ID: atomic,
+    cchain_rpc.DATASET_ID: cchain_rpc,
     snowpeer.DATASET_ID: snowpeer,
     coingecko.DATASET_ID: coingecko,
     dataapi.DATASET_ID: dataapi,
