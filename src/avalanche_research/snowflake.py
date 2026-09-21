@@ -383,7 +383,53 @@ STAKING_SUPPLY = DatasetSpec(
     ),
 )
 
-SPECS = {spec.dataset_id: spec for spec in (VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS, STAKING_SUPPLY)}
+PRIMARY_BURN_EVENTS = DatasetSpec(
+    dataset_id="snowflake.primary-burn-events",
+    query_id="primary-burn-events",
+    tx_types=(),
+    raw_types={
+        "chain": "VARCHAR", "transaction_hash": "VARCHAR", "accepted_at": "TIMESTAMP",
+        "block_height": "BIGINT", "tx_type": "VARCHAR", "burned_navax": "BIGINT", "fee_navax": "BIGINT",
+    },
+    table_columns={
+        "chain": "VARCHAR", "transaction_hash": "VARCHAR", "accepted_at": "TIMESTAMP",
+        "block_height": "BIGINT", "tx_type": "VARCHAR", "burned_navax": "BIGINT", "fee_navax": "BIGINT",
+    },
+    transform_sql="""
+        SELECT chain, transaction_hash, accepted_at, block_height, tx_type,
+               CASE WHEN burned_navax IS NULL AND chain = 'P'
+                         AND tx_type IN ('AdvanceTimeTx', 'RewardValidatorTx')
+                    THEN 0 ELSE burned_navax END AS burned_navax,
+               fee_navax
+        FROM capture
+        ORDER BY accepted_at, chain, transaction_hash""",
+    validity_sql="""
+        COUNT_IF(chain NOT IN ('P', 'X') OR chain IS NULL OR transaction_hash IS NULL
+                 OR transaction_hash = '' OR accepted_at IS NULL OR tx_type IS NULL),
+        COUNT_IF(burned_navax < 0 OR fee_navax < 0)""",
+    validity_labels=("miss an identity or have an unexpected chain", "have a negative amount"),
+    check_names=("unique chain and transaction hashes", "acceptance window", "burn amounts available"),
+    check_sql="""
+        COUNT(*) - COUNT(DISTINCT chain || ':' || transaction_hash),
+        COUNT_IF(accepted_at::DATE < ?::DATE OR accepted_at::DATE >= ?::DATE),
+        COUNT_IF(burned_navax IS NULL)""",
+    check_labels=("repeat a transaction on the same chain", "were accepted outside the requested window", "have no recorded burn"),
+    check_params=lambda window: [window["start"], window["end"]],
+    summary_sql="""
+        COUNT(*), MIN(accepted_at), MAX(accepted_at),
+        COUNT_IF(chain = 'P'), COUNT_IF(chain = 'X'),
+        SUM(CASE WHEN chain = 'P' THEN burned_navax ELSE 0 END),
+        SUM(CASE WHEN chain = 'X' THEN burned_navax ELSE 0 END),
+        COUNT_IF(burned_navax IS NULL)""",
+    summary_keys=(
+        "rows", "accepted_from", "accepted_to", "p_transactions", "x_transactions",
+        "p_burned_navax", "x_burned_navax", "unknown_burn_rows",
+    ),
+)
+
+SPECS = {spec.dataset_id: spec for spec in (
+    VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS, STAKING_SUPPLY, PRIMARY_BURN_EVENTS,
+)}
 DATASET_IDS = tuple(SPECS)
 DATASET_ID = VALIDATOR_STAKES.dataset_id
 

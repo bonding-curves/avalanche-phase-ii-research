@@ -6,11 +6,36 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import duckdb
 import pytest
 from click.testing import CliRunner
 
 from avalanche_research import cli, snowflake
 from avalanche_research.catalog import DataError, load_catalog
+
+
+def test_primary_burn_events_preserve_recorded_burn_and_zero_system_transactions():
+    spec = snowflake.PRIMARY_BURN_EVENTS
+    connection = duckdb.connect()
+    try:
+        connection.execute("""
+            CREATE TABLE capture (
+                chain VARCHAR, transaction_hash VARCHAR, accepted_at TIMESTAMP,
+                block_height BIGINT, tx_type VARCHAR, burned_navax BIGINT, fee_navax BIGINT
+            )
+        """)
+        connection.execute("""
+            INSERT INTO capture VALUES
+                ('P', 'reward', '2026-09-16', 1, 'RewardValidatorTx', NULL, 0),
+                ('P', 'stake', '2026-09-16', 2, 'AddValidatorTx', 500000000, 50000),
+                ('X', 'send', '2026-09-16', 3, 'BaseTx', 1000000, 1000000)
+        """)
+        connection.execute(f"CREATE TABLE rows AS {spec.transform_sql}")
+        assert connection.execute(
+            "SELECT transaction_hash, burned_navax FROM rows ORDER BY transaction_hash"
+        ).fetchall() == [("reward", 0), ("send", 1_000_000), ("stake", 500_000_000)]
+    finally:
+        connection.close()
 
 
 def raw_row(**overrides):

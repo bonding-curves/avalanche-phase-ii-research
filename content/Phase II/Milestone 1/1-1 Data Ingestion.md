@@ -15,7 +15,7 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 
 ## Evidence status
 
-14 of 14 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
+15 of 15 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
 
 ### Coverage by contract quantity
 
@@ -36,6 +36,7 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 | durations | `derived.staking-periods` | 2020-09-10 to 2026-09-19 | 7110868 | pass, 7 checks, 0 findings |
 | context | `snowpeer.network-summary` | n/a | n/a | pass, 7 checks, 0 findings |
 | context | `snowflake.primary-staking-supply` | 2020-09-10 to 2026-09-19 | 7110868 | pass, 9 checks, 0 findings |
+| context | `snowflake.primary-burn-events` | 2026-09-16 to 2026-09-16 | 2938 | pass, 8 checks, 0 findings |
 | context | `coingecko.avax-market-daily` | 2025-09-20 to 2026-09-19 | 366 | pass, 11 checks, 0 findings |
 | context | `defillama.avax-price-daily` | 2020-09-23 to 2026-09-19 | 2185 | pass, 9 checks, 0 findings |
 | context | `p-chain-rpc.current-validators` | snapshot 2026-09-19T11:04:26 | 593 | pass, 11 checks, 0 findings |

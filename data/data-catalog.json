@@ -630,6 +630,21 @@
             "The protocol supply counter rises by each new staker's potential reward and falls by the potential reward of a staker that ends unrewarded",
             "Genesis validators carry BLOCK_HEIGHT -1 and have no block supply context"
           ]
+        },
+        {
+          "id": "primary-burn-events",
+          "sql": "queries/primary-burn-events.sql",
+          "relations": ["P_TRANSACTIONS", "X_TRANSACTIONS"],
+          "parameters": [
+            {"name": "start", "type": "date", "default": "2020-09-10", "meaning": "inclusive lower UTC transaction date"},
+            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper UTC transaction date"}
+          ],
+          "observed_semantics": [
+            "BURNED_AVAX holds the transaction's recorded AVAX destruction in nAVAX, despite its column name",
+            "Some P-Chain hashes repeat in the share; a row with a recorded burn takes precedence over null duplicates",
+            "AdvanceTimeTx and RewardValidatorTx with null BURNED_AVAX are zero-burn system transactions; another null burn remains missing and raises a check finding",
+            "FEE is not a substitute for BURNED_AVAX, especially before Etna"
+          ]
         }
       ]
     },
@@ -1175,6 +1190,25 @@
           "unit": "nAVAX; null for genesis",
           "derivation": "previous_block_supply_navax + in_block_prior_delta_navax"
         }
+      ]
+    },
+    {
+      "id": "snowflake.primary-burn-events",
+      "name": "P- and X-Chain AVAX burn events",
+      "source_id": "avalanche-snowflake",
+      "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "description": "One deduplicated P- or X-Chain transaction per row with the recorded AVAX burn. C-Chain burns are not included.",
+      "query_ids": ["primary-burn-events"],
+      "fields": [
+        {"name": "chain", "type": "string", "unit": "P or X", "derivation": "source transaction table"},
+        {"name": "transaction_hash", "type": "string", "unit": "chain transaction ID", "derivation": "TRANSACTION_HASH, deduplicated within chain"},
+        {"name": "accepted_at", "type": "timestamp", "unit": "UTC", "derivation": "TIMESTAMP"},
+        {"name": "block_height", "type": "integer", "unit": "chain block height", "derivation": "BLOCK_HEIGHT"},
+        {"name": "tx_type", "type": "string", "unit": "transaction type", "derivation": "TYPE"},
+        {"name": "burned_navax", "type": "integer", "unit": "nAVAX", "derivation": "BURNED_AVAX; zero for verified zero-burn system transaction types"},
+        {"name": "fee_navax", "type": "integer", "unit": "nAVAX; provider field, not used as a burn replacement", "derivation": "FEE"}
       ]
     },
     {
