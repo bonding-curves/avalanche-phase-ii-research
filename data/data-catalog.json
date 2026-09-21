@@ -384,14 +384,15 @@
       "name": "Avalanche Data API",
       "source_type": "rest_api",
       "status": "implemented",
-      "authority": "Ava Labs' official indexed data behind the Avalanche explorer. Authoritative for the current supply, staking, lock, reward, and burn totals it publishes; the supply endpoint holds no history.",
+      "authority": "Ava Labs' official indexed data behind the Avalanche explorer. Its supply endpoint reports current totals, while its C-Chain Primary Network transaction endpoint reports atomic imports and exports with AVAX input and output amounts.",
       "documentation_url": "https://build.avax.network/docs/api-reference/data-api",
-      "authentication": "optional; the OpenAPI security scheme is an x-glacier-api-key header, and the supply endpoint answered keyless requests on 2026-09-19. A key raises rate limits and is never stored in the repository.",
+      "authentication": "optional; the OpenAPI security scheme is an x-glacier-api-key header. The supply and C atomic transaction endpoints answered keyless requests in September 2026. A key raises rate limits and is never stored in the repository.",
       "reuse_status": "Public access observed; Ava Labs terms apply to redistribution.",
       "notes": [
         "OpenAPI GET /v1/avax/supply: Get AVAX supply information that includes total supply, circulating supply, total p burned, total c burned, total x burned, total staked, total locked, total rewards, and last updated. The operation takes no parameters.",
         "Blocker recorded 2026-09-19: the Data API exposes no historical supply, circulating supply, staked supply, or cumulative burn series; the supply endpoint returns one current state with lastUpdated. A history can only be assembled by repeated captures or from the Snowflake block supply counter.",
-        "Observed 2026-09-19: totalSupply equals genesisUnlock plus totalRewards minus the three burn totals to within one AVAX, so the API's totals are internally consistent."
+        "Observed 2026-09-19: totalSupply equals genesisUnlock plus totalRewards minus the three burn totals to within one AVAX, so the API's totals are internally consistent.",
+        "C-Chain atomic transaction listing pages backward from latest; startTimestamp and endTimestamp require an address filter, so a complete all-address dated capture walks pages until it crosses the requested start."
       ],
       "endpoints": [
         {
@@ -410,6 +411,11 @@
             "genesisUnlock",
             "l1ValidatorFees"
           ]
+        },
+        {
+          "id": "c-chain-atomic-transactions",
+          "url": "https://data-api.avax.network/v1/networks/mainnet/blockchains/c-chain/transactions",
+          "response_fields": ["transactions", "nextPageToken"]
         }
       ]
     },
@@ -1926,6 +1932,26 @@
           "unit": "AVAX; totalSupply minus (genesisUnlock + totalRewards - burns)",
           "derivation": "total_supply_avax - (genesis_unlock_avax + total_rewards_avax - total_p_burned_avax - total_c_burned_avax - total_x_burned_avax)"
         }
+      ]
+    },
+    {
+      "id": "data-api.c-chain-atomic-burn",
+      "name": "C-Chain atomic AVAX burn events",
+      "source_id": "avalanche-data-api",
+      "status": "implemented",
+      "contract_quantities": ["context"],
+      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "description": "One C-Chain import or export per row. The AVAX burn is the transaction's AVAX amount unlocked minus amount created, including any amount above the protocol minimum fee. The API lists newest transactions first; a dated capture pages backward until it crosses the requested start date.",
+      "endpoint_ids": ["c-chain-atomic-transactions"],
+      "fields": [
+        {"name": "transaction_hash", "type": "string", "unit": "C-Chain atomic transaction ID", "derivation": "txHash"},
+        {"name": "tx_type", "type": "string", "unit": "ImportTx or ExportTx", "derivation": "txType"},
+        {"name": "accepted_at", "type": "timestamp", "unit": "UTC", "derivation": "timestamp"},
+        {"name": "block_height", "type": "integer", "unit": "C-Chain block height", "derivation": "blockHeight"},
+        {"name": "block_hash", "type": "string", "unit": "C-Chain block hash", "derivation": "blockHash"},
+        {"name": "unlocked_navax", "type": "integer", "unit": "nAVAX", "derivation": "amountUnlocked for the AVAX asset"},
+        {"name": "created_navax", "type": "integer", "unit": "nAVAX", "derivation": "amountCreated for the AVAX asset"},
+        {"name": "burned_navax", "type": "integer", "unit": "nAVAX", "derivation": "unlocked_navax - created_navax"}
       ]
     },
     {
