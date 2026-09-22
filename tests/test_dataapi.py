@@ -109,3 +109,21 @@ def test_paged_endpoint_stops_at_the_page_cap(tmp_path):
     next(item for item in catalog["datasets"] if item["id"] == dataapi.DATASET_ID)["endpoint_ids"] = ["paged-test"]
     with pytest.raises(DataError, match="exceeded 2 pages"):
         rest.capture(dataapi.DATASET_ID, tmp_path / "capture", catalog=catalog, opener=paged_opener())
+
+
+def test_paged_capture_keeps_fetched_pages_when_a_later_page_fails(tmp_path):
+    catalog = json.loads(json.dumps(load_catalog()))
+    provider = next(item for item in catalog["sources"] if item["id"] == "avalanche-data-api")
+    provider["endpoints"].append({"id": "paged-test", "url": "https://example.test/v1/validators", "response_fields": ["validators"],
+                                  "page": {"token_field": "nextPageToken", "token_parameter": "pageToken", "max_pages": 10}})
+    next(item for item in catalog["datasets"] if item["id"] == dataapi.DATASET_ID)["endpoint_ids"] = ["paged-test"]
+
+    def flaky(request, timeout):
+        if "pageToken=t2" in request.full_url:
+            raise OSError("connection reset")
+        return paged_opener()(request, timeout)
+
+    with pytest.raises(DataError, match="request failed"):
+        rest.capture(dataapi.DATASET_ID, tmp_path / "capture", catalog=catalog, opener=flaky)
+    kept = list(tmp_path.glob(".capture.*/raw/paged-test.jsonl"))
+    assert len(kept) == 1 and len(kept[0].read_text().splitlines()) == 2

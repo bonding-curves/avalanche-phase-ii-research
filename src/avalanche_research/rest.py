@@ -63,23 +63,27 @@ def _request(
     return body, {"http_status": status, "content_type": content_type}
 
 
-def _paged(url: str, page: dict[str, Any], timeout: float, opener: Callable[..., Any]) -> tuple[bytes, dict[str, Any]]:
+def _paged(url: str, page: dict[str, Any], timeout: float, opener: Callable[..., Any], target_path: Path) -> dict[str, Any]:
     """Follow ``page['token_field']`` in each JSON response as ``page['token_parameter']`` on the next request.
 
-    The raw body is one JSON object per line. The last page is the one without a token, so an empty page ends
-    the walk only when it carries no token. ``max_pages`` bounds the cost of a runaway token."""
+    Each page is appended to ``target_path`` as one JSON line the moment it arrives, so a long walk shows its progress
+    on disk and a failure leaves the pages already fetched for inspection. The last page is the one without a token,
+    so an empty page ends the walk only when it carries no token. ``max_pages`` bounds the cost of a runaway token."""
     token_field, token_parameter, limit = page["token_field"], page["token_parameter"], int(page.get("max_pages", 100))
-    lines, token, metadata = [], None, {}
-    while True:
-        target = url if token is None else f"{url}{'&' if '?' in url else '?'}{urllib.parse.urlencode({token_parameter: token})}"
-        body, metadata = _request(target, timeout, opener, None, "json")
-        lines.append(body.strip())
-        token = json.loads(body).get(token_field)
-        if not token:
-            break
-        if len(lines) >= limit:
-            raise DataError(f"pagination exceeded {limit} pages for {url}")
-    return b"\n".join(lines) + b"\n", {**metadata, "pages": len(lines)}
+    pages, token, metadata = 0, None, {}
+    with target_path.open("wb") as handle:
+        while True:
+            target = url if token is None else f"{url}{'&' if '?' in url else '?'}{urllib.parse.urlencode({token_parameter: token})}"
+            body, metadata = _request(target, timeout, opener, None, "json")
+            handle.write(body.strip() + b"\n")
+            handle.flush()
+            pages += 1
+            token = json.loads(body).get(token_field)
+            if not token:
+                break
+            if pages >= limit:
+                raise DataError(f"pagination exceeded {limit} pages for {url}; {pages} pages kept at {target_path}")
+    return {**metadata, "pages": pages}
 
 
 def capture_preview(
@@ -135,12 +139,13 @@ def capture(
         raw.mkdir()
         for item in preview["requests"]:
             if "page" in item:
-                body, metadata = _paged(item["url"], item["page"], timeout, opener)
                 relative = Path("raw") / f"{item['endpoint_id']}.jsonl"
+                metadata = _paged(item["url"], item["page"], timeout, opener, temporary / relative)
+                body = (temporary / relative).read_bytes()
             else:
                 body, metadata = _request(item["url"], timeout, opener, item.get("request_json"), item["content"])
                 relative = Path("raw") / f"{item['endpoint_id']}.{item['content']}"
-            (temporary / relative).write_bytes(body)
+                (temporary / relative).write_bytes(body)
             records.append({
                 "endpoint_id": item["endpoint_id"],
                 "url": item["url"],
@@ -167,7 +172,9 @@ def capture(
         (temporary / "capture.json").write_bytes(canonical_bytes(receipt))
         os.replace(temporary, output)
     except Exception:
-        shutil.rmtree(temporary, ignore_errors=True)
+        # A failed paged walk keeps its temporary directory, so the pages fetched so far can be inspected.
+        if not any((temporary / "raw").glob("*.jsonl")):
+            shutil.rmtree(temporary, ignore_errors=True)
         raise
     return receipt
 
