@@ -4,6 +4,8 @@
 -- Amounts stay in nAVAX integers here. Unit conversion happens once, in the typed transformation.
 -- The staked-UTXO columns reconcile the transaction's declared stake weight against the UTXOS relation.
 -- UTXOS repeats identical rows, so distinct UTXO identities are taken before summing.
+-- reward_addresses is the transaction's list of reward owner addresses as a JSON array string; reward_address is its first
+-- element and reward_address_count its length. A reward address is a proxy for the operator, never proof of one.
 WITH validators AS (
   SELECT
     transaction_hash,
@@ -16,7 +18,10 @@ WITH validators AS (
     TRY_PARSE_JSON(metadata):validator:weight::NUMBER AS stake_navax,
     TRY_PARSE_JSON(metadata):shares::NUMBER AS delegation_fee_shares,
     potential_reward AS potential_reward_navax,
-    rewarded
+    rewarded,
+    TO_JSON(reward_addresses) AS reward_addresses,
+    reward_addresses[0]::STRING AS reward_address,
+    COALESCE(ARRAY_SIZE(reward_addresses), 0) AS reward_address_count
   FROM AVALANCHE_PRIMARY_NETWORK_DATA.PRIMARY.P_TRANSACTIONS
   WHERE subnet_id = '11111111111111111111111111111111LpoYY'
     AND type IN ('AddValidatorTx', 'AddPermissionlessValidatorTx')
@@ -44,6 +49,9 @@ SELECT
   v.delegation_fee_shares,
   v.potential_reward_navax,
   v.rewarded,
+  v.reward_addresses,
+  v.reward_address,
+  v.reward_address_count,
   COALESCE(s.staked_utxo_count, 0) AS staked_utxo_count,
   s.utxo_stake_navax
 FROM validators v

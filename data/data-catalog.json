@@ -415,7 +415,10 @@
         {
           "id": "c-chain-atomic-transactions",
           "url": "https://data-api.avax.network/v1/networks/mainnet/blockchains/c-chain/transactions",
-          "response_fields": ["transactions", "nextPageToken"]
+          "response_fields": [
+            "transactions",
+            "nextPageToken"
+          ]
         }
       ]
     },
@@ -525,7 +528,9 @@
         {
           "id": "block-and-receipts",
           "url": "https://api.avax.network/ext/bc/C/rpc",
-          "response_fields": ["result"]
+          "response_fields": [
+            "result"
+          ]
         }
       ]
     },
@@ -657,10 +662,23 @@
         {
           "id": "primary-burn-events",
           "sql": "queries/primary-burn-events.sql",
-          "relations": ["P_TRANSACTIONS", "X_TRANSACTIONS"],
+          "relations": [
+            "P_TRANSACTIONS",
+            "X_TRANSACTIONS"
+          ],
           "parameters": [
-            {"name": "start", "type": "date", "default": "2020-09-10", "meaning": "inclusive lower UTC transaction date"},
-            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper UTC transaction date"}
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-10",
+              "meaning": "inclusive lower UTC transaction date"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC transaction date"
+            }
           ],
           "observed_semantics": [
             "BURNED_AVAX holds the transaction's recorded AVAX destruction in nAVAX, despite its column name",
@@ -672,10 +690,23 @@
         {
           "id": "c-chain-evm-burn-daily",
           "sql": "queries/c-chain-evm-burn-daily.sql",
-          "relations": ["C_BLOCKS", "C_RECEIPTS"],
+          "relations": [
+            "C_BLOCKS",
+            "C_RECEIPTS"
+          ],
           "parameters": [
-            {"name": "start", "type": "date", "default": "2020-09-23", "meaning": "inclusive lower UTC block date; earliest observed C block partition"},
-            {"name": "end", "type": "date", "default": "the UTC day after the capture date", "meaning": "exclusive upper UTC block date"}
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-23",
+              "meaning": "inclusive lower UTC block date; earliest observed C block partition"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC block date"
+            }
           ],
           "observed_semantics": [
             "C-Chain EVM burn is the integer-wei sum of receipt gas used times effective gas price",
@@ -895,6 +926,24 @@
           "type": "boolean",
           "unit": "null while the staking period is in progress",
           "derivation": "P_TRANSACTIONS.REWARDED"
+        },
+        {
+          "name": "reward_addresses",
+          "type": "string",
+          "unit": "JSON array of P-Chain addresses",
+          "derivation": "TO_JSON(P_TRANSACTIONS.REWARD_ADDRESSES); the transaction's reward owner addresses. A reward address is a proxy for the operator, never proof of one decision maker (glossary G1, node table plan NK1)"
+        },
+        {
+          "name": "reward_address",
+          "type": "string",
+          "unit": "P-Chain address",
+          "derivation": "first element of P_TRANSACTIONS.REWARD_ADDRESSES"
+        },
+        {
+          "name": "reward_address_count",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "ARRAY_SIZE(P_TRANSACTIONS.REWARD_ADDRESSES), 0 when null"
         },
         {
           "name": "staked_utxo_count",
@@ -1235,18 +1284,59 @@
       "name": "P- and X-Chain AVAX burn events",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
       "description": "One deduplicated P- or X-Chain transaction per row with the recorded AVAX burn. C-Chain burns are not included.",
-      "query_ids": ["primary-burn-events"],
+      "query_ids": [
+        "primary-burn-events"
+      ],
       "fields": [
-        {"name": "chain", "type": "string", "unit": "P or X", "derivation": "source transaction table"},
-        {"name": "transaction_hash", "type": "string", "unit": "chain transaction ID", "derivation": "TRANSACTION_HASH, deduplicated within chain"},
-        {"name": "accepted_at", "type": "timestamp", "unit": "UTC", "derivation": "TIMESTAMP"},
-        {"name": "block_height", "type": "integer", "unit": "chain block height", "derivation": "BLOCK_HEIGHT"},
-        {"name": "tx_type", "type": "string", "unit": "transaction type", "derivation": "TYPE"},
-        {"name": "burned_navax", "type": "integer", "unit": "nAVAX", "derivation": "BURNED_AVAX; zero for verified zero-burn system transaction types"},
-        {"name": "fee_navax", "type": "integer", "unit": "nAVAX; provider field, not used as a burn replacement", "derivation": "FEE"}
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "P or X",
+          "derivation": "source transaction table"
+        },
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "chain transaction ID",
+          "derivation": "TRANSACTION_HASH, deduplicated within chain"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "TIMESTAMP"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "chain block height",
+          "derivation": "BLOCK_HEIGHT"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "transaction type",
+          "derivation": "TYPE"
+        },
+        {
+          "name": "burned_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "BURNED_AVAX; zero for verified zero-burn system transaction types"
+        },
+        {
+          "name": "fee_navax",
+          "type": "integer",
+          "unit": "nAVAX; provider field, not used as a burn replacement",
+          "derivation": "FEE"
+        }
       ]
     },
     {
@@ -1254,25 +1344,101 @@
       "name": "C-Chain EVM fee burns by UTC date",
       "source_id": "avalanche-snowflake",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
       "description": "One UTC day per row with exact EVM receipt-fee burn in wei and independent block/receipt coverage counts. C-Chain atomic burns are excluded.",
-      "query_ids": ["c-chain-evm-burn-daily"],
+      "query_ids": [
+        "c-chain-evm-burn-daily"
+      ],
       "fields": [
-        {"name": "date_utc", "type": "string", "unit": "UTC ISO date", "derivation": "C block partition date"},
-        {"name": "burned_wei", "type": "integer", "unit": "wei", "derivation": "sum of TRANSACTIONRECEIPTGASUSED × TRANSACTIONRECEIPTEFFECTIVEGASPRICE"},
-        {"name": "block_count", "type": "integer", "unit": "blocks", "derivation": "C_BLOCKS row count"},
-        {"name": "distinct_blocks", "type": "integer", "unit": "blocks", "derivation": "distinct C block numbers"},
-        {"name": "first_block", "type": "integer", "unit": "block number", "derivation": "minimum C block number"},
-        {"name": "last_block", "type": "integer", "unit": "block number", "derivation": "maximum C block number"},
-        {"name": "previous_last_block", "type": "integer", "unit": "block number; null at C genesis", "derivation": "last C block of preceding UTC day"},
-        {"name": "next_first_block", "type": "integer", "unit": "block number; null if the next UTC day is unavailable", "derivation": "first C block of following UTC day"},
-        {"name": "expected_receipts", "type": "integer", "unit": "transactions", "derivation": "sum of C_BLOCKS.BLOCKTRANSACTIONLEN"},
-        {"name": "receipt_count", "type": "integer", "unit": "receipts", "derivation": "C_RECEIPTS row count"},
-        {"name": "distinct_receipts", "type": "integer", "unit": "transactions", "derivation": "distinct C receipt transaction hashes"},
-        {"name": "missing_fee_inputs", "type": "integer", "unit": "receipts", "derivation": "receipts with missing gas used or effective gas price"},
-        {"name": "first_epoch", "type": "integer", "unit": "UTC epoch seconds", "derivation": "earliest C block timestamp of the day"},
-        {"name": "last_epoch", "type": "integer", "unit": "UTC epoch seconds", "derivation": "latest C block timestamp of the day"}
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "C block partition date"
+        },
+        {
+          "name": "burned_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "sum of TRANSACTIONRECEIPTGASUSED × TRANSACTIONRECEIPTEFFECTIVEGASPRICE"
+        },
+        {
+          "name": "block_count",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "C_BLOCKS row count"
+        },
+        {
+          "name": "distinct_blocks",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "distinct C block numbers"
+        },
+        {
+          "name": "first_block",
+          "type": "integer",
+          "unit": "block number",
+          "derivation": "minimum C block number"
+        },
+        {
+          "name": "last_block",
+          "type": "integer",
+          "unit": "block number",
+          "derivation": "maximum C block number"
+        },
+        {
+          "name": "previous_last_block",
+          "type": "integer",
+          "unit": "block number; null at C genesis",
+          "derivation": "last C block of preceding UTC day"
+        },
+        {
+          "name": "next_first_block",
+          "type": "integer",
+          "unit": "block number; null if the next UTC day is unavailable",
+          "derivation": "first C block of following UTC day"
+        },
+        {
+          "name": "expected_receipts",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "sum of C_BLOCKS.BLOCKTRANSACTIONLEN"
+        },
+        {
+          "name": "receipt_count",
+          "type": "integer",
+          "unit": "receipts",
+          "derivation": "C_RECEIPTS row count"
+        },
+        {
+          "name": "distinct_receipts",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "distinct C receipt transaction hashes"
+        },
+        {
+          "name": "missing_fee_inputs",
+          "type": "integer",
+          "unit": "receipts",
+          "derivation": "receipts with missing gas used or effective gas price"
+        },
+        {
+          "name": "first_epoch",
+          "type": "integer",
+          "unit": "UTC epoch seconds",
+          "derivation": "earliest C block timestamp of the day"
+        },
+        {
+          "name": "last_epoch",
+          "type": "integer",
+          "unit": "UTC epoch seconds",
+          "derivation": "latest C block timestamp of the day"
+        }
       ]
     },
     {
@@ -1412,19 +1578,65 @@
       "name": "Archived C-Chain receipt-gap repairs",
       "source_id": "avalanche-c-chain-rpc",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
       "description": "One receipt per transaction in an explicitly requested C block absent from the Snowflake share. Raw block and receipt JSON-RPC responses remain hashed in the capture; this source does not alter Snowflake rows or imply the full day is repaired.",
-      "endpoint_ids": ["block-and-receipts"],
+      "endpoint_ids": [
+        "block-and-receipts"
+      ],
       "fields": [
-        {"name": "block_height", "type": "integer", "unit": "C block number", "derivation": "eth_getBlockByNumber.result.number"},
-        {"name": "block_hash", "type": "string", "unit": "C block hash", "derivation": "eth_getBlockByNumber.result.hash"},
-        {"name": "block_timestamp", "type": "timestamp", "unit": "UTC", "derivation": "eth_getBlockByNumber.result.timestamp"},
-        {"name": "transaction_hash", "type": "string", "unit": "C transaction hash", "derivation": "block transaction list and matching receipt"},
-        {"name": "transaction_index", "type": "integer", "unit": "position in C block", "derivation": "receipt.transactionIndex matched to block transaction list"},
-        {"name": "gas_used", "type": "integer", "unit": "gas", "derivation": "receipt.gasUsed"},
-        {"name": "effective_gas_price_wei", "type": "integer", "unit": "wei per gas", "derivation": "receipt.effectiveGasPrice"},
-        {"name": "burned_wei", "type": "integer", "unit": "wei", "derivation": "gas_used × effective_gas_price_wei"}
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "C block number",
+          "derivation": "eth_getBlockByNumber.result.number"
+        },
+        {
+          "name": "block_hash",
+          "type": "string",
+          "unit": "C block hash",
+          "derivation": "eth_getBlockByNumber.result.hash"
+        },
+        {
+          "name": "block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "eth_getBlockByNumber.result.timestamp"
+        },
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "C transaction hash",
+          "derivation": "block transaction list and matching receipt"
+        },
+        {
+          "name": "transaction_index",
+          "type": "integer",
+          "unit": "position in C block",
+          "derivation": "receipt.transactionIndex matched to block transaction list"
+        },
+        {
+          "name": "gas_used",
+          "type": "integer",
+          "unit": "gas",
+          "derivation": "receipt.gasUsed"
+        },
+        {
+          "name": "effective_gas_price_wei",
+          "type": "integer",
+          "unit": "wei per gas",
+          "derivation": "receipt.effectiveGasPrice"
+        },
+        {
+          "name": "burned_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "gas_used × effective_gas_price_wei"
+        }
       ]
     },
     {
@@ -2017,19 +2229,65 @@
       "name": "C-Chain atomic AVAX burn events",
       "source_id": "avalanche-data-api",
       "status": "implemented",
-      "contract_quantities": ["context"],
-      "studies": ["How Do Avalanche Validators Actually Think About Staking Rewards?"],
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
       "description": "One C-Chain import or export per row. The AVAX burn is the transaction's AVAX amount unlocked minus amount created, including any amount above the protocol minimum fee. The API lists newest transactions first; a dated capture pages backward until it crosses the requested start date.",
-      "endpoint_ids": ["c-chain-atomic-transactions"],
+      "endpoint_ids": [
+        "c-chain-atomic-transactions"
+      ],
       "fields": [
-        {"name": "transaction_hash", "type": "string", "unit": "C-Chain atomic transaction ID", "derivation": "txHash"},
-        {"name": "tx_type", "type": "string", "unit": "ImportTx or ExportTx", "derivation": "txType"},
-        {"name": "accepted_at", "type": "timestamp", "unit": "UTC", "derivation": "timestamp"},
-        {"name": "block_height", "type": "integer", "unit": "C-Chain block height", "derivation": "blockHeight"},
-        {"name": "block_hash", "type": "string", "unit": "C-Chain block hash", "derivation": "blockHash"},
-        {"name": "unlocked_navax", "type": "integer", "unit": "nAVAX", "derivation": "amountUnlocked for the AVAX asset"},
-        {"name": "created_navax", "type": "integer", "unit": "nAVAX", "derivation": "amountCreated for the AVAX asset"},
-        {"name": "burned_navax", "type": "integer", "unit": "nAVAX", "derivation": "unlocked_navax - created_navax"}
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "C-Chain atomic transaction ID",
+          "derivation": "txHash"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "ImportTx or ExportTx",
+          "derivation": "txType"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "timestamp"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "C-Chain block height",
+          "derivation": "blockHeight"
+        },
+        {
+          "name": "block_hash",
+          "type": "string",
+          "unit": "C-Chain block hash",
+          "derivation": "blockHash"
+        },
+        {
+          "name": "unlocked_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "amountUnlocked for the AVAX asset"
+        },
+        {
+          "name": "created_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "amountCreated for the AVAX asset"
+        },
+        {
+          "name": "burned_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "unlocked_navax - created_navax"
+        }
       ]
     },
     {

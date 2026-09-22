@@ -95,6 +95,9 @@ def raw_row(**overrides):
         "delegation_fee_shares": 20_000,
         "potential_reward_navax": 41_095_890_410,
         "rewarded": True,
+        "reward_addresses": '["P-avax1owner"]',
+        "reward_address": "P-avax1owner",
+        "reward_address_count": 1,
         "staked_utxo_count": 1,
         "utxo_stake_navax": 2_000_000_000_000,
     }
@@ -292,7 +295,7 @@ def test_check_reports_domain_findings(tmp_path):
     rows = [
         raw_row(end_time=datetime(2021, 3, 3, 12, 5, 0)),
         raw_row(transaction_hash="tx-dup", stake_navax=1_000_000_000, utxo_stake_navax=999, start_time=datetime(2021, 3, 1, 11, 0, 0)),
-        raw_row(transaction_hash="tx-dup", delegation_fee_shares=10, accepted_at=datetime(2019, 1, 1)),
+        raw_row(transaction_hash="tx-dup", delegation_fee_shares=10, accepted_at=datetime(2019, 1, 1), reward_addresses="[]", reward_address=None, reward_address_count=0),
     ]
     capture_dir, _ = make_capture(tmp_path, rows, parameters={"start": "2020-09-10", "end": "2022-01-01"})
     validation = snowflake.check(capture_dir)
@@ -304,6 +307,7 @@ def test_check_reports_domain_findings(tmp_path):
         "1 rows have a duration outside 14 to 365 days",
         "1 rows have a stake outside 2,000 to 3,000,000 AVAX",
         "1 rows have a delegation fee outside 2% to 100%",
+        "1 rows have no reward address",
         "1 rows have staked UTXOs that do not sum to the declared stake",
     ]
 
