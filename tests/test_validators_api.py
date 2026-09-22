@@ -89,19 +89,35 @@ def test_active_check_reports_a_missing_rpc_node_and_bad_uptime(tmp_path):
 
 
 def test_completed_pages_build_and_reconcile_against_snowflake(tmp_path):
-    pages = [[completed("tx-1", "NodeID-A"), completed("tx-2", "NodeID-B", reward="0")], [completed("tx-3", "NodeID-A", address="avax1other")]]
+    unrewarded = completed("tx-2", "NodeID-B", reward="0")
+    unrewarded["rewards"]["rewardTxHash"] = None  # one 2021 validation in the real history has no reward transaction
+    # A completed row sums every delegation over the period, so it can exceed four times the stake without any fault.
+    busy = completed("tx-1", "NodeID-A")
+    busy.update({"delegatorCount": 3, "amountDelegated": str(9_000 * 10**9)})
+    pages = [[busy, unrewarded], [completed("tx-3", "NodeID-A", address="avax1other")]]
     capture_dir, dataset_dir = make_run(tmp_path, va.COMPLETED_ID, pages)
     summary = json.loads((dataset_dir / "build.json").read_text())["summary"]
     assert (summary["rows"], summary["distinct_nodes"], summary["validations_with_zero_reward"], summary["distinct_reward_addresses"]) == (3, 2, 1, 2)
+    assert summary["validations_without_reward_transaction"] == 1
     reference = tmp_path / "reference"
     reference.mkdir()
-    duckdb.connect().execute(
-        "COPY (SELECT * FROM (VALUES ('tx-1', 'avax1owner', 2000000000000::BIGINT), ('tx-3', 'avax1owner', 2000000000000::BIGINT)) AS t(transaction_hash, reward_address, stake_navax)) TO ? (FORMAT PARQUET)",
+    connection = duckdb.connect()
+    connection.execute(
+        """COPY (SELECT * FROM (VALUES ('tx-1', 'avax1owner', 2000000000000::BIGINT, 262631202395::BIGINT, true),
+                                      ('tx-3', 'avax1owner', 2000000000000::BIGINT, 262631202395::BIGINT, false))
+                 AS t(transaction_hash, reward_address, stake_navax, potential_reward_navax, rewarded)) TO ? (FORMAT PARQUET)""",
         [str(reference / "primary-validator-stakes.parquet")],
+    )
+    connection.execute(
+        """COPY (SELECT * FROM (VALUES ('tx-1', 4000000000000::BIGINT), ('tx-1', 3000000000000::BIGINT), ('tx-1', 2000000000000::BIGINT))
+                 AS t(validator_transaction_hash, stake_navax)) TO ? (FORMAT PARQUET)""",
+        [str(reference / "primary-delegator-stakes.parquet")],
     )
     validation = va.check(capture_dir, dataset_dir, reference)
     assert validation["summary"]["validations_in_both"] == 2
-    assert "reward address differs from the Snowflake capture on 1 validations" in validation["findings"]
+    assert validation["summary"]["reward_equals_potential"] == 2 and validation["summary"]["unrewarded_per_snowflake"] == 1
+    assert validation["summary"]["delegated_validations_in_both"] == 1 and validation["summary"]["delegation_sum_and_count_equal"] == 1
+    assert validation["findings"] == ["reward address differs from the Snowflake capture on 1 validations"]
 
 
 def test_subnet_rows_without_a_fee_are_rejected(tmp_path):

@@ -76,7 +76,7 @@ COMPLETED_SELECT = COMMON_SELECT + """,
     v.rewards.rewardAddresses[1], coalesce(len(v.rewards.rewardAddresses), 0), v.rewards.rewardTxHash"""
 SELECTS = {ACTIVE_ID: ACTIVE_SELECT, COMPLETED_ID: COMPLETED_SELECT}
 REQUIRED = "transaction_hash IS NULL OR node_id IS NULL OR start_time IS NULL OR end_time IS NULL OR stake_navax IS NULL OR delegation_fee_rate IS NULL"
-REQUIRED_EXTRA = {ACTIVE_ID: " OR uptime_performance_pct IS NULL", COMPLETED_ID: " OR reward_transaction_hash IS NULL"}
+REQUIRED_EXTRA = {ACTIVE_ID: " OR uptime_performance_pct IS NULL", COMPLETED_ID: " OR validation_reward_navax IS NULL"}
 
 
 def _reject(dataset_id: str) -> None:
@@ -125,12 +125,14 @@ def summarize(connection: Any, dataset_id: str) -> dict[str, Any]:
         record = connection.execute(
             """
             SELECT COUNT(*), COUNT(DISTINCT node_id), MAX(observed_at), MIN(start_time), MAX(end_time), SUM(validation_reward_navax), SUM(delegation_reward_navax),
-                   COUNT_IF(validation_reward_navax = 0), COUNT(DISTINCT reward_address), COUNT_IF(reward_address IS NULL), COUNT_IF(reward_address_count > 1)
+                   COUNT_IF(validation_reward_navax = 0), COUNT(DISTINCT reward_address), COUNT_IF(reward_address IS NULL), COUNT_IF(reward_address_count > 1),
+                   COUNT_IF(reward_transaction_hash IS NULL)
             FROM rows
             """
         ).fetchone()
         keys = ("rows", "distinct_nodes", "observed_at", "earliest_start", "latest_end", "validation_reward_navax_total", "delegation_reward_navax_total",
-                "validations_with_zero_reward", "distinct_reward_addresses", "validations_without_reward_address", "validations_with_several_reward_addresses")
+                "validations_with_zero_reward", "distinct_reward_addresses", "validations_without_reward_address", "validations_with_several_reward_addresses",
+                "validations_without_reward_transaction")
     summary = dict(zip(keys, record))
     for key in ("observed_at", "earliest_start", "latest_end"):
         if summary.get(key) is not None:
@@ -215,23 +217,40 @@ def reconcile_active(connection: Any, reference_dir: Path) -> tuple[dict[str, An
 
 
 def reconcile_completed(connection: Any, reference_dir: Path) -> tuple[dict[str, Any], list[str]]:
-    """Every completed validation present in the Snowflake validator capture must name the same first reward address."""
+    """Every completed validation present in the Snowflake validator capture must name the same first reward address,
+    stake, and reward. The API's reward is the potential reward whether or not the validation passed: on 2026-09-22 it
+    equalled Snowflake's potential reward on all 56,963 validations, including the 1,397 Snowflake records as unrewarded,
+    so pass or fail comes from Snowflake alone. When the delegator capture sits beside the validator capture, the API's
+    delegated amount and delegator count must equal the sum and count of every delegation to the validation."""
     parquet = reference_dir / "primary-validator-stakes.parquet"
     if not parquet.is_file():
         raise DataError(f"missing reference validator dataset: {parquet}")
     record = connection.execute(
         """
-        SELECT COUNT(*), COUNT_IF(r.reward_address = s.reward_address), COUNT_IF(r.stake_navax = s.stake_navax)
+        SELECT COUNT(*), COUNT_IF(r.reward_address = s.reward_address), COUNT_IF(r.stake_navax = s.stake_navax),
+               COUNT_IF(r.validation_reward_navax = s.potential_reward_navax), COUNT_IF(NOT s.rewarded)
         FROM rows r JOIN read_parquet(?) s ON s.transaction_hash = r.transaction_hash
         """,
         [str(parquet)],
     ).fetchone()
     findings: list[str] = []
-    summary = {"validations_in_both": record[0], "reward_address_equal": record[1], "stake_equal": record[2]}
-    if record[0] and record[1] != record[0]:
-        findings.append(f"reward address differs from the Snowflake capture on {record[0] - record[1]} validations")
-    if record[0] and record[2] != record[0]:
-        findings.append(f"stake differs from the Snowflake capture on {record[0] - record[2]} validations")
+    summary = {"validations_in_both": record[0], "reward_address_equal": record[1], "stake_equal": record[2],
+               "reward_equals_potential": record[3], "unrewarded_per_snowflake": record[4]}
+    for count, label in zip(record[1:4], ("reward address", "stake", "reward")):
+        if record[0] and count != record[0]:
+            findings.append(f"{label} differs from the Snowflake capture on {record[0] - count} validations")
+    delegators = reference_dir / "primary-delegator-stakes.parquet"
+    if delegators.is_file():
+        record = connection.execute(
+            """
+            SELECT COUNT(*), COUNT_IF(r.delegated_navax = d.total AND r.delegator_count = d.n)
+            FROM rows r JOIN (SELECT validator_transaction_hash h, SUM(stake_navax) total, COUNT(*) n FROM read_parquet(?) GROUP BY 1) d ON d.h = r.transaction_hash
+            """,
+            [str(delegators)],
+        ).fetchone()
+        summary.update({"delegated_validations_in_both": record[0], "delegation_sum_and_count_equal": record[1]})
+        if record[0] and record[1] != record[0]:
+            findings.append(f"cumulative delegation differs from the Snowflake delegator capture on {record[0] - record[1]} validations")
     return summary, findings
 
 
@@ -249,19 +268,23 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
             """
             SELECT COUNT_IF(end_time <= start_time),
                    COUNT_IF(stake_navax < 2000000000000 OR stake_navax > 3000000000000000),
-                   COUNT_IF(delegation_fee_rate < 0.02 OR delegation_fee_rate > 1),
-                   COUNT_IF(delegated_navax > stake_navax * ?)
+                   COUNT_IF(delegation_fee_rate < 0.02 OR delegation_fee_rate > 1)
             FROM rows
-            """,
-            [CAPACITY_MULTIPLE],
+            """
         ).fetchone()
-        labels = ("end before or at start", "have a stake outside 2,000 to 3,000,000 AVAX", "have a delegation fee outside 2% to 100%", "carry more delegation than four times their stake")
+        labels = ("end before or at start", "have a stake outside 2,000 to 3,000,000 AVAX", "have a delegation fee outside 2% to 100%")
         for count, label in zip(counts, labels):
             if count:
                 findings.append(f"{count} validations {label}")
         if dataset_id == ACTIVE_ID:
-            checked.append("uptime bounds")
-            bad = connection.execute("SELECT COUNT_IF(uptime_performance_pct < 0 OR uptime_performance_pct > 100) FROM rows").fetchone()[0]
+            # Only the active row's delegated amount is a concurrent weight. A completed row sums every delegation over the period.
+            checked.extend(["capacity bound", "uptime bounds"])
+            over, bad = connection.execute(
+                "SELECT COUNT_IF(delegated_navax > stake_navax * ?), COUNT_IF(uptime_performance_pct < 0 OR uptime_performance_pct > 100) FROM rows",
+                [CAPACITY_MULTIPLE],
+            ).fetchone()
+            if over:
+                findings.append(f"{over} validations carry more delegation than four times their stake")
             if bad:
                 findings.append(f"{bad} validations have uptime outside 0 to 100")
         summary = summarize(connection, dataset_id)

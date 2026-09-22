@@ -2466,7 +2466,7 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One row per completed Primary Network validation, from Ava Labs' indexer: the period, stake, fee, delegation received, the validation and delegatee rewards, the reward addresses, and the reward transaction. No uptime is reported for finished validations. Checked against the Snowflake validator capture with --against, where every shared transaction must name the same reward address and stake.",
+      "description": "One row per completed Primary Network validation, from Ava Labs' indexer: the period, stake, fee, cumulative delegation, the potential validation and delegatee rewards, the reward addresses, and the reward transaction. No uptime is reported for finished validations. Observed on 2026-09-22 over 56,963 rows: the reward equals the Snowflake potential reward on every validation, including the 1,397 Snowflake records as unrewarded, so pass or fail is not recoverable here; the delegated amount and delegator count equal the sum and count of every delegation in the Snowflake delegator capture on all 27,636 validations with delegations, so they are period totals, not concurrent weights; one 2021 validation has no reward transaction. Checked against the Snowflake validator capture with --against, where every shared transaction must name the same reward address, stake, and potential reward, and against the delegator capture in the same directory for the delegation totals.",
       "endpoint_ids": [
         "validators-completed"
       ],
@@ -2534,14 +2534,14 @@
         {
           "name": "delegator_count",
           "type": "integer",
-          "unit": "delegators",
-          "derivation": "delegatorCount"
+          "unit": "delegations",
+          "derivation": "delegatorCount: delegations accepted over the whole period, not a concurrent count"
         },
         {
           "name": "delegated_navax",
           "type": "integer",
           "unit": "nAVAX",
-          "derivation": "amountDelegated (glossary G23)"
+          "derivation": "amountDelegated: the sum of every delegation accepted over the whole period, not a concurrent weight, so it can exceed four times the stake (glossary G23 is the concurrent form)"
         },
         {
           "name": "delegated_avax",
@@ -2553,13 +2553,13 @@
           "name": "validation_reward_navax",
           "type": "integer",
           "unit": "nAVAX",
-          "derivation": "rewards.validationRewardAmount; zero when the uptime requirement was not met (glossary G13, G14)"
+          "derivation": "rewards.validationRewardAmount: the potential reward whether or not the validation passed the uptime requirement (glossary G13, G14)"
         },
         {
           "name": "delegation_reward_navax",
           "type": "integer",
           "unit": "nAVAX",
-          "derivation": "rewards.delegationRewardAmount, the validator's delegatee reward (glossary G15)"
+          "derivation": "rewards.delegationRewardAmount: the delegatee reward the validator would take across every delegation to the validation (glossary G15)"
         },
         {
           "name": "reward_address",
