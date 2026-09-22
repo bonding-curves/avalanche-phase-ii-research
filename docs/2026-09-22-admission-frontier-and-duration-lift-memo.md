@@ -194,8 +194,8 @@ To validate the behavioral dynamics across operator cohorts under real-world eco
    - Under the admission frontier, small validators cluster at the lowest legally admissible duration ($d_{\text{target}}$). At $d_{\text{target}} = 8\text{w}$ ($56\text{d}$), mean retail duration increases to **$52.2\text{d}$ (+40.6% lift)**; at $16.9\text{w}$ ($118\text{d}$), it reaches **$69.4\text{d}$ (+87.0% lift)**.
 3. **Macro Security Horizon ($19.7\text{w} - 23.9\text{w}$):**
    - Capital-weighted duration more than doubles from Mainnet’s empirical baseline ($11.6\text{w}$), providing deep macro security.
-4. **The 6-Month Expiration Dip (Week 25–26):**
-   - The simulation revealed a transient dip in stake-weighted duration around Week 25–26 where large initial 180-day cohorts mature simultaneously. As renewed capital takes advantage of ACP-285 term yield, network duration re-accelerates back toward $22\text{w} - 24\text{w}$ by Week 52.
+4. **Asymptotic Convergence under Continuous Arrivals:**
+   - Under stationary initial conditions ($U(1, d_{\text{choice}})$ staggered remaining tenure), the network avoids artificial synchronized rollover cliffs. The stake-weighted duration follows a monotonic, continuous upward trajectory from $\sim 12.5\text{w}$ at $t=0$, converging smoothly into an ergodic steady-state corridor of **$20.0\text{w} - 23.8\text{w}$** across all parameter regimes.
 
 ### 7.2 Interactive Simulation Dashboard & Source Artifacts
 - **Interactive Dashboard:** `research/plots/simulation_results.html` (Local preview: `http://localhost:8099/simulation_results.html`)

@@ -52,21 +52,25 @@ def get_initial_pchain_state(
         whale_weights = [0.25, 0.25, 0.20, 0.15, 0.10, 0.05]
         for i in range(175):
             d_choice = int(np.random.choice(whale_durations, p=whale_weights))
+            # Stagger remaining days uniformly U(1, d_choice) to reflect a stationary continuous arrival process
+            rem_days = int(np.random.randint(1, d_choice + 1))
             validators[f"Whale-{i:03d}"] = ValidatorRecord(
                 node_id=f"Whale-{i:03d}",
                 self_bond_avax=1_100_000.0 if i < 50 else 400_000.0,
                 total_duration_days=d_choice,
-                remaining_days=max(7, d_choice // 2),
+                remaining_days=rem_days,
                 commission_fee=0.02,
                 delegations_received_avax=1_100_000.0 if i < 50 else 600_000.0,
             )
         # 600 retail stakers (<6k) holding ~2k AVAX each (~1.2M AVAX self stake)
         for i in range(600):
+            d_retail = 14 if i % 3 == 0 else 30
+            rem_retail = int(np.random.randint(1, d_retail + 1))
             validators[f"Retail-{i:03d}"] = ValidatorRecord(
                 node_id=f"Retail-{i:03d}",
                 self_bond_avax=2000.0,
-                total_duration_days=14 if i % 3 == 0 else 30,
-                remaining_days=7 if i % 3 == 0 else 14,
+                total_duration_days=d_retail,
+                remaining_days=rem_retail,
                 commission_fee=0.05,
                 delegations_received_avax=2000.0,
             )

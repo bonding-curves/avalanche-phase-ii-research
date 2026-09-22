@@ -227,23 +227,23 @@ def generate_revised_dashboard(df: pd.DataFrame, trajectories: dict, output_path
                 row=2, col=2,
             )
 
-    # Annotate the Week 25-26 6-month cohort rollover wave in Plot 4
+    # Annotate the asymptotic convergence toward ACP-285 equilibrium
     fig.add_annotation(
-        x=25.5,
-        y=17.5,
+        x=45.0,
+        y=22.5,
         xref="x4",
         yref="y4",
-        text="<b>6-Month Expiration Dip</b><br>(Initial 180d Whale Cohorts Re-entering)",
+        text="<b>ACP-285 Macro Convergence</b><br>(Stationary ~20w–24w Horizon)",
         showarrow=True,
         arrowhead=2,
         arrowsize=1,
         arrowwidth=2,
-        arrowcolor="#f43f5e",
+        arrowcolor="#38bdf8",
         ax=-60,
-        ay=-45,
-        font=dict(size=10, color="#fecdd3"),
+        ay=-40,
+        font=dict(size=10, color="#bae6fd"),
         bgcolor="rgba(15, 23, 42, 0.85)",
-        bordercolor="#e11d48",
+        bordercolor="#0284c7",
         borderwidth=1,
         borderpad=4,
     )
@@ -535,17 +535,17 @@ def generate_revised_dashboard(df: pd.DataFrame, trajectories: dict, output_path
       </div>
 
       <div class="exp-card">
-        <h3><span>📉</span> Plot 4: 52-Week Trajectories & The Week 25 Dip (Bottom Right)</h3>
+        <h3><span>📈</span> Plot 4: 52-Week Trajectories & Asymptotic Convergence (Bottom Right)</h3>
         <p>
           <b>What it measures:</b> The continuous week-by-week trajectory of stake-weighted network duration from Week 1 to Week 52.
         </p>
         <p>
-          <b>Why does the curve drop at Week 25–26?</b>
+          <b>How to read it:</b>
         </p>
         <ul>
-          <li><b>The 6-Month Expiration Cliff:</b> Avalanche initial state contains whale cohorts with $180\\text{{-day}}$ ($25.7\\text{{-week}}$) commitments.</li>
-          <li><b>Rollover Wave:</b> At Week 25–26, this large tranche of capital matures simultaneously. When they re-enter and re-evaluate their liquidity horizon, the network-wide average temporarily dips from $\\sim 22\\text{{w}}$ to $\\sim 17.5\\text{{w}}-19.5\\text{{w}}$.</li>
-          <li><b>Recovery:</b> As ACP-285 yield incentives take effect, renewed capital rolls back into longer commitments, lifting the trajectory back toward $\\sim 21\\text{{w}}-24\\text{{w}}$ by Week 52.</li>
+          <li><b>Stationary Arrival Process:</b> In empirical reality, validator stints do not expire all at once; remaining lockup times are distributed continuously across the timeline ($U(1, d)$).</li>
+          <li><b>Monotonic Extension:</b> As existing contracts mature asynchronously, validators re-lock under ACP-285's upward-sloping yield curve ($4.08\\%$ to $6.38\\%$), steadily lifting capital commitment from the empirical $11.6\\text{{w}}$ baseline.</li>
+          <li><b>Steady-State Corridor:</b> By Week 30–40, the network achieves ergodic convergence into a stable <b>$20.0\\text{{w}}$ to $23.5\\text{{w}}$</b> macro security corridor.</li>
         </ul>
       </div>
     </div>
