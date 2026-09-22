@@ -91,7 +91,7 @@ prios = `Please reply in one sentence`
 
 ### 5. Version control
 
-- Commit your own work directly to `main`, one commit per outcome, on paths only your lane writes. Stage explicit paths.
+- Commit your own work directly to `main`, one commit per outcome, on paths only your lane writes. Inspect full `git status --short`, stage new files by exact path, and commit with `git commit --only -m "..." -- <owned files>`. Never use a bare `git commit` in a shared checkout. Verify the actual file list with `git show --format= --name-only <commit-id>` before pushing.
 - Do not create branches, worktrees, or pull requests by default. A branch exists only when two lanes must change the same path, and the project manager creates and retires it.
 - Never amend or rebase a commit that exists on `main`. Fix forward with a new commit.
 - Run the tests, lint, and the client delivery check before pushing.
