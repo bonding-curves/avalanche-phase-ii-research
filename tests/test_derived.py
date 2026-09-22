@@ -34,7 +34,8 @@ REWARDS = [
     # staking hash, rewarded_at, realized, fee transfer
     ("v1", "2023-12-31 00:11:00", STAKES[0][9], 0),
     ("v2", "2025-06-01 00:01:00", 0, 0),
-    ("d1", "2024-10-01 00:01:00", STAKES[2][9], STAKES[2][9] // 20),
+    # d1 delegates to v2, a Durango validator charging 5%: the fee is withheld, so realized is 95% of potential and the transfer is minus the fee
+    ("d1", "2024-10-01 00:01:00", STAKES[2][9] - round(STAKES[2][9] * 0.05), -round(STAKES[2][9] * 0.05)),
 ]
 
 
@@ -81,7 +82,7 @@ def root(tmp_path: Path) -> Path:
     make_run(runs, "delegators", "snowflake.primary-delegator-stakes", "primary-delegator-stakes",
              f"SELECT transaction_hash, accepted_at, block_height, tx_type, node_id, validator_transaction_hash, 'P-avax1' AS delegator_address, 1 AS delegator_address_count, start_time, end_time, duration_days, stake_navax, stake_avax, potential_reward_navax, potential_reward_avax, rewarded, staked_utxo_count, utxo_stake_navax FROM ({base}) WHERE role = 'delegator'", "2026-09-19T10:01:00Z")
     make_run(runs, "rewards", "snowflake.primary-staking-rewards", "primary-staking-rewards",
-             f"SELECT 'r-' || staking_transaction_hash AS reward_transaction_hash, rewarded_at, 9 AS block_height, staking_transaction_hash, 'RewardValidatorTx' AS staking_tx_type, 'NodeID-x' AS node_id, rewarded_at AS period_start_time, rewarded_at AS period_end_time, realized_reward_navax > 0 AS rewarded, realized_reward_navax AS potential_reward_navax, realized_reward_navax / 1e9 AS potential_reward_avax, realized_reward_navax, realized_reward_navax / 1e9 AS realized_reward_avax, fee_transfer_navax, fee_transfer_navax / 1e9 AS fee_transfer_avax, 1 AS reward_utxo_count FROM (VALUES {values(REWARDS)}) AS t(staking_transaction_hash, rewarded_at, realized_reward_navax, fee_transfer_navax)", "2026-09-19T10:02:00Z")
+             f"SELECT 'r-' || staking_transaction_hash AS reward_transaction_hash, rewarded_at, 9 AS block_height, staking_transaction_hash, 'RewardValidatorTx' AS staking_tx_type, 'NodeID-x' AS node_id, rewarded_at AS period_start_time, rewarded_at AS period_end_time, realized_reward_navax > 0 AS rewarded, realized_reward_navax - fee_transfer_navax AS potential_reward_navax, (realized_reward_navax - fee_transfer_navax) / 1e9 AS potential_reward_avax, realized_reward_navax, realized_reward_navax / 1e9 AS realized_reward_avax, fee_transfer_navax, fee_transfer_navax / 1e9 AS fee_transfer_avax, 1 AS reward_utxo_count FROM (VALUES {values(REWARDS)}) AS t(staking_transaction_hash, rewarded_at, realized_reward_navax, fee_transfer_navax)", "2026-09-19T10:02:00Z")
     make_run(runs, "supply", "snowflake.primary-staking-supply", "primary-staking-supply",
              f"SELECT transaction_hash, accepted_at, tx_type, 7 AS block_height, 0 AS tx_block_position, {SUPPLY} AS previous_block_supply_navax, {SUPPLY} + potential_reward_navax AS block_supply_navax, 0 AS in_block_prior_delta_navax, potential_reward_navax AS in_block_total_delta_navax, {SUPPLY} AS supply_before_navax FROM ({base}) WHERE transaction_hash <> 'd2'", "2026-09-19T10:03:00Z")
     return runs
@@ -107,7 +108,7 @@ def test_derive_joins_regimes_and_kernel(root):
     assert summary["with_reward_row"] == 3 and summary["open_periods"] == 1 and summary["zero_realized"] == 1
     table = duckdb.connect().execute("SELECT transaction_hash, regime, start_kind, reproduced, kernel_gap_navax, realized_reward_navax FROM read_parquet(?) ORDER BY transaction_hash", [str(output / "dataset" / "staking-periods.parquet")]).fetchall()
     assert table == [
-        ("d1", "durango", "immediate", True, 0, STAKES[2][9]),
+        ("d1", "durango", "immediate", True, 0, STAKES[2][9] - round(STAKES[2][9] * 0.05)),
         ("d2", "granite", "immediate", None, None, None),
         ("v1", "banff", "pending", False, -1, STAKES[0][9]),
         ("v2", "durango", "immediate", True, 0, 0),

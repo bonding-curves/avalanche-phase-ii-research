@@ -1184,13 +1184,13 @@
           "name": "fee_transfer_navax",
           "type": "integer",
           "unit": "nAVAX; positive is delegation fee income to a validator, negative is fee paid by a delegator",
-          "derivation": "realized_reward_navax - potential_reward_navax"
+          "derivation": "realized_reward_navax minus potential_reward_navax. Sign and meaning depend on the row: a rewarded delegation to a validator added at or after Cortina reads minus (potential reward times the validator's fee rate), the fee withheld and paid to the validator at its own period end; a rewarded delegation to a validator added before Cortina reads zero, because its reward UTXOs included the validator's share; a rewarded validator period reads plus the delegatee rewards it accrued since Cortina; any period that realised zero reads minus its potential reward. Fee income and fee paid are therefore derived from rate times potential, never read from this field (node table plan NC2, glossary G15). The derived check reconciles the post-Cortina delegations."
         },
         {
           "name": "fee_transfer_avax",
           "type": "number",
           "unit": "AVAX",
-          "derivation": "fee_transfer_navax / 1e9"
+          "derivation": "fee_transfer_navax / 1e9; see fee_transfer_navax for the sign convention"
         },
         {
           "name": "reward_utxo_count",
@@ -2442,7 +2442,7 @@
           "name": "fee_transfer_navax",
           "type": "integer",
           "unit": "nAVAX, null while open",
-          "derivation": "delegation fee transfer from staking rewards"
+          "derivation": "realized_reward_navax minus potential_reward_navax. Sign and meaning depend on the row: a rewarded delegation to a validator added at or after Cortina reads minus (potential reward times the validator's fee rate), the fee withheld and paid to the validator at its own period end; a rewarded delegation to a validator added before Cortina reads zero, because its reward UTXOs included the validator's share; a rewarded validator period reads plus the delegatee rewards it accrued since Cortina; any period that realised zero reads minus its potential reward. Fee income and fee paid are therefore derived from rate times potential, never read from this field (node table plan NC2, glossary G15). The derived check reconciles the post-Cortina delegations."
         },
         {
           "name": "supply_before_navax",

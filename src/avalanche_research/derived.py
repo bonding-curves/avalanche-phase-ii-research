@@ -46,6 +46,19 @@ TABLE_COLUMNS = {
     "kernel_gap_navax": "BIGINT", "reproduced": "BOOLEAN",
 }
 IMMEDIATE_REPRODUCTION_FLOOR = 0.999
+# From Cortina, a delegator's fee is withheld from its reward and paid to the validator at the validator's own period end,
+# so a rewarded delegation's fee_transfer equals -(potential reward x the validator's fee rate) to the nAVAX. Before
+# Cortina the delegation's reward UTXOs included the validator's share, and the field reads zero. This floor is the
+# share of rewarded delegations to post-Cortina validators that must reconcile.
+FEE_RECONCILIATION_FLOOR = 0.999
+FEE_RECONCILIATION_SQL = """
+    WITH d AS (
+        SELECT d.fee_transfer_navax, d.potential_reward_navax, v.delegation_fee_rate
+        FROM periods d JOIN periods v ON v.transaction_hash = d.validator_transaction_hash AND v.role = 'validator'
+        WHERE d.role = 'delegator' AND d.rewarded_at IS NOT NULL AND d.realized_reward_navax > 0 AND v.regime NOT IN ({pre_cortina})
+    )
+    SELECT count(*), count(*) FILTER (WHERE abs(-fee_transfer_navax - round(potential_reward_navax * delegation_fee_rate)) <= 1) FROM d"""
+PRE_CORTINA = ("genesis", "apricot_phase_1", "apricot_phase_2", "apricot_phase_3", "apricot_phase_4", "apricot_phase_5", "apricot_phase_pre_6", "apricot_phase_6", "apricot_phase_post_6", "banff")
 FETCH_SIZE = 200_000
 
 STAKES_SQL = """
@@ -209,6 +222,11 @@ def summarize(connection: Any, as_of: str) -> dict[str, Any]:
         summary[key] = summary[key].isoformat(timespec="seconds") + "Z" if summary[key] is not None else None
     summary["immediate_reproduced_share"] = summary["immediate_reproduced"] / summary["immediate_rows"] if summary["immediate_rows"] else None
     summary["pending_reproduced_share"] = summary["pending_reproduced"] / summary["pending_rows"] if summary["pending_rows"] else None
+    placeholders = ", ".join("?" for _ in PRE_CORTINA)
+    fee_rows, fee_matched = connection.execute(FEE_RECONCILIATION_SQL.format(pre_cortina=placeholders), list(PRE_CORTINA)).fetchone()
+    summary["fee_reconciled_rows"] = fee_rows
+    summary["fee_reconciled"] = fee_matched
+    summary["fee_reconciled_share"] = fee_matched / fee_rows if fee_rows else None
     return summary
 
 
@@ -302,7 +320,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
             findings.append(f"input run differs from the capture receipt: {item['run']}")
     summary: dict[str, Any] = {"inputs": len(receipt.get("inputs", []))}
     if dataset_dir is not None:
-        checked.extend(["build hashes", "unique periods", "kernel coverage", "immediate reproduction"])
+        checked.extend(["build hashes", "unique periods", "kernel coverage", "immediate reproduction", "fee reconciliation"])
         try:
             build_receipt = json.loads((dataset_dir / "build.json").read_text(encoding="utf-8"))
             if build_receipt.get("source_capture_id") != receipt.get("capture_id"):
@@ -330,6 +348,9 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
             share = summary["immediate_reproduced_share"]
             if share is not None and share < IMMEDIATE_REPRODUCTION_FLOOR:
                 findings.append(f"kernel reproduces {share:.4%} of immediate starts, below {IMMEDIATE_REPRODUCTION_FLOOR:.1%}")
+            fee_share = summary["fee_reconciled_share"]
+            if fee_share is not None and fee_share < FEE_RECONCILIATION_FLOOR:
+                findings.append(f"delegator fee transfers reconcile to rate x potential on {fee_share:.4%} of post-Cortina rewarded delegations, below {FEE_RECONCILIATION_FLOOR:.1%}")
         except (OSError, KeyError, TypeError, json.JSONDecodeError, duckdb.Error) as error:
             findings.append(f"invalid dataset output: {error}")
     return {
