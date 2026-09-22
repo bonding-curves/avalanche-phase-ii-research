@@ -28,6 +28,12 @@ INPUTS = {
     "validator-stakes": "snowflake.primary-validator-stakes",
     "delegator-stakes": "snowflake.primary-delegator-stakes",
 }
+# Two observers of today's uptime, joined when their runs exist. Neither is the protocol's own view, which is a majority
+# vote at period end, so both are kept (node table plan UC1, UC4). Their absence is not an error: history has none.
+OPTIONAL_INPUTS = {
+    "current-validators": "p-chain-rpc.current-validators",
+    "validators-active": "data-api.validators-active",
+}
 # A gap longer than this between one period's end and the next period's start ends a streak (glossary G8).
 STREAK_GAP_DAYS = 1
 # MaxValidatorWeightFactor in avalanchego: a validator's total weight may reach five times its own stake, so the
@@ -46,6 +52,8 @@ TABLE_COLUMNS = {
     "rewards_avax": "DOUBLE", "delegatee_fees_avax": "DOUBLE",
     "first_regime": "VARCHAR", "last_regime": "VARCHAR",
     "reward_address": "VARCHAR", "reward_addresses_used": "BIGINT", "operator_group": "VARCHAR",
+    "uptime_rpc_pct": "DOUBLE", "uptime_api_pct": "DOUBLE", "uptime_observed_at": "TIMESTAMP",
+    "delegation_fill_api": "DOUBLE", "node_version": "VARCHAR", "country": "VARCHAR",
 }
 
 # Every interval is clipped at as_of. Streaks are built by numbering the periods whose start lies more than
@@ -127,12 +135,39 @@ SELECT p.node_id,
        arg_max(p.regime, p.start_time) AS last_regime,
        arg_max(p.reward_address, p.start_time) AS reward_address,
        count(DISTINCT p.reward_address) AS reward_addresses_used,
-       arg_max(p.reward_address, p.start_time) AS operator_group
+       arg_max(p.reward_address, p.start_time) AS operator_group,
+       any_value(o.uptime_rpc_pct) AS uptime_rpc_pct,
+       any_value(o.uptime_api_pct) AS uptime_api_pct,
+       any_value(o.uptime_observed_at) AS uptime_observed_at,
+       any_value(o.delegation_fill_api) AS delegation_fill_api,
+       any_value(o.node_version) AS node_version,
+       any_value(o.country) AS country
 FROM per_period p
 JOIN streak_stats s USING (node_id)
+LEFT JOIN observers o USING (node_id)
 GROUP BY p.node_id
 ORDER BY p.node_id
 """
+
+# One row per node from whichever observer runs exist; an empty table when neither does.
+OBSERVERS_SQL = {
+    "none": "CREATE OR REPLACE TABLE observers(node_id VARCHAR, uptime_rpc_pct DOUBLE, uptime_api_pct DOUBLE, uptime_observed_at TIMESTAMP, delegation_fill_api DOUBLE, node_version VARCHAR, country VARCHAR)",
+    "rpc": """CREATE OR REPLACE TABLE observers AS
+        SELECT node_id, max(uptime) * 100 AS uptime_rpc_pct, NULL::DOUBLE AS uptime_api_pct, max(observed_at) AS uptime_observed_at,
+               NULL::DOUBLE AS delegation_fill_api, NULL::VARCHAR AS node_version, NULL::VARCHAR AS country
+        FROM rpc_snapshot GROUP BY node_id""",
+    "api": """CREATE OR REPLACE TABLE observers AS
+        SELECT node_id, NULL::DOUBLE AS uptime_rpc_pct, max(uptime_performance_pct) AS uptime_api_pct, max(observed_at) AS uptime_observed_at,
+               max(delegation_fill) AS delegation_fill_api, any_value(node_version) AS node_version, any_value(country) AS country
+        FROM api_snapshot GROUP BY node_id""",
+    "both": """CREATE OR REPLACE TABLE observers AS
+        WITH r AS (SELECT node_id, max(uptime) * 100 AS uptime_rpc_pct, max(observed_at) AS observed_at FROM rpc_snapshot GROUP BY node_id),
+             a AS (SELECT node_id, max(uptime_performance_pct) AS uptime_api_pct, max(observed_at) AS observed_at, max(delegation_fill) AS delegation_fill_api,
+                          any_value(node_version) AS node_version, any_value(country) AS country FROM api_snapshot GROUP BY node_id)
+        SELECT coalesce(r.node_id, a.node_id) AS node_id, r.uptime_rpc_pct, a.uptime_api_pct, greatest(r.observed_at, a.observed_at) AS uptime_observed_at,
+               a.delegation_fill_api, a.node_version, a.country
+        FROM r FULL OUTER JOIN a USING (node_id)""",
+}
 
 SUMMARY_SQL = """
 SELECT count(*), count(DISTINCT node_id), count(*) FILTER (WHERE active), sum(periods), sum(failed_periods),
@@ -173,14 +208,19 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
 def select_inputs(pinned: dict[str, str] | None, root: Path | None) -> list[dict[str, Any]]:
     """The input runs: pinned by ``dataset_id=run`` or the newest built run of each input."""
     pinned = pinned or {}
-    unknown = sorted(set(pinned) - set(INPUTS.values()))
+    unknown = sorted(set(pinned) - set(INPUTS.values()) - set(OPTIONAL_INPUTS.values()))
     if unknown:
         raise DataError(f"not an input of {DATASET_ID}: {', '.join(unknown)}")
     selected = []
-    for input_id, dataset_id in INPUTS.items():
+    for input_id, dataset_id in {**INPUTS, **OPTIONAL_INPUTS}.items():
         run = pinned.get(dataset_id)
-        record = datasets.receipt(dataset_id, run, root)
-        parquet = datasets.parquet_path(dataset_id, run, root)
+        try:
+            record = datasets.receipt(dataset_id, run, root)
+            parquet = datasets.parquet_path(dataset_id, run, root)
+        except DataError:
+            if input_id in OPTIONAL_INPUTS and run is None:
+                continue
+            raise
         body = parquet.read_bytes()
         selected.append({
             "input_id": input_id, "dataset_id": dataset_id, "run": record["run"],
@@ -197,10 +237,14 @@ def as_of_time(inputs: list[dict[str, Any]]) -> str:
 
 
 def load_inputs(connection: Any, inputs: list[dict[str, Any]]) -> None:
-    names = {"staking-periods": "periods", "validator-stakes": "validators", "delegator-stakes": "delegators"}
+    names = {"staking-periods": "periods", "validator-stakes": "validators", "delegator-stakes": "delegators", "current-validators": "rpc_snapshot", "validators-active": "api_snapshot"}
+    present = set()
     for item in inputs:
         path = str(item["path"]).replace("'", "''")
         connection.execute(f"CREATE OR REPLACE VIEW {names[item['input_id']]} AS SELECT * FROM read_parquet('{path}')")
+        present.add(item["input_id"])
+    key = {frozenset(): "none", frozenset({"current-validators"}): "rpc", frozenset({"validators-active"}): "api", frozenset({"current-validators", "validators-active"}): "both"}
+    connection.execute(OBSERVERS_SQL[key[frozenset(present & set(OPTIONAL_INPUTS))]])
 
 
 def compute(connection: Any, as_of: str) -> None:

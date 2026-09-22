@@ -19,7 +19,7 @@ def root(derived_root: Path) -> Path:  # noqa: F811
 def test_catalog_declares_the_node_table():
     definition = next(item for item in load_catalog()["datasets"] if item["id"] == nodes.DATASET_ID)
     assert [field["name"] for field in definition["fields"]] == list(nodes.TABLE_COLUMNS)
-    assert definition["input_ids"] == list(nodes.INPUTS)
+    assert definition["input_ids"] == [*nodes.INPUTS, *nodes.OPTIONAL_INPUTS]
 
 
 def test_derive_one_row_per_node_with_the_three_clocks(root):

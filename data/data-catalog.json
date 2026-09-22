@@ -783,6 +783,16 @@
           "id": "staking-periods",
           "dataset_id": "derived.staking-periods",
           "role": "the staking-period log with regime, kernel reward, and reward outcome"
+        },
+        {
+          "id": "current-validators",
+          "dataset_id": "p-chain-rpc.current-validators",
+          "role": "today's validator set as the public RPC node observes it, optional"
+        },
+        {
+          "id": "validators-active",
+          "dataset_id": "data-api.validators-active",
+          "role": "today's validator set as Ava Labs' indexer observes it, optional"
         }
       ]
     }
@@ -2831,11 +2841,13 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One row per node that has validated the Primary Network, with every attribute the studies reason about computed once: the three clocks (span, tenure, current streak) and their stake weights, stake and fee history, delegation, rewards and failures, upgrade regimes, and the reward address as an operator proxy. Clocks are clipped at the validator capture time and active nodes are right-censored. Each field names the glossary term it realises.",
+      "description": "One row per node that has validated the Primary Network, with every attribute the studies reason about computed once: the three clocks (span, tenure, current streak) and their stake weights, stake and fee history, delegation, rewards and failures, upgrade regimes, and the reward address as an operator proxy. Clocks are clipped at the validator capture time and active nodes are right-censored. Each field names the glossary term it realises. When the day's validator snapshots exist, active nodes also carry uptime from two observers, delegation fill, node version, and country.",
       "input_ids": [
         "staking-periods",
         "validator-stakes",
-        "delegator-stakes"
+        "delegator-stakes",
+        "current-validators",
+        "validators-active"
       ],
       "fields": [
         {
@@ -3029,6 +3041,42 @@
           "type": "string",
           "unit": "P-Chain address",
           "derivation": "the latest reward address, used as an operator proxy: a shared address can link nodes, but it does not prove one decision maker, and different addresses do not prove different operators (node table plan NK1, interface rule I2)"
+        },
+        {
+          "name": "uptime_rpc_pct",
+          "type": "number",
+          "unit": "percent",
+          "derivation": "the public P-Chain RPC node's observed uptime for an active node, from the newest p-chain-rpc.current-validators run when one exists; null for finished nodes and before 2026-09-22 (glossary G13)"
+        },
+        {
+          "name": "uptime_api_pct",
+          "type": "number",
+          "unit": "percent",
+          "derivation": "Ava Labs' indexer's observed uptime for an active node, from the newest data-api.validators-active run when one exists; a second observer, kept beside the first because the protocol's own view is a majority vote neither observer is"
+        },
+        {
+          "name": "uptime_observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the later of the two observer captures joined"
+        },
+        {
+          "name": "delegation_fill_api",
+          "type": "number",
+          "unit": "ratio",
+          "derivation": "delegated stake over four times own stake on the active validation, from the API observer (glossary G24)"
+        },
+        {
+          "name": "node_version",
+          "type": "string",
+          "unit": "avalanchego version",
+          "derivation": "from the API observer; null when unknown"
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "unit": "country",
+          "derivation": "from the API observer's geolocation; null when unknown"
         }
       ]
     }
