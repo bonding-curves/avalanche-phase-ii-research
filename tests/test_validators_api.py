@@ -10,7 +10,7 @@ import pytest
 
 from avalanche_research import validators_api as va
 from avalanche_research.catalog import DataError, load_catalog
-from tests.test_dataapi import Response
+from test_dataapi import Response
 
 PRIMARY = "11111111111111111111111111111111LpoYY"
 

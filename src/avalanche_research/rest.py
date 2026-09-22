@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -21,6 +22,10 @@ from . import __version__
 from .catalog import (
     DataError, canonical_bytes, contract_hash, dataset, load_catalog, now as _now, sha256, source,
 )
+
+
+PAGE_ATTEMPTS = 3
+PAGE_RETRY_SECONDS = 5.0
 
 
 def _request(
@@ -70,11 +75,20 @@ def _paged(url: str, page: dict[str, Any], timeout: float, opener: Callable[...,
     on disk and a failure leaves the pages already fetched for inspection. The last page is the one without a token,
     so an empty page ends the walk only when it carries no token. ``max_pages`` bounds the cost of a runaway token."""
     token_field, token_parameter, limit = page["token_field"], page["token_parameter"], int(page.get("max_pages", 100))
-    pages, token, metadata = 0, None, {}
+    pages, retries, token, metadata = 0, 0, None, {}
     with target_path.open("wb") as handle:
         while True:
             target = url if token is None else f"{url}{'&' if '?' in url else '?'}{urllib.parse.urlencode({token_parameter: token})}"
-            body, metadata = _request(target, timeout, opener, None, "json")
+            for attempt in range(1, PAGE_ATTEMPTS + 1):
+                try:
+                    body, metadata = _request(target, timeout, opener, None, "json")
+                    break
+                except DataError as error:
+                    # A long walk meets dropped connections. Retry the one page, and give up only when every attempt fails.
+                    if attempt == PAGE_ATTEMPTS or not isinstance(error.__cause__, (OSError, urllib.error.URLError)):
+                        raise DataError(f"{error} after {attempt} attempts; {pages} pages kept at {target_path}") from error
+                    retries += 1
+                    time.sleep(PAGE_RETRY_SECONDS * attempt)
             handle.write(body.strip() + b"\n")
             handle.flush()
             pages += 1
@@ -83,7 +97,7 @@ def _paged(url: str, page: dict[str, Any], timeout: float, opener: Callable[...,
                 break
             if pages >= limit:
                 raise DataError(f"pagination exceeded {limit} pages for {url}; {pages} pages kept at {target_path}")
-    return {**metadata, "pages": pages}
+    return {**metadata, "pages": pages, "retries": retries}
 
 
 def capture_preview(

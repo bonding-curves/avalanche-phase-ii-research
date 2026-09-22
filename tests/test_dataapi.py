@@ -111,19 +111,45 @@ def test_paged_endpoint_stops_at_the_page_cap(tmp_path):
         rest.capture(dataapi.DATASET_ID, tmp_path / "capture", catalog=catalog, opener=paged_opener())
 
 
-def test_paged_capture_keeps_fetched_pages_when_a_later_page_fails(tmp_path):
+def test_paged_capture_keeps_fetched_pages_when_a_later_page_fails(tmp_path, monkeypatch):
+    monkeypatch.setattr(rest, "PAGE_RETRY_SECONDS", 0)
     catalog = json.loads(json.dumps(load_catalog()))
     provider = next(item for item in catalog["sources"] if item["id"] == "avalanche-data-api")
     provider["endpoints"].append({"id": "paged-test", "url": "https://example.test/v1/validators", "response_fields": ["validators"],
                                   "page": {"token_field": "nextPageToken", "token_parameter": "pageToken", "max_pages": 10}})
     next(item for item in catalog["datasets"] if item["id"] == dataapi.DATASET_ID)["endpoint_ids"] = ["paged-test"]
+    attempts: list[str] = []
 
-    def flaky(request, timeout):
+    def dead(request, timeout):
         if "pageToken=t2" in request.full_url:
+            attempts.append(request.full_url)
             raise OSError("connection reset")
         return paged_opener()(request, timeout)
 
-    with pytest.raises(DataError, match="request failed"):
-        rest.capture(dataapi.DATASET_ID, tmp_path / "capture", catalog=catalog, opener=flaky)
+    with pytest.raises(DataError, match="request failed.*after 3 attempts; 2 pages kept"):
+        rest.capture(dataapi.DATASET_ID, tmp_path / "capture", catalog=catalog, opener=dead)
+    assert len(attempts) == 3
     kept = list(tmp_path.glob(".capture.*/raw/paged-test.jsonl"))
     assert len(kept) == 1 and len(kept[0].read_text().splitlines()) == 2
+
+
+def test_paged_capture_retries_one_dropped_page(tmp_path, monkeypatch):
+    monkeypatch.setattr(rest, "PAGE_RETRY_SECONDS", 0)
+    catalog = json.loads(json.dumps(load_catalog()))
+    provider = next(item for item in catalog["sources"] if item["id"] == "avalanche-data-api")
+    provider["endpoints"].append({"id": "paged-test", "url": "https://example.test/v1/validators", "response_fields": ["validators"],
+                                  "page": {"token_field": "nextPageToken", "token_parameter": "pageToken", "max_pages": 10}})
+    next(item for item in catalog["datasets"] if item["id"] == dataapi.DATASET_ID)["endpoint_ids"] = ["paged-test"]
+    dropped: list[str] = []
+
+    def flaky(request, timeout):
+        if "pageToken=t1" in request.full_url and not dropped:
+            dropped.append(request.full_url)
+            raise OSError("connection reset")
+        return paged_opener()(request, timeout)
+
+    receipt = rest.capture(dataapi.DATASET_ID, tmp_path / "capture", catalog=catalog, opener=flaky)
+    record = receipt["responses"][0]
+    assert record["pages"] == 3 and record["retries"] == 1
+    _, values = rest.read_capture(tmp_path / "capture", catalog=catalog)
+    assert [row["txHash"] for page in values["paged-test"] for row in page["validators"]] == ["a", "b", "c"]
