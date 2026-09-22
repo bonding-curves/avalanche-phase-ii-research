@@ -728,7 +728,8 @@
       "reuse_status": "Follows the reuse status of its inputs.",
       "notes": [
         "Built with `avalanche data derive`, which selects the newest built run of each input unless a run is pinned, and writes a capture receipt naming the input runs beside the Parquet build.",
-        "The staking-period log adds the network upgrade regime at acceptance and the reward the protocol kernel computes for each row, so the recorded potential reward can be checked row by row."
+        "The staking-period log adds the network upgrade regime at acceptance and the reward the protocol kernel computes for each row, so the recorded potential reward can be checked row by row.",
+        "The node table folds the staking-period log, the reward addresses on validator transactions, and the delegator addresses into one row per validator node. Its clocks are clipped at the validator capture time, so a run is reproducible from its inputs alone."
       ],
       "inputs": [
         {
@@ -750,6 +751,11 @@
           "id": "staking-supply",
           "dataset_id": "snowflake.primary-staking-supply",
           "role": "supply reading before each staking transaction's block"
+        },
+        {
+          "id": "staking-periods",
+          "dataset_id": "derived.staking-periods",
+          "role": "the staking-period log with regime, kernel reward, and reward outcome"
         }
       ]
     }
@@ -2467,6 +2473,221 @@
           "type": "boolean",
           "unit": "flag, null when no kernel value",
           "derivation": "kernel_reward_navax equals potential_reward_navax"
+        }
+      ]
+    },
+    {
+      "id": "derived.node-table",
+      "name": "Primary Network validator nodes",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "durations",
+        "rewards",
+        "delegator flows"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per node that has validated the Primary Network, with every attribute the studies reason about computed once: the three clocks (span, tenure, current streak) and their stake weights, stake and fee history, delegation, rewards and failures, upgrade regimes, and the reward address as an operator proxy. Clocks are clipped at the validator capture time and active nodes are right-censored. Each field names the glossary term it realises.",
+      "input_ids": [
+        "staking-periods",
+        "validator-stakes",
+        "delegator-stakes"
+      ],
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "one row per node that has validated the Primary Network; a node is a machine identity, not an operator (glossary G1)"
+        },
+        {
+          "name": "as_of",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the validator capture time the clocks are clipped at; every duration in the row is as of this instant"
+        },
+        {
+          "name": "first_start",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "start of the node's first staking period"
+        },
+        {
+          "name": "last_end",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "end of the node's last staking period, which may lie after as_of"
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "unit": "true when last_end is after as_of",
+          "derivation": "the right-censoring flag: for an active node span, tenure, and current streak are lower bounds"
+        },
+        {
+          "name": "periods",
+          "type": "integer",
+          "unit": "staking periods",
+          "derivation": "validator staking periods started before as_of (glossary G5)"
+        },
+        {
+          "name": "closed_periods",
+          "type": "integer",
+          "unit": "staking periods",
+          "derivation": "periods with a reward transaction"
+        },
+        {
+          "name": "failed_periods",
+          "type": "integer",
+          "unit": "staking periods",
+          "derivation": "closed periods that realised zero reward, the uptime requirement not met (glossary G13)"
+        },
+        {
+          "name": "streaks",
+          "type": "integer",
+          "unit": "streaks",
+          "derivation": "unbroken runs of periods; a gap of more than streak_gap_days between one period's end and the next start ends a streak (glossary G8, coined)"
+        },
+        {
+          "name": "gap_count",
+          "type": "integer",
+          "unit": "gaps",
+          "derivation": "streaks minus one"
+        },
+        {
+          "name": "gap_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "total days between streaks, from a streak's clipped end to the next streak's start"
+        },
+        {
+          "name": "span_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "first_start to last_end, or to as_of if active, gaps included (glossary G18 span, coined)"
+        },
+        {
+          "name": "tenure_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "sum of the node's staking periods with gaps excluded and overlaps merged, clipped at as_of (glossary G17 tenure, the client's word; Stata's time at risk)"
+        },
+        {
+          "name": "current_streak_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "length of the latest streak, clipped at as_of (glossary G8)"
+        },
+        {
+          "name": "stake_days_avax",
+          "type": "number",
+          "unit": "AVAX-days",
+          "derivation": "sum over periods of stake times clipped days; the quantity a stake-and-time reward would pay on (glossary G20, coined)"
+        },
+        {
+          "name": "stake_weighted_period_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "stake-weighted mean length of the node's periods; a sizing statistic, not a total (glossary G21, coined)"
+        },
+        {
+          "name": "min_stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "smallest own stake across periods (glossary G22)"
+        },
+        {
+          "name": "max_stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "largest own stake across periods"
+        },
+        {
+          "name": "latest_stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "own stake of the latest period"
+        },
+        {
+          "name": "latest_fee_rate",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "delegation fee rate of the latest period (glossary G12)"
+        },
+        {
+          "name": "fee_settings",
+          "type": "integer",
+          "unit": "distinct rates",
+          "derivation": "how many distinct fee rates the node has used; fee is a per-period choice, not a fixed trait"
+        },
+        {
+          "name": "delegations",
+          "type": "integer",
+          "unit": "delegations",
+          "derivation": "delegations to the node's periods (glossary G23)"
+        },
+        {
+          "name": "delegated_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "sum of delegated stake across the node's periods"
+        },
+        {
+          "name": "delegator_addresses",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "sum over periods of distinct funding delegator addresses (glossary G25); a period's addresses may repeat across periods"
+        },
+        {
+          "name": "max_period_delegation_ratio",
+          "type": "number",
+          "unit": "ratio",
+          "derivation": "largest over periods of delegated stake divided by delegation capacity, capacity being delegation_capacity_multiple times own stake; an upper bound on fill because delegations within a period need not overlap (glossary G24)"
+        },
+        {
+          "name": "rewards_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "sum of the node's own realised validation rewards (glossary G14)"
+        },
+        {
+          "name": "delegatee_fees_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "fee income: sum over rewarded delegations of potential reward times the period's fee rate, the convention settled for fee_transfer_navax (glossary G15)"
+        },
+        {
+          "name": "first_regime",
+          "type": "string",
+          "unit": "upgrade regime",
+          "derivation": "network upgrade regime of the first period (glossary G10, G11)"
+        },
+        {
+          "name": "last_regime",
+          "type": "string",
+          "unit": "upgrade regime",
+          "derivation": "regime of the latest period"
+        },
+        {
+          "name": "reward_address",
+          "type": "string",
+          "unit": "P-Chain address",
+          "derivation": "reward address of the latest period"
+        },
+        {
+          "name": "reward_addresses_used",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "distinct reward addresses across periods"
+        },
+        {
+          "name": "operator_group",
+          "type": "string",
+          "unit": "P-Chain address",
+          "derivation": "the latest reward address, used as an operator proxy: a shared address can link nodes, but it does not prove one decision maker, and different addresses do not prove different operators (node table plan NK1, interface rule I2)"
         }
       ]
     }

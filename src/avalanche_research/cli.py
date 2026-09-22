@@ -18,6 +18,7 @@ from . import datasets
 from . import defillama
 from . import derived
 from . import metrics
+from . import nodes
 from . import pchain
 from . import snowflake
 from . import snowpeer
@@ -40,6 +41,7 @@ MODULES = {
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,
     derived.DATASET_ID: derived,
+    nodes.DATASET_ID: nodes,
     **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
 }

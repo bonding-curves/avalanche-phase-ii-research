@@ -410,6 +410,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
             "metrics-api.primary-staking-daily", "metrics-api.c-chain-activity-daily", "data-api.avax-supply",
             "data-api.c-chain-atomic-burn",
         "derived.staking-periods",
+        "derived.node-table",
     ]
 
 

@@ -23,6 +23,7 @@ This directory defines the machine-readable contracts for research data used in 
 | `metrics-api.c-chain-activity-daily` | One Parquet row per day of Metrics API C-Chain active addresses, transactions, gas, fees, and gas price since 2021-03-21 | Implemented, tested, and captured live |
 | `data-api.avax-supply` | One Parquet row per capture with the Data API's current supply, staked, locked, cumulative reward, and burn totals | Implemented, tested, and captured live; the API publishes no history |
 | `derived.staking-periods` | One Parquet row per staking period, validators and delegators together, with reward outcome, supply reading, upgrade regime, and the protocol kernel's reward for the row | Implemented, tested, and derived from the four Snowflake staking runs |
+| `derived.node-table` | One Parquet row per validator node: the three clocks (span, tenure, current streak) and their stake weights, stake and fee history, delegation, rewards and failures, upgrade regimes, and the reward address as an operator proxy, all clipped at the validator capture time | Implemented, tested, and derived from the staking-period log and the two Snowflake stake runs |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -223,6 +224,17 @@ uv run --locked avalanche data check derived.staking-periods --capture data/runs
 ```
 
 The check verifies the input runs still hash as recorded, the catalog contract and the upgrade schedule are unchanged, every staking transaction appears once, every row with a supply reading has a kernel reward, and the kernel reproduces at least 99.9% of the periods that start at acceptance. The build summary also reports the pending-start reproduction share, rows without a supply reading, and periods that ended before the reward capture without a reward row; those are gaps to explain, not failures.
+
+## Derive the node table
+
+`derived.node-table` folds the staking-period log into one row per validator node. Every column is defined once here and named in the catalog after the glossary term it realises: `span_days` is first stake to last end with gaps included, `tenure_days` is days actually staked with gaps excluded, `current_streak_days` is the latest unbroken run, and `stake_days_avax` is the sum of stake times days. Clocks are clipped at the validator capture time recorded as `as_of`, so a node still validating then is right-censored and `active` says so. `operator_group` is the latest reward address, a proxy for the operator and never proof of one decision maker. The check verifies one row per node, that every node has a reward address, that tenure never exceeds span and the current streak never exceeds tenure, and that periods and realised rewards reconcile to the period log.
+
+```bash
+uv run --locked avalanche data derive derived.node-table --output data/runs/node-table-example
+uv run --locked avalanche data check derived.node-table --capture data/runs/node-table-example/capture --dataset data/runs/node-table-example/dataset
+```
+
+On the 2026-09-22 runs this builds 7,644 rows in about two seconds and loads as the `node_table` view.
 
 ## Use datasets from a notebook
 
