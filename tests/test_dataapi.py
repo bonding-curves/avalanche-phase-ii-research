@@ -65,3 +65,47 @@ def test_identity_break_and_bad_shape_are_reported(tmp_path):
     assert "1 rows break the supply identity by more than one AVAX" in validation["findings"]
     with pytest.raises(DataError, match="misses or mistypes"):
         dataapi.check(make_capture(tmp_path / "bad", {**SUPPLY, "totalStaked": "n/a"}))
+
+
+PAGES = [
+    {"validators": [{"txHash": "a"}, {"txHash": "b"}], "nextPageToken": "t1"},
+    {"validators": [{"txHash": "c"}], "nextPageToken": "t2"},
+    {"validators": []},
+]
+
+
+def paged_opener(pages=PAGES, seen=None):
+    def opener(request, timeout):
+        url = request.full_url
+        token = url.split("pageToken=")[1] if "pageToken=" in url else None
+        index = 0 if token is None else int(token[1:])
+        if seen is not None:
+            seen.append(url)
+        return Response(pages[index])
+    return opener
+
+
+def test_paged_endpoint_is_followed_and_read_back(tmp_path, monkeypatch):
+    catalog = json.loads(json.dumps(load_catalog()))
+    provider = next(item for item in catalog["sources"] if item["id"] == "avalanche-data-api")
+    provider["endpoints"].append({"id": "paged-test", "url": "https://example.test/v1/validators?pageSize=2", "response_fields": ["validators"],
+                                  "page": {"token_field": "nextPageToken", "token_parameter": "pageToken", "max_pages": 10}})
+    definition = next(item for item in catalog["datasets"] if item["id"] == dataapi.DATASET_ID)
+    definition["endpoint_ids"] = ["paged-test"]
+    seen: list[str] = []
+    receipt = rest.capture(dataapi.DATASET_ID, tmp_path / "capture", catalog=catalog, opener=paged_opener(seen=seen))
+    record = receipt["responses"][0]
+    assert record["pages"] == 3 and record["path"] == "raw/paged-test.jsonl"
+    assert seen == ["https://example.test/v1/validators?pageSize=2", "https://example.test/v1/validators?pageSize=2&pageToken=t1", "https://example.test/v1/validators?pageSize=2&pageToken=t2"]
+    _, values = rest.read_capture(tmp_path / "capture", catalog=catalog)
+    assert [row["txHash"] for page in values["paged-test"] for row in page["validators"]] == ["a", "b", "c"]
+
+
+def test_paged_endpoint_stops_at_the_page_cap(tmp_path):
+    catalog = json.loads(json.dumps(load_catalog()))
+    provider = next(item for item in catalog["sources"] if item["id"] == "avalanche-data-api")
+    provider["endpoints"].append({"id": "paged-test", "url": "https://example.test/v1/validators", "response_fields": ["validators"],
+                                  "page": {"token_field": "nextPageToken", "token_parameter": "pageToken", "max_pages": 2}})
+    next(item for item in catalog["datasets"] if item["id"] == dataapi.DATASET_ID)["endpoint_ids"] = ["paged-test"]
+    with pytest.raises(DataError, match="exceeded 2 pages"):
+        rest.capture(dataapi.DATASET_ID, tmp_path / "capture", catalog=catalog, opener=paged_opener())

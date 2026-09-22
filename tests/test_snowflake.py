@@ -408,6 +408,8 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "snowpeer.network-summary", *snowflake.DATASET_IDS, "coingecko.avax-market-daily", "defillama.avax-price-daily",
         "c-chain-rpc.receipt-gap-repairs", "p-chain-rpc.current-validators", "defillama.pool-yields", "us-treasury.par-yield-daily",
             "metrics-api.primary-staking-daily", "metrics-api.c-chain-activity-daily", "data-api.avax-supply",
+        "data-api.validators-active",
+        "data-api.validators-completed",
             "data-api.c-chain-atomic-burn",
         "derived.staking-periods",
         "derived.node-table",

@@ -392,7 +392,8 @@
         "OpenAPI GET /v1/avax/supply: Get AVAX supply information that includes total supply, circulating supply, total p burned, total c burned, total x burned, total staked, total locked, total rewards, and last updated. The operation takes no parameters.",
         "Blocker recorded 2026-09-19: the Data API exposes no historical supply, circulating supply, staked supply, or cumulative burn series; the supply endpoint returns one current state with lastUpdated. A history can only be assembled by repeated captures or from the Snowflake block supply counter.",
         "Observed 2026-09-19: totalSupply equals genesisUnlock plus totalRewards minus the three burn totals to within one AVAX, so the API's totals are internally consistent.",
-        "C-Chain atomic transaction listing pages backward from latest; startTimestamp and endTimestamp require an address filter, so a complete all-address dated capture walks pages until it crosses the requested start."
+        "C-Chain atomic transaction listing pages backward from latest; startTimestamp and endTimestamp require an address filter, so a complete all-address dated capture walks pages until it crosses the requested start.",
+        "Validators endpoint, measured 2026-09-22: 100 rows per page is the maximum, about four seconds a page, no rate-limit headers, and Cloudflare rejects Python's default user agent. Without a subnetId filter the endpoint also returns subnet validators, which have no delegation fee. Active Primary Network validations carry uptimePerformance as observed by Ava Labs' node; completed validations carry rewards and reward addresses but no uptime, so historical uptime percentages are not recoverable from this API."
       ],
       "endpoints": [
         {
@@ -419,6 +420,32 @@
             "transactions",
             "nextPageToken"
           ]
+        },
+        {
+          "id": "validators-active",
+          "url": "https://data-api.avax.network/v1/networks/mainnet/validators?validationStatus=active&pageSize=100&subnetId=11111111111111111111111111111111LpoYY",
+          "response_fields": [
+            "validators",
+            "nextPageToken"
+          ],
+          "page": {
+            "token_field": "nextPageToken",
+            "token_parameter": "pageToken",
+            "max_pages": 800
+          }
+        },
+        {
+          "id": "validators-completed",
+          "url": "https://data-api.avax.network/v1/networks/mainnet/validators?validationStatus=completed&pageSize=100&subnetId=11111111111111111111111111111111LpoYY",
+          "response_fields": [
+            "validators",
+            "nextPageToken"
+          ],
+          "page": {
+            "token_field": "nextPageToken",
+            "token_parameter": "pageToken",
+            "max_pages": 800
+          }
         }
       ]
     },
@@ -2227,6 +2254,320 @@
           "type": "number",
           "unit": "AVAX; totalSupply minus (genesisUnlock + totalRewards - burns)",
           "derivation": "total_supply_avax - (genesis_unlock_avax + total_rewards_avax - total_p_burned_avax - total_c_burned_avax - total_x_burned_avax)"
+        }
+      ]
+    },
+    {
+      "id": "data-api.validators-active",
+      "name": "Active Primary Network validations from the Data API",
+      "source_id": "avalanche-data-api",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "delegator flows"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per active Primary Network validation at the capture instant, from Ava Labs' indexer: uptime as a second observer beside the P-Chain RPC snapshot, node health, remaining delegation capacity and derived fill, stake share, node version, geolocation, and staking type. A history is built only by repeated captures. Checked against the same day's RPC snapshot with --against.",
+      "endpoint_ids": [
+        "validators-active"
+      ],
+      "fields": [
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "capture completion time"
+        },
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "txHash; the key, because a node can hold two active validations at once"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "nodeId (glossary G1)"
+        },
+        {
+          "name": "validation_status",
+          "type": "string",
+          "unit": "active or completed",
+          "derivation": "validationStatus"
+        },
+        {
+          "name": "staking_type",
+          "type": "string",
+          "unit": "fixed or autoRenewed",
+          "derivation": "stakingType; autoRenewed is the Helicon cycle mechanism (glossary G9)"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "startTimestamp"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "endTimestamp"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "amountStaked (glossary G22)"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "stake_navax / 1e9"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "delegationFee / 100 (glossary G12)"
+        },
+        {
+          "name": "delegator_count",
+          "type": "integer",
+          "unit": "delegators",
+          "derivation": "delegatorCount"
+        },
+        {
+          "name": "delegated_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "amountDelegated (glossary G23)"
+        },
+        {
+          "name": "delegated_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "delegated_navax / 1e9"
+        },
+        {
+          "name": "uptime_performance_pct",
+          "type": "number",
+          "unit": "percent",
+          "derivation": "uptimePerformance, as observed by Ava Labs' internal node and measured over time; a second observer beside the RPC snapshot's uptime (glossary G13)"
+        },
+        {
+          "name": "reachability_pct",
+          "type": "number",
+          "unit": "percent",
+          "derivation": "validatorHealth.reachabilityPercent"
+        },
+        {
+          "name": "benched_p_chain_pct",
+          "type": "number",
+          "unit": "percent",
+          "derivation": "validatorHealth.benchedPChainRequestsPercent"
+        },
+        {
+          "name": "benched_x_chain_pct",
+          "type": "number",
+          "unit": "percent",
+          "derivation": "validatorHealth.benchedXChainRequestsPercent"
+        },
+        {
+          "name": "benched_c_chain_pct",
+          "type": "number",
+          "unit": "percent",
+          "derivation": "validatorHealth.benchedCChainRequestsPercent"
+        },
+        {
+          "name": "delegation_capacity_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "delegationCapacity, the remaining stake that can be delegated"
+        },
+        {
+          "name": "delegation_fill",
+          "type": "number",
+          "unit": "ratio",
+          "derivation": "delegated_navax divided by four times stake_navax, the protocol's capacity from MaxValidatorWeightFactor (glossary G24)"
+        },
+        {
+          "name": "stake_percentage",
+          "type": "number",
+          "unit": "percent",
+          "derivation": "stakePercentage, this validation's share of total active stake"
+        },
+        {
+          "name": "potential_validation_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "potentialRewards.validationRewardAmount"
+        },
+        {
+          "name": "potential_delegation_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "potentialRewards.delegationRewardAmount"
+        },
+        {
+          "name": "node_version",
+          "type": "string",
+          "unit": "avalanchego version",
+          "derivation": "avalancheGoVersion; null when the indexer has not observed it"
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "unit": "country",
+          "derivation": "geolocation.country; null when unknown"
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "unit": "city",
+          "derivation": "geolocation.city"
+        },
+        {
+          "name": "latitude",
+          "type": "number",
+          "unit": "degrees",
+          "derivation": "geolocation.latitude"
+        },
+        {
+          "name": "longitude",
+          "type": "number",
+          "unit": "degrees",
+          "derivation": "geolocation.longitude"
+        }
+      ]
+    },
+    {
+      "id": "data-api.validators-completed",
+      "name": "Completed Primary Network validations from the Data API",
+      "source_id": "avalanche-data-api",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "rewards"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per completed Primary Network validation, from Ava Labs' indexer: the period, stake, fee, delegation received, the validation and delegatee rewards, the reward addresses, and the reward transaction. No uptime is reported for finished validations. Checked against the Snowflake validator capture with --against, where every shared transaction must name the same reward address and stake.",
+      "endpoint_ids": [
+        "validators-completed"
+      ],
+      "fields": [
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "capture completion time"
+        },
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "txHash; the key, because a node can hold two active validations at once"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "nodeId (glossary G1)"
+        },
+        {
+          "name": "validation_status",
+          "type": "string",
+          "unit": "active or completed",
+          "derivation": "validationStatus"
+        },
+        {
+          "name": "staking_type",
+          "type": "string",
+          "unit": "fixed or autoRenewed",
+          "derivation": "stakingType; autoRenewed is the Helicon cycle mechanism (glossary G9)"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "startTimestamp"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "endTimestamp"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "amountStaked (glossary G22)"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "stake_navax / 1e9"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "delegationFee / 100 (glossary G12)"
+        },
+        {
+          "name": "delegator_count",
+          "type": "integer",
+          "unit": "delegators",
+          "derivation": "delegatorCount"
+        },
+        {
+          "name": "delegated_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "amountDelegated (glossary G23)"
+        },
+        {
+          "name": "delegated_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "delegated_navax / 1e9"
+        },
+        {
+          "name": "validation_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "rewards.validationRewardAmount; zero when the uptime requirement was not met (glossary G13, G14)"
+        },
+        {
+          "name": "delegation_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "rewards.delegationRewardAmount, the validator's delegatee reward (glossary G15)"
+        },
+        {
+          "name": "reward_address",
+          "type": "string",
+          "unit": "P-Chain address",
+          "derivation": "first of rewards.rewardAddresses; cross-checks the Snowflake reward_address (glossary G1 proxy)"
+        },
+        {
+          "name": "reward_address_count",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "length of rewards.rewardAddresses"
+        },
+        {
+          "name": "reward_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "rewards.rewardTxHash"
         }
       ]
     },

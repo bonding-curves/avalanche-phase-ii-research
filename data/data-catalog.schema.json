@@ -339,6 +339,27 @@
                   "type": "string"
                 },
                 "uniqueItems": true
+              },
+              "page": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "token_field",
+                  "token_parameter"
+                ],
+                "description": "follow a continuation token: the response field that carries it and the query parameter that sends it; each page becomes one JSON line of the raw file",
+                "properties": {
+                  "token_field": {
+                    "type": "string"
+                  },
+                  "token_parameter": {
+                    "type": "string"
+                  },
+                  "max_pages": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
               }
             }
           }

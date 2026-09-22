@@ -1,4 +1,8 @@
-"""Immutable capture of REST endpoint responses declared in the data catalog."""
+"""Immutable capture of REST endpoint responses declared in the data catalog.
+
+An endpoint that declares ``page`` is followed through its continuation token: each page is one JSON line in the raw
+file, and the receipt records the page count. Everything else about the capture is unchanged.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +11,7 @@ import os
 import shutil
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 from xml.etree import ElementTree
 from pathlib import Path
@@ -58,6 +63,25 @@ def _request(
     return body, {"http_status": status, "content_type": content_type}
 
 
+def _paged(url: str, page: dict[str, Any], timeout: float, opener: Callable[..., Any]) -> tuple[bytes, dict[str, Any]]:
+    """Follow ``page['token_field']`` in each JSON response as ``page['token_parameter']`` on the next request.
+
+    The raw body is one JSON object per line. The last page is the one without a token, so an empty page ends
+    the walk only when it carries no token. ``max_pages`` bounds the cost of a runaway token."""
+    token_field, token_parameter, limit = page["token_field"], page["token_parameter"], int(page.get("max_pages", 100))
+    lines, token, metadata = [], None, {}
+    while True:
+        target = url if token is None else f"{url}{'&' if '?' in url else '?'}{urllib.parse.urlencode({token_parameter: token})}"
+        body, metadata = _request(target, timeout, opener, None, "json")
+        lines.append(body.strip())
+        token = json.loads(body).get(token_field)
+        if not token:
+            break
+        if len(lines) >= limit:
+            raise DataError(f"pagination exceeded {limit} pages for {url}")
+    return b"\n".join(lines) + b"\n", {**metadata, "pages": len(lines)}
+
+
 def capture_preview(
     dataset_id: str,
     output: Path,
@@ -77,6 +101,7 @@ def capture_preview(
             "method": "POST" if "request_json" in endpoints[endpoint_id] else "GET",
             "content": endpoints[endpoint_id].get("content", "json"),
             **({"request_json": endpoints[endpoint_id]["request_json"]} if "request_json" in endpoints[endpoint_id] else {}),
+            **({"page": endpoints[endpoint_id]["page"]} if "page" in endpoints[endpoint_id] else {}),
         }
         for endpoint_id in definition["endpoint_ids"]
     ]
@@ -85,7 +110,7 @@ def capture_preview(
         "source_id": provider["id"],
         "output": str(output),
         "requests": requests,
-        "writes": ["raw/*.json", "capture.json"],
+        "writes": ["raw/*.json", "raw/*.jsonl", "capture.json"],
         "overwrite": False,
     }
 
@@ -109,14 +134,19 @@ def capture(
         raw = temporary / "raw"
         raw.mkdir()
         for item in preview["requests"]:
-            body, metadata = _request(item["url"], timeout, opener, item.get("request_json"), item["content"])
-            relative = Path("raw") / f"{item['endpoint_id']}.{item['content']}"
+            if "page" in item:
+                body, metadata = _paged(item["url"], item["page"], timeout, opener)
+                relative = Path("raw") / f"{item['endpoint_id']}.jsonl"
+            else:
+                body, metadata = _request(item["url"], timeout, opener, item.get("request_json"), item["content"])
+                relative = Path("raw") / f"{item['endpoint_id']}.{item['content']}"
             (temporary / relative).write_bytes(body)
             records.append({
                 "endpoint_id": item["endpoint_id"],
                 "url": item["url"],
                 "method": item["method"],
                 **({"request_json": item["request_json"]} if "request_json" in item else {}),
+                **({"page": item["page"]} if "page" in item else {}),
                 "path": str(relative),
                 "bytes": len(body),
                 "sha256": sha256(body),
@@ -170,6 +200,15 @@ def read_capture(
             except ElementTree.ParseError as error:
                 raise DataError(f"captured response is not well-formed XML: {item.get('path')}") from error
             values[item["endpoint_id"]] = body.decode("utf-8", errors="replace")
+            continue
+        if item["path"].endswith(".jsonl"):
+            try:
+                pages = [json.loads(line) for line in body.splitlines() if line.strip()]
+            except json.JSONDecodeError as error:
+                raise DataError(f"captured page is not JSON: {item.get('path')}") from error
+            if len(pages) != item.get("pages") or not all(isinstance(page, dict) for page in pages):
+                raise DataError(f"captured pages differ from the receipt: {item.get('path')}")
+            values[item["endpoint_id"]] = pages
             continue
         try:
             value = json.loads(body)
