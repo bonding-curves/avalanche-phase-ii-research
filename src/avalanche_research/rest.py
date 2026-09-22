@@ -73,8 +73,11 @@ def _paged(url: str, page: dict[str, Any], timeout: float, opener: Callable[...,
 
     Each page is appended to ``target_path`` as one JSON line the moment it arrives, so a long walk shows its progress
     on disk and a failure leaves the pages already fetched for inspection. The last page is the one without a token,
-    so an empty page ends the walk only when it carries no token. ``max_pages`` bounds the cost of a runaway token."""
+    so an empty page ends the walk only when it carries no token. ``max_pages`` bounds the cost of a runaway token and
+    fails the capture when reached. ``first_pages`` ends the walk cleanly after that many pages, for a sweep of the
+    newest rows of an endpoint that lists newest first."""
     token_field, token_parameter, limit = page["token_field"], page["token_parameter"], int(page.get("max_pages", 100))
+    first = int(page.get("first_pages", 0))
     pages, retries, token, metadata = 0, 0, None, {}
     with target_path.open("wb") as handle:
         while True:
@@ -93,7 +96,7 @@ def _paged(url: str, page: dict[str, Any], timeout: float, opener: Callable[...,
             handle.flush()
             pages += 1
             token = json.loads(body).get(token_field)
-            if not token:
+            if not token or pages == first:
                 break
             if pages >= limit:
                 raise DataError(f"pagination exceeded {limit} pages for {url}; {pages} pages kept at {target_path}")

@@ -358,6 +358,11 @@
                   "max_pages": {
                     "type": "integer",
                     "minimum": 1
+                  },
+                  "first_pages": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "end the walk cleanly after this many pages: a sweep of the newest rows of an endpoint that lists newest first"
                   }
                 }
               }

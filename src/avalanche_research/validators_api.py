@@ -23,9 +23,11 @@ from .rest import capture, capture_preview, read_capture  # noqa: F401  shared R
 
 ACTIVE_ID = "data-api.validators-active"
 COMPLETED_ID = "data-api.validators-completed"
-DATASET_IDS = (ACTIVE_ID, COMPLETED_ID)
-ENDPOINTS = {ACTIVE_ID: "validators-active", COMPLETED_ID: "validators-completed"}
-TABLES = {ACTIVE_ID: "validators-active", COMPLETED_ID: "validators-completed"}
+RECENT_ID = "data-api.validators-completed-recent"
+DATASET_IDS = (ACTIVE_ID, COMPLETED_ID, RECENT_ID)
+ENDPOINTS = {ACTIVE_ID: "validators-active", COMPLETED_ID: "validators-completed", RECENT_ID: "validators-completed-recent"}
+TABLES = {ACTIVE_ID: "validators-active", COMPLETED_ID: "validators-completed", RECENT_ID: "validators-completed-recent"}
+SWEEP_DAYS = 30
 NAVAX = 1_000_000_000
 # MaxValidatorWeightFactor in avalanchego is five, so capacity is four times own stake (glossary G24). The API reports
 # the remaining capacity, and fill is derived from it.
@@ -47,7 +49,7 @@ COMPLETED_COLUMNS = {
     **COMMON_COLUMNS,
     "validation_reward_navax": "BIGINT", "delegation_reward_navax": "BIGINT", "reward_address": "VARCHAR", "reward_address_count": "INTEGER", "reward_transaction_hash": "VARCHAR",
 }
-TABLE_COLUMNS = {ACTIVE_ID: ACTIVE_COLUMNS, COMPLETED_ID: COMPLETED_COLUMNS}
+TABLE_COLUMNS = {ACTIVE_ID: ACTIVE_COLUMNS, COMPLETED_ID: COMPLETED_COLUMNS, RECENT_ID: COMPLETED_COLUMNS}
 
 VALIDATOR_STRUCT = """STRUCT(
     txHash VARCHAR, nodeId VARCHAR, subnetId VARCHAR, validationStatus VARCHAR, stakingType VARCHAR,
@@ -74,9 +76,9 @@ ACTIVE_SELECT = COMMON_SELECT + f""",
 COMPLETED_SELECT = COMMON_SELECT + """,
     v.rewards.validationRewardAmount::BIGINT, v.rewards.delegationRewardAmount::BIGINT,
     v.rewards.rewardAddresses[1], coalesce(len(v.rewards.rewardAddresses), 0), v.rewards.rewardTxHash"""
-SELECTS = {ACTIVE_ID: ACTIVE_SELECT, COMPLETED_ID: COMPLETED_SELECT}
+SELECTS = {ACTIVE_ID: ACTIVE_SELECT, COMPLETED_ID: COMPLETED_SELECT, RECENT_ID: COMPLETED_SELECT}
 REQUIRED = "transaction_hash IS NULL OR node_id IS NULL OR start_time IS NULL OR end_time IS NULL OR stake_navax IS NULL OR delegation_fee_rate IS NULL"
-REQUIRED_EXTRA = {ACTIVE_ID: " OR uptime_performance_pct IS NULL", COMPLETED_ID: " OR validation_reward_navax IS NULL"}
+REQUIRED_EXTRA = {ACTIVE_ID: " OR uptime_performance_pct IS NULL", COMPLETED_ID: " OR validation_reward_navax IS NULL", RECENT_ID: " OR validation_reward_navax IS NULL"}
 
 
 def _reject(dataset_id: str) -> None:
@@ -221,24 +223,41 @@ def reconcile_completed(connection: Any, reference_dir: Path) -> tuple[dict[str,
     stake, and reward. The API's reward is the potential reward whether or not the validation passed: on 2026-09-22 it
     equalled Snowflake's potential reward on all 56,963 validations, including the 1,397 Snowflake records as unrewarded,
     so pass or fail comes from Snowflake alone. When the delegator capture sits beside the validator capture, the API's
-    delegated amount and delegator count must equal the sum and count of every delegation to the validation."""
+    delegated amount and delegator count must equal the sum and count of every delegation to the validation. When the
+    full history's parquet sits there, every validation shared with it must read the same, which is the daily sweep's
+    overlap check."""
     parquet = reference_dir / "primary-validator-stakes.parquet"
-    if not parquet.is_file():
-        raise DataError(f"missing reference validator dataset: {parquet}")
-    record = connection.execute(
-        """
-        SELECT COUNT(*), COUNT_IF(r.reward_address = s.reward_address), COUNT_IF(r.stake_navax = s.stake_navax),
-               COUNT_IF(r.validation_reward_navax = s.potential_reward_navax), COUNT_IF(NOT s.rewarded)
-        FROM rows r JOIN read_parquet(?) s ON s.transaction_hash = r.transaction_hash
-        """,
-        [str(parquet)],
-    ).fetchone()
+    history = reference_dir / f"{TABLES[COMPLETED_ID]}.parquet"
+    if not parquet.is_file() and not history.is_file():
+        raise DataError(f"missing reference validator dataset: {parquet} or {history}")
     findings: list[str] = []
-    summary = {"validations_in_both": record[0], "reward_address_equal": record[1], "stake_equal": record[2],
-               "reward_equals_potential": record[3], "unrewarded_per_snowflake": record[4]}
-    for count, label in zip(record[1:4], ("reward address", "stake", "reward")):
-        if record[0] and count != record[0]:
-            findings.append(f"{label} differs from the Snowflake capture on {record[0] - count} validations")
+    summary: dict[str, Any] = {}
+    if history.is_file():
+        # A sweep overlaps the full history. Every shared validation must read the same, apart from the capture time.
+        columns = [name for name in COMPLETED_COLUMNS if name != "observed_at"]
+        same = " AND ".join(f"r.{name} IS NOT DISTINCT FROM h.{name}" for name in columns)
+        record = connection.execute(
+            f"SELECT COUNT(*), COUNT_IF({same}), (SELECT COUNT(*) FROM rows WHERE transaction_hash NOT IN (SELECT transaction_hash FROM read_parquet(?)))"
+            " FROM rows r JOIN read_parquet(?) h ON h.transaction_hash = r.transaction_hash",
+            [str(history), str(history)],
+        ).fetchone()
+        summary.update({"validations_in_history": record[0], "history_equal": record[1], "validations_new_since_history": record[2]})
+        if record[0] and record[1] != record[0]:
+            findings.append(f"{record[0] - record[1]} validations read differently from the full history")
+    if parquet.is_file():
+        record = connection.execute(
+            """
+            SELECT COUNT(*), COUNT_IF(r.reward_address = s.reward_address), COUNT_IF(r.stake_navax = s.stake_navax),
+                   COUNT_IF(r.validation_reward_navax = s.potential_reward_navax), COUNT_IF(NOT s.rewarded)
+            FROM rows r JOIN read_parquet(?) s ON s.transaction_hash = r.transaction_hash
+            """,
+            [str(parquet)],
+        ).fetchone()
+        summary.update({"validations_in_both": record[0], "reward_address_equal": record[1], "stake_equal": record[2],
+                        "reward_equals_potential": record[3], "unrewarded_per_snowflake": record[4]})
+        for count, label in zip(record[1:4], ("reward address", "stake", "reward")):
+            if record[0] and count != record[0]:
+                findings.append(f"{label} differs from the Snowflake capture on {record[0] - count} validations")
     delegators = reference_dir / "primary-delegator-stakes.parquet"
     if delegators.is_file():
         record = connection.execute(
@@ -288,6 +307,12 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
             if bad:
                 findings.append(f"{bad} validations have uptime outside 0 to 100")
         summary = summarize(connection, dataset_id)
+        if dataset_id == RECENT_ID:
+            checked.append("sweep span")
+            days = connection.execute("SELECT date_diff('day', MIN(end_time), MAX(end_time)) FROM rows").fetchone()[0]
+            summary["sweep_days"] = days
+            if days < SWEEP_DAYS:
+                findings.append(f"sweep spans {days} days of end times, fewer than {SWEEP_DAYS}; raise first_pages on the endpoint")
         if dataset_dir is not None:
             checked.append("build hashes")
             try:
@@ -301,7 +326,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
             except (OSError, KeyError, TypeError, json.JSONDecodeError) as error:
                 findings.append(f"invalid build output: {error}")
         if against is not None:
-            checked.append("two-observer reconciliation" if dataset_id == ACTIVE_ID else "reward address reconciliation")
+            checked.append("two-observer reconciliation" if dataset_id == ACTIVE_ID else "completed reconciliation")
             extra, more = (reconcile_active if dataset_id == ACTIVE_ID else reconcile_completed)(connection, against)
             summary.update(extra)
             findings.extend(more)

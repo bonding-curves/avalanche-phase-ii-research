@@ -120,6 +120,39 @@ def test_completed_pages_build_and_reconcile_against_snowflake(tmp_path):
     assert validation["findings"] == ["reward address differs from the Snowflake capture on 1 validations"]
 
 
+def test_recent_sweep_overlaps_the_history_and_spans_enough_days(tmp_path, monkeypatch):
+    day = 86_400
+    rows = [completed(f"tx-{i}", "NodeID-A", start=1_770_000_000, end=1_781_500_000 - i * 3 * day) for i in range(8)]  # newest end first, 21 days
+    pages = [rows[:3], rows[3:6], rows[6:]]
+    monkeypatch.setattr(va, "SWEEP_DAYS", 20)
+    capture_dir, dataset_dir = make_run(tmp_path, va.RECENT_ID, pages)
+    assert json.loads((capture_dir / "capture.json").read_text())["responses"][0]["pages"] == 3
+    assert json.loads((dataset_dir / "build.json").read_text())["summary"]["rows"] == 8
+    history = tmp_path / "history"
+    history.mkdir()
+    changed = rows[4]["txHash"]
+    built, kept = dataset_dir / f"{va.TABLES[va.RECENT_ID]}.parquet", history / f"{va.TABLES[va.COMPLETED_ID]}.parquet"
+    duckdb.connect().execute(
+        f"""COPY (SELECT * REPLACE (CASE WHEN transaction_hash = '{changed}' THEN 1 ELSE validation_reward_navax END AS validation_reward_navax)
+                  FROM read_parquet('{built}') WHERE transaction_hash <> 'tx-0') TO '{kept}' (FORMAT PARQUET)"""
+    )
+    validation = va.check(capture_dir, dataset_dir, history)
+    assert "sweep span" in validation["checked"] and validation["summary"]["sweep_days"] == 21
+    assert validation["summary"]["validations_in_history"] == 7 and validation["summary"]["validations_new_since_history"] == 1
+    assert validation["findings"] == ["1 validations read differently from the full history"]
+    monkeypatch.setattr(va, "SWEEP_DAYS", 30)
+    assert "sweep spans 21 days of end times, fewer than 30; raise first_pages on the endpoint" in va.check(capture_dir, dataset_dir, history)["findings"]
+
+
+def test_first_pages_ends_a_walk_without_error(tmp_path):
+    catalog = json.loads(json.dumps(load_catalog()))
+    endpoint = next(e for s in catalog["sources"] if s["id"] == "avalanche-data-api" for e in s["endpoints"] if e["id"] == va.ENDPOINTS[va.RECENT_ID])
+    endpoint["page"]["first_pages"] = 2
+    pages = [[completed("tx-1", "NodeID-A")], [completed("tx-2", "NodeID-A")], [completed("tx-3", "NodeID-A")]]
+    receipt = va.capture(va.RECENT_ID, tmp_path / "capture", catalog=catalog, opener=paged(pages))
+    assert receipt["responses"][0]["pages"] == 2
+
+
 def test_subnet_rows_without_a_fee_are_rejected(tmp_path):
     row = active("tx-s", "NodeID-S")
     del row["delegationFee"]

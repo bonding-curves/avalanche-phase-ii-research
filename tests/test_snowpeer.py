@@ -77,6 +77,7 @@ def test_catalog_schema_and_references_are_valid():
         "metrics-api.primary-staking-daily", "metrics-api.c-chain-activity-daily", "data-api.avax-supply",
         "data-api.validators-active",
         "data-api.validators-completed",
+        "data-api.validators-completed-recent",
         "data-api.c-chain-atomic-burn",
         "derived.staking-periods",
         "derived.node-table",
