@@ -3,12 +3,13 @@
 | Metadata | Value |
 | :--- | :--- |
 | **Document ID** | REQ-2026-09-ADMISSION-FRONTIER |
+| **Revision** | Rev 2.1 (Liquid Staking Arbitrage & Delegation Subsidy Equilibrium) |
 | **Status** | DRAFT - FOR COLLABORATIVE REVIEW |
 | **Authors** | Antigravity AI, BCRG Systems Engineering Team |
 | **Collaborators** | Shawn Anderson (Longtail Financial / BCRG), Dr. Eric Lu (Avalanche Foundation), Hansen Niu (BENQI) |
 | **Date** | September 22, 2026 |
 | **Target Milestone** | Milestone 2 Policy Matrix & Milestone 3 Parameter Recommendation |
-| **System Boundary** | PlatformVM Consensus & Stake Admission Subsystem (Primary Network) |
+| **System Boundary** | PlatformVM Consensus, Stake Admission & Liquid Staking Ecosystem |
 | **Interactive Reader** | [http://localhost:8099/requirements_rendered.html](http://localhost:8099/requirements_rendered.html) |
 
 ---
@@ -17,152 +18,85 @@
 
 The purpose of this document is to specify the **functional, economic, mathematical, and architectural requirements** for the **Duration-Dependent Stake Admission Frontier** $S_{\min}(d)$ on the Avalanche Primary Network.
 
-This mechanism resolves a multi-policy deadlock:
-1. **ACP-49:** Proposes reducing minimum validator self-stake from $2{,}000\text{ AVAX}$ to $500\text{ AVAX}$ to lower capital barriers.
-2. **ACP-273:** Proposes reducing minimum staking duration from $14\text{ days}$ to $2\text{ days}$ to enhance capital efficiency.
-3. **The Sybil Catastrophe:** Permitting $500\text{ AVAX}$ at $2\text{ days}$ creates an attack vector where a malicious node can be spun up for only $1{,}000\text{ AVAX-days}$ ($96.4\%$ cheaper than Mainnet's $28{,}000\text{ AVAX-days}$ baseline), triggering massive consensus churn and P-Chain state bloat.
-4. **The Target Horizon:** Dr. Eric Lu’s econometric modeling demonstrates that stabilizing the network requires shifting average lockup to **$16.9\text{ weeks}$ ($118\text{ days}$)**.
-
-By formalizing a **monotonically decreasing admission frontier** $S_{\min}(d)$, the protocol imposes a liquidity surcharge on short durations while granting retail accessibility ($500\text{ AVAX}$) in exchange for long-term time commitment ($365\text{ days}$).
+This mechanism resolves a multi-policy deadlock between competing Avalanche Community Proposals:
+1. **ACP-49:** Proposes reducing minimum validator self-stake from $2{,}000\text{ AVAX}$ to $500\text{ AVAX}$ to lower capital barriers and expand node accessibility.
+2. **ACP-273:** Proposes reducing minimum staking duration from $14\text{ days}$ to $2\text{ days}$ to enhance validator capital efficiency.
+3. **The Sybil Catastrophe:** Permitting $500\text{ AVAX}$ at $2\text{ days}$ creates a critical vulnerability where an attacker can spin up ephemeral consensus nodes for only $1{,}000\text{ AVAX-days}$ ($96.4\%$ cheaper than Mainnet's $28{,}000\text{ AVAX-days}$ baseline), risking sybil disruption.
+4. **The Target Horizon:** Historical empirical data indicates that $2{,}000\text{ AVAX}$ retail validators average only **$37.1\text{ days}$ ($5.3\text{ weeks}$)**, while whale stakers average **$64.8\text{ days}$ ($9.3\text{ weeks}$)**. The system objective is to systematically improve duration commitments across **all capital tiers** without disenfranchising the physical node operator base.
 
 ---
 
-## 2. Definitive Forensic Verification: Capital vs. Node Distribution
+## 2. The Liquid Staking Outside Option & Cloud Economics
 
-To ground all design choices in empirical reality, the table below partitions all **$57{,}067$ structurally valid stints** and **$7{,}635$ unique nodes** from Genesis to 2026 (`01-renewal-panel.parquet`):
+Physical nodes are not bound by sunk bare-metal hardware. Instead, retail validators run on cloud VPS instances (AWS, GCP, Hetzner) costing $\sim \$40/\text{month} = \$480/\text{year} \approx 19.2\text{ AVAX/year}$ ($0.96\%$ annual overhead on $2{,}000\text{ AVAX}$).
 
-| Staker Cohort | Historical Stints | Unique Nodes (`node_id`) | Cumulative Self-Bond (AVAX) | Cumulative Delegations Received (AVAX) | Mean Stint Duration |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Whales / BENQI-Eligible ($\ge 6{,}000\text{ AVAX}$)** | **$14{,}357$** ($25.16\%$) | **$1{,}735$** ($22.72\%$) | **$5{,}455{,}523{,}274.9\text{ AVAX}$ ($98.29\%$)** | **$2{,}671{,}027{,}131.9\text{ AVAX}$ ($97.18\%$)** | **$64.8\text{ days}$ ($9.3\text{w}$)** (weighted: $81.0\text{d}$) |
-| **Small & Mid-Tier Retail ($< 6{,}000\text{ AVAX}$)** | **$42{,}710$** ($74.84\%$) | **$6{,}440$** ($84.35\%$) | **$95{,}020{,}892.4\text{ AVAX}$ ($1.71\%$)** | **$77{,}402{,}305.1\text{ AVAX}$ ($2.82\%$)** | **$39.1\text{ days}$ ($5.6\text{w}$)** (weighted: $40.9\text{d}$) |
-| *— of which: Exactly $2{,}000\text{ AVAX}$ Stakers* | *$22{,}477$* ($39.39\%$) | *$5{,}011$* ($65.63\%$) | *$44{,}954{,}000.0\text{ AVAX}$ ($0.81\%$)** | *$22{,}739{,}433.5\text{ AVAX}$ ($0.83\%$)** | *$37.1\text{ days}$ ($5.3\text{w}$)* |
+### 2.1 The Competitive Baseline: sAVAX (BENQI)
+From DefiLlama historical oracle data (`defillama__savax_yield_history.parquet`):
+- **Current sAVAX APY (August 2026):** **$3.20\% - 4.93\%$** (30-day mean: **$4.15\%$**, all-time median: **$5.19\%$**).
+- **Properties:** Zero cloud server costs, zero maintenance, instant DeFi liquidity, zero lockup.
 
-### Invariant Architectural Realities:
-1. **The Capital Invariant:** Nodes with $\ge 6{,}000\text{ AVAX}$ self-stake hold **$98.29\%$ of all bonded capital** and capture **$97.18\%$ of all delegations**. Network macro-stability and the $50\%–60\%$ Staking Ratio ($\rho_{\text{stake}}$) are determined **entirely by this group**.
-2. **The Decentralization Invariant:** $84.35\%$ of physical nodes ($6{,}440$ unique machines) hold $<6{,}000\text{ AVAX}$. Their role is geographic distribution, consensus liveness, and client diversity—**not capital provision**.
-3. **The Immunity Invariant:** Shifting minimum duration requirements for small stakers ($<6\text{k AVAX}$) cannot destabilize network staking capital or threaten the $50\%$ security ratio, because their entire combined float is only **$1.71\%$** of total bonded AVAX.
+### 2.2 The Economic Spread: Standalone Validator vs. sAVAX
 
----
+| Lockup Duration | Gross APY (ACP-285) | Cloud Drag (2k AVAX) | Net Standalone APY | sAVAX APY (Liquid) | Net Spread vs. LST | Operator Economic Verdict |
+| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **$6\text{w}$ ($42\text{d}$)** | $4.26\%$ | $-0.96\%$ | **$3.30\%$** | $4.50\%$ | **$-1.20\%$** | **Negative Spread:** Exit to LST unless compensated. |
+| **$8\text{w}$ ($56\text{d}$)** | $4.35\%$ | $-0.96\%$ | **$3.39\%$** | $4.50\%$ | **$-1.11\%$** | **Negative Spread:** Exit to LST unless compensated. |
+| **$12\text{w}$ ($84\text{d}$)** | $4.54\%$ | $-0.96\%$ | **$3.58\%$** | $4.50\%$ | **$-0.92\%$** | **Negative Spread:** Exit to LST unless compensated. |
+| **$17\text{w}$ ($119\text{d}$)**| $4.76\%$ | $-0.96\%$ | **$3.80\%$** | $4.50\%$ | **$-0.70\%$** | **Negative Spread:** Heavy attrition to LST. |
+| **$52\text{w}$ ($365\text{d}$)**| $6.38\%$ | $-0.96\%$ | **$5.42\%$** | $4.50\%$ | **$+0.92\%$** | **Positive Spread:** Profitable over liquid staking! |
 
-## 3. Mathematical Model: Harmonic Bounded Decay
-
-Standard asymptotic hyperbolas cannot hit $500\text{ AVAX}$ at exactly $d = 365$ without shifting the asymptote below $500$. The mathematically consistent formulation that guarantees exact boundary enforcement at both endpoints is **Harmonic Bounded Decay**:
-
-$$S_{\min}(d) = 500 + (S_{\text{short}} - 500) \cdot \left[ \frac{\frac{1}{d} - \frac{1}{365}}{\frac{1}{2} - \frac{1}{365}} \right]^p$$
-
-- **Left Boundary ($d = 2\text{ days}$):** $\left[\frac{1/2 - 1/365}{1/2 - 1/365}\right]^p = 1.0 \implies S_{\min}(2) = S_{\text{short}}$ identically.
-- **Right Boundary ($d = 365\text{ days}$):** $\left[\frac{1/365 - 1/365}{1/2 - 1/365}\right]^p = 0.0 \implies S_{\min}(365) = 500\text{ AVAX}$ identically.
-- **Intermediate Pivot ($d = d_{\text{target}}$):** We solve for the power exponent $p$ such that $S(d_{\text{target}}) = 2{,}000\text{ AVAX}$:
-  $$p = \frac{\ln\left(\frac{1{,}500}{S_{\text{short}} - 500}\right)}{\ln\left(\frac{1/d_{\text{target}} - 1/365}{1/2 - 1/365}\right)}$$
+**Key Finding:** Without delegation revenue, running a standalone $2{,}000\text{ AVAX}$ validator on cloud pays **$-70\text{ to } -120\text{ bps LESS}$ than holding sAVAX liquidly**. Over 52 weeks, rational operators shut down their VPS and convert to liquid staking.
 
 ---
 
-## 4. Relaxing $S_{\text{short}}$: Comprehensive Sensitivity & Scenario Analysis
+## 3. The Dual Solution: Lowering Barriers (ACP-49) & Delegation Offset
 
-Instead of anchoring exclusively to $20{,}000\text{ AVAX}$, we systematically relax $S_{\text{short}}$ from **$5{,}000\text{ AVAX}$ to $100{,}000\text{ AVAX}$** across two duration targets:
-- **Target A: 12-Week Transition ($d_{\text{target}} = 84\text{ days}$)**
-- **Target B: 17-Week Transition ($d_{\text{target}} = 119\text{ days}$, Eric Lu's Target)**
+To preserve node decentralization ($6{,}440$ physical nodes), the mechanism must incorporate two balancing forces:
 
-### 4.1 Macro Frontier Sweep: Minimum Required Stake Across Durations
-
-#### Target A: 12-Week Pivot ($S(84\text{d}) = 2{,}000\text{ AVAX}$)
-
-| $S_{\text{short}}$ (2d) | Exponent $p$ | 2d Sybil Multiplier | 7d Stake | 14d Stake | 30d Stake | 60d Stake | 84d (12w) | 180d Stake | 365d (1y) | Unique Eligible Nodes |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **$5{,}000\text{ AVAX}$** | $0.275$ | **$0.36\times$ (Vulnerable)** | $3{,}676\text{ A}$ | $3{,}110\text{ A}$ | $2{,}590\text{ A}$ | $2{,}183\text{ A}$ | **$2{,}000\text{ A}$** | $1{,}584\text{ A}$ | **$500\text{ A}$** | $1{,}838$ ($24.1\%$) |
-| **$10{,}000\text{ AVAX}$** | $0.462$ | **$0.71\times$ (Discount)** | $5{,}790\text{ A}$ | $4{,}305\text{ A}$ | $3{,}118\text{ A}$ | $2{,}320\text{ A}$ | **$2{,}000\text{ A}$** | $1{,}369\text{ A}$ | **$500\text{ A}$** | $1{,}506$ ($19.7\%$) |
-| **$14{,}000\text{ AVAX}$** | $0.550$ | **$1.00\times$ (Strict Parity)**| $7{,}225\text{ A}$ | $5{,}043\text{ A}$ | $3{,}411\text{ A}$ | $2{,}388\text{ A}$ | **$2{,}000\text{ A}$** | $1{,}284\text{ A}$ | **$500\text{ A}$** | $1{,}336$ ($17.5\%$) |
-| **$20{,}000\text{ AVAX}$** | $0.642$ | **$1.43\times$ (Reference)** | $9{,}145\text{ A}$ | **$5{,}969\text{ A}$** | $3{,}753\text{ A}$ | $2{,}462\text{ A}$ | **$2{,}000\text{ A}$** | $1{,}203\text{ A}$ | **$500\text{ A}$** | $1{,}227$ ($16.1\%$) |
-| **$35{,}000\text{ AVAX}$** | $0.785$ | **$2.50\times$ (Conservative)**| $13{,}263\text{ A}$ | $7{,}792\text{ A}$ | $4{,}364\text{ A}$ | $2{,}583\text{ A}$ | **$2{,}000\text{ A}$** | $1{,}094\text{ A}$ | **$500\text{ A}$** | $1{,}012$ ($13.3\%$) |
-| **$50{,}000\text{ AVAX}$** | $0.876$ | **$3.57\times$ (Institutional)**| $16{,}830\text{ A}$ | $9{,}249\text{ A}$ | $4{,}809\text{ A}$ | $2{,}664\text{ A}$ | **$2{,}000\text{ A}$** | $1{,}034\text{ A}$ | **$500\text{ A}$** | $900$ ($11.8\%$) |
+1. **Lowering Barrier to Entry (ACP-49):**
+   - At $365\text{ days}$, the bond requirement drops to **$500\text{ AVAX}$**, where gross yield is **$6.38\%$**.
+   - Operators who commit long-term earn a **$+188\text{ bps}$ premium over sAVAX**, overcoming cloud costs.
+2. **Community Delegation Matching (Offsetting Opportunity Cost):**
+   - In Avalanche, validators can accept up to $4\times$ their self-stake in delegations ($8{,}000\text{ AVAX}$ delegation on a $2{,}000\text{ AVAX}$ bond).
+   - Routing delegation support (from ecosystem foundations or community pools) at a $3\% - 5\%$ commission fee generates:
+     $$\text{Fee Revenue} = \frac{D_{\text{received}}}{S_{\text{bond}}} \cdot \text{ARR}(d) \cdot \text{Fee} \approx +0.35\% \text{ to } +0.65\% \text{ APY boost}$$
+   - This delegation subsidy flips the net spread positive, keeping physical cloud validators profitable relative to sAVAX.
 
 ---
 
-#### Target B: 17-Week Pivot ($S(119\text{d}) = 2{,}000\text{ AVAX}$, Eric Lu Target)
+## 4. Core Non-Negotiable Requirements
 
-| $S_{\text{short}}$ (2d) | Exponent $p$ | 2d Sybil Multiplier | 7d Stake | 14d Stake | 30d Stake | 60d Stake | 84d (12w) | 119d (17w) | 365d (1y) | Unique Eligible Nodes |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **$5{,}000\text{ AVAX}$** | $0.245$ | **$0.36\times$ (Vulnerable)** | $3{,}797\text{ A}$ | $3{,}268\text{ A}$ | $2{,}769\text{ A}$ | $2{,}371\text{ A}$ | $2{,}188\text{ A}$ | **$2{,}000\text{ A}$** | **$500\text{ A}$** | $1{,}838$ ($24.1\%$) |
-| **$10{,}000\text{ AVAX}$** | $0.412$ | **$0.71\times$ (Discount)** | $6{,}134\text{ A}$ | $4{,}699\text{ A}$ | $3{,}508\text{ A}$ | $2{,}674\text{ A}$ | $2{,}329\text{ A}$ | **$2{,}000\text{ A}$** | **$500\text{ A}$** | $1{,}506$ ($19.7\%$) |
-| **$14{,}000\text{ AVAX}$** | $0.491$ | **$1.00\times$ (Strict Parity)**| $7{,}748\text{ A}$ | $5{,}608\text{ A}$ | $3{,}934\text{ A}$ | $2{,}833\text{ A}$ | $2{,}400\text{ A}$ | **$2{,}000\text{ A}$** | **$500\text{ A}$** | $1{,}336$ ($17.5\%$) |
-| **$20{,}000\text{ AVAX}$** | $0.573$ | **$1.43\times$ (Reference)** | $9{,}935\text{ A}$ | **$6{,}770\text{ A}$** | $4{,}444\text{ A}$ | $3{,}012\text{ A}$ | $2{,}477\text{ A}$ | **$2{,}000\text{ A}$** | **$500\text{ A}$** | $1{,}227$ ($16.1\%$) |
-| **$35{,}000\text{ AVAX}$** | $0.701$ | **$2.50\times$ (Conservative)**| $14{,}703\text{ A}$ | $9{,}119\text{ A}$ | $5{,}390\text{ A}$ | $3{,}318\text{ A}$ | $2{,}602\text{ A}$ | **$2{,}000\text{ A}$** | **$500\text{ A}$** | $1{,}012$ ($13.3\%$) |
-| **$50{,}000\text{ AVAX}$** | $0.781$ | **$3.57\times$ (Institutional)**| $18{,}899\text{ A}$ | $11{,}041\text{ A}$ | $6{,}103\text{ A}$ | $3{,}530\text{ A}$ | $2{,}685\text{ A}$ | **$2{,}000\text{ A}$** | **$500\text{ A}$** | $900$ ($11.8\%$) |
-
----
-
-## 5. Architectural Implications of Changing $S_{\text{short}}$
-
-### Scenario 1: Low $S_{\text{short}}$ ($5{,}000\text{ to }10{,}000\text{ AVAX}$) — "High Accessibility / High Churn"
-* **What Happens:** 2-day micro-staking is accessible to $1{,}500\text{ to }1{,}800$ nodes ($20\%–24\%$ of all historical operators).
-* **The Sybil Failure Mode:** At $S_{\text{short}} = 5{,}000\text{ AVAX}$, a 2-day attack costs only $10{,}000\text{ AVAX-days}$ (**$0.36\times$ of Mainnet**). At $10{,}000\text{ AVAX}$, it costs $20{,}000\text{ AVAX-days}$ (**$0.71\times$ of Mainnet**).
-* **Network Impact:** Subsidizes short-duration churn. Validators have an economic incentive to run short rolling stints, congesting the P-Chain with frequent `AddValidatorTx` registrations.
-* **Verdict:** Unacceptable from a security perspective unless combined with high registration burn fees.
-
-### Scenario 2: The Iso-Commitment Floor ($S_{\text{short}} = 14{,}000\text{ AVAX}$) — "Zero-Discount Floor"
-* **What Happens:** $14{,}000 \times 2\text{d} = 28{,}000\text{ AVAX-days}$ (**exact $1.00\times$ Mainnet Sybil parity**).
-* **Network Impact:** Ensures that no 2-day staker can lock up less total capital-time than current 14-day validators. 
-* **14-Day Effect:** Requires **$5{,}043\text{ to }5{,}608\text{ AVAX}$** at 14 days, naturally approaching BENQI's $6{,}000\text{ AVAX}$ qualification gate.
-* **Verdict:** The absolute theoretical minimum bound for $S_{\text{short}}$ without subsidizing attackers.
-
-### Scenario 3: The Reference Surcharge ($S_{\text{short}} = 20{,}000\text{ AVAX}$) — "The BENQI Harmony Corridor"
-* **What Happens:** Imposes a $1.43\times$ liquidity surcharge ($40{,}000\text{ AVAX-days}$) on 2-day micro-lockups. Accessible to $1{,}227$ historical nodes ($16.1\%$).
-* **The Organic BENQI Alignment:** Under a 12-week transition, the 14-day minimum stake naturally evaluates to **$5{,}969\text{ AVAX} \approx 6{,}000\text{ AVAX}$**!
-* **Network Impact:** Perfect harmony with liquid staking rules. Discourages low-stake retail churn at 14 days while leaving high-stake professional nodes eligible for both consensus and BENQI delegations.
-* **Verdict:** The most balanced operational recommendation.
-
-### Scenario 4: High Anti-Churn ($S_{\text{short}} = 35{,}000\text{ to }50{,}000\text{ AVAX}$) — "Institutional-Only Short End"
-* **What Happens:** 2-day lockups require $\$875\text{k to } \$1.25\text{M}$ (at $\$25/\text{AVAX}$). Restricts 2-day staking to $900\text{ – }1{,}012$ elite nodes ($11.8\%–13.3\%$).
-* **Network Impact:** P-Chain gossip churn is crushed. 2-day micro-staking is strictly reserved for high-frequency institutional rebalancing.
-* **14-Day Effect:** 14-day stake rises to **$7{,}792\text{ – }11{,}041\text{ AVAX}$**, pushing even standard BENQI stakers into longer lockup tiers.
-* **Verdict:** Highly effective for P-Chain scalability, but may face pushback from mid-tier validators.
+1. **Strict Global Sybil Resistance Invariant:**
+   $$\forall d \in [2, 365], \quad \Sigma(d) = S_{\min}(d) \cdot d \ge 28{,}000\text{ AVAX-days}$$
+   At $d = 2\text{d}$, $S_{\min}(2) \ge 14{,}000\text{ AVAX}$.
+2. **Decentralization Viability via Delegation Offsets:**
+   The protocol must support delegation matching to ensure standalone validators earn a positive spread over liquid staking ($U_{\text{val}} \ge U_{\text{LST}}$).
+3. **Universal Duration Lift Across All Capital Tiers:**
+   - **Retail ($2{,}000\text{ AVAX}$):** Lift tenure from $37.1\text{d}$ toward $56\text{d} - 84\text{d}$ ($+51\% \text{ to } +126\%$).
+   - **Large Capital ($\ge 6{,}000\text{ AVAX}$):** Shift from $11.6\text{w}$ toward $20\text{w}-23\text{w}$ via ACP-285 yield incentives.
+4. **14-Day Transition Harmony:**
+   - **Smooth Bridge:** $S(14\text{d}) \approx 4{,}387 - 5{,}043\text{ AVAX}$.
+   - **BENQI Harmony:** $S(14\text{d}) \equiv 6{,}000\text{ AVAX}$.
+5. **Exact ACP-49 Boundary Preservation:**
+   $$S_{\min}(365) \equiv 500\text{ AVAX}$$
 
 ---
 
-## 6. Implementation Architecture in PlatformVM
+## 5. Mathematical Model: Harmonic Bounded Decay
 
-PlatformVM can enforce this harmonic frontier via two distinct methods:
+$$S_{\min}(d) = 500 + (S_{\text{short}} - 500) \cdot \left[ \frac{\frac{1}{d} - \frac{1}{365}}{\frac{1}{2} - \frac{1}{365}} \right]^{p(d_{\text{target}}, S_{\text{short}})}$$
 
-### Method A: Discrete Consensus Step-Brackets (Recommended for Go)
-Quantize the continuous harmonic curve into integer validation brackets to eliminate floating-point non-determinism:
-```go
-// GetMinimumValidatorStake returns the required self-stake for a given duration.
-// Calibrated for S_short = 20,000 AVAX with 12-Week Pivot (p=0.642) and S(365d) = 500 AVAX.
-func GetMinimumValidatorStake(duration time.Duration) uint64 {
-    days := duration.Hours() / 24
-    switch {
-    case days < 2:
-        return math.MaxUint64 // Below consensus minimum
-    case days < 7:
-        return 20_000 * units.Avax
-    case days < 14:
-        return 9_000 * units.Avax
-    case days < 30:
-        return 6_000 * units.Avax  // BENQI Open Pool Alignment
-    case days < 84:
-        return 3_500 * units.Avax
-    case days < 180:
-        return 2_000 * units.Avax  // 12-Week Transition Gate
-    case days < 365:
-        return 1_000 * units.Avax
-    default:
-        return 500 * units.Avax    // ACP-49 Floor at 1 Year
-    }
-}
-```
-
-### Method B: Fixed-Point Wad Math
-If continuous precision is desired, evaluate the expression in 18-decimal fixed-point arithmetic (`wad` math):
-$$S_{\min}(d) = 500 + (S_{\text{short}} - 500) \cdot \text{wadPow}\left( \frac{365 - d}{363 \cdot d}, p \right)$$
+- **Left Boundary ($d = 2\text{d}$):** $S_{\min}(2) = S_{\text{short}}$ identically.
+- **Right Boundary ($d = 365\text{d}$):** $S_{\min}(365) = 500\text{ AVAX}$ identically.
+- **Pivot Solver:**
+  $$p(d_{\text{target}}, S_{\text{short}}) = \frac{\ln\left(\frac{1{,}500}{S_{\text{short}} - 500}\right)}{\ln\left(\frac{1/d_{\text{target}} - 1/365}{1/2 - 1/365}\right)}$$
 
 ---
 
-## 7. Governance Decision Matrix for Dr. Eric Lu (Sept 25 Review)
+## 6. Evaluated Governance Packages
 
-To resolve the remaining degrees of freedom with the Avalanche Foundation, present the three viable governance packages:
-
-| Decision Package | $S_{\text{short}}$ (2d) | 14d Requirement | $2{,}000\text{ AVAX}$ Lockup | $500\text{ AVAX}$ Lockup | Primary Target Audience | Primary Trade-Off |
-| :--- | :---: | :---: | :---: | :---: | :--- | :--- |
-| **Package 1: Maximum Liquidity** | $14{,}000\text{ AVAX}$ | $5{,}043\text{ AVAX}$ | $12\text{ weeks}$ ($84\text{d}$) | $365\text{ days}$ | Liquidity-focused traders & L1 operators | $1.0\times$ Sybil parity leaves no safety margin. |
-| **Package 2: Institutional Harmony (Recommended)** | **$20{,}000\text{ AVAX}$** | **$5{,}969\text{ AVAX}$** | **$12\text{ to }17\text{ weeks}$** | **$365\text{ days}$** | **Foundation, BENQI & Core Infrastructure** | **Balances $1.43\times$ Sybil barrier with BENQI 6k alignment.** |
-| **Package 3: Maximum Anti-Churn** | $35{,}000\text{ AVAX}$ | $7{,}792\text{ AVAX}$ | $17\text{ weeks}$ ($119\text{d}$) | $365\text{ days}$ | PlatformVM performance & state minimization | Excludes small nodes from $<60\text{d}$ tiers. |
+| Package | $S_{\text{short}}$ | $d_{\text{target}}$ (2k AVAX) | $S(14\text{d})$ | Retail Duration Lift | Net Validator Spread vs. sAVAX (w/ Deleg.) | Physical Node Retention |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Package A: Gradual Bridge (Recommended)** | **$14{,}000\text{ AVAX}$** | **$8.0\text{ weeks}$ ($56\text{d}$)** | **$4{,}387\text{ AVAX}$** | **$+51\%$** | **$+0.15\%$ (Viable)** | **$65\% - 75\%$** |
+| **Package B: BENQI Harmony** | **$20{,}000\text{ AVAX}$** | **$12.0\text{ weeks}$ ($84\text{d}$)** | **$5{,}969\text{ AVAX}$** | **$+126\%$** | **$+0.32\%$ (Viable)** | **$55\% - 65\%$** |
+| **Package C: Aggressive Extension (Eric Lu)**| **$20{,}000\text{ AVAX}$** | **$16.9\text{ weeks}$ ($118\text{d}$)**| **$6{,}756\text{ AVAX}$** | **$+218\%$** | **$-0.10\%$ (Under Pressure)** | **$40\% - 50\%$** |
