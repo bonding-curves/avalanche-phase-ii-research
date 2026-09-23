@@ -98,3 +98,71 @@ def test_complete_empty_window_is_zero_burn(tmp_path):
     dataset_dir = tmp_path / "dataset"
     assert atomic.build(atomic.DATASET_ID, capture_dir, dataset_dir)["summary"]["burned_navax"] == 0
     assert atomic.check(capture_dir, dataset_dir)["status"] == "pass"
+
+
+def test_failed_walk_keeps_pages_and_resumes(tmp_path, monkeypatch):
+    monkeypatch.setattr(atomic, "PAGE_RETRY_SECONDS", 0)
+    served = pages()
+    calls = {"n": 0}
+
+    def flaky(url, timeout):
+        calls["n"] += 1
+        if "pageToken=next" in url and calls["n"] < 10:
+            raise DataError("request failed") from OSError("connection reset")
+        page = served[1] if "pageToken=next" in url else served[0]
+        return json.dumps(page).encode(), {"http_status": 200, "content_type": "application/json"}
+
+    capture_dir = tmp_path / "capture"
+    window = {"start": "2026-09-16", "end": "2026-09-17"}
+    with pytest.raises(DataError, match="after 8 attempts; 1 pages kept"):
+        atomic.capture(atomic.DATASET_ID, capture_dir, parameters=window, request=flaky)
+    kept = next(tmp_path.glob(".capture.*"))
+    assert (kept / "raw" / "page-00001.json").is_file() and not capture_dir.exists()
+    receipt = atomic.capture(atomic.DATASET_ID, capture_dir, parameters={**window, "resume": str(kept)}, request=flaky)
+    assert receipt["resumed_pages"] == 1 and receipt["retries"] == 0 and len(receipt["responses"]) == 2 and not kept.exists()
+    assert not (capture_dir / atomic.PROGRESS).exists()
+    assert atomic.check(capture_dir)["status"] == "pass"
+    with pytest.raises(DataError, match="cannot resume"):
+        atomic.capture(atomic.DATASET_ID, tmp_path / "again", parameters={**window, "resume": str(capture_dir)}, request=flaky)
+
+
+def test_retried_page_counts_in_the_receipt(tmp_path, monkeypatch):
+    monkeypatch.setattr(atomic, "PAGE_RETRY_SECONDS", 0)
+    dropped = []
+    served = pages()
+
+    def flaky(url, timeout):
+        if "pageToken=next" in url and not dropped:
+            dropped.append(url)
+            raise DataError("request failed") from OSError("connection reset")
+        page = served[1] if "pageToken=next" in url else served[0]
+        return json.dumps(page).encode(), {"http_status": 200, "content_type": "application/json"}
+
+    receipt = atomic.capture(atomic.DATASET_ID, tmp_path / "capture", parameters={"start": "2026-09-16", "end": "2026-09-17"}, request=flaky)
+    assert receipt["retries"] == 1 and len(receipt["responses"]) == 2
+
+
+def test_listing_may_end_before_a_start_at_the_first_c_block(tmp_path):
+    source_pages = [{"transactions": [transaction("a", stamp(17, 1), 110, 100), transaction("b", stamp(16, 15), 230, 200)], "nextPageToken": None}]
+    remaining = iter(source_pages)
+    request = lambda url, timeout: (json.dumps(next(remaining)).encode(), {"http_status": 200})
+    with pytest.raises(DataError, match="ended before the requested start"):
+        atomic.capture(atomic.DATASET_ID, tmp_path / "short", parameters={"start": "2026-09-16", "end": "2026-09-17"}, request=request)
+    remaining = iter(source_pages)
+    capture_dir = tmp_path / "history"
+    receipt = atomic.capture(atomic.DATASET_ID, capture_dir, parameters={"start": "2020-09-23", "end": "2026-09-17"}, request=request)
+    assert receipt["end_of_listing"] is True
+    checked = atomic.check(capture_dir)
+    assert checked["status"] == "pass" and checked["summary"]["end_of_listing"] is True and checked["summary"]["rows"] == 1
+
+
+def test_pause_between_pages_is_applied(tmp_path, monkeypatch):
+    slept = []
+    monkeypatch.setattr(atomic.time, "sleep", lambda seconds: slept.append(seconds))
+    capture_dir = tmp_path / "capture"
+    remaining = iter(pages())
+    request = lambda url, timeout: (json.dumps(next(remaining)).encode(), {"http_status": 200})
+    atomic.capture(atomic.DATASET_ID, capture_dir, parameters={"start": "2026-09-16", "end": "2026-09-17", "pause": "0.5"}, request=request)
+    assert slept == [0.5]
+    with pytest.raises(DataError, match="pause"):
+        atomic.capture_preview(atomic.DATASET_ID, tmp_path / "x", {"start": "2026-09-16", "end": "2026-09-17", "pause": "-1"})
