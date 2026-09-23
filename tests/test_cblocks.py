@@ -118,3 +118,23 @@ def test_parallel_workers_keep_height_order(tmp_path):
     receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "workers": "3"}, request=slow_first, root=root)
     assert [item["block_height"] for item in receipt["blocks"]] == HEIGHTS
     assert cblocks.check(capture)["status"] == "pass"
+
+
+def test_resume_cuts_back_a_walk_stopped_between_writes(tmp_path, monkeypatch):
+    monkeypatch.setattr(cblocks, "PAGE_RETRY_SECONDS", 0)
+    root = make_gaps_run(tmp_path / "runs")
+
+    def dies_at_205(url, timeout):
+        if url.endswith("/205"):
+            raise DataError("request failed") from OSError("reset")
+        return fake_request(url, timeout)
+
+    capture = tmp_path / "capture"
+    with pytest.raises(DataError, match="2 blocks kept"):
+        cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=dies_at_205, root=root)
+    kept = next(tmp_path.glob(".capture.*"))
+    progress = kept / cblocks.PROGRESS
+    progress.write_text("".join(progress.read_text().splitlines(keepends=True)[:-1]))  # the second record never written
+    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "resume": str(kept)}, request=fake_request, root=root)
+    assert [item["block_height"] for item in receipt["blocks"]] == HEIGHTS
+    assert cblocks.check(capture)["status"] == "pass"

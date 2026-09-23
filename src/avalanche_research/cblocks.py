@@ -126,12 +126,19 @@ def _resume(preview: dict[str, Any], temporary: Path) -> list[dict[str, Any]]:
         bodies = raw.read_bytes().splitlines()
     except OSError as error:
         raise DataError("cannot resume: the kept walk has no block lines") from error
-    if len(bodies) != len(records):
-        raise DataError("cannot resume: the kept walk's lines and records differ")
-    for number, (record, body) in enumerate(zip(records, bodies), 1):
+    # A walk stopped between writing a line and its record leaves one file longer than the other. Keep the longest
+    # prefix where each line matches its record, and cut both files back to it.
+    kept = 0
+    for record, body in zip(records, bodies):
         if sha256(body) != record["sha256"] or len(body) != record["bytes"]:
-            raise DataError(f"cannot resume: block line {number} differs from its record")
-    return records
+            break
+        kept += 1
+    if kept < min(len(records), len(bodies)):
+        raise DataError(f"cannot resume: block line {kept + 1} differs from its record")
+    if kept != len(records) or kept != len(bodies):
+        raw.write_bytes(b"".join(body + b"\n" for body in bodies[:kept]))
+        (temporary / PROGRESS).write_text("".join(json.dumps(item, sort_keys=True) + "\n" for item in [header, *records[:kept]]), encoding="utf-8")
+    return records[:kept]
 
 
 def capture(
