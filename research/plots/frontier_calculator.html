@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Avalanche Admission Frontier Interactive Calculator (Desmos Style)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #0f172a;
+      --panel-bg: #111827;
+      --border: #1e293b;
+      --accent: #38bdf8;
+      --accent-red: #ef4444;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      background: #0b0f19;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .app-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    /* Left sidebar: Desmos parameter expressions */
+    .sidebar {
+      width: 440px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    /* Main area: Plot & KPIs */
+    .main-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      overflow-y: auto;
+      padding: 16px 20px;
+      gap: 16px;
+    }
+    .expr-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+    .expr-card.highlight {
+      border-left: 4px solid var(--accent);
+    }
+    .expr-card.highlight-green {
+      border-left: 4px solid var(--accent-green);
+    }
+    .expr-card.highlight-amber {
+      border-left: 4px solid var(--accent-amber);
+    }
+    .expr-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .expr-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .expr-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    input[type=range] {
+      flex: 1;
+      accent-color: var(--accent);
+      height: 6px;
+      background: #1e293b;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+    .preset-btn-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .btn {
+      background: #1f2937;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+    .btn:hover {
+      background: #374151;
+      border-color: var(--accent);
+    }
+    .btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .kpi-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .kpi-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .kpi-val {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .kpi-sub {
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+    .plot-container {
+      flex: 1;
+      min-height: 520px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .eval-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 8px;
+    }
+    .eval-table th, .eval-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    .eval-table th {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .status-ok { color: var(--accent-green); }
+    .status-warn { color: var(--accent-amber); }
+    .status-danger { color: var(--accent-red); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <span class="badge">Desmos-Grade Digital Twin</span>
+      <h1>Avalanche Stake Admission Frontier $S_{\min}(d)$ Visualizer</h1>
+    </div>
+    <div style="font-size: 0.85rem; color: var(--text-muted);">
+      PlatformVM Dynamic Admission Simulator &bull; ACP-49 &bull; ACP-273 &bull; ACP-285
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <!-- LEFT PANEL: DESMOS STYLE VARIABLE CONTROLS -->
+    <div class="sidebar">
+      <div>
+        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
+          Governance Presets
+        </div>
+        <div class="preset-btn-group">
+          <button class="btn active" id="btn-pkg-a" onclick="applyPreset('pkgA')">Package A<br><span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8;">14k @ 8.0w</span></button>
+          <button class="btn" id="btn-pkg-b" onclick="applyPreset('pkgB')">Package B<br><span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8;">20k @ 12.0w</span></button>
+          <button class="btn" id="btn-pkg-c" onclick="applyPreset('pkgC')">Package C<br><span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8;">20k @ 16.9w</span></button>
+        </div>
+      </div>
+
+      <!-- Variable 1: S_short -->
+      <div class="expr-card highlight">
+        <div class="expr-header">
+          <span class="expr-label">1. Short Stake Boundary $S_{\text{short}}$</span>
+          <span class="expr-value" id="val-s-short">14,000 AVAX</span>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          Minimum stake required at micro-lockup $d = 2\text{ days}$ (ACP-273).
+        </div>
+        <div class="slider-row">
+          <input type="range" id="slider-s-short" min="5000" max="40000" step="1000" value="14000" oninput="updateCalculations()">
+        </div>
+      </div>
+
+      <!-- Variable 2: d_target -->
+      <div class="expr-card highlight-green">
+        <div class="expr-header">
+          <span class="expr-label">2. Target Lockup $d_{\text{target}}$ for 2k AVAX</span>
+          <span class="expr-value" id="val-d-target">8.0 wks (56d)</span>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          Duration at which $S_{\min}(d) = 2{,}000\text{ AVAX}$ (Retail Pivot).
+        </div>
+        <div class="slider-row">
+          <input type="range" id="slider-d-target" min="2" max="26" step="0.5" value="8" oninput="updateCalculations()">
+        </div>
+      </div>
+
+      <!-- Variable 3: S_floor -->
+      <div class="expr-card">
+        <div class="expr-header">
+          <span class="expr-label">3. Terminal Floor $S_{\text{floor}}$ (at 365d)</span>
+          <span class="expr-value" id="val-s-floor">500 AVAX</span>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          ACP-49 minimum bond floor required at 1-year duration.
+        </div>
+        <div class="slider-row">
+          <input type="range" id="slider-s-floor" min="100" max="2000" step="50" value="500" oninput="updateCalculations()">
+        </div>
+      </div>
+
+      <!-- Variable 4: Solved Exponent p -->
+      <div class="expr-card highlight-amber">
+        <div class="expr-header">
+          <span class="expr-label">4. Solved Exponent $p$</span>
+          <span class="expr-value" id="val-p">0.724</span>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          Exact exponent enforcing boundary condition $S_{\min}(d_{\text{target}}) = 2{,}000$:
+          $$p = \frac{\ln\left(\frac{2{,}000 - S_{\text{floor}}}{S_{\text{short}} - S_{\text{floor}}}\right)}{\ln\left(\frac{1/d_{\text{target}} - 1/365}{1/2 - 1/365}\right)}$$
+        </div>
+      </div>
+
+      <!-- Model Selector -->
+      <div class="expr-card">
+        <div class="expr-header">
+          <span class="expr-label">Frontier Functional Family</span>
+        </div>
+        <div style="display: flex; gap: 12px; font-size: 0.85rem;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="radio" name="model-family" value="harmonic" checked onchange="updateCalculations()"> Harmonic Decay
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="radio" name="model-family" value="piecewise" onchange="updateCalculations()"> Piecewise BENQI
+          </label>
+        </div>
+      </div>
+
+      <!-- Key Staking Quantiles Table -->
+      <div class="expr-card">
+        <div class="expr-header">
+          <span class="expr-label">Evaluated Lockup Quantiles</span>
+        </div>
+        <table class="eval-table">
+          <thead>
+            <tr>
+              <th>Duration</th>
+              <th>$S_{\min}(d)$</th>
+              <th>Commitment</th>
+              <th>Sybil Margin</th>
+            </tr>
+          </thead>
+          <tbody id="eval-table-body">
+            <!-- populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MAIN DISPLAY AREA: PLOTS & NETWORK METRICS -->
+    <div class="main-stage">
+      <!-- KPI DASHBOARD CARDS -->
+      <div class="kpi-row">
+        <div class="kpi-box">
+          <div class="kpi-label">2-Day Sybil Parity</div>
+          <div class="kpi-val" id="kpi-sybil-2d">28,000 AVAX-d</div>
+          <div class="kpi-sub status-ok" id="kpi-sybil-sub">&check; 1.00x Mainnet Baseline</div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-label">14-Day Barrier $S_{\min}(14\text{d})$</div>
+          <div class="kpi-val" id="kpi-14d-barrier">4,387 AVAX</div>
+          <div class="kpi-sub" style="color: var(--accent-amber);" id="kpi-14d-sub">Smooth Transition Tier</div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-label">Retail Duration Lift</div>
+          <div class="kpi-val" id="kpi-retail-lift">+51.0%</div>
+          <div class="kpi-sub status-ok" id="kpi-lift-sub">&uarr; From 37.1d to 56.0d</div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-label">Standalone Spread vs sAVAX</div>
+          <div class="kpi-val" id="kpi-lst-spread">+0.15% APY</div>
+          <div class="kpi-sub status-ok" id="kpi-spread-sub">&check; Cloud Node Profitable</div>
+        </div>
+      </div>
+
+      <!-- DYNAMIC DESMOS PLOT -->
+      <div class="plot-container" id="plot-chart"></div>
+    </div>
+  </div>
+
+  <script>
+    // Exact ACP-285 ARR Lookup
+    const ACP285_ARR = {
+      2: 0.04000,
+      7: 0.04040,
+      14: 0.04078,
+      21: 0.04120,
+      28: 0.04165,
+      42: 0.04261,
+      56: 0.04353,
+      70: 0.04445,
+      84: 0.04536,
+      119: 0.04759,
+      180: 0.05166,
+      365: 0.06378
+    };
+
+    function getArr(d) {
+      if (ACP285_ARR[d]) return ACP285_ARR[d];
+      return 0.04078 + 0.023 * (d / 365.0);
+    }
+
+    function solveExponent(d_target, s_short, s_floor) {
+      const denom = (1.0 / d_target - 1.0 / 365.0) / (0.5 - 1.0 / 365.0);
+      const numer = (2000.0 - s_floor) / (s_short - s_floor);
+      if (denom <= 0 || numer <= 0) return 0.642;
+      return Math.log(numer) / Math.log(denom);
+    }
+
+    function sMinHarmonic(d, s_short, s_floor, p) {
+      if (d <= 2) return s_short;
+      if (d >= 365) return s_floor;
+      const inv_term = (1.0 / d - 1.0 / 365.0) / (0.5 - 1.0 / 365.0);
+      return s_floor + (s_short - s_floor) * Math.pow(Math.max(0, inv_term), p);
+    }
+
+    function sMinPiecewise(d, s_short, s_floor, d_target) {
+      if (d <= 2) return s_short;
+      if (d >= 365) return s_floor;
+      const knots = [
+        { d: 2, s: s_short },
+        { d: 14, s: 6000 },
+        { d: d_target, s: 2000 },
+        { d: 365, s: s_floor }
+      ].sort((a, b) => a.d - b.d);
+
+      for (let i = 0; i < knots.length - 1; i++) {
+        let k0 = knots[i], k1 = knots[i+1];
+        if (d >= k0.d && d <= k1.d) {
+          if (k0.d === k1.d) return k0.s;
+          let t = (1.0 / d - 1.0 / k1.d) / (1.0 / k0.d - 1.0 / k1.d);
+          return k1.s + (k0.s - k1.s) * Math.max(0, Math.min(1, t));
+        }
+      }
+      return s_floor;
+    }
+
+    function applyPreset(pkg) {
+      document.getElementById('btn-pkg-a').classList.remove('active');
+      document.getElementById('btn-pkg-b').classList.remove('active');
+      document.getElementById('btn-pkg-c').classList.remove('active');
+
+      if (pkg === 'pkgA') {
+        document.getElementById('btn-pkg-a').classList.add('active');
+        document.getElementById('slider-s-short').value = 14000;
+        document.getElementById('slider-d-target').value = 8.0;
+        document.getElementById('slider-s-floor').value = 500;
+      } else if (pkg === 'pkgB') {
+        document.getElementById('btn-pkg-b').classList.add('active');
+        document.getElementById('slider-s-short').value = 20000;
+        document.getElementById('slider-d-target').value = 12.0;
+        document.getElementById('slider-s-floor').value = 500;
+      } else if (pkg === 'pkgC') {
+        document.getElementById('btn-pkg-c').classList.add('active');
+        document.getElementById('slider-s-short').value = 20000;
+        document.getElementById('slider-d-target').value = 16.9;
+        document.getElementById('slider-s-floor').value = 500;
+      }
+      updateCalculations();
+    }
+
+    function updateCalculations() {
+      const s_short = parseFloat(document.getElementById('slider-s-short').value);
+      const d_target_w = parseFloat(document.getElementById('slider-d-target').value);
+      const d_target = d_target_w * 7.0;
+      const s_floor = parseFloat(document.getElementById('slider-s-floor').value);
+      const family = document.querySelector('input[name="model-family"]:checked').value;
+
+      document.getElementById('val-s-short').innerText = `${s_short.toLocaleString()} AVAX`;
+      document.getElementById('val-d-target').innerText = `${d_target_w.toFixed(1)} wks (${Math.round(d_target)}d)`;
+      document.getElementById('val-s-floor').innerText = `${s_floor.toLocaleString()} AVAX`;
+
+      const p = solveExponent(d_target, s_short, s_floor);
+      document.getElementById('val-p').innerText = p.toFixed(3);
+
+      const fn = (d) => family === 'piecewise' 
+        ? sMinPiecewise(d, s_short, s_floor, d_target)
+        : sMinHarmonic(d, s_short, s_floor, p);
+
+      // Key evaluations
+      const s_2d = fn(2);
+      const s_14d = fn(14);
+      const s_dtarget = fn(d_target);
+      const s_365d = fn(365);
+
+      const sybil_2d = s_2d * 2;
+      const sybil_ratio = sybil_2d / 28000;
+
+      // Update KPIs
+      document.getElementById('kpi-sybil-2d').innerText = `${Math.round(sybil_2d).toLocaleString()} AVAX-d`;
+      const sybilSub = document.getElementById('kpi-sybil-sub');
+      if (sybil_ratio >= 1.0) {
+        sybilSub.innerHTML = `&check; ${sybil_ratio.toFixed(2)}x Mainnet Baseline`;
+        sybilSub.className = "kpi-sub status-ok";
+      } else {
+        sybilSub.innerHTML = `&cross; ${sybil_ratio.toFixed(2)}x VULNERABLE (<28k)`;
+        sybilSub.className = "kpi-sub status-danger";
+      }
+
+      document.getElementById('kpi-14d-barrier').innerText = `${Math.round(s_14d).toLocaleString()} AVAX`;
+      const barrierSub = document.getElementById('kpi-14d-sub');
+      if (Math.abs(s_14d - 2000) < 150) {
+        barrierSub.innerText = "100% Mainnet Parity (2k)";
+        barrierSub.style.color = "var(--accent-green)";
+      } else if (Math.abs(s_14d - 6000) < 250) {
+        barrierSub.innerText = "BENQI Parity (6k Tier)";
+        barrierSub.style.color = "var(--accent-purple)";
+      } else {
+        barrierSub.innerText = `+${Math.round((s_14d - 2000)/2000 * 100)}% surcharge over 2k`;
+        barrierSub.style.color = "var(--accent-amber)";
+      }
+
+      const retailLift = ((d_target - 37.1) / 37.1) * 100;
+      document.getElementById('kpi-retail-lift').innerText = `${retailLift > 0 ? '+' : ''}${retailLift.toFixed(1)}%`;
+      document.getElementById('kpi-lift-sub').innerHTML = `&uarr; From 37.1d to ${Math.round(d_target)}d`;
+
+      // Economic spread: APY(d_target) - Cloud VPS (0.96%) + 1.0x Delegation Fee (0.22%) - sAVAX (4.15%)
+      const arr_d = getArr(d_target);
+      const cloud_drag = 0.0096;
+      const delegation_bonus = 1.0 * arr_d * 0.05; // 1x delegation at 5% fee
+      const net_val_apy = arr_d - cloud_drag + delegation_bonus;
+      const lst_spread = (net_val_apy - 0.0415) * 100;
+
+      const spreadVal = document.getElementById('kpi-lst-spread');
+      const spreadSub = document.getElementById('kpi-spread-sub');
+      spreadVal.innerText = `${lst_spread >= 0 ? '+' : ''}${lst_spread.toFixed(2)}% APY`;
+      if (lst_spread >= 0) {
+        spreadSub.innerHTML = `&check; Profitable over sAVAX (4.15%)`;
+        spreadSub.className = "kpi-sub status-ok";
+      } else {
+        spreadSub.innerHTML = `&cross; $-${Math.abs(lst_spread).toFixed(2)}\\%$ deficit vs LST`;
+        spreadSub.className = "kpi-sub status-danger";
+      }
+
+      // Populate Table
+      const quantiles = [2, 7, 14, 28, Math.round(d_target), 90, 180, 365];
+      const tableBody = document.getElementById('eval-table-body');
+      tableBody.innerHTML = '';
+      quantiles.forEach(d => {
+        const s = fn(d);
+        const commit = s * d;
+        const ratio = commit / 28000;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${d} days</b> (${(d/7).toFixed(1)}w)</td>
+          <td><b>${Math.round(s).toLocaleString()} AVAX</b></td>
+          <td>${Math.round(commit).toLocaleString()} AVAX-d</td>
+          <td class="${ratio >= 1.0 ? 'status-ok' : 'status-danger'}"><b>${ratio.toFixed(2)}x</b></td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      renderPlot(fn, s_short, s_floor, d_target);
+    }
+
+    function renderPlot(fn, s_short, s_floor, d_target) {
+      const days = [];
+      const stakes = [];
+      const commitments = [];
+      const isoCommit = [];
+
+      for (let d = 2; d <= 365; d += 1) {
+        days.push(d);
+        const s = fn(d);
+        stakes.push(s);
+        commitments.push(s * d);
+        isoCommit.push(28000 / d);
+      }
+
+      const traceAdmission = {
+        x: days,
+        y: stakes,
+        mode: 'lines',
+        name: 'S_min(d) Admission Frontier',
+        line: { color: '#38bdf8', width: 3.5 },
+        hovertemplate: '<b>Duration:</b> %{x} days<br><b>Required Bond:</b> %{y:,.0f} AVAX<extra></extra>'
+      };
+
+      const traceIso = {
+        x: days,
+        y: isoCommit,
+        mode: 'lines',
+        name: 'Sybil Parity Floor (28k AVAX-d)',
+        line: { color: '#ef4444', width: 2, dash: 'dot' },
+        hovertemplate: '<b>Iso-Commitment:</b> %{y:,.0f} AVAX<extra></extra>'
+      };
+
+      const traceTargetMarker = {
+        x: [d_target],
+        y: [fn(d_target)],
+        mode: 'markers',
+        name: `Retail Pivot (${Math.round(d_target)}d, 2k AVAX)`,
+        marker: { color: '#10b981', size: 12, symbol: 'diamond' },
+        hovertemplate: '<b>Retail Pivot:</b> %{x:.1f} days, %{y:,.0f} AVAX<extra></extra>'
+      };
+
+      const trace14dMarker = {
+        x: [14],
+        y: [fn(14)],
+        mode: 'markers',
+        name: `14-Day Barrier (${Math.round(fn(14))} AVAX)`,
+        marker: { color: '#f59e0b', size: 10, symbol: 'circle' },
+        hovertemplate: '<b>14-Day Barrier:</b> %{y:,.0f} AVAX<extra></extra>'
+      };
+
+      const layout = {
+        title: {
+          text: '<b>Admission Frontier Geometry & Sybil Resistance Boundary</b>',
+          font: { color: '#f8fafc', size: 16 }
+        },
+        paper_bgcolor: '#0f172a',
+        plot_bgcolor: '#090d16',
+        font: { color: '#94a3b8', family: '-apple-system, sans-serif' },
+        margin: { l: 65, r: 40, t: 60, b: 60 },
+        xaxis: {
+          title: 'Staking Duration d (Days)',
+          gridcolor: '#1e293b',
+          zerolinecolor: '#334155',
+          range: [2, 365]
+        },
+        yaxis: {
+          title: 'Minimum Required Self-Stake S_min(d) (AVAX)',
+          gridcolor: '#1e293b',
+          zerolinecolor: '#334155',
+          range: [0, Math.min(32000, s_short * 1.05)]
+        },
+        legend: {
+          orientation: 'h',
+          y: -0.18,
+          x: 0.5,
+          xanchor: 'center',
+          font: { size: 11, color: '#e2e8f0' }
+        },
+        shapes: [
+          // 2,000 AVAX horizontal reference
+          {
+            type: 'line',
+            x0: 2, x1: 365,
+            y0: 2000, y1: 2000,
+            line: { color: '#64748b', width: 1.5, dash: 'dash' }
+          },
+          // 500 AVAX horizontal reference
+          {
+            type: 'line',
+            x0: 2, x1: 365,
+            y0: 500, y1: 500,
+            line: { color: '#10b981', width: 1.5, dash: 'dash' }
+          }
+        ],
+        annotations: [
+          {
+            x: 320, y: 2300,
+            text: 'Mainnet Baseline (2,000 AVAX)',
+            showarrow: false,
+            font: { size: 10, color: '#94a3b8' }
+          },
+          {
+            x: 320, y: 800,
+            text: 'ACP-49 Terminal Floor (500 AVAX)',
+            showarrow: false,
+            font: { size: 10, color: '#34d399' }
+          }
+        ]
+      };
+
+      Plotly.newPlot('plot-chart', [traceAdmission, traceIso, traceTargetMarker, trace14dMarker], layout, { responsive: true, displayModeBar: true });
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateCalculations();
+    });
+  </script>
+</body>
+</html>
