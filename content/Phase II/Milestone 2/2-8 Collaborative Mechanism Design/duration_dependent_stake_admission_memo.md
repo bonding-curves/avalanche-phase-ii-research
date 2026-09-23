@@ -8,8 +8,8 @@
 | **Date** | September 22, 2026 |
 | **Target Review Gate** | Milestone 2 Policy Matrix Sensitivity Review (Meeting Sept 25, 2026) |
 | **Empirical Corpus** | 57,067 validator self-bonds across 7,635 unique nodes (`01-renewal-panel.parquet`) |
-| **Interactive Plot** | [http://localhost:8099/s_short_sensitivity_and_eda.html](http://localhost:8099/s_short_sensitivity_and_eda.html) |
-| **Artifact Codebase** | [`admission_frontier.py`](file:///home/hash/Hub/Projects/avalanche-phase-ii-resources/research/src/avalanche_research/admission_frontier.py) & [`04_economic_levers_exploratory.ipynb`](file:///home/hash/Hub/Projects/avalanche-phase-ii-resources/research/notebooks/development/04_economic_levers_exploratory.ipynb) |
+| **Interactive Plot** | Local interactive plot, not included in this repository |
+| **Artifact Codebase** | `src/avalanche_research/admission_frontier.py`; the exploratory notebook is not included in this repository |
 
 ---
 
@@ -137,4 +137,4 @@ At $20{,}000\text{ AVAX}$, **$17.8\%$ of historical validator stints** and **$1,
    - **Only $S_{\text{short}} = 20{,}000\text{ AVAX}$ with $\alpha = 1.0$ satisfies the dual boundary conditions: preserving $2{,}000\text{ AVAX}$ at 14 days while unlocking $500\text{ AVAX}$ at 365 days.**
 
 2. **Visual Demonstration via Interactive Plots:**
-   - Direct stakeholders to [http://localhost:8099/s_short_sensitivity_and_eda.html](http://localhost:8099/s_short_sensitivity_and_eda.html) to interactively inspect how the Sybil parity multiple and node eligibility curves deform as $S_{\text{short}}$ shifts between $10\text{k}$ and $100\text{k}$.
+   - Direct stakeholders to the local interactive plot (not included in this repository) to interactively inspect how the Sybil parity multiple and node eligibility curves deform as $S_{\text{short}}$ shifts between $10\text{k}$ and $100\text{k}$.
