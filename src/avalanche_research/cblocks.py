@@ -17,6 +17,7 @@ import tempfile
 import time
 import urllib.error
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -36,7 +37,8 @@ PROGRESS = "progress.jsonl"
 RAW = "raw/blocks.jsonl"
 PAGE_ATTEMPTS = 8
 PAGE_RETRY_SECONDS = 5.0
-MAX_BLOCKS = 200_000
+MAX_BLOCKS = 250_000
+MAX_WORKERS = 16
 COLUMNS = {
     "block_height": "BIGINT",
     "block_hash": "VARCHAR",
@@ -51,7 +53,7 @@ COLUMNS = {
 
 def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
     values = dict(parameters or {})
-    unknown = set(values) - {"gaps", "kind", "limit", "pause", "resume"}
+    unknown = set(values) - {"gaps", "kind", "limit", "pause", "resume", "workers"}
     if unknown:
         raise DataError(f"unknown parameters: {', '.join(sorted(unknown))}")
     if not values.get("gaps"):
@@ -62,11 +64,12 @@ def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
     try:
         limit = int(values.get("limit", MAX_BLOCKS))
         pause = float(values.get("pause", 0))
+        workers = int(values.get("workers", 1))
     except ValueError as error:
-        raise DataError("limit must be an integer and pause seconds") from error
-    if not 1 <= limit <= MAX_BLOCKS or not 0 <= pause <= 60:
-        raise DataError(f"limit must be between 1 and {MAX_BLOCKS}; pause between 0 and 60 seconds")
-    return {"gaps": values["gaps"], "kind": kind, "limit": limit, "pause": pause, **({"resume": values["resume"]} if values.get("resume") else {})}
+        raise DataError("limit and workers must be integers and pause seconds") from error
+    if not 1 <= limit <= MAX_BLOCKS or not 0 <= pause <= 60 or not 1 <= workers <= MAX_WORKERS:
+        raise DataError(f"limit must be between 1 and {MAX_BLOCKS}; pause between 0 and 60 seconds; workers between 1 and {MAX_WORKERS}")
+    return {"gaps": values["gaps"], "kind": kind, "limit": limit, "pause": pause, "workers": workers, **({"resume": values["resume"]} if values.get("resume") else {})}
 
 
 def _endpoint(catalog: dict[str, Any]) -> str:
@@ -103,6 +106,7 @@ def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | 
         "blocks": len(heights),
         "limit": values["limit"],
         "pause": values["pause"],
+        "workers": values["workers"],
         **({"resume": values["resume"]} if "resume" in values else {}),
         "writes": [RAW, "capture.json"],
         "overwrite": False,
@@ -157,34 +161,53 @@ def capture(
     done = {record["block_height"] for record in records}
     todo = [height for height in heights if height not in done][: max(0, preview["limit"] - len(records))]
     retries = 0
+
+    def fetch(height: int) -> tuple[int, bytes, dict[str, Any], int]:
+        """One block record, retried with a doubling wait when the API refuses or drops the request."""
+        url = f"{preview['endpoint']}/{height}"
+        for attempt in range(1, PAGE_ATTEMPTS + 1):
+            try:
+                body, metadata = request(url, timeout)
+                return height, body, metadata, attempt - 1
+            except DataError as error:
+                # Keyless, the Data API refuses for minutes after about a thousand requests; with a key it allows about
+                # 750 block requests a minute. Wait, doubling, up to about ten minutes in all, then keep the lines.
+                if attempt == PAGE_ATTEMPTS or not isinstance(error.__cause__, (OSError, urllib.error.URLError)):
+                    raise
+                time.sleep(PAGE_RETRY_SECONDS * 2 ** (attempt - 1))
+        raise AssertionError("unreachable")
+
     try:
-        with (temporary / RAW).open("ab") as raw, (temporary / PROGRESS).open("a", encoding="utf-8") as progress:
-            for number, height in enumerate(todo, 1):
-                if preview["pause"] and number > 1:
+        batch_size = preview["workers"] * 8
+        with (temporary / RAW).open("ab") as raw, (temporary / PROGRESS).open("a", encoding="utf-8") as progress, \
+                ThreadPoolExecutor(max_workers=preview["workers"]) as pool:
+            for offset in range(0, len(todo), batch_size):
+                if preview["pause"] and offset:
                     time.sleep(preview["pause"])
-                url = f"{preview['endpoint']}/{height}"
-                for attempt in range(1, PAGE_ATTEMPTS + 1):
+                # map yields in height order and raises at the first block that failed, so everything before it is
+                # written and the lines on disk stay an ascending prefix a resume can continue.
+                results = pool.map(fetch, todo[offset: offset + batch_size])
+                while True:
                     try:
-                        body, metadata = request(url, timeout)
+                        height, body, metadata, retried = next(results)
+                    except StopIteration:
                         break
                     except DataError as error:
-                        # The Data API refuses a keyless client for minutes after about a thousand requests. Wait, doubling,
-                        # up to about ten minutes in all, then keep the lines for a later resume.
-                        if attempt == PAGE_ATTEMPTS or not isinstance(error.__cause__, (OSError, urllib.error.URLError)):
-                            raise DataError(f"{error} after {attempt} attempts; {len(records)} blocks kept at {temporary}") from error
-                        retries += 1
-                        time.sleep(PAGE_RETRY_SECONDS * 2 ** (attempt - 1))
-                line = body.strip()
-                if b"\n" in line:
-                    line = json.dumps(json.loads(body), separators=(",", ":"), sort_keys=True).encode()
-                value = json.loads(line)
-                if str(value.get("blockNumber")) != str(height):
-                    raise DataError(f"the Data API answered block {value.get('blockNumber')} for {height}; {len(records)} blocks kept at {temporary}")
-                raw.write(line + b"\n")
+                        raw.flush()
+                        progress.flush()
+                        raise DataError(f"{error}; {len(records)} blocks kept at {temporary}") from error
+                    retries += retried
+                    line = body.strip()
+                    if b"\n" in line:
+                        line = json.dumps(json.loads(body), separators=(",", ":"), sort_keys=True).encode()
+                    value = json.loads(line)
+                    if str(value.get("blockNumber")) != str(height):
+                        raise DataError(f"the Data API answered block {value.get('blockNumber')} for {height}; {len(records)} blocks kept at {temporary}")
+                    raw.write(line + b"\n")
+                    record = {"block_height": height, "url": f"{preview['endpoint']}/{height}", "bytes": len(line), "sha256": sha256(line), **metadata}
+                    records.append(record)
+                    progress.write(json.dumps(record, sort_keys=True) + "\n")
                 raw.flush()
-                record = {"block_height": height, "url": url, "bytes": len(line), "sha256": sha256(line), **metadata}
-                records.append(record)
-                progress.write(json.dumps(record, sort_keys=True) + "\n")
                 progress.flush()
         if not records:
             raise DataError("the gaps run lists no blocks of that kind")

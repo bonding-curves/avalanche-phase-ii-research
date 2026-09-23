@@ -71,7 +71,7 @@ def test_failed_walk_keeps_lines_and_resumes(tmp_path, monkeypatch):
         return fake_request(url, timeout)
 
     capture = tmp_path / "capture"
-    with pytest.raises(DataError, match="after 8 attempts; 1 blocks kept"):
+    with pytest.raises(DataError, match="1 blocks kept"):
         cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=flaky, root=root)
     kept = next(tmp_path.glob(".capture.*"))
     receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "resume": str(kept)}, request=flaky, root=root)
@@ -103,3 +103,18 @@ def test_parameters_are_checked(parameters, tmp_path):
     root = make_gaps_run(tmp_path / "runs")
     with pytest.raises(DataError):
         cblocks.capture_preview(cblocks.DATASET_ID, tmp_path / "capture", parameters, root=root)
+
+
+def test_parallel_workers_keep_height_order(tmp_path):
+    import time as clock
+    root = make_gaps_run(tmp_path / "runs")
+
+    def slow_first(url, timeout):
+        if url.endswith("/100"):
+            clock.sleep(0.05)
+        return fake_request(url, timeout)
+
+    capture = tmp_path / "capture"
+    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "workers": "3"}, request=slow_first, root=root)
+    assert [item["block_height"] for item in receipt["blocks"]] == HEIGHTS
+    assert cblocks.check(capture)["status"] == "pass"

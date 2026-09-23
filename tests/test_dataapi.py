@@ -153,3 +153,26 @@ def test_paged_capture_retries_one_dropped_page(tmp_path, monkeypatch):
     assert record["pages"] == 3 and record["retries"] == 1
     _, values = rest.read_capture(tmp_path / "capture", catalog=catalog)
     assert [row["txHash"] for page in values["paged-test"] for row in page["validators"]] == ["a", "b", "c"]
+
+
+def test_data_api_key_goes_only_to_data_api_hosts(monkeypatch):
+    seen = {}
+
+    def opener(request, timeout):
+        seen[request.full_url] = request.get_header("X-glacier-api-key")
+        return Response({"ok": True})
+
+    monkeypatch.delenv(rest.DATA_API_KEY_VARIABLE, raising=False)
+    rest._request("https://glacier-api.avax.network/v1/avax/supply", 5, opener)
+    monkeypatch.setenv(rest.DATA_API_KEY_VARIABLE, "test-key")
+    rest._request("https://glacier-api.avax.network/v1/chains/43114/blocks/1", 5, opener)
+    rest._request("https://data-api.avax.network/v1/avax/supply", 5, opener)
+    rest._request("https://api.avax.network/ext/bc/P", 5, opener, body_json={"id": 1})
+    rest._request("https://api.coingecko.com/api/v3/ping", 5, opener)
+    assert seen == {
+        "https://glacier-api.avax.network/v1/avax/supply": None,
+        "https://glacier-api.avax.network/v1/chains/43114/blocks/1": "test-key",
+        "https://data-api.avax.network/v1/avax/supply": None,
+        "https://api.avax.network/ext/bc/P": None,
+        "https://api.coingecko.com/api/v3/ping": None,
+    }

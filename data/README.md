@@ -287,12 +287,12 @@ C-Chain EVM fees come from the Snowflake receipts, one run per year so each quer
 ```bash
 uv run --locked --extra snowflake avalanche data fetch snowflake.c-chain-block-gaps --output data/runs/c-block-gaps-example/capture --timeout 600
 uv run --locked avalanche data build snowflake.c-chain-block-gaps --from data/runs/c-block-gaps-example/capture --output data/runs/c-block-gaps-example/dataset
-uv run --locked avalanche data fetch data-api.c-chain-block-fees --output data/runs/c-block-fees-example/capture --param gaps=c-block-gaps-example --param pause=1 --timeout 60
+uv run --locked avalanche data fetch data-api.c-chain-block-fees --output data/runs/c-block-fees-example/capture --param gaps=c-block-gaps-example --param workers=8 --timeout 60
 uv run --locked avalanche data build data-api.c-chain-block-fees --from data/runs/c-block-fees-example/capture --output data/runs/c-block-fees-example/dataset
 uv run --locked avalanche data check data-api.c-chain-block-fees --capture data/runs/c-block-fees-example/capture --dataset data/runs/c-block-fees-example/dataset --against data/runs/c-block-gaps-example/dataset
 ```
 
-The block-fee walk and the C atomic walk write one record per line as it arrives and keep their lines when the Data API refuses further requests; continue either with `--param resume=<kept directory>`. Keyless, the API refused after about a thousand requests an hour on 2026-09-23. The atomic history is one walk from the newest transaction back to the first C block, `--param start=2020-09-23 --param end=<yesterday> --param max_pages=30000 --param pause=1`, about nine thousand pages.
+The block-fee walk and the C atomic walk write one record per line as it arrives and keep their lines when the Data API refuses further requests; continue either with `--param resume=<kept directory>`. Keyless, the API refused after about a thousand requests an hour on 2026-09-23. With a Data API key from [AvaCloud](https://app.avacloud.io) exported as `AVALANCHE_DATA_API_KEY`, it allows about 750 block requests a minute, and `--param workers=8` on the block-fee walk uses that. The key is sent only to `glacier-api.avax.network` and never enters a capture or a receipt. The atomic history is one walk from the newest transaction back to the first C block, `--param start=2020-09-23 --param end=<yesterday> --param max_pages=30000`, about nine thousand pages.
 
 Then derive and check the ledger. The derive takes the newest built run of the P and X burns, the staking rewards, the staking-period log, and the staking supply, and every current run of the repairs, the C EVM years, the atomic walks, and the Data API supply snapshots:
 

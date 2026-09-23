@@ -386,7 +386,7 @@
       "status": "implemented",
       "authority": "Ava Labs' official indexed data behind the Avalanche explorer. Its supply endpoint reports current totals, while its C-Chain Primary Network transaction endpoint reports atomic imports and exports with AVAX input and output amounts.",
       "documentation_url": "https://build.avax.network/docs/api-reference/data-api",
-      "authentication": "optional; the OpenAPI security scheme is an x-glacier-api-key header. The supply and C atomic transaction endpoints answered keyless requests in September 2026. A key raises rate limits and is never stored in the repository.",
+      "authentication": "optional; the x-glacier-api-key header, read from the AVALANCHE_DATA_API_KEY environment variable and sent only to glacier-api.avax.network, which accepts it (the data-api.avax.network alias rejects it). Keyless requests work at a lower limit. The key is never stored in the repository, a capture, or a receipt.",
       "reuse_status": "Public access observed; Ava Labs terms apply to redistribution.",
       "notes": [
         "OpenAPI GET /v1/avax/supply: Get AVAX supply information that includes total supply, circulating supply, total p burned, total c burned, total x burned, total staked, total locked, total rewards, and last updated. The operation takes no parameters.",
@@ -395,7 +395,8 @@
         "C-Chain atomic transaction listing pages backward from latest; startTimestamp and endTimestamp require an address filter, so a complete all-address dated capture walks pages until it crosses the requested start.",
         "Validators endpoint, measured 2026-09-22: 100 rows per page is the maximum, about four seconds a page, no rate-limit headers, and Cloudflare rejects Python's default user agent. Without a subnetId filter the endpoint also returns subnet validators, which have no delegation fee. Active Primary Network validations carry uptimePerformance as observed by Ava Labs' node; completed validations carry rewards and reward addresses but no uptime, so historical uptime percentages are not recoverable from this API.",
         "C-Chain block record, measured 2026-09-23: GET /v1/chains/43114/blocks/{height} returns the block's feesSpent, an integer number of wei equal to the sum of gas used times effective gas price over its receipts; the block listing takes no height range, so gap blocks are read one request each",
-        "Rate limit, measured 2026-09-23: keyless, the API answered HTTP 429 after about 130 requests at three a second and again after about 1,000 requests at one a second, and kept refusing for more than ten minutes; a key would raise the limit and is never stored in the repository"
+        "Rate limit, measured 2026-09-23: keyless, the API answered HTTP 429 after about 130 requests at three a second and again after about 1,000 requests at one a second, and kept refusing for more than ten minutes; a key would raise the limit and is never stored in the repository",
+        "With a key, measured 2026-09-23: the response carries ratelimit-policy 8000;w=60, cost units per minute, and a block request costs about ten, so about 750 block requests a minute"
       ],
       "endpoints": [
         {
@@ -417,7 +418,7 @@
         },
         {
           "id": "c-chain-atomic-transactions",
-          "url": "https://data-api.avax.network/v1/networks/mainnet/blockchains/c-chain/transactions",
+          "url": "https://glacier-api.avax.network/v1/networks/mainnet/blockchains/c-chain/transactions",
           "response_fields": [
             "transactions",
             "nextPageToken"

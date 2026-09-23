@@ -26,6 +26,17 @@ from .catalog import (
 
 PAGE_ATTEMPTS = 3
 PAGE_RETRY_SECONDS = 5.0
+# An optional Data API key raises the keyless rate limit (to 8,000 cost units a minute, about 750 block requests,
+# measured 2026-09-23). It is read from the environment at request time, sent only to the Data API host that accepts
+# it, and never written to a capture, a receipt, or the repository. The data-api.avax.network alias rejects the same key.
+DATA_API_KEY_VARIABLE = "AVALANCHE_DATA_API_KEY"
+DATA_API_HOSTS = frozenset({"glacier-api.avax.network"})
+
+
+def _data_api_key(url: str) -> str | None:
+    if urllib.parse.urlsplit(url).hostname not in DATA_API_HOSTS:
+        return None
+    return os.environ.get(DATA_API_KEY_VARIABLE) or None
 
 
 def _request(
@@ -37,6 +48,9 @@ def _request(
 ) -> tuple[bytes, dict[str, Any]]:
     """Fetch one endpoint. A JSON body turns the request into a POST; content selects the response validation."""
     headers = {"Accept": "application/json" if content == "json" else "application/xml, text/xml", "User-Agent": "avalanche-phase-ii-research/0.1"}
+    key = _data_api_key(url)
+    if key:
+        headers["x-glacier-api-key"] = key
     data = None
     if body_json is not None:
         data = json.dumps(body_json, separators=(",", ":"), sort_keys=True).encode()
