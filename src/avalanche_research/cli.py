@@ -11,6 +11,7 @@ import click
 
 from . import __version__
 from . import atomic
+from . import cblocks
 from . import cchain_rpc
 from . import coingecko
 from . import dataapi
@@ -18,8 +19,10 @@ from . import datasets
 from . import defillama
 from . import derived
 from . import metrics
+from . import monetary
 from . import nodes
 from . import pchain
+from . import ptx
 from . import snowflake
 from . import snowpeer
 from . import treasury
@@ -33,16 +36,19 @@ from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 
 MODULES = {
     atomic.DATASET_ID: atomic,
+    cblocks.DATASET_ID: cblocks,
     cchain_rpc.DATASET_ID: cchain_rpc,
     snowpeer.DATASET_ID: snowpeer,
     coingecko.DATASET_ID: coingecko,
     dataapi.DATASET_ID: dataapi,
     defillama.DATASET_ID: defillama,
     pchain.DATASET_ID: pchain,
+    ptx.DATASET_ID: ptx,
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,
     derived.DATASET_ID: derived,
     nodes.DATASET_ID: nodes,
+    monetary.DATASET_ID: monetary,
     **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
     **{dataset_id: validators_api for dataset_id in validators_api.DATASET_IDS},

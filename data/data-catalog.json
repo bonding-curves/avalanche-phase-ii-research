@@ -393,7 +393,9 @@
         "Blocker recorded 2026-09-19: the Data API exposes no historical supply, circulating supply, staked supply, or cumulative burn series; the supply endpoint returns one current state with lastUpdated. A history can only be assembled by repeated captures or from the Snowflake block supply counter.",
         "Observed 2026-09-19: totalSupply equals genesisUnlock plus totalRewards minus the three burn totals to within one AVAX, so the API's totals are internally consistent.",
         "C-Chain atomic transaction listing pages backward from latest; startTimestamp and endTimestamp require an address filter, so a complete all-address dated capture walks pages until it crosses the requested start.",
-        "Validators endpoint, measured 2026-09-22: 100 rows per page is the maximum, about four seconds a page, no rate-limit headers, and Cloudflare rejects Python's default user agent. Without a subnetId filter the endpoint also returns subnet validators, which have no delegation fee. Active Primary Network validations carry uptimePerformance as observed by Ava Labs' node; completed validations carry rewards and reward addresses but no uptime, so historical uptime percentages are not recoverable from this API."
+        "Validators endpoint, measured 2026-09-22: 100 rows per page is the maximum, about four seconds a page, no rate-limit headers, and Cloudflare rejects Python's default user agent. Without a subnetId filter the endpoint also returns subnet validators, which have no delegation fee. Active Primary Network validations carry uptimePerformance as observed by Ava Labs' node; completed validations carry rewards and reward addresses but no uptime, so historical uptime percentages are not recoverable from this API.",
+        "C-Chain block record, measured 2026-09-23: GET /v1/chains/43114/blocks/{height} returns the block's feesSpent, an integer number of wei equal to the sum of gas used times effective gas price over its receipts; the block listing takes no height range, so gap blocks are read one request each",
+        "Rate limit, measured 2026-09-23: keyless, the API answered HTTP 429 after about 130 requests at three a second and again after about 1,000 requests at one a second, and kept refusing for more than ten minutes; a key would raise the limit and is never stored in the repository"
       ],
       "endpoints": [
         {
@@ -460,6 +462,19 @@
             "max_pages": 800,
             "first_pages": 15
           }
+        },
+        {
+          "id": "c-chain-block",
+          "url": "https://glacier-api.avax.network/v1/chains/43114/blocks",
+          "response_fields": [
+            "blockNumber",
+            "blockHash",
+            "blockTimestamp",
+            "txCount",
+            "gasUsed",
+            "baseFee",
+            "feesSpent"
+          ]
         }
       ]
     },
@@ -536,7 +551,7 @@
       "name": "Avalanche P-Chain public RPC",
       "source_type": "rest_api",
       "status": "implemented",
-      "authority": "Direct response of a public Avalanche node about the current Primary Network validator set. Authoritative for current protocol state at the observation instant; it holds no history.",
+      "authority": "Direct response of a public Avalanche node about the current Primary Network validator set. Authoritative for current protocol state at the observation instant; it holds no history. Its record of one transaction by hash carries every input and output amount, so it also settles burns the share cannot.",
       "documentation_url": "https://build.avax.network/docs/rpcs/p-chain/validators/platform_getCurrentValidators",
       "authentication": "none; the public endpoint at api.avax.network answers JSON-RPC POST requests",
       "reuse_status": "Public access observed; node operators may rate-limit.",
@@ -548,6 +563,22 @@
             "jsonrpc": "2.0",
             "method": "platform.getCurrentValidators",
             "params": {},
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "get-tx",
+          "url": "https://api.avax.network/ext/bc/P",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "platform.getTx",
+            "params": {
+              "txID": "<transaction hash>",
+              "encoding": "json"
+            },
             "id": 1
           },
           "response_fields": [
@@ -751,9 +782,73 @@
           ],
           "observed_semantics": [
             "C-Chain EVM burn is the integer-wei sum of receipt gas used times effective gas price",
-            "C_BLOCKS.BLOCKTRANSACTIONLEN provides an independent expected receipt count per day",
+            "C_BLOCKS.BLOCKTRANSACTIONLEN provides an independent expected receipt count per block and per day",
+            "The share loaded 2025-08-28 and 2025-09-07 twice: every block and receipt of those days repeats, so blocks and receipts are read once by height and transaction hash",
+            "The share lacks every receipt of 2023-10-06 and about a third of the receipts of 2023-12-13 and 2023-12-14 while holding the blocks, and lacks about fifteen thousand blocks on some forty days of 2025; the burn is summed over complete blocks only and the gaps are counted",
+            "The C-Chain produces no empty blocks, so a calendar day without blocks in the early history burns nothing",
+            "Blocks with no transactions carry one all-null placeholder receipt row with no partition date; they contribute nothing and are not counted as missing fee inputs",
             "The query reads one neighboring C block day on each side to check block-height continuity across the capture boundary",
             "Atomic AVAX burns are excluded and require the separate C-Chain atomic dataset"
+          ]
+        },
+        {
+          "id": "primary-burn-daily",
+          "sql": "queries/primary-burn-daily.sql",
+          "relations": [
+            "P_TRANSACTIONS",
+            "X_TRANSACTIONS",
+            "UTXOS"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-10",
+              "meaning": "inclusive lower UTC transaction date; every date from here is a row for each chain"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the capture's UTC date, so the last row is the last complete day",
+              "meaning": "exclusive upper UTC transaction date"
+            }
+          ],
+          "observed_semantics": [
+            "BURNED_AVAX is the transaction's AVAX destruction in nAVAX; a hash that repeats in the share is read once, taking a recorded burn over a null one",
+            "Three P-Chain ImportTx of 2022-01-15 and 2022-01-16 record a negative BURNED_AVAX; a negative record is read as no record, and the UTXO method gives each the 0.001 AVAX pre-Etna import fee",
+            "AdvanceTimeTx and RewardValidatorTx carry no burn; genesis transactions (2020-09-10, block height -1) carry none either, confirmed on all 77 P and 1 X genesis hashes against the Data API on 2026-09-21",
+            "A null burn outside those cases is inputs minus non-reward outputs over the AVAX UTXOs the share holds for the hash; the method reproduced BURNED_AVAX on 30 P and 60 X control transactions",
+            "24 P-Chain ImportTx of 2025-03-11 and 2025-03-14 consume UTXOs the share does not hold and stay unresolved; the row lists their hashes for the Data API transaction capture",
+            "For IncreaseL1ValidatorBalanceTx, RegisterL1ValidatorTx, and ConvertSubnetToL1Tx, BURNED_AVAX includes the L1 validator balance deposited (L1_VALIDATOR_PAYG_BALANCE per validator row); the deposit is subtracted from the burn and reported apart, matching the Data API's amountBurned and amountL1ValidatorBalanceBurned on ten sampled transactions",
+            "L1 validator fees accrue continuously from those balances: L1_VALIDATOR_ACCRUED_FEES is a per-validator cumulative counter and L1_VALIDATOR_ACTIVE_COUNT the validators paying it, so the fee burned between two P transactions is the previous count times the counter's increase; summed to 2026-09-19 11:00 UTC this gives 17,951.43 AVAX against the Data API's 17,951.41",
+            "The Data API's totalPBurned equals these transaction burns plus the L1 validator fees; its totalXBurned equals the recorded X burns and omits the 612 null-burn X transactions of 2025-09-13 to 2025-09-15 that the UTXO method settles at 0.679 AVAX"
+          ]
+        },
+        {
+          "id": "c-chain-block-gaps",
+          "sql": "queries/c-chain-block-gaps.sql",
+          "relations": [
+            "C_BLOCKS",
+            "C_RECEIPTS"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-23",
+              "meaning": "inclusive lower UTC block date; a hole that straddles this date is not seen, so run over the full history"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC block date"
+            }
+          ],
+          "observed_semantics": [
+            "An absent block is a height between two present blocks that the share lacks; it is dated by the present block before it, and the Data API block record carries its own timestamp",
+            "A short block is present with fewer distinct receipts than BLOCKTRANSACTIONLEN; every receipt of 2023-10-06 and about a third of those of 2023-12-13 and 2023-12-14 are missing this way",
+            "Blocks the share loaded twice are read once by height"
           ]
         }
       ]
@@ -770,7 +865,8 @@
       "notes": [
         "Built with `avalanche data derive`, which selects the newest built run of each input unless a run is pinned, and writes a capture receipt naming the input runs beside the Parquet build.",
         "The staking-period log adds the network upgrade regime at acceptance and the reward the protocol kernel computes for each row, so the recorded potential reward can be checked row by row.",
-        "The node table folds the staking-period log, the reward addresses on validator transactions, and the delegator addresses into one row per validator node. Its clocks are clipped at the validator capture time, so a run is reproducible from its inputs alone."
+        "The node table folds the staking-period log, the reward addresses on validator transactions, and the delegator addresses into one row per validator node. Its clocks are clipped at the validator capture time, so a run is reproducible from its inputs alone.",
+        "The monetary daily ledger replays supply from genesis: rewards paid out minus burns on every chain, in wei, with a coverage state per component and per day, and takes every current run of the multi-run inputs so repairs captured later fill earlier gaps without a rebuild of the sources."
       ],
       "inputs": [
         {
@@ -807,6 +903,46 @@
           "id": "validators-active",
           "dataset_id": "data-api.validators-active",
           "role": "today's validator set as Ava Labs' indexer observes it, optional"
+        },
+        {
+          "id": "burn-daily",
+          "dataset_id": "snowflake.primary-burn-daily",
+          "role": "P- and X-Chain burns by day, with the L1 validator fees and the unresolved hashes"
+        },
+        {
+          "id": "p-transactions",
+          "dataset_id": "p-chain-rpc.transactions",
+          "role": "node records that settle the unresolved P-Chain burns"
+        },
+        {
+          "id": "c-evm-daily",
+          "dataset_id": "snowflake.c-chain-evm-burn-daily",
+          "role": "C-Chain EVM fees by day over the share's complete blocks, every current run"
+        },
+        {
+          "id": "c-block-gaps",
+          "dataset_id": "snowflake.c-chain-block-gaps",
+          "role": "the C blocks the share cannot account for"
+        },
+        {
+          "id": "c-block-fees",
+          "dataset_id": "data-api.c-chain-block-fees",
+          "role": "Data API block records with the fees of the gap blocks, every current run"
+        },
+        {
+          "id": "c-receipt-repairs",
+          "dataset_id": "c-chain-rpc.receipt-gap-repairs",
+          "role": "archived node receipts of an absent C block, every current run"
+        },
+        {
+          "id": "c-atomic",
+          "dataset_id": "data-api.c-chain-atomic-burn",
+          "role": "C-Chain import and export burns, every current run"
+        },
+        {
+          "id": "supply-checkpoints",
+          "dataset_id": "data-api.avax-supply",
+          "role": "dated Data API supply snapshots the ledger's cumulative totals are checked against, every run"
         }
       ]
     }
@@ -1407,7 +1543,7 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One UTC day per row with exact EVM receipt-fee burn in wei and independent block/receipt coverage counts. C-Chain atomic burns are excluded.",
+      "description": "One UTC day per row with the exact EVM receipt-fee burn in wei over the day's complete C blocks, read once each where the share repeats them, with the blocks the share lacks (absent) or holds without all their receipts (short) counted so the Data API block record can fill them. C-Chain atomic burns are excluded.",
       "query_ids": [
         "c-chain-evm-burn-daily"
       ],
@@ -1422,79 +1558,229 @@
           "name": "burned_wei",
           "type": "integer",
           "unit": "wei",
-          "derivation": "sum of TRANSACTIONRECEIPTGASUSED × TRANSACTIONRECEIPTEFFECTIVEGASPRICE"
+          "derivation": "sum of TRANSACTIONRECEIPTGASUSED × TRANSACTIONRECEIPTEFFECTIVEGASPRICE over distinct receipts of the day's complete blocks, those whose distinct receipts equal BLOCKTRANSACTIONLEN"
         },
         {
           "name": "block_count",
           "type": "integer",
           "unit": "blocks",
-          "derivation": "C_BLOCKS row count"
-        },
-        {
-          "name": "distinct_blocks",
-          "type": "integer",
-          "unit": "blocks",
-          "derivation": "distinct C block numbers"
+          "derivation": "distinct C block heights the share holds for the day"
         },
         {
           "name": "first_block",
           "type": "integer",
-          "unit": "block number",
-          "derivation": "minimum C block number"
+          "unit": "block height",
+          "derivation": "lowest block height of the day"
         },
         {
           "name": "last_block",
           "type": "integer",
-          "unit": "block number",
-          "derivation": "maximum C block number"
+          "unit": "block height",
+          "derivation": "highest block height of the day"
+        },
+        {
+          "name": "absent_blocks",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "heights between first_block and last_block that the share lacks"
+        },
+        {
+          "name": "short_blocks",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "blocks present with fewer distinct receipts than BLOCKTRANSACTIONLEN; their receipts are excluded from burned_wei"
+        },
+        {
+          "name": "short_block_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "BLOCKTRANSACTIONLEN summed over the short blocks"
         },
         {
           "name": "previous_last_block",
           "type": "integer",
-          "unit": "block number; null at C genesis",
-          "derivation": "last C block of preceding UTC day"
+          "unit": "block height",
+          "derivation": "last block of the preceding C block day, read outside the window for continuity"
         },
         {
           "name": "next_first_block",
           "type": "integer",
-          "unit": "block number; null if the next UTC day is unavailable",
-          "derivation": "first C block of following UTC day"
+          "unit": "block height",
+          "derivation": "first block of the following C block day, read outside the window for continuity"
         },
         {
           "name": "expected_receipts",
           "type": "integer",
-          "unit": "transactions",
-          "derivation": "sum of C_BLOCKS.BLOCKTRANSACTIONLEN"
+          "unit": "receipts",
+          "derivation": "BLOCKTRANSACTIONLEN summed over the day's blocks"
         },
         {
-          "name": "receipt_count",
+          "name": "receipt_rows",
           "type": "integer",
-          "unit": "receipts",
-          "derivation": "C_RECEIPTS row count"
+          "unit": "rows",
+          "derivation": "C_RECEIPTS rows on the partition date, before reading each transaction once"
         },
         {
           "name": "distinct_receipts",
           "type": "integer",
-          "unit": "transactions",
-          "derivation": "distinct C receipt transaction hashes"
+          "unit": "receipts",
+          "derivation": "distinct receipt transaction hashes joined to the day's blocks"
         },
         {
           "name": "missing_fee_inputs",
           "type": "integer",
           "unit": "receipts",
-          "derivation": "receipts with missing gas used or effective gas price"
+          "derivation": "receipts lacking gas used or effective gas price"
         },
         {
           "name": "first_epoch",
           "type": "integer",
-          "unit": "UTC epoch seconds",
-          "derivation": "earliest C block timestamp of the day"
+          "unit": "seconds since epoch",
+          "derivation": "earliest block timestamp of the day"
         },
         {
           "name": "last_epoch",
           "type": "integer",
-          "unit": "UTC epoch seconds",
-          "derivation": "latest C block timestamp of the day"
+          "unit": "seconds since epoch",
+          "derivation": "latest block timestamp of the day"
+        }
+      ]
+    },
+    {
+      "id": "snowflake.primary-burn-daily",
+      "name": "P- and X-Chain AVAX burns by UTC date",
+      "source_id": "avalanche-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC date and chain (P or X) with the AVAX burned by that chain's transactions in nAVAX, how each transaction's burn was established, the hashes still unresolved, the L1 validator balances deposited, and the L1 validator fees burned from those balances. C-Chain burns are the separate EVM and atomic datasets.",
+      "query_ids": [
+        "primary-burn-daily"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "calendar date; every date from start to end has one row per chain, a day without transactions is a zero row"
+        },
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "chain letter",
+          "derivation": "'P' or 'X'"
+        },
+        {
+          "name": "transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "distinct transaction hashes accepted on the chain that UTC day"
+        },
+        {
+          "name": "burned_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum over the day's transactions of the AVAX burned: recorded BURNED_AVAX, less the L1 validator balance deposited for the three L1 balance transaction types, or the UTXO-derived burn where the record is null and the consumed UTXOs are in the share; unresolved transactions contribute nothing and are counted apart"
+        },
+        {
+          "name": "recorded_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "transactions whose burn is the share's BURNED_AVAX"
+        },
+        {
+          "name": "system_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "AdvanceTimeTx and RewardValidatorTx, which burn nothing"
+        },
+        {
+          "name": "genesis_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "genesis transactions of 2020-09-10, which burn nothing"
+        },
+        {
+          "name": "utxo_derived_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "transactions with a null record whose burn is consumed AVAX UTXOs minus non-reward AVAX outputs"
+        },
+        {
+          "name": "unresolved_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "transactions with a null record and no consumed UTXOs in the share; their burn is missing until a Data API transaction capture settles it"
+        },
+        {
+          "name": "unresolved_hashes",
+          "type": "string",
+          "unit": "comma-separated transaction hashes",
+          "derivation": "the unresolved transactions' hashes, null when there are none"
+        },
+        {
+          "name": "l1_balance_deposited_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "L1 validator balance deposited by the day's IncreaseL1ValidatorBalanceTx, RegisterL1ValidatorTx, and ConvertSubnetToL1Tx, held by the P-Chain and consumed later as L1 validator fees; zero on X rows"
+        },
+        {
+          "name": "l1_validator_fees_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "L1 validator fees burned that day: for each P transaction carrying the counters, the previous active L1 validator count times the increase of L1_VALIDATOR_ACCRUED_FEES since the previous transaction; zero before Etna and on X rows"
+        }
+      ]
+    },
+    {
+      "id": "snowflake.c-chain-block-gaps",
+      "name": "C blocks the Snowflake share cannot account for",
+      "source_id": "avalanche-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per C block that is absent from the share or present without all its receipts, so the Data API block record can supply the fees of exactly those blocks. Lists about 143,000 heights over the full history, nearly all on three days of 2023.",
+      "query_ids": [
+        "c-chain-block-gaps"
+      ],
+      "fields": [
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "C block number"
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "unit": "kind",
+          "derivation": "'absent' when the share lacks the block, 'short' when it holds the block with fewer distinct receipts than BLOCKTRANSACTIONLEN"
+        },
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "partition date of the block, or of the present block before an absent one"
+        },
+        {
+          "name": "declared_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "BLOCKTRANSACTIONLEN of a short block; null for an absent block"
+        },
+        {
+          "name": "distinct_receipts",
+          "type": "integer",
+          "unit": "receipts",
+          "derivation": "distinct receipt transaction hashes of a short block; null for an absent block"
         }
       ]
     },
@@ -1808,6 +2094,66 @@
           "type": "string",
           "unit": "P-Chain address; first of the owner's addresses",
           "derivation": "result.validators[i].delegationRewardOwner.addresses[0]"
+        }
+      ]
+    },
+    {
+      "id": "p-chain-rpc.transactions",
+      "name": "P-Chain transactions by hash from a public node",
+      "source_id": "avalanche-p-chain-rpc",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per explicitly requested P-Chain transaction with the AVAX it consumed, created, and burned, read from the node's own transaction record. Captured for the transactions whose burn neither the Snowflake share nor the Data API records; the raw platform.getTx responses stay hashed in the capture.",
+      "endpoint_ids": [
+        "get-tx"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "base58 hash",
+          "derivation": "the requested P-Chain transaction hash, equal to the node's tx.id"
+        },
+        {
+          "name": "tx_kind",
+          "type": "string",
+          "unit": "kind",
+          "derivation": "'ImportTx' when the node's unsigned transaction carries importedInputs, 'ExportTx' when it carries exportedOutputs, else 'other'"
+        },
+        {
+          "name": "input_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum of AVAX amounts over inputs and importedInputs"
+        },
+        {
+          "name": "output_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum of AVAX amounts over outputs, exportedOutputs, and stake outputs"
+        },
+        {
+          "name": "burned_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "input_navax minus output_navax: the AVAX the transaction destroyed"
+        },
+        {
+          "name": "input_count",
+          "type": "integer",
+          "unit": "inputs",
+          "derivation": "AVAX inputs counted, at least one"
+        },
+        {
+          "name": "output_count",
+          "type": "integer",
+          "unit": "outputs",
+          "derivation": "AVAX outputs counted"
         }
       ]
     },
@@ -2789,6 +3135,72 @@
       ]
     },
     {
+      "id": "data-api.c-chain-block-fees",
+      "name": "C-Chain block fees for the share's gap blocks",
+      "source_id": "avalanche-data-api",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per C block read from the Data API block record, for the heights a built run of the share's block gaps dataset lists: its timestamp, transaction count, gas, and the fees burned in it. Each record is one JSON line kept as it arrived; a walk keeps its lines on failure and resumes.",
+      "endpoint_ids": [
+        "c-chain-block"
+      ],
+      "fields": [
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "the requested C block number, equal to the record's blockNumber"
+        },
+        {
+          "name": "block_hash",
+          "type": "string",
+          "unit": "hex hash",
+          "derivation": "blockHash"
+        },
+        {
+          "name": "block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "blockTimestamp, seconds since epoch"
+        },
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "the UTC date of block_timestamp"
+        },
+        {
+          "name": "transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "txCount"
+        },
+        {
+          "name": "gas_used",
+          "type": "integer",
+          "unit": "gas",
+          "derivation": "gasUsed"
+        },
+        {
+          "name": "base_fee_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "baseFee"
+        },
+        {
+          "name": "fees_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "feesSpent: the EVM fees burned in the block, equal to the sum of gas used times effective gas price over its receipts"
+        }
+      ]
+    },
+    {
       "id": "derived.staking-periods",
       "name": "Primary Network staking periods",
       "source_id": "derived",
@@ -3218,6 +3630,174 @@
           "type": "string",
           "unit": "country",
           "derivation": "from the API observer's geolocation; null when unknown"
+        }
+      ]
+    },
+    {
+      "id": "derived.avax-monetary-daily",
+      "name": "AVAX monetary daily ledger",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics",
+        "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
+      ],
+      "description": "One row per UTC date with staking rewards paid out, AVAX burned on the P-, X-, and C-Chains, the realized total supply replayed from genesis, and the validator and delegated stake active at the end of the day, every amount an integer number of wei, with a coverage state per component. Supply is written only through the last day before the first incomplete one; nothing is imputed.",
+      "input_ids": [
+        "burn-daily",
+        "staking-rewards",
+        "staking-periods",
+        "staking-supply",
+        "p-transactions",
+        "c-evm-daily",
+        "c-block-gaps",
+        "c-block-fees",
+        "c-receipt-repairs",
+        "c-atomic",
+        "supply-checkpoints"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "one row per calendar day from the 2020-09-10 genesis to the last complete day of the P and X burn run"
+        },
+        {
+          "name": "issued_rewards_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "staking rewards paid out that day: realized reward UTXOs of the reward transactions accepted on the day, from snowflake.primary-staking-rewards, times 10^9; a validator's share of its delegators' fees is inside the validator's reward and counted once"
+        },
+        {
+          "name": "burned_p_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "burned_p_transactions_wei plus burned_p_l1_validator_fees_wei: the P-Chain burn as the Data API's totalPBurned defines it"
+        },
+        {
+          "name": "burned_p_transactions_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "AVAX destroyed by P-Chain transactions accepted that day, from snowflake.primary-burn-daily, plus the burns of that day's unresolved transactions settled by p-chain-rpc.transactions, times 10^9"
+        },
+        {
+          "name": "burned_p_l1_validator_fees_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "L1 validator fees burned from validator balances that day, from snowflake.primary-burn-daily, times 10^9"
+        },
+        {
+          "name": "burned_x_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "AVAX destroyed by X-Chain transactions accepted that day, from snowflake.primary-burn-daily, times 10^9"
+        },
+        {
+          "name": "burned_c_evm_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "C-Chain EVM fees of the day's blocks: the share's complete blocks from snowflake.c-chain-evm-burn-daily plus burned_c_evm_gap_wei"
+        },
+        {
+          "name": "burned_c_evm_gap_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "fees of the day's gap blocks read from the Data API block record (data-api.c-chain-block-fees) or the archived node receipts (c-chain-rpc.receipt-gap-repairs), dated by the block's own timestamp"
+        },
+        {
+          "name": "burned_c_atomic_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "AVAX unlocked minus created by the day's C-Chain imports and exports, from data-api.c-chain-atomic-burn, times 10^9"
+        },
+        {
+          "name": "burned_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "burned_p_wei + burned_x_wei + burned_c_evm_wei + burned_c_atomic_wei"
+        },
+        {
+          "name": "total_supply_open_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "the previous day's total_supply_close_wei; 360,000,000 AVAX on the genesis day"
+        },
+        {
+          "name": "total_supply_close_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "total_supply_open_wei + issued_rewards_wei - burned_wei, written only while every day from genesis through this one is complete, null after the first incomplete day"
+        },
+        {
+          "name": "active_validator_stake_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "self-stake of validator periods with start_time <= 23:59:59 UTC of the day < end_time, from derived.staking-periods, times 10^9"
+        },
+        {
+          "name": "active_delegated_stake_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "stake of delegator periods active at the same instant, times 10^9"
+        },
+        {
+          "name": "active_validators",
+          "type": "integer",
+          "unit": "periods",
+          "derivation": "validator periods active at the instant"
+        },
+        {
+          "name": "active_delegations",
+          "type": "integer",
+          "unit": "periods",
+          "derivation": "delegator periods active at the instant"
+        },
+        {
+          "name": "rewards_coverage",
+          "type": "string",
+          "unit": "coverage",
+          "derivation": "'complete' when the day lies inside the reward run's window and before its capture day, else 'missing'"
+        },
+        {
+          "name": "p_coverage",
+          "type": "string",
+          "unit": "coverage",
+          "derivation": "'complete' when the day has no unresolved P transaction, 'repaired' when every unresolved one is settled by a node record, 'incomplete' otherwise, 'missing' outside the burn run"
+        },
+        {
+          "name": "x_coverage",
+          "type": "string",
+          "unit": "coverage",
+          "derivation": "as p_coverage, for the X-Chain"
+        },
+        {
+          "name": "c_evm_coverage",
+          "type": "string",
+          "unit": "coverage",
+          "derivation": "'complete' when the day lies inside a C EVM run and has no absent or short block, 'repaired' when every gap block the gaps run lists for the day has a fee record, 'incomplete' otherwise, 'missing' outside every run; days before the first C block are complete at zero"
+        },
+        {
+          "name": "c_atomic_coverage",
+          "type": "string",
+          "unit": "coverage",
+          "derivation": "'complete' when the day lies inside a C atomic run's window (a day without imports or exports burns nothing), else 'missing'; days before the first C block are complete at zero"
+        },
+        {
+          "name": "stake_coverage",
+          "type": "string",
+          "unit": "coverage",
+          "derivation": "'complete' for days before the staking-period inputs were captured, else 'missing'"
+        },
+        {
+          "name": "complete",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "every coverage is complete or repaired"
         }
       ]
     }

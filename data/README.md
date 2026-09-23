@@ -14,6 +14,12 @@ This directory defines the machine-readable contracts for research data used in 
 | `snowflake.primary-burn-events` | One deduplicated P- or X-Chain transaction per row with recorded AVAX burn | Implemented, tested, and captured for 2026-09-16; not an all-chain burn total |
 | `data-api.c-chain-atomic-burn` | One C-Chain import or export per row with the exact AVAX input-minus-output burn | Implemented, tested, and captured for 2026-09-16; not a historical C burn total |
 | `c-chain-rpc.receipt-gap-repairs` | One C-Chain transaction receipt per row for a specified block missing from the Snowflake share | Implemented and checked for block 95,492,477; a source repair, not a combined daily burn |
+| `snowflake.primary-burn-daily` | One Parquet row per UTC date and chain (P or X) with the AVAX burned, how each burn was established, the L1 validator fees, and the hashes the share cannot settle | Implemented, tested, and captured for the full history on 2026-09-23; 24 P-Chain imports settled by the node record below |
+| `p-chain-rpc.transactions` | One Parquet row per requested P-Chain transaction with the AVAX it consumed, created, and burned, from the node's own record | Implemented, tested, and captured for the 24 imports the share and the Data API cannot settle |
+| `snowflake.c-chain-evm-burn-daily` | One Parquet row per UTC day with the exact EVM fee burn over the share's complete C blocks, the blocks read once where the share repeats them, and the absent and short blocks counted | Implemented, tested, and captured 2020-09-23 to 2026-09-21 in seven year runs; three days of 2023 and about forty of 2025 wait on the block-fee capture |
+| `snowflake.c-chain-block-gaps` | One Parquet row per C block the share lacks or holds without all its receipts | Implemented and tested; the full-history capture is the next step |
+| `data-api.c-chain-block-fees` | One Parquet row per gap block read from the Data API block record with the fees burned in it | Implemented and tested; the capture waits on the gaps run and on the Data API's keyless rate limit |
+| `derived.avax-monetary-daily` | One Parquet row per UTC date with rewards paid out, burns by chain, realized total supply replayed from genesis, and active stake, every amount in wei with a coverage state per component | Implemented, tested, and derived on 2026-09-23; supply is verified through 2020-09-22 until the C-Chain atomic walk and the gap-block fees complete |
 | `coingecko.avax-market-daily` | One Parquet row per day of AVAX price, market capitalization, volume, log return, and 30-day realized volatility | Implemented, tested, and captured live; public API serves the trailing 365 days only |
 | `defillama.avax-price-daily` | One Parquet row per daily AVAX price observation since 2020-09-22 with log return and 30-day realized volatility | Implemented, tested, and captured live |
 | `p-chain-rpc.current-validators` | One Parquet row per validator in the current Primary Network set with stake, fee, observed uptime, connection, and delegator totals | Implemented, tested, and captured live; a snapshot, not a history |
@@ -256,6 +262,47 @@ uv run --locked avalanche data check derived.node-table --capture data/runs/node
 
 On the 2026-09-22 runs this builds 7,644 rows in about two seconds and loads as the `node_table` view.
 
+## Build the monetary daily ledger
+
+The ledger replays AVAX supply from genesis: rewards paid out minus every burn on the P-, X-, and C-Chains, in integer wei, one row per UTC day, with the validator and delegated stake active at 23:59:59 UTC. It is derived from built runs of six source datasets and settles their gaps from three more. Read the [monetary source audit](monetary-source-audit.md) first: it records what each source can and cannot settle and where the providers disagree.
+
+P- and X-Chain burns come from one Snowflake query over the full history, about a minute:
+
+```bash
+uv run --locked --extra snowflake avalanche data fetch snowflake.primary-burn-daily --output data/runs/burn-daily-example/capture --timeout 600
+uv run --locked avalanche data build snowflake.primary-burn-daily --from data/runs/burn-daily-example/capture --output data/runs/burn-daily-example/dataset
+uv run --locked avalanche data check snowflake.primary-burn-daily --capture data/runs/burn-daily-example/capture --dataset data/runs/burn-daily-example/dataset
+```
+
+The check reports the transactions whose burn neither the share's record nor its UTXOs settle; the built row lists their hashes. Read those from the P-Chain node, which returns every input and output of a transaction, and the ledger applies them:
+
+```bash
+uv run --locked avalanche data fetch p-chain-rpc.transactions --output data/runs/p-transactions-example/capture --param hashes=<hash>,<hash> --timeout 30
+uv run --locked avalanche data build p-chain-rpc.transactions --from data/runs/p-transactions-example/capture --output data/runs/p-transactions-example/dataset
+uv run --locked avalanche data check p-chain-rpc.transactions --capture data/runs/p-transactions-example/capture --dataset data/runs/p-transactions-example/dataset
+```
+
+C-Chain EVM fees come from the Snowflake receipts, one run per year so each query stays under the ten-minute statement limit, with `--param start=YYYY-01-01 --param end=YYYY+1-01-01`; the ledger unions every current run. The check counts the blocks the share lacks (absent) and the blocks it holds without all their receipts (short); their fees are excluded from the day and read from the Data API block record instead. List the gap blocks once over the full history, then read them:
+
+```bash
+uv run --locked --extra snowflake avalanche data fetch snowflake.c-chain-block-gaps --output data/runs/c-block-gaps-example/capture --timeout 600
+uv run --locked avalanche data build snowflake.c-chain-block-gaps --from data/runs/c-block-gaps-example/capture --output data/runs/c-block-gaps-example/dataset
+uv run --locked avalanche data fetch data-api.c-chain-block-fees --output data/runs/c-block-fees-example/capture --param gaps=c-block-gaps-example --param pause=1 --timeout 60
+uv run --locked avalanche data build data-api.c-chain-block-fees --from data/runs/c-block-fees-example/capture --output data/runs/c-block-fees-example/dataset
+uv run --locked avalanche data check data-api.c-chain-block-fees --capture data/runs/c-block-fees-example/capture --dataset data/runs/c-block-fees-example/dataset --against data/runs/c-block-gaps-example/dataset
+```
+
+The block-fee walk and the C atomic walk write one record per line as it arrives and keep their lines when the Data API refuses further requests; continue either with `--param resume=<kept directory>`. Keyless, the API refused after about a thousand requests an hour on 2026-09-23. The atomic history is one walk from the newest transaction back to the first C block, `--param start=2020-09-23 --param end=<yesterday> --param max_pages=30000 --param pause=1`, about nine thousand pages.
+
+Then derive and check the ledger. The derive takes the newest built run of the P and X burns, the staking rewards, the staking-period log, and the staking supply, and every current run of the repairs, the C EVM years, the atomic walks, and the Data API supply snapshots:
+
+```bash
+uv run --locked avalanche data derive derived.avax-monetary-daily --output data/runs/monetary-daily-example
+uv run --locked avalanche data check derived.avax-monetary-daily --capture data/runs/monetary-daily-example/capture --dataset data/runs/monetary-daily-example/dataset
+```
+
+The check verifies the input runs still hash as recorded, that every day with a supply conserves exactly (close equals open plus rewards minus burns) and opens at the previous close, that every coverage value is one of complete, repaired, incomplete, or missing, that each Data API supply snapshot's cumulative rewards and burns by chain lie between the ledger's totals through the day before and through the snapshot day when the ledger is complete that far, and that the P-Chain supply counter equals genesis plus rewards paid plus the potential rewards of open periods within 0.05%. The build summary names the first incomplete day and the last day with a verified supply.
+
 ## Use datasets from a notebook
 
 Notebooks load built datasets by catalog ID. Nothing is fetched on load; the functions read the receipts and Parquet files that `fetch` and `build` wrote under `data/runs/`, verify the Parquet hash against the build receipt, and hand back typed tables.
@@ -269,7 +316,7 @@ db = datasets.connect()                                                   # Duck
 db.execute("SELECT COUNT(*) FROM delegator_stakes JOIN validator_stakes ON validator_transaction_hash = transaction_hash").fetchone()
 ```
 
-`datasets.runs(dataset_id)` lists the built runs with capture time and row count; pass `run="<directory name>"` to any call to pin one. View names drop the source prefix and the `primary-` prefix: `validator_stakes`, `delegator_stakes`, `staking_rewards`, `staking_supply`, `staking_periods`, `avax_market_daily`, `avax_price_daily`, `network_summary`. The same listing is available as `avalanche data runs [dataset_id]`.
+`datasets.runs(dataset_id)` lists the built runs with capture time and row count; pass `run="<directory name>"` to any call to pin one. View names drop the source prefix and the `primary-` prefix: `validator_stakes`, `delegator_stakes`, `staking_rewards`, `staking_supply`, `staking_periods`, `avax_monetary_daily`, `avax_market_daily`, `avax_price_daily`, `network_summary`. The same listing is available as `avalanche data runs [dataset_id]`.
 
 ## Inspect the contract
 

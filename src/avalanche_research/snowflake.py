@@ -442,63 +442,141 @@ C_CHAIN_EVM_BURN_DAILY = DatasetSpec(
     tx_types=(),
     raw_types={
         "date_utc": "DATE", "burned_wei": "DECIMAL(38,0)",
-        "block_count": "BIGINT", "distinct_blocks": "BIGINT",
-        "first_block": "BIGINT", "last_block": "BIGINT", "previous_last_block": "BIGINT",
-        "next_first_block": "BIGINT",
-        "expected_receipts": "BIGINT", "receipt_count": "BIGINT", "distinct_receipts": "BIGINT",
+        "block_count": "BIGINT", "first_block": "BIGINT", "last_block": "BIGINT",
+        "absent_blocks": "BIGINT", "short_blocks": "BIGINT", "short_block_transactions": "BIGINT",
+        "previous_last_block": "BIGINT", "next_first_block": "BIGINT",
+        "expected_receipts": "BIGINT", "receipt_rows": "BIGINT", "distinct_receipts": "BIGINT",
         "missing_fee_inputs": "BIGINT", "first_epoch": "BIGINT", "last_epoch": "BIGINT",
     },
     table_columns={
         "date_utc": "DATE", "burned_wei": "DECIMAL(38,0)",
-        "block_count": "BIGINT", "distinct_blocks": "BIGINT",
-        "first_block": "BIGINT", "last_block": "BIGINT", "previous_last_block": "BIGINT",
-        "next_first_block": "BIGINT",
-        "expected_receipts": "BIGINT", "receipt_count": "BIGINT", "distinct_receipts": "BIGINT",
+        "block_count": "BIGINT", "first_block": "BIGINT", "last_block": "BIGINT",
+        "absent_blocks": "BIGINT", "short_blocks": "BIGINT", "short_block_transactions": "BIGINT",
+        "previous_last_block": "BIGINT", "next_first_block": "BIGINT",
+        "expected_receipts": "BIGINT", "receipt_rows": "BIGINT", "distinct_receipts": "BIGINT",
         "missing_fee_inputs": "BIGINT", "first_epoch": "BIGINT", "last_epoch": "BIGINT",
     },
     transform_sql="SELECT * FROM capture ORDER BY date_utc",
     validity_sql="""
         COUNT_IF(date_utc IS NULL OR burned_wei IS NULL OR block_count IS NULL
                  OR first_block IS NULL OR last_block IS NULL OR expected_receipts IS NULL
-                 OR first_epoch IS NULL OR last_epoch IS NULL),
-        COUNT_IF(burned_wei < 0 OR block_count < 0 OR expected_receipts < 0
-                 OR receipt_count < 0 OR missing_fee_inputs < 0)""",
+                 OR absent_blocks IS NULL OR short_blocks IS NULL OR first_epoch IS NULL OR last_epoch IS NULL),
+        COUNT_IF(burned_wei < 0 OR block_count < 0 OR expected_receipts < 0 OR absent_blocks < 0 OR short_blocks < 0
+                 OR receipt_rows < 0 OR distinct_receipts < 0 OR missing_fee_inputs < 0)""",
     validity_labels=("miss a required daily field", "have a negative count or burn"),
     check_names=(
-        "unique dates", "acceptance window", "calendar coverage", "block coverage",
-        "consecutive days", "receipt count", "unique receipts", "fee inputs", "block timestamps",
+        "unique dates", "acceptance window", "calendar coverage", "block accounting",
+        "consecutive days", "receipt accounting", "absent blocks", "short blocks", "repeated rows", "fee inputs", "block timestamps",
     ),
     check_sql="""
         COUNT(*) - COUNT(DISTINCT date_utc),
         COUNT_IF(date_utc < ?::DATE OR date_utc >= ?::DATE),
         date_diff('day', ?::DATE, ?::DATE) - COUNT(*),
-        COUNT_IF(last_block - first_block + 1 <> block_count OR distinct_blocks <> block_count),
+        COUNT_IF(last_block - first_block + 1 <> block_count + absent_blocks),
         COUNT_IF((date_utc > ?::DATE
                   AND (previous_last_block IS NULL OR first_block <> previous_last_block + 1))
                  OR next_first_block IS NULL OR next_first_block <> last_block + 1),
-        COUNT_IF(receipt_count <> expected_receipts),
-        COUNT_IF(distinct_receipts <> receipt_count),
+        COUNT_IF(distinct_receipts + (short_block_transactions - (expected_receipts - distinct_receipts)) < 0 OR distinct_receipts > expected_receipts),
+        COUNT_IF(absent_blocks > 0),
+        COUNT_IF(short_blocks > 0),
+        COUNT_IF(receipt_rows <> distinct_receipts),
         SUM(missing_fee_inputs),
         COUNT_IF(first_epoch < epoch(date_utc) OR last_epoch >= epoch(date_utc + INTERVAL 1 DAY))""",
     check_labels=(
         "repeat a UTC date", "are outside the requested UTC window", "calendar days are missing",
-        "have missing or duplicate C blocks", "do not connect to adjacent C block days",
-        "have a receipt count different from block transaction counts", "have duplicate transaction receipts",
-        "receipts are missing gas used or effective gas price", "have block timestamps outside their UTC date",
+        "have blocks that are neither present nor counted absent", "do not connect to adjacent C block days",
+        "have more distinct receipts than block transactions",
+        "have absent C blocks, to read from the Data API block record", "have short C blocks, to read from the Data API block record",
+        "have receipts loaded more than once, read once here", "receipts are missing gas used or effective gas price",
+        "have block timestamps outside their UTC date",
     ),
     check_params=lambda window: [window["start"], window["end"], window["start"], window["end"], C_CHAIN_FIRST_DATE],
     summary_sql="""
-        COUNT(*), MIN(date_utc), MAX(date_utc), SUM(burned_wei), SUM(block_count),
-        SUM(expected_receipts), SUM(receipt_count), SUM(missing_fee_inputs)""",
+        COUNT(*), MIN(date_utc), MAX(date_utc), SUM(burned_wei), SUM(block_count), SUM(absent_blocks), SUM(short_blocks),
+        SUM(expected_receipts), SUM(distinct_receipts), SUM(receipt_rows - distinct_receipts), SUM(missing_fee_inputs),
+        COUNT_IF(absent_blocks = 0 AND short_blocks = 0 AND missing_fee_inputs = 0)""",
     summary_keys=(
-        "days", "first_date", "last_date", "burned_wei", "blocks",
-        "expected_receipts", "receipts", "missing_fee_inputs",
+        "days", "first_date", "last_date", "burned_wei", "blocks", "absent_blocks", "short_blocks",
+        "expected_receipts", "distinct_receipts", "repeated_receipt_rows", "missing_fee_inputs", "complete_days",
     ),
+)
+
+PRIMARY_BURN_DAILY = DatasetSpec(
+    dataset_id="snowflake.primary-burn-daily",
+    query_id="primary-burn-daily",
+    tx_types=(),
+    raw_types={
+        "date_utc": "DATE", "chain": "VARCHAR", "transactions": "BIGINT", "burned_navax": "BIGINT",
+        "recorded_transactions": "BIGINT", "system_transactions": "BIGINT", "genesis_transactions": "BIGINT",
+        "utxo_derived_transactions": "BIGINT", "unresolved_transactions": "BIGINT", "unresolved_hashes": "VARCHAR",
+        "l1_balance_deposited_navax": "BIGINT", "l1_validator_fees_navax": "BIGINT",
+    },
+    table_columns={
+        "date_utc": "DATE", "chain": "VARCHAR", "transactions": "BIGINT", "burned_navax": "BIGINT",
+        "recorded_transactions": "BIGINT", "system_transactions": "BIGINT", "genesis_transactions": "BIGINT",
+        "utxo_derived_transactions": "BIGINT", "unresolved_transactions": "BIGINT", "unresolved_hashes": "VARCHAR",
+        "l1_balance_deposited_navax": "BIGINT", "l1_validator_fees_navax": "BIGINT",
+    },
+    transform_sql="SELECT * REPLACE (nullif(unresolved_hashes, '') AS unresolved_hashes) FROM capture ORDER BY date_utc, chain",
+    validity_sql="""
+        COUNT_IF(date_utc IS NULL OR chain NOT IN ('P', 'X') OR chain IS NULL OR transactions IS NULL OR burned_navax IS NULL
+                 OR l1_balance_deposited_navax IS NULL OR l1_validator_fees_navax IS NULL),
+        COUNT_IF(burned_navax < 0 OR transactions < 0 OR l1_balance_deposited_navax < 0 OR l1_validator_fees_navax < 0)""",
+    validity_labels=("miss a required daily field", "have a negative count or amount"),
+    check_names=("unique dates and chains", "acceptance window", "calendar coverage", "transaction accounting", "unresolved burns", "X-Chain L1 columns"),
+    check_sql="""
+        COUNT(*) - COUNT(DISTINCT date_utc || chain),
+        COUNT_IF(date_utc < ?::DATE OR date_utc >= ?::DATE),
+        2 * date_diff('day', ?::DATE, ?::DATE) - COUNT(*),
+        COUNT_IF(transactions <> recorded_transactions + system_transactions + genesis_transactions + utxo_derived_transactions + unresolved_transactions
+                 OR unresolved_transactions <> coalesce(len(string_split(unresolved_hashes, ',')), 0)),
+        COUNT_IF(unresolved_transactions > 0),
+        COUNT_IF(chain = 'X' AND (system_transactions > 0 OR l1_balance_deposited_navax > 0 OR l1_validator_fees_navax > 0))""",
+    check_labels=(
+        "repeat a UTC date and chain", "are outside the requested UTC window", "date and chain rows are missing",
+        "do not account for every transaction once", "carry unresolved burns to settle from the P-Chain node's transaction record",
+        "are X-Chain rows with P-Chain system or L1 validator amounts",
+    ),
+    check_params=lambda window: [window["start"], window["end"], window["start"], window["end"]],
+    summary_sql="""
+        COUNT(*), MIN(date_utc), MAX(date_utc),
+        SUM(transactions) FILTER (WHERE chain = 'P'), SUM(transactions) FILTER (WHERE chain = 'X'),
+        SUM(burned_navax) FILTER (WHERE chain = 'P'), SUM(burned_navax) FILTER (WHERE chain = 'X'),
+        SUM(l1_validator_fees_navax), SUM(l1_balance_deposited_navax),
+        SUM(utxo_derived_transactions), SUM(genesis_transactions), SUM(unresolved_transactions)""",
+    summary_keys=(
+        "rows", "first_date", "last_date", "p_transactions", "x_transactions", "p_burned_navax", "x_burned_navax",
+        "p_l1_validator_fees_navax", "p_l1_balance_deposited_navax", "utxo_derived_transactions", "genesis_transactions", "unresolved_transactions",
+    ),
+)
+
+C_CHAIN_BLOCK_GAPS = DatasetSpec(
+    dataset_id="snowflake.c-chain-block-gaps",
+    query_id="c-chain-block-gaps",
+    tx_types=(),
+    raw_types={"block_height": "BIGINT", "kind": "VARCHAR", "date_utc": "DATE", "declared_transactions": "BIGINT", "distinct_receipts": "BIGINT"},
+    table_columns={"block_height": "BIGINT", "kind": "VARCHAR", "date_utc": "DATE", "declared_transactions": "BIGINT", "distinct_receipts": "BIGINT"},
+    transform_sql="SELECT * FROM capture ORDER BY block_height",
+    validity_sql="""
+        COUNT_IF(block_height IS NULL OR kind NOT IN ('absent', 'short') OR kind IS NULL OR date_utc IS NULL
+                 OR (kind = 'short' AND (declared_transactions IS NULL OR distinct_receipts IS NULL))),
+        COUNT_IF(block_height < 0 OR declared_transactions < 0 OR distinct_receipts < 0 OR distinct_receipts >= declared_transactions)""",
+    validity_labels=("miss a required field or carry an unknown kind", "have a negative count or a short block that is not short"),
+    check_names=("unique heights", "acceptance window"),
+    check_sql="""
+        COUNT(*) - COUNT(DISTINCT block_height),
+        COUNT_IF(date_utc < ?::DATE OR date_utc >= ?::DATE)""",
+    check_labels=("repeat a block height", "are outside the requested UTC window"),
+    check_params=lambda window: [window["start"], window["end"]],
+    summary_sql="""
+        COUNT(*), COUNT_IF(kind = 'absent'), COUNT_IF(kind = 'short'), SUM(declared_transactions - distinct_receipts),
+        COUNT(DISTINCT date_utc), MIN(date_utc), MAX(date_utc)""",
+    summary_keys=("rows", "absent_blocks", "short_blocks", "missing_receipts", "days", "first_date", "last_date"),
 )
 
 SPECS = {spec.dataset_id: spec for spec in (
     VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS, STAKING_SUPPLY,
-    PRIMARY_BURN_EVENTS, C_CHAIN_EVM_BURN_DAILY,
+    PRIMARY_BURN_EVENTS, C_CHAIN_EVM_BURN_DAILY, PRIMARY_BURN_DAILY, C_CHAIN_BLOCK_GAPS,
 )}
 DATASET_IDS = tuple(SPECS)
 DATASET_ID = VALIDATOR_STAKES.dataset_id
@@ -586,6 +664,11 @@ def capture_preview(
     if dataset_id == C_CHAIN_EVM_BURN_DAILY.dataset_id:
         values.setdefault("start", C_CHAIN_FIRST_DATE)
         values.setdefault("end", (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat())
+    if dataset_id == C_CHAIN_BLOCK_GAPS.dataset_id:
+        values.setdefault("start", C_CHAIN_FIRST_DATE)
+    if dataset_id == PRIMARY_BURN_DAILY.dataset_id:
+        # The last complete UTC day: today's row would change with every transaction accepted after the capture.
+        values.setdefault("end", datetime.now(timezone.utc).date().isoformat())
     return {
         "dataset_id": dataset_id,
         "source_id": SOURCE_ID,

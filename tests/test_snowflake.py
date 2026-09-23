@@ -38,17 +38,17 @@ def test_primary_burn_events_preserve_recorded_burn_and_zero_system_transactions
         connection.close()
 
 
-def c_burn_day(day, burned_wei, first_block, last_block, previous_last_block, receipts):
+def c_burn_day(day, burned_wei, first_block, last_block, previous_last_block, receipts, absent=0, short=0, short_transactions=0, repeated=0):
     epoch = int(datetime(day.year, day.month, day.day, tzinfo=UTC).timestamp())
     return {
         "date_utc": day, "burned_wei": burned_wei,
-        "block_count": last_block - first_block + 1,
-        "distinct_blocks": last_block - first_block + 1,
+        "block_count": last_block - first_block + 1 - absent,
         "first_block": first_block, "last_block": last_block,
+        "absent_blocks": absent, "short_blocks": short, "short_block_transactions": short_transactions,
         "previous_last_block": previous_last_block,
         "next_first_block": last_block + 1,
-        "expected_receipts": receipts, "receipt_count": receipts,
-        "distinct_receipts": receipts, "missing_fee_inputs": 0,
+        "expected_receipts": receipts, "receipt_rows": receipts - short_transactions + repeated,
+        "distinct_receipts": receipts - short_transactions, "missing_fee_inputs": 0,
         "first_epoch": epoch, "last_epoch": epoch + 86399,
     }
 
@@ -65,21 +65,76 @@ def test_c_evm_burn_daily_preserves_wei_and_checks_coverage(tmp_path):
     capture_dir, _ = make_capture(tmp_path, rows, window, snowflake.C_CHAIN_EVM_BURN_DAILY)
     dataset_dir = tmp_path / "dataset"
     build = snowflake.build(snowflake.C_CHAIN_EVM_BURN_DAILY.dataset_id, capture_dir, dataset_dir)
-    assert build["summary"]["burned_wei"] == 1_000_000_021
+    assert build["summary"]["burned_wei"] == 1_000_000_021 and build["summary"]["complete_days"] == 2
     assert snowflake.check(capture_dir, dataset_dir)["status"] == "pass"
 
+    gaps = [
+        c_burn_day(date(2026, 9, 16), 1_000, 10, 20, 9, 30, absent=2, short=1, short_transactions=5, repeated=30),
+        c_burn_day(date(2026, 9, 17), 20, 21, 22, 20, 2),
+    ]
+    gap_capture, _ = make_capture(tmp_path / "gaps", gaps, window, snowflake.C_CHAIN_EVM_BURN_DAILY)
+    checked = snowflake.check(gap_capture)
+    assert checked["summary"]["absent_blocks"] == 2 and checked["summary"]["short_blocks"] == 1 and checked["summary"]["repeated_receipt_rows"] == 30
+    assert checked["summary"]["complete_days"] == 1
+    assert [finding for finding in checked["findings"]] == [
+        "1 rows have absent C blocks, to read from the Data API block record",
+        "1 rows have short C blocks, to read from the Data API block record",
+        "1 rows have receipts loaded more than once, read once here",
+    ]
+
     broken = [dict(row) for row in rows]
-    broken[1]["receipt_count"] = 1
+    broken[1]["distinct_receipts"] = 3
     broken[1]["first_block"] = 15
     broken_capture, _ = make_capture(tmp_path / "broken", broken, window, snowflake.C_CHAIN_EVM_BURN_DAILY)
     findings = snowflake.check(broken_capture)["findings"]
-    assert any("receipt count" in finding for finding in findings)
+    assert any("more distinct receipts" in finding for finding in findings)
     assert any("adjacent C block days" in finding for finding in findings)
+    assert any("neither present nor counted absent" in finding for finding in findings)
 
     no_next_day = [dict(row) for row in rows]
     no_next_day[1]["next_first_block"] = None
     no_next_capture, _ = make_capture(tmp_path / "no-next", no_next_day, window, snowflake.C_CHAIN_EVM_BURN_DAILY)
     assert any("adjacent C block days" in finding for finding in snowflake.check(no_next_capture)["findings"])
+
+
+def burn_day(day, chain, transactions=0, burned=0, recorded=None, system=0, genesis=0, utxo=0, unresolved=0, hashes="", deposited=0, l1_fees=0):
+    recorded = transactions - system - genesis - utxo - unresolved if recorded is None else recorded
+    return {
+        "date_utc": day, "chain": chain, "transactions": transactions, "burned_navax": burned,
+        "recorded_transactions": recorded, "system_transactions": system, "genesis_transactions": genesis,
+        "utxo_derived_transactions": utxo, "unresolved_transactions": unresolved, "unresolved_hashes": hashes,
+        "l1_balance_deposited_navax": deposited, "l1_validator_fees_navax": l1_fees,
+    }
+
+
+def test_primary_burn_daily_accounts_for_every_transaction_and_lists_unresolved_hashes(tmp_path):
+    assert snowflake.capture_preview(snowflake.PRIMARY_BURN_DAILY.dataset_id, tmp_path / "preview")["parameters"]["start"] == snowflake.GENESIS_DATE
+    rows = [
+        burn_day(date(2025, 3, 11), "P", transactions=5, burned=1_000, system=2, utxo=1, unresolved=1, hashes="h1", deposited=100_000_000_000, l1_fees=2_500),
+        burn_day(date(2025, 3, 11), "X", transactions=3, burned=3_000_000),
+        burn_day(date(2025, 3, 12), "P", transactions=1, burned=0, system=1, l1_fees=2_600),
+        burn_day(date(2025, 3, 12), "X"),
+    ]
+    window = {"start": "2025-03-11", "end": "2025-03-13"}
+    capture_dir, _ = make_capture(tmp_path, rows, window, snowflake.PRIMARY_BURN_DAILY)
+    dataset_dir = tmp_path / "dataset"
+    build = snowflake.build(snowflake.PRIMARY_BURN_DAILY.dataset_id, capture_dir, dataset_dir)
+    assert build["summary"]["p_burned_navax"] == 1_000 and build["summary"]["x_burned_navax"] == 3_000_000
+    assert build["summary"]["p_l1_validator_fees_navax"] == 5_100 and build["summary"]["unresolved_transactions"] == 1
+    checked = snowflake.check(capture_dir, dataset_dir)
+    assert checked["findings"] == ["1 rows carry unresolved burns to settle from the P-Chain node's transaction record"]
+    built = duckdb.sql(f"SELECT unresolved_hashes FROM read_parquet('{dataset_dir / 'primary-burn-daily.parquet'}') ORDER BY date_utc, chain").fetchall()
+    assert built == [("h1",), (None,), (None,), (None,)]
+
+    broken = [dict(row) for row in rows]
+    broken[1]["recorded_transactions"] = 2
+    broken[3]["l1_validator_fees_navax"] = 7
+    del broken[2]
+    broken_capture, _ = make_capture(tmp_path / "broken", broken, window, snowflake.PRIMARY_BURN_DAILY)
+    findings = snowflake.check(broken_capture)["findings"]
+    assert any("date and chain rows are missing" in finding for finding in findings)
+    assert any("account for every transaction" in finding for finding in findings)
+    assert any("X-Chain rows with P-Chain" in finding for finding in findings)
 
 
 def raw_row(**overrides):
@@ -224,7 +279,7 @@ def make_capture(tmp_path: Path, rows=ROWS, parameters=None, spec=snowflake.VALI
 def test_catalog_declares_each_snowflake_query_dataset(spec):
     catalog = load_catalog()
     query = snowflake.query_definition(catalog, spec.dataset_id)
-    assert len(query["relations"]) == 2
+    assert len(query["relations"]) in (2, 3)
     assert "%(start)s" in snowflake.read_sql(query) and "%(end)s" in snowflake.read_sql(query)
     definition = next(item for item in catalog["datasets"] if item["id"] == spec.dataset_id)
     assert [field["name"] for field in definition["fields"]] == list(spec.table_columns)
@@ -406,14 +461,16 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
     manifest = runner.invoke(cli.cli, ["data", "manifest", "--json"])
     assert [item["id"] for item in json.loads(manifest.output)["records"]] == [
         "snowpeer.network-summary", *snowflake.DATASET_IDS, "coingecko.avax-market-daily", "defillama.avax-price-daily",
-        "c-chain-rpc.receipt-gap-repairs", "p-chain-rpc.current-validators", "defillama.pool-yields", "us-treasury.par-yield-daily",
+        "c-chain-rpc.receipt-gap-repairs", "p-chain-rpc.current-validators", "p-chain-rpc.transactions", "defillama.pool-yields", "us-treasury.par-yield-daily",
             "metrics-api.primary-staking-daily", "metrics-api.c-chain-activity-daily", "data-api.avax-supply",
         "data-api.validators-active",
         "data-api.validators-completed",
         "data-api.validators-completed-recent",
             "data-api.c-chain-atomic-burn",
+        "data-api.c-chain-block-fees",
         "derived.staking-periods",
         "derived.node-table",
+        "derived.avax-monetary-daily",
     ]
 
 
