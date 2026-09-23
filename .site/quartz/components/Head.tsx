@@ -1,3 +1,5 @@
+import { createHash } from "crypto"
+import { readFileSync } from "fs"
 import { i18n } from "../i18n"
 import { FullSlug, getFileExtension, joinSegments, pathToRoot } from "../util/path"
 import { CSSResourceToStyleElement, JSResourceToScriptElement } from "../util/resources"
@@ -5,6 +7,14 @@ import { googleFontHref, googleFontSubsetHref } from "../util/theme"
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import { unescapeHTML } from "../util/escape"
 import { CustomOgImagesEmitterName } from "../plugins/emitters/ogImage"
+const iconVersion = (() => {
+  try {
+    return createHash("sha256").update(readFileSync("quartz/static/icon.png")).digest("hex").slice(0, 8)
+  } catch {
+    return "0"
+  }
+})()
+
 export default (() => {
   const Head: QuartzComponent = ({
     cfg,
@@ -25,7 +35,9 @@ export default (() => {
     const url = new URL(`https://${cfg.baseUrl ?? "example.com"}`)
     const path = url.pathname as FullSlug
     const baseDir = fileData.slug === "404" ? path : pathToRoot(fileData.slug!)
-    const iconPath = joinSegments(baseDir, "static/icon.png")
+    // A version query derived from the icon's bytes, so browsers drop their cached
+    // favicon when the icon file changes.
+    const iconPath = joinSegments(baseDir, "static/icon.png") + "?v=" + iconVersion
 
     // Url of current page
     const socialUrl =
