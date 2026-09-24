@@ -624,6 +624,45 @@
       ]
     },
     {
+      "id": "tenderly-c-chain-rpc",
+      "name": "Tenderly public Avalanche C-Chain JSON-RPC gateway",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "A third-party archive node's C-Chain block headers and transaction receipts. Not an Avalanche indexer: a node's own responses, so a fee computed from its receipts is independent of the Data API and the Snowflake share. Used only for the gap blocks, and checked against the Data API to the wei on every block both hold.",
+      "documentation_url": "https://docs.tenderly.co/node/rpc-reference/avalanche-c-chain",
+      "authentication": "none; the public gateway answers JSON-RPC POST requests, including batches and eth_getBlockReceipts",
+      "reuse_status": "Public access observed on 2026-09-24 at about eight blocks a second with eight workers; the gateway may rate-limit.",
+      "endpoints": [
+        {
+          "id": "block-and-receipts",
+          "url": "https://avalanche-mainnet.gateway.tenderly.co",
+          "request_json": [
+            {
+              "jsonrpc": "2.0",
+              "id": 1,
+              "method": "eth_getBlockByNumber",
+              "params": [
+                "<hex height>",
+                false
+              ]
+            },
+            {
+              "jsonrpc": "2.0",
+              "id": 2,
+              "method": "eth_getBlockReceipts",
+              "params": [
+                "<hex height>"
+              ]
+            }
+          ],
+          "content": "json-list",
+          "response_fields": [
+            "result"
+          ]
+        }
+      ]
+    },
+    {
       "id": "avalanche-snowflake",
       "name": "Avalanche Primary Network Data Snowflake share",
       "source_type": "database_share",
@@ -1008,6 +1047,11 @@
           "id": "c-block-fees",
           "dataset_id": "data-api.c-chain-block-fees",
           "role": "Data API block records with the fees of the gap blocks, every current run"
+        },
+        {
+          "id": "c-block-receipt-fees",
+          "dataset_id": "c-chain-rpc.block-receipt-fees",
+          "role": "public node receipts with the fees of the gap blocks, every current run"
         },
         {
           "id": "c-receipt-repairs",
@@ -3357,6 +3401,72 @@
       ]
     },
     {
+      "id": "c-chain-rpc.block-receipt-fees",
+      "name": "C-Chain gap-block fees from a public node's receipts",
+      "source_id": "tenderly-c-chain-rpc",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per C-Chain block that a snowflake.c-chain-block-gaps run lists, read as the block header and all its receipts in one JSON-RPC batch. The fees are the sum of gas used times effective gas price over the receipts, computed only after the receipts are checked to be the header's: one per transaction, each carrying the block's hash, their gas adding to the header's. It equals the Data API's feesSpent to the wei on every block both hold, and needs no API key.",
+      "endpoint_ids": [
+        "block-and-receipts"
+      ],
+      "fields": [
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "C-Chain block",
+          "derivation": "the listed gap block's height, equal to the header's number"
+        },
+        {
+          "name": "block_hash",
+          "type": "string",
+          "unit": "hex hash",
+          "derivation": "the header's hash, carried by every receipt"
+        },
+        {
+          "name": "block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the header's timestamp"
+        },
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "UTC date of block_timestamp"
+        },
+        {
+          "name": "transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "receipts in the block, equal to the header's transactions"
+        },
+        {
+          "name": "gas_used",
+          "type": "integer",
+          "unit": "gas",
+          "derivation": "the header's gasUsed, equal to the sum of the receipts' gasUsed"
+        },
+        {
+          "name": "base_fee_wei",
+          "type": "integer",
+          "unit": "wei per gas",
+          "derivation": "the header's baseFeePerGas"
+        },
+        {
+          "name": "fees_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "sum over the receipts of gasUsed times effectiveGasPrice: the AVAX the block's transactions burned"
+        }
+      ]
+    },
+    {
       "id": "derived.staking-periods",
       "name": "Primary Network staking periods",
       "source_id": "derived",
@@ -3812,6 +3922,7 @@
         "c-evm-daily",
         "c-block-gaps",
         "c-block-fees",
+        "c-block-receipt-fees",
         "c-receipt-repairs",
         "c-atomic",
         "c-atomic-transactions",
@@ -3864,7 +3975,7 @@
           "name": "burned_c_evm_gap_wei",
           "type": "integer",
           "unit": "wei",
-          "derivation": "fees of the day's gap blocks read from the Data API block record (data-api.c-chain-block-fees) or the archived node receipts (c-chain-rpc.receipt-gap-repairs), dated by the block's own timestamp"
+          "derivation": "fees of the day's gap blocks read from the Data API block record (data-api.c-chain-block-fees), a public node's receipts (c-chain-rpc.block-receipt-fees), or the archived node receipts (c-chain-rpc.receipt-gap-repairs), dated by the block's own timestamp; where two sources hold a block they must agree to the wei"
         },
         {
           "name": "burned_c_atomic_wei",

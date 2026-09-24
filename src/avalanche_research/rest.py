@@ -43,11 +43,11 @@ def _request(
     url: str,
     timeout: float,
     opener: Callable[..., Any] = urllib.request.urlopen,
-    body_json: dict[str, Any] | None = None,
+    body_json: dict[str, Any] | list[dict[str, Any]] | None = None,
     content: str = "json",
 ) -> tuple[bytes, dict[str, Any]]:
     """Fetch one endpoint. A JSON body turns the request into a POST; content selects the response validation."""
-    headers = {"Accept": "application/json" if content == "json" else "application/xml, text/xml", "User-Agent": "avalanche-phase-ii-research/0.1"}
+    headers = {"Accept": "application/json" if content.startswith("json") else "application/xml, text/xml", "User-Agent": "avalanche-phase-ii-research/0.1"}
     key = _data_api_key(url)
     if key:
         headers["x-glacier-api-key"] = key
@@ -72,6 +72,14 @@ def _request(
             raise DataError(f"response is not JSON for {url}: {error}") from error
         if not isinstance(value, dict):
             raise DataError(f"response is not a JSON object for {url}")
+    elif content == "json-list":
+        # A JSON-RPC batch answers with one object per request.
+        try:
+            value = json.loads(body)
+        except json.JSONDecodeError as error:
+            raise DataError(f"response is not JSON for {url}: {error}") from error
+        if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+            raise DataError(f"response is not a JSON list of objects for {url}")
     elif content == "xml":
         try:
             ElementTree.fromstring(body)

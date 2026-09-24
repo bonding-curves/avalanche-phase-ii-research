@@ -19,7 +19,8 @@ This directory defines the machine-readable contracts for research data used in 
 | `c-chain-rpc.atomic-transactions` | One Parquet row per requested C-Chain import with the AVAX it consumed, created, and burned, decoded from the node's signed transaction | Implemented, tested, and captured for the five 2021 imports whose consumed UTXOs the Data API lists incompletely |
 | `snowflake.c-chain-evm-burn-daily` | One Parquet row per UTC day with the exact EVM fee burn over the share's complete C blocks, the blocks read once where the share repeats them, and the absent and short blocks counted | Implemented, tested, and captured 2020-09-23 to 2026-09-21 in seven year runs; three days of 2023 and about forty of 2025 wait on the block-fee capture |
 | `snowflake.c-chain-block-gaps` | One Parquet row per C block the share lacks or holds without all its receipts | Implemented and tested; the full-history capture is the next step |
-| `data-api.c-chain-block-fees` | One Parquet row per gap block read from the Data API block record with the fees burned in it | Implemented and tested; the capture waits on the gaps run and on the Data API's keyless rate limit |
+| `data-api.c-chain-block-fees` | One Parquet row per gap block read from the Data API block record with the fees burned in it | Implemented and tested; captured in part, as far as the key's daily allowance reached |
+| `c-chain-rpc.block-receipt-fees` | The same rows computed from a public node's block header and receipts, with no key | Implemented and tested; captured for the 2023 gap blocks on 2026-09-24 |
 | `derived.avax-monetary-daily` | One Parquet row per UTC date with rewards paid out, burns by chain, realized total supply replayed from genesis, and active stake, every amount in wei with a coverage state per component | Implemented, tested, and derived on 2026-09-23; supply is verified through 2020-09-22 until the C-Chain atomic walk and the gap-block fees complete |
 | `coingecko.avax-market-daily` | One Parquet row per day of AVAX price, market capitalization, volume, log return, and 30-day realized volatility | Implemented, tested, and captured live; public API serves the trailing 365 days only |
 | `defillama.avax-price-daily` | One Parquet row per daily AVAX price observation since 2020-09-22 with log return and 30-day realized volatility | Implemented, tested, and captured live |
@@ -315,6 +316,14 @@ The atomic check counts the imports whose consumed UTXOs the Data API lists inco
 uv run --locked avalanche data fetch c-chain-rpc.atomic-transactions --output data/runs/c-atomic-transactions-example/capture --param hashes=<hash>,<hash> --timeout 30
 uv run --locked avalanche data build c-chain-rpc.atomic-transactions --from data/runs/c-atomic-transactions-example/capture --output data/runs/c-atomic-transactions-example/dataset
 uv run --locked avalanche data check c-chain-rpc.atomic-transactions --capture data/runs/c-atomic-transactions-example/capture --dataset data/runs/c-atomic-transactions-example/dataset
+```
+
+The same gap blocks can be read without a key from a public node, which returns the block header and all its receipts in one batch; the build computes each block's fees from the receipts after checking they are the header's. The ledger takes either source for a block and reports any block the two give different fees:
+
+```bash
+uv run --locked avalanche data fetch c-chain-rpc.block-receipt-fees --output data/runs/c-block-receipt-fees-example/capture --param gaps=c-block-gaps-example --param workers=8 --timeout 60
+uv run --locked avalanche data build c-chain-rpc.block-receipt-fees --from data/runs/c-block-receipt-fees-example/capture --output data/runs/c-block-receipt-fees-example/dataset
+uv run --locked avalanche data check c-chain-rpc.block-receipt-fees --capture data/runs/c-block-receipt-fees-example/capture --dataset data/runs/c-block-receipt-fees-example/dataset --against data/runs/c-block-gaps-example/dataset
 ```
 
 The block-fee walk and the C atomic walk write one record per line as it arrives and keep their lines when the Data API refuses further requests; continue either with `--param resume=<kept directory>`. Keyless, the API refused after about a thousand requests an hour on 2026-09-23. With a Data API key from [AvaCloud](https://app.avacloud.io) exported as `AVALANCHE_DATA_API_KEY`, it allows about 750 block requests a minute, and `--param workers=8` on the block-fee walk uses that. The key is sent only to `glacier-api.avax.network` and never enters a capture or a receipt. The atomic history is one walk from the newest transaction back to the first C block, `--param start=2020-09-23 --param end=<yesterday> --param max_pages=30000`, 11,648 pages on 2026-09-23.

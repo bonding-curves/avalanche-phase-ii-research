@@ -85,6 +85,10 @@ def root(tmp_path: Path, monkeypatch) -> Path:
     make_run(runs, "c-fees", "data-api.c-chain-block-fees", "c-chain-block-fees",
              f"SELECT 7 AS block_height, '0x7' AS block_hash, TIMESTAMP '2020-09-13 12:00:00' AS block_timestamp, DATE '2020-09-13' AS date_utc, 3 AS transactions, 63000 AS gas_used, 25000000000::DECIMAL(38,0) AS base_fee_wei, ({WEI} / 2)::DECIMAL(38,0) AS fees_wei",
              "2026-09-23T18:22:00Z")
+    # The node's receipts give block 7 the same fee as the Data API record: the two sources share one block and agree.
+    make_run(runs, "c-receipt-fees", "c-chain-rpc.block-receipt-fees", "c-chain-block-receipt-fees",
+             f"SELECT 7 AS block_height, '0x7' AS block_hash, TIMESTAMP '2020-09-13 12:00:00' AS block_timestamp, DATE '2020-09-13' AS date_utc, 3 AS transactions, 63000 AS gas_used, 25000000000::DECIMAL(38,0) AS base_fee_wei, ({WEI} / 2)::DECIMAL(38,0) AS fees_wei",
+             "2026-09-23T18:22:30Z")
     # Atomic: 'a1' burns one AVAX; 'a2' is an import the API lists with no consumed UTXOs, unsettled, and the node settles it at zero.
     make_run(runs, "c-atomic", "data-api.c-chain-atomic-burn", "c-chain-atomic-burn",
              f"SELECT 'a1' AS transaction_hash, 'ImportTx' AS tx_type, TIMESTAMP '2020-09-13 01:00:00' AS accepted_at, 6 AS block_height, '0x6' AS block_hash, 2 * {BIG} AS unlocked_navax, {BIG} AS created_navax, {BIG} AS burned_navax"
@@ -143,6 +147,36 @@ def test_derive_replays_supply_until_the_first_incomplete_day(root):
     checked = monetary.check(output / "capture", output / "dataset", root=root)
     assert checked["status"] == "pass", checked["findings"]
     assert "daily conservation" in checked["checked"]
+
+
+def gap_fee_run(root, fee_sql: str, heights: str) -> None:
+    import shutil
+
+    shutil.rmtree(root / "c-receipt-fees")
+    make_run(root, "c-receipt-fees", "c-chain-rpc.block-receipt-fees", "c-chain-block-receipt-fees",
+             f"SELECT block_height, '0x' || block_height AS block_hash, date_utc::TIMESTAMP + INTERVAL 12 HOUR AS block_timestamp, date_utc, 3 AS transactions, 63000 AS gas_used, "
+             f"25000000000::DECIMAL(38,0) AS base_fee_wei, ({fee_sql})::DECIMAL(38,0) AS fees_wei FROM (VALUES {heights}) AS t(block_height, date_utc)",
+             "2026-09-23T18:22:30Z")
+
+
+def test_receipt_fees_settle_a_gap_block_and_agree_with_the_data_api(root):
+    gap_fee_run(root, f"CASE block_height WHEN 7 THEN {WEI} // 2 ELSE {WEI} // 4 END", "(7, DATE '2020-09-13'), (12, DATE '2020-09-14')")
+    output = root / "ledger"
+    summary = monetary.derive(monetary.DATASET_ID, output, None, root)["build"]["summary"]
+    assert summary["gap_fee_sources"] == {"shared_blocks": 1, "differing_blocks": 0}
+    assert summary["supply_through"] == "2020-09-14" and summary["c_evm_incomplete_days"] == 0
+    day = duckdb.sql(f"SELECT c_evm_coverage, burned_c_evm_gap_wei FROM read_parquet('{output / 'dataset' / 'avax-monetary-daily.parquet'}') WHERE date_utc = DATE '2020-09-14'").fetchone()
+    assert day == ("repaired", WEI // 4)
+    checked = monetary.check(output / "capture", output / "dataset", root=root)
+    assert not any("gap blocks carry different fees" in finding for finding in checked["findings"]), checked["findings"]
+
+
+def test_a_gap_block_whose_two_sources_differ_is_reported(root):
+    gap_fee_run(root, f"{WEI} // 2 + 1", "(7, DATE '2020-09-13')")
+    output = root / "ledger"
+    assert monetary.derive(monetary.DATASET_ID, output, None, root)["build"]["summary"]["gap_fee_sources"] == {"shared_blocks": 1, "differing_blocks": 1}
+    checked = monetary.check(output / "capture", output / "dataset", root=root)
+    assert "1 of 1 gap blocks carry different fees from the Data API and the node's receipts" in checked["findings"]
 
 
 def test_an_unsettled_import_without_a_node_record_stops_the_supply(root):

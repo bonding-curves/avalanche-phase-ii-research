@@ -39,6 +39,7 @@ from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 MODULES = {
     atomic.DATASET_ID: atomic,
     cblocks.DATASET_ID: cblocks,
+    cblocks.RPC_DATASET_ID: cblocks,
     cchain_rpc.DATASET_ID: cchain_rpc,
     snowpeer.DATASET_ID: snowpeer,
     coingecko.DATASET_ID: coingecko,

@@ -322,15 +322,27 @@
                 "format": "uri"
               },
               "request_json": {
-                "type": "object",
-                "description": "JSON body; its presence makes the request a POST"
+                "oneOf": [
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                ],
+                "description": "JSON body, or a JSON-RPC batch of bodies; its presence makes the request a POST"
               },
               "content": {
                 "enum": [
                   "json",
+                  "json-list",
                   "xml"
                 ],
-                "description": "response body type; json when absent"
+                "description": "response body type: json for one object, json-list for a JSON-RPC batch answer; json when absent"
               },
               "response_fields": {
                 "type": "array",

@@ -468,6 +468,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "data-api.validators-completed-recent",
             "data-api.c-chain-atomic-burn",
         "data-api.c-chain-block-fees",
+        "c-chain-rpc.block-receipt-fees",
         "derived.staking-periods",
         "derived.node-table",
         "derived.avax-monetary-daily",

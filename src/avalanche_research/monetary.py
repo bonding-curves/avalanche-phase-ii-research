@@ -53,6 +53,7 @@ MANY_INPUTS = {
     "c-evm-daily": "snowflake.c-chain-evm-burn-daily",
     "c-block-gaps": "snowflake.c-chain-block-gaps",
     "c-block-fees": "data-api.c-chain-block-fees",
+    "c-block-receipt-fees": "c-chain-rpc.block-receipt-fees",
     "c-receipt-repairs": "c-chain-rpc.receipt-gap-repairs",
     "c-atomic": "data-api.c-chain-atomic-burn",
     "c-atomic-transactions": "c-chain-rpc.atomic-transactions",
@@ -234,6 +235,8 @@ gap_heights AS (
 fee_records AS (
     SELECT block_height, arg_min(date_utc, run_rank) AS date_utc, arg_min(fees_wei, run_rank) AS fees_wei FROM c_block_fees GROUP BY 1
     UNION ALL BY NAME
+    SELECT block_height, arg_min(date_utc, run_rank) AS date_utc, arg_min(fees_wei, run_rank) AS fees_wei FROM c_block_receipt_fees GROUP BY 1
+    UNION ALL BY NAME
     SELECT block_height, min(block_timestamp)::DATE AS date_utc, sum(burned_wei)::DECIMAL(38,0) AS fees_wei FROM c_receipt_repairs GROUP BY 1
 ),
 gap_fees AS (
@@ -349,12 +352,13 @@ ORDER BY date_utc
 
 def compute(connection: Any, meta: dict[str, Any]) -> None:
     """Build ``ledger`` from the input views: one row per UTC date from genesis to the burn-daily run's last day."""
-    for name in ("p_transactions", "c_block_gaps", "c_block_fees", "c_receipt_repairs", "c_atomic_transactions", "supply_checkpoints"):
+    for name in ("p_transactions", "c_block_gaps", "c_block_fees", "c_block_receipt_fees", "c_receipt_repairs", "c_atomic_transactions", "supply_checkpoints"):
         if not meta["has"][name.replace("_", "-")]:
             empty = {
                 "p_transactions": "SELECT 0 AS run_rank, '' AS run, ''::VARCHAR AS transaction_hash, 0::BIGINT AS burned_navax WHERE FALSE",
                 "c_block_gaps": "SELECT 0 AS run_rank, '' AS run, 0::BIGINT AS block_height, DATE '2020-01-01' AS date_utc WHERE FALSE",
                 "c_block_fees": "SELECT 0 AS run_rank, '' AS run, 0::BIGINT AS block_height, DATE '2020-01-01' AS date_utc, 0::DECIMAL(38,0) AS fees_wei WHERE FALSE",
+                "c_block_receipt_fees": "SELECT 0 AS run_rank, '' AS run, 0::BIGINT AS block_height, DATE '2020-01-01' AS date_utc, 0::DECIMAL(38,0) AS fees_wei WHERE FALSE",
                 "c_receipt_repairs": "SELECT 0 AS run_rank, '' AS run, 0::BIGINT AS block_height, TIMESTAMP '2020-01-01' AS block_timestamp, 0::DECIMAL(38,0) AS burned_wei WHERE FALSE",
                 "c_atomic_transactions": "SELECT 0 AS run_rank, '' AS run, ''::VARCHAR AS transaction_hash, 0::BIGINT AS burned_navax WHERE FALSE",
                 "supply_checkpoints": "SELECT 0 AS run_rank, '' AS run, TIMESTAMP '2020-01-01' AS observed_at WHERE FALSE",
@@ -405,6 +409,16 @@ def summarize(connection: Any) -> dict[str, Any]:
     row = connection.execute(SUMMARY_SQL).fetchone()
     keys = [item[0] for item in connection.execute(f"DESCRIBE {SUMMARY_SQL}").fetchall()]
     return {key: _plain(value) for key, value in zip(keys, row)}
+
+
+def gap_fee_agreement(connection: Any) -> dict[str, int]:
+    """Gap blocks whose fees both the Data API record and a node's receipts give, and how many of those differ."""
+    shared, differing = connection.execute("""
+        SELECT count(*), count(*) FILTER (WHERE a.fees_wei <> b.fees_wei OR a.date_utc <> b.date_utc)
+        FROM (SELECT block_height, arg_min(fees_wei, run_rank) AS fees_wei, arg_min(date_utc, run_rank) AS date_utc FROM c_block_fees GROUP BY 1) a
+        JOIN (SELECT block_height, arg_min(fees_wei, run_rank) AS fees_wei, arg_min(date_utc, run_rank) AS date_utc FROM c_block_receipt_fees GROUP BY 1) b USING (block_height)
+    """).fetchone()
+    return {"shared_blocks": int(shared), "differing_blocks": int(differing)}
 
 
 def checkpoints(connection: Any) -> list[dict[str, Any]]:
@@ -511,6 +525,7 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
             summary = summarize(connection)
             summary["checkpoints"] = checkpoints(connection)
             summary["counter"] = counter_check(connection)
+            summary["gap_fee_sources"] = gap_fee_agreement(connection)
         finally:
             connection.close()
         build_receipt = {
@@ -607,6 +622,9 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                             findings.append(f"Data API {name} at {point['observed_at']} differs from the ledger by {result['gap_avax']:,.3f} AVAX beyond the {CHECKPOINT_TOLERANCE_AVAX} AVAX allowance")
                         elif result["within"] is None and point["ledger_complete_through_that_day"] is not False:
                             findings.append(f"Data API {name} at {point['observed_at']} cannot be bracketed: the ledger has no supply through that day")
+                sources = summary.get("gap_fee_sources", {})
+                if sources.get("differing_blocks"):
+                    findings.append(f"{sources['differing_blocks']} of {sources['shared_blocks']} gap blocks carry different fees from the Data API and the node's receipts")
                 counter = summary.get("counter", {})
                 if counter.get("gap_share") is not None and abs(counter["gap_share"]) > COUNTER_TOLERANCE:
                     findings.append(f"the P-Chain supply counter differs from genesis plus rewards paid plus open potential rewards by {counter['gap_avax']:,.0f} AVAX")

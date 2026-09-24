@@ -67,7 +67,7 @@ def make_capture(tmp_path: Path) -> tuple[Path, dict]:
 
 def test_catalog_schema_and_references_are_valid():
     catalog = snowpeer.load_catalog()
-    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "defillama", "avalanche-metrics-api", "avalanche-data-api", "us-treasury", "avalanche-p-chain-rpc", "avalanche-c-chain-rpc", "avalanche-snowflake", "avalanche-builder-hub", "derived"]
+    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "defillama", "avalanche-metrics-api", "avalanche-data-api", "us-treasury", "avalanche-p-chain-rpc", "avalanche-c-chain-rpc", "tenderly-c-chain-rpc", "avalanche-snowflake", "avalanche-builder-hub", "derived"]
     assert [item["id"] for item in catalog["datasets"]] == [
         "snowpeer.network-summary",
         "snowflake.primary-validator-stakes",
@@ -94,6 +94,7 @@ def test_catalog_schema_and_references_are_valid():
         "data-api.validators-completed-recent",
         "data-api.c-chain-atomic-burn",
         "data-api.c-chain-block-fees",
+        "c-chain-rpc.block-receipt-fees",
         "derived.staking-periods",
         "derived.node-table",
         "derived.avax-monetary-daily",

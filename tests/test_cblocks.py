@@ -138,3 +138,50 @@ def test_resume_cuts_back_a_walk_stopped_between_writes(tmp_path, monkeypatch):
     receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "resume": str(kept)}, request=fake_request, root=root)
     assert [item["block_height"] for item in receipt["blocks"]] == HEIGHTS
     assert cblocks.check(capture)["status"] == "pass"
+
+
+def node_batch(height, receipt_gas=(21_000, 40_000), prices=(30_000_000_000, 26_000_000_000), header_gas=None, other_hash=False):
+    """A node's JSON-RPC batch answer: the header, then one receipt per transaction."""
+    header = {"number": hex(height), "hash": f"0x{height:064x}", "timestamp": hex(1696550401 + height), "baseFeePerGas": hex(25_000_000_000),
+              "gasUsed": hex(header_gas if header_gas is not None else sum(receipt_gas)), "transactions": [f"0xt{index}" for index in range(len(receipt_gas))]}
+    receipts = [{"blockHash": "0xother" if other_hash else header["hash"], "blockNumber": hex(height), "gasUsed": hex(gas), "effectiveGasPrice": hex(price)}
+                for gas, price in zip(receipt_gas, prices)]
+    return [{"jsonrpc": "2.0", "id": 2, "result": receipts}, {"jsonrpc": "2.0", "id": 1, "result": header}]
+
+
+def rpc_request(answer):
+    def request(url, timeout, body_json=None, content="json"):
+        assert url == "https://avalanche-mainnet.gateway.tenderly.co" and content == "json-list"
+        assert [item["method"] for item in body_json] == ["eth_getBlockByNumber", "eth_getBlockReceipts"]
+        return json.dumps(answer(int(body_json[1]["params"][0], 16))).encode(), {"http_status": 200, "content_type": "application/json"}
+    return request
+
+
+def test_the_receipt_source_computes_fees_and_checks_them_against_the_header(tmp_path):
+    definition = next(item for item in load_catalog()["datasets"] if item["id"] == cblocks.RPC_DATASET_ID)
+    assert [field["name"] for field in definition["fields"]] == list(cblocks.COLUMNS)
+    root = make_gaps_run(tmp_path / "runs")
+    capture, dataset = tmp_path / "capture", tmp_path / "dataset"
+    receipt = cblocks.capture(cblocks.RPC_DATASET_ID, capture, parameters={"gaps": "gaps", "workers": "2"}, request=rpc_request(node_batch), root=root)
+    assert receipt["dataset_id"] == cblocks.RPC_DATASET_ID and [item["block_height"] for item in receipt["blocks"]] == HEIGHTS
+    built = cblocks.build(cblocks.RPC_DATASET_ID, capture, dataset)
+    fee = 21_000 * 30_000_000_000 + 40_000 * 26_000_000_000
+    assert built["summary"]["fees_wei"] == 3 * fee and built["summary"]["transactions"] == 6
+    assert cblocks.check(capture, dataset, against=root / "gaps" / "dataset")["status"] == "pass"
+    rows = duckdb.sql(f"SELECT block_height, date_utc, gas_used, fees_wei FROM read_parquet('{dataset / 'c-chain-block-receipt-fees.parquet'}') ORDER BY 1").fetchall()
+    assert rows[0][0] == 100 and str(rows[0][1]) == "2023-10-06" and rows[0][2] == 61_000 and int(rows[0][3]) == fee
+    with pytest.raises(DataError, match="the capture is of c-chain-rpc"):
+        cblocks.build(cblocks.DATASET_ID, capture, tmp_path / "wrong")
+
+
+@pytest.mark.parametrize(("answer", "message"), [
+    (lambda height: node_batch(height, header_gas=1), "do not add to the header's gas"),
+    (lambda height: node_batch(height, other_hash=True), "not the header's transactions"),
+    (lambda height: node_batch(height, receipt_gas=(21_000,), prices=(1,))[:1] + [{"jsonrpc": "2.0", "id": 1, "result": {**node_batch(height)[1]["result"]}}], "not the header's transactions"),
+    (lambda height: node_batch(height + 1), "another block"),
+    (lambda height: [{"jsonrpc": "2.0", "id": 1, "error": {"code": -32000}}, {"jsonrpc": "2.0", "id": 2, "result": []}], "did not answer both"),
+])
+def test_the_receipt_source_refuses_receipts_that_are_not_the_blocks(tmp_path, answer, message):
+    root = make_gaps_run(tmp_path / "runs")
+    with pytest.raises(DataError, match=message):
+        cblocks.capture(cblocks.RPC_DATASET_ID, tmp_path / "capture", parameters={"gaps": "gaps"}, request=rpc_request(answer), root=root)

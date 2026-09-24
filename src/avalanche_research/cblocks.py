@@ -1,11 +1,14 @@
-"""Capture C-Chain block records from the Data API for the blocks the Snowflake share cannot account for.
+"""Capture the fees of the C-Chain blocks the Snowflake share cannot account for, from either of two sources.
 
 The share's C block gaps dataset lists the heights: absent blocks and blocks present without all their receipts.
-Each block's Data API record carries the fees spent in it, an integer number of wei that equals the sum of gas used
-times effective gas price over the block's receipts (checked 2026-09-23 against the share on complete blocks), its
-timestamp, and its transaction count. One record is one JSON line written as it arrives, so a walk over many
-thousand blocks shows its progress on disk, retries a refused request, keeps its lines on failure, and continues
-with ``resume=<kept directory>``.
+``data-api.c-chain-block-fees`` reads each block's Data API record, whose ``feesSpent`` is an integer number of wei
+equal to the sum of gas used times effective gas price over the block's receipts (checked 2026-09-23 against the
+share on complete blocks). ``c-chain-rpc.block-receipt-fees`` reads the block header and every receipt from a public
+C-Chain JSON-RPC node in one batch and computes that sum itself, after checking that the receipts are the header's:
+one per transaction, each carrying the block's hash, their gas adding to the header's. The two agree to the wei on
+every block both hold. One record is one JSON line written as it arrives, so a walk over many thousand blocks shows
+its progress on disk, retries a refused request, keeps its lines on failure, and continues with
+``resume=<kept directory>``.
 """
 
 from __future__ import annotations
@@ -31,6 +34,14 @@ from .rest import _request
 DATASET_ID = "data-api.c-chain-block-fees"
 SOURCE_ID = "avalanche-data-api"
 ENDPOINT_ID = "c-chain-block"
+RPC_DATASET_ID = "c-chain-rpc.block-receipt-fees"
+RPC_SOURCE_ID = "tenderly-c-chain-rpc"
+RPC_ENDPOINT_ID = "block-and-receipts"
+# The Data API record walk, and the node's header and receipts in one JSON-RPC batch.
+SPECS = {
+    DATASET_ID: {"source_id": SOURCE_ID, "endpoint_id": ENDPOINT_ID, "table": "c-chain-block-fees"},
+    RPC_DATASET_ID: {"source_id": RPC_SOURCE_ID, "endpoint_id": RPC_ENDPOINT_ID, "table": "c-chain-block-receipt-fees"},
+}
 GAPS_ID = "snowflake.c-chain-block-gaps"
 TABLE = "c-chain-block-fees"
 PROGRESS = "progress.jsonl"
@@ -72,9 +83,23 @@ def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
     return {"gaps": values["gaps"], "kind": kind, "limit": limit, "pause": pause, "workers": workers, **({"resume": values["resume"]} if values.get("resume") else {})}
 
 
-def _endpoint(catalog: dict[str, Any]) -> str:
-    provider = source(catalog, SOURCE_ID)
-    return next(item["url"] for item in provider["endpoints"] if item["id"] == ENDPOINT_ID)
+def _spec(dataset_id: str) -> dict[str, Any]:
+    if dataset_id not in SPECS:
+        raise DataError(f"unknown dataset: {dataset_id}")
+    return SPECS[dataset_id]
+
+
+def _endpoint(catalog: dict[str, Any], dataset_id: str = DATASET_ID) -> str:
+    spec = _spec(dataset_id)
+    provider = source(catalog, spec["source_id"])
+    return next(item["url"] for item in provider["endpoints"] if item["id"] == spec["endpoint_id"])
+
+
+def _batch(height: int) -> list[dict[str, Any]]:
+    return [
+        {"jsonrpc": "2.0", "id": 1, "method": "eth_getBlockByNumber", "params": [hex(height), False]},
+        {"jsonrpc": "2.0", "id": 2, "method": "eth_getBlockReceipts", "params": [hex(height)]},
+    ]
 
 
 def gap_heights(run: str, kind: str, root: Path | None = None) -> tuple[dict[str, Any], list[int]]:
@@ -91,15 +116,14 @@ def gap_heights(run: str, kind: str, root: Path | None = None) -> tuple[dict[str
 
 
 def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None, root: Path | None = None) -> dict[str, Any]:
-    if dataset_id != DATASET_ID:
-        raise DataError(f"unknown dataset: {dataset_id}")
+    spec = _spec(dataset_id)
     values = _parameters(parameters)
     record, heights = gap_heights(values["gaps"], values["kind"], root)
     return {
-        "dataset_id": DATASET_ID,
-        "source_id": SOURCE_ID,
+        "dataset_id": dataset_id,
+        "source_id": spec["source_id"],
         "output": str(output),
-        "endpoint": _endpoint(load_catalog()),
+        "endpoint": _endpoint(load_catalog(), dataset_id),
         "gaps_run": values["gaps"],
         "gaps_capture_id": record["capture"]["capture_id"],
         "kind": values["kind"],
@@ -169,12 +193,14 @@ def capture(
     todo = [height for height in heights if height not in done][: max(0, preview["limit"] - len(records))]
     retries = 0
 
+    rpc = dataset_id == RPC_DATASET_ID
+
     def fetch(height: int) -> tuple[int, bytes, dict[str, Any], int]:
         """One block record, retried with a doubling wait when the API refuses or drops the request."""
-        url = f"{preview['endpoint']}/{height}"
+        url = preview["endpoint"] if rpc else f"{preview['endpoint']}/{height}"
         for attempt in range(1, PAGE_ATTEMPTS + 1):
             try:
-                body, metadata = request(url, timeout)
+                body, metadata = request(url, timeout, body_json=_batch(height), content="json-list") if rpc else request(url, timeout)
                 return height, body, metadata, attempt - 1
             except DataError as error:
                 # Keyless, the Data API refuses for minutes after about a thousand requests; with a key it allows about
@@ -183,6 +209,9 @@ def capture(
                     raise
                 time.sleep(PAGE_RETRY_SECONDS * 2 ** (attempt - 1))
         raise AssertionError("unreachable")
+
+    def url_of(height: int) -> str:
+        return preview["endpoint"] if rpc else f"{preview['endpoint']}/{height}"
 
     try:
         batch_size = preview["workers"] * 8
@@ -207,11 +236,12 @@ def capture(
                     line = body.strip()
                     if b"\n" in line:
                         line = json.dumps(json.loads(body), separators=(",", ":"), sort_keys=True).encode()
-                    value = json.loads(line)
-                    if str(value.get("blockNumber")) != str(height):
-                        raise DataError(f"the Data API answered block {value.get('blockNumber')} for {height}; {len(records)} blocks kept at {temporary}")
+                    try:
+                        _row(dataset_id, json.loads(line), height)
+                    except DataError as error:
+                        raise DataError(f"{error}; {len(records)} blocks kept at {temporary}") from error
                     raw.write(line + b"\n")
-                    record = {"block_height": height, "url": f"{preview['endpoint']}/{height}", "bytes": len(line), "sha256": sha256(line), **metadata}
+                    record = {"block_height": height, "url": url_of(height), "bytes": len(line), "sha256": sha256(line), **metadata}
                     records.append(record)
                     progress.write(json.dumps(record, sort_keys=True) + "\n")
                 raw.flush()
@@ -221,20 +251,21 @@ def capture(
         completed_at = now()
         identity = sha256(canonical_bytes({"completed_at": completed_at, "responses": records}))
         body_all = (temporary / RAW).read_bytes()
+        spec = _spec(dataset_id)
         receipt = {
-            "schema_version": f"{SOURCE_ID}-capture/v1",
-            "capture_id": f"capture:{SOURCE_ID}:{completed_at}:{identity[:12]}",
-            "dataset_id": DATASET_ID,
-            "source_id": SOURCE_ID,
+            "schema_version": f"{spec['source_id']}-capture/v1",
+            "capture_id": f"capture:{spec['source_id']}:{completed_at}:{identity[:12]}",
+            "dataset_id": dataset_id,
+            "source_id": spec["source_id"],
             "completed_at": completed_at,
-            "contract_sha256": contract_hash(catalog, DATASET_ID),
+            "contract_sha256": contract_hash(catalog, dataset_id),
             "tool": f"avalanche-research@{__version__}",
             "gaps_run": preview["gaps_run"],
             "gaps_capture_id": preview["gaps_capture_id"],
             "kind": preview["kind"],
             "blocks_listed": preview["blocks"],
             "retries": retries,
-            "responses": [{"endpoint_id": ENDPOINT_ID, "path": RAW, "blocks": len(records), "bytes": len(body_all), "sha256": sha256(body_all)}],
+            "responses": [{"endpoint_id": spec["endpoint_id"], "path": RAW, "blocks": len(records), "bytes": len(body_all), "sha256": sha256(body_all)}],
             "blocks": records,
         }
         (temporary / "capture.json").write_bytes(canonical_bytes(receipt))
@@ -257,14 +288,47 @@ def _integer(value: Any, label: str, height: int) -> int:
     return number
 
 
+def _row(dataset_id: str, value: Any, height: int) -> tuple[Any, ...]:
+    """(height, hash, timestamp, date, transactions, gas used, base fee, fees) from one captured line."""
+    if dataset_id == DATASET_ID:
+        if _integer(value.get("blockNumber"), "height", height) != height:
+            raise DataError(f"the Data API answered block {value.get('blockNumber')} for {height}")
+        timestamp = datetime.fromtimestamp(_integer(value.get("blockTimestamp"), "timestamp", height), UTC).replace(tzinfo=None)
+        return (height, value.get("blockHash"), timestamp, timestamp.date(),
+                _integer(value.get("txCount"), "transaction count", height), _integer(value.get("gasUsed"), "gas used", height),
+                _integer(value.get("baseFee"), "base fee", height), _integer(value.get("feesSpent"), "fees spent", height))
+    answers = {item.get("id"): item for item in value} if isinstance(value, list) else {}
+    if set(answers) != {1, 2} or any("error" in item or item.get("result") is None for item in answers.values()):
+        raise DataError(f"the node did not answer both calls for block {height}")
+    block, receipts = answers[1]["result"], answers[2]["result"]
+    if _hex(block.get("number"), "height", height) != height or not isinstance(receipts, list):
+        raise DataError(f"the node answered another block for {height}")
+    if len(receipts) != len(block.get("transactions") or []) or any(item.get("blockHash") != block.get("hash") for item in receipts):
+        raise DataError(f"the receipts of block {height} are not the header's transactions")
+    gas = [_hex(item.get("gasUsed"), "receipt gas", height) for item in receipts]
+    if sum(gas) != _hex(block.get("gasUsed"), "gas used", height):
+        raise DataError(f"the receipts of block {height} do not add to the header's gas")
+    fees = sum(used * _hex(item.get("effectiveGasPrice"), "effective gas price", height) for used, item in zip(gas, receipts))
+    timestamp = datetime.fromtimestamp(_hex(block.get("timestamp"), "timestamp", height), UTC).replace(tzinfo=None)
+    return (height, block.get("hash"), timestamp, timestamp.date(), len(receipts), sum(gas),
+            _hex(block.get("baseFeePerGas"), "base fee", height), fees)
+
+
+def _hex(value: Any, label: str, height: int) -> int:
+    if not isinstance(value, str) or not value.startswith("0x"):
+        raise DataError(f"block {height} has no hex {label}")
+    return _integer(int(value, 16), label, height)
+
+
 def read_rows(capture_dir: Path) -> tuple[dict[str, Any], list[tuple[Any, ...]]]:
     try:
         receipt = json.loads((capture_dir / "capture.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise DataError(f"invalid block-fee capture receipt: {error}") from error
-    if receipt.get("dataset_id") != DATASET_ID or receipt.get("schema_version") != f"{SOURCE_ID}-capture/v1":
+    dataset_id = receipt.get("dataset_id")
+    if dataset_id not in SPECS or receipt.get("schema_version") != f"{SPECS[dataset_id]['source_id']}-capture/v1":
         raise DataError("unsupported block-fee capture receipt")
-    if receipt.get("contract_sha256") != contract_hash(load_catalog(), DATASET_ID):
+    if receipt.get("contract_sha256") != contract_hash(load_catalog(), dataset_id):
         raise DataError("block-fee capture contract hash differs")
     summary = receipt["responses"][0]
     try:
@@ -280,17 +344,11 @@ def read_rows(capture_dir: Path) -> tuple[dict[str, Any], list[tuple[Any, ...]]]
     for line, record in zip(lines, records):
         if sha256(line) != record["sha256"] or len(line) != record["bytes"]:
             raise DataError(f"block line {record['block_height']} differs from its record")
-        value = json.loads(line)
         height = record["block_height"]
-        if height in seen or _integer(value.get("blockNumber"), "height", height) != height:
+        if height in seen:
             raise DataError(f"block {height} is repeated or answered with another height")
         seen.add(height)
-        timestamp = datetime.fromtimestamp(_integer(value.get("blockTimestamp"), "timestamp", height), UTC).replace(tzinfo=None)
-        rows.append((
-            height, value.get("blockHash"), timestamp, timestamp.date(),
-            _integer(value.get("txCount"), "transaction count", height), _integer(value.get("gasUsed"), "gas used", height),
-            _integer(value.get("baseFee"), "base fee", height), _integer(value.get("feesSpent"), "fees spent", height),
-        ))
+        rows.append(_row(dataset_id, json.loads(line), height))
     return receipt, rows
 
 
@@ -300,9 +358,8 @@ def _summary(rows: list[tuple[Any, ...]]) -> dict[str, Any]:
 
 
 def build_preview(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
-    if dataset_id != DATASET_ID:
-        raise DataError(f"unknown dataset: {dataset_id}")
-    return {"dataset_id": dataset_id, "capture": str(capture_dir), "output": str(output), "writes": [f"{TABLE}.parquet", "build.json"], "overwrite": False}
+    table = _spec(dataset_id)["table"]
+    return {"dataset_id": dataset_id, "capture": str(capture_dir), "output": str(output), "writes": [f"{table}.parquet", "build.json"], "overwrite": False}
 
 
 def _json_summary(summary: dict[str, Any]) -> dict[str, Any]:
@@ -314,10 +371,12 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     if output.exists():
         raise DataError(f"output already exists: {output}")
     receipt, rows = read_rows(capture_dir)
+    if receipt["dataset_id"] != dataset_id:
+        raise DataError(f"the capture is of {receipt['dataset_id']}, not {dataset_id}")
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:
-        parquet = temporary / f"{TABLE}.parquet"
+        parquet = temporary / f"{_spec(dataset_id)['table']}.parquet"
         connection = duckdb.connect()
         try:
             connection.execute(f"CREATE TABLE rows({', '.join(f'{name} {kind}' for name, kind in COLUMNS.items())})")
@@ -327,8 +386,8 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
         finally:
             connection.close()
         result = {
-            "schema_version": "data-api-build/v1", "dataset_id": DATASET_ID,
-            "dataset_schema": dataset(load_catalog(), DATASET_ID)["fields"], "source_capture_id": receipt["capture_id"],
+            "schema_version": "data-api-build/v1", "dataset_id": dataset_id,
+            "dataset_schema": dataset(load_catalog(), dataset_id)["fields"], "source_capture_id": receipt["capture_id"],
             "completed_at": now(), "tool": f"avalanche-research@{__version__}",
             "summary": _json_summary(_summary(rows)),
             "outputs": [{"path": parquet.name, "bytes": parquet.stat().st_size, "sha256": sha256(parquet.read_bytes())}],
@@ -364,7 +423,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
         checked.extend(["build hashes", "Parquet rows"])
         try:
             built = json.loads((dataset_dir / "build.json").read_text(encoding="utf-8"))
-            parquet = dataset_dir / f"{TABLE}.parquet"
+            parquet = dataset_dir / f"{_spec(receipt['dataset_id'])['table']}.parquet"
             data = parquet.read_bytes()
             if built["source_capture_id"] != receipt["capture_id"] or len(data) != built["outputs"][0]["bytes"] or sha256(data) != built["outputs"][0]["sha256"]:
                 findings.append("build receipt or Parquet hash differs")
@@ -377,5 +436,5 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                 findings.append("Parquet rows differ from captured blocks")
         except (OSError, KeyError, ValueError, json.JSONDecodeError, duckdb.Error) as error:
             findings.append(f"invalid block-fee dataset output: {error}")
-    return {"dataset_id": DATASET_ID, "capture_id": receipt["capture_id"], "status": "pass" if not findings else "attention",
+    return {"dataset_id": receipt["dataset_id"], "capture_id": receipt["capture_id"], "status": "pass" if not findings else "attention",
             "checked": checked, "summary": {**summary, "retries": receipt.get("retries", 0)}, "findings": findings}
