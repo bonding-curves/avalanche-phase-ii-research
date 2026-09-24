@@ -871,6 +871,68 @@
       ]
     },
     {
+      "id": "avalanche-builder-hub",
+      "name": "Avalanche Builder Hub validator explorer",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Ava Labs' Builder Hub, which proxies a validator-metrics service fed by the nodes Ava Labs runs. Its uptime is the hourly median across those observers: one observer set, beside the public P-Chain RPC node and the Data API, and not the protocol's own stake-weighted vote at period end.",
+      "documentation_url": "https://github.com/ava-labs/builders-hub/tree/445f46eaa4608805c1c93f3f9a74799b146a7b41/app/api/validators",
+      "authentication": "none",
+      "reuse_status": "Public access observed; no terms published for these routes. Redistribution terms unassessed.",
+      "notes": [
+        "Measured 2026-09-23 and 2026-09-24: the list route returns a JSON array of about 611 current Primary Network validators; the detail route returns, per node, hourly uptime buckets for a rolling window of 332 hours, daily bench totals, hourly block proposals and misses, and a 14-day summary of the underlying observations (116,017 for one node). A validator that has ended still answers.",
+        "The route caches each answer for five minutes and, when its upstream fails, answers from cache with the response header X-Data-Source: error-fallback-cache, which the capture records per node.",
+        "The routes proxy a service at a bare address (52.203.183.9.sslip.io); the capture calls the published Builder Hub routes, not the address.",
+        "The slots series (slot, count) is kept in the raw lines and not built into a table; its meaning is undocumented."
+      ],
+      "endpoints": [
+        {
+          "id": "validators",
+          "url": "https://build.avax.network/api/validators",
+          "response_fields": [
+            "node_id",
+            "p50_uptime",
+            "weight",
+            "delegator_count",
+            "delegator_weight",
+            "delegation_fee",
+            "potential_reward",
+            "bench_observers",
+            "end_time",
+            "version",
+            "days_left",
+            "miss_rate_14d",
+            "miss_count_14d",
+            "block_count_14d"
+          ]
+        },
+        {
+          "id": "validator-detail",
+          "url": "https://build.avax.network/api/validators",
+          "response_fields": [
+            "node_id",
+            "current_p50_uptime",
+            "bench_observers",
+            "weight",
+            "delegator_weight",
+            "delegator_count",
+            "delegation_fee",
+            "potential_reward",
+            "version",
+            "days_left",
+            "miss_rate_14d",
+            "missed_14d",
+            "proposed_14d",
+            "uptime_details",
+            "uptime",
+            "bench",
+            "blocks",
+            "slots"
+          ]
+        }
+      ]
+    },
+    {
       "id": "derived",
       "name": "Derived datasets",
       "source_type": "derived",
@@ -883,7 +945,8 @@
         "Built with `avalanche data derive`, which selects the newest built run of each input unless a run is pinned, and writes a capture receipt naming the input runs beside the Parquet build.",
         "The staking-period log adds the network upgrade regime at acceptance and the reward the protocol kernel computes for each row, so the recorded potential reward can be checked row by row.",
         "The node table folds the staking-period log, the reward addresses on validator transactions, and the delegator addresses into one row per validator node. Its clocks are clipped at the validator capture time, so a run is reproducible from its inputs alone.",
-        "The monetary daily ledger replays supply from genesis: rewards paid out minus burns on every chain, in wei, with a coverage state per component and per day, and takes every current run of the multi-run inputs so repairs captured later fill earlier gaps without a rebuild of the sources."
+        "The monetary daily ledger replays supply from genesis: rewards paid out minus burns on every chain, in wei, with a coverage state per component and per day, and takes every current run of the multi-run inputs so repairs captured later fill earlier gaps without a rebuild of the sources.",
+        "The hourly validator uptime table merges every Builder Hub capture into one row per node per hour, keeping the newest capture's value, the number of captures that held the hour, and whether any two disagreed. Daily captures overlap by about thirteen days, so the table grows without gaps while captures continue."
       ],
       "inputs": [
         {
@@ -965,6 +1028,11 @@
           "id": "supply-checkpoints",
           "dataset_id": "data-api.avax-supply",
           "role": "dated Data API supply snapshots the ledger's cumulative totals are checked against, every run"
+        },
+        {
+          "id": "builder-hub-uptime",
+          "dataset_id": "builder-hub.validator-uptime",
+          "role": "Builder Hub's rolling window of hourly uptime per validator, every run under the current contract"
         }
       ]
     }
@@ -3887,6 +3955,109 @@
           "type": "boolean",
           "unit": "flag",
           "derivation": "every coverage is complete or repaired"
+        }
+      ]
+    },
+    {
+      "id": "builder-hub.validator-uptime",
+      "name": "Builder Hub hourly validator uptime, one capture",
+      "source_id": "avalanche-builder-hub",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One capture of Builder Hub's validator explorer: the list of current Primary Network validators and one detail per node, plus nodes the previous capture listed that have since ended. The build writes four tables. uptime-hourly (the fields below) holds one row per node per hour of the rolling 332-hour window. validators holds one row per node with the list and detail scalars, the 14-day observation summary, and the X-Data-Source header. bench-daily holds daily bench totals. blocks-hourly holds hourly block proposals and misses. Checked against the previous capture for continuity (no hour between the two captures) and agreement, or against a same-day P-Chain RPC snapshot for the node set.",
+      "endpoint_ids": [
+        "validators",
+        "validator-detail"
+      ],
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "node_id of the detail; a node is a machine identity, not an operator (glossary G1)"
+        },
+        {
+          "name": "bucket_utc",
+          "type": "timestamp",
+          "unit": "UTC hour",
+          "derivation": "uptime[i].bucket, the start of the hour"
+        },
+        {
+          "name": "p50_uptime_pct",
+          "type": "number",
+          "unit": "percent, 0 to 100",
+          "derivation": "uptime[i].p50_uptime: the median over Ava Labs' observing nodes of their measured uptime for this validator in the hour (glossary G13)"
+        },
+        {
+          "name": "captured_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the capture's completion time"
+        }
+      ]
+    },
+    {
+      "id": "derived.validator-uptime-hourly",
+      "name": "Hourly validator uptime across every Builder Hub capture",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per node per hour for every hour any Builder Hub capture has held, from 2026-09-10 08:00 UTC on. The value is the newest capture's. The series is the only record of hourly uptime percentages outside Ava Labs, and it exists only from the captures on. Checked that every node-hour of every input appears exactly once.",
+      "input_ids": [
+        "builder-hub-uptime"
+      ],
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "node_id (glossary G1)"
+        },
+        {
+          "name": "bucket_utc",
+          "type": "timestamp",
+          "unit": "UTC hour",
+          "derivation": "bucket_utc"
+        },
+        {
+          "name": "p50_uptime_pct",
+          "type": "number",
+          "unit": "percent, 0 to 100",
+          "derivation": "p50_uptime_pct from the newest capture that holds the hour (glossary G13)"
+        },
+        {
+          "name": "captures",
+          "type": "integer",
+          "unit": "captures",
+          "derivation": "number of captures that held the hour"
+        },
+        {
+          "name": "revised",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "true when two captures gave the hour different values"
+        },
+        {
+          "name": "first_captured_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "earliest captured_at among the captures that held the hour"
+        },
+        {
+          "name": "last_captured_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "latest captured_at among the captures that held the hour"
         }
       ]
     }

@@ -12,6 +12,7 @@ import click
 from . import __version__
 from . import atomic
 from . import catx
+from . import builderhub
 from . import cblocks
 from . import cchain_rpc
 from . import coingecko
@@ -54,6 +55,7 @@ MODULES = {
     **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
     **{dataset_id: validators_api for dataset_id in validators_api.DATASET_IDS},
+    **{dataset_id: builderhub for dataset_id in builderhub.DATASET_IDS},
 }
 
 

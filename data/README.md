@@ -32,8 +32,10 @@ This directory defines the machine-readable contracts for research data used in 
 | `data-api.validators-active` | One Parquet row per active Primary Network validation at the capture instant with the Data API's uptime, health, delegation capacity and fill, version, geolocation, and staking type | Implemented, tested, captured daily beside the RPC snapshot, and reconciled against it as a second observer |
 | `data-api.validators-completed` | One Parquet row per completed Primary Network validation with its reward addresses, potential reward, and cumulative delegation | Implemented, tested, captured once for the full history (56,963 rows on 2026-09-22), and reconciled against the Snowflake stake captures |
 | `data-api.validators-completed-recent` | The newest 15 pages of completed Primary Network validations, about 1,500 rows, captured daily so the completed history grows without another full pull | Implemented, tested, and checked against the full history where the two overlap |
+| `builder-hub.validator-uptime` | One capture of Builder Hub's validator explorer: one Parquet row per validator per hour of its rolling 332-hour window of median uptime across Ava Labs' observing nodes, with companion tables of validator scalars, daily bench totals, and hourly block proposals | Implemented, tested, and captured daily from 2026-09-24; the first capture reaches back to 2026-09-10 08:00 UTC |
 | `derived.staking-periods` | One Parquet row per staking period, validators and delegators together, with reward outcome, supply reading, upgrade regime, and the protocol kernel's reward for the row | Implemented, tested, and derived from the four Snowflake staking runs |
 | `derived.node-table` | One Parquet row per validator node: the three clocks (span, tenure, current streak) and their stake weights, stake and fee history, delegation, rewards and failures, upgrade regimes, and the reward address as an operator proxy, all clipped at the validator capture time | Implemented, tested, and derived from the staking-period log and the two Snowflake stake runs |
+| `derived.validator-uptime-hourly` | One Parquet row per validator per hour across every Builder Hub capture, with the number of captures that held the hour and whether they disagreed | Implemented, tested, and derived daily; the only record of hourly uptime percentages outside Ava Labs, and it exists only from the captures on |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -238,6 +240,20 @@ uv run --locked avalanche data check data-api.validators-completed --capture dat
 ```
 
 A daily sweep follows the same commands with `data-api.validators-completed-recent`, which walks only the first 15 pages, and its check takes `--against` the full history's dataset directory.
+
+## Capture Builder Hub's hourly validator uptime
+
+The protocol keeps no uptime percentages: each node measures its peers privately and deletes the record when a validation ends, and the P-Chain records only whether a staking period was rewarded. Builder Hub serves, for each current validator, the hourly median uptime across Ava Labs' observing nodes for the last 332 hours, and the window moves forward every hour. A capture takes the list and one detail per node, and asks again for nodes the previous capture listed that have since ended. An interrupted capture keeps its lines in `.<output>.partial` and the next capture into the same output resumes from them. Check each capture against the previous one: `BC5` fails when an hour falls between the two, which means history was lost.
+
+```bash
+uv run --locked avalanche data fetch builder-hub.validator-uptime --output data/runs/builder-hub-uptime-example/capture --timeout 60
+uv run --locked avalanche data build builder-hub.validator-uptime --from data/runs/builder-hub-uptime-example/capture --output data/runs/builder-hub-uptime-example/dataset
+uv run --locked avalanche data check builder-hub.validator-uptime --capture data/runs/builder-hub-uptime-example/capture --dataset data/runs/builder-hub-uptime-example/dataset --against data/runs/builder-hub-uptime-previous/dataset
+uv run --locked avalanche data derive derived.validator-uptime-hourly --output data/runs/validator-uptime-hourly-example
+uv run --locked avalanche data check derived.validator-uptime-hourly --capture data/runs/validator-uptime-hourly-example/capture --dataset data/runs/validator-uptime-hourly-example/dataset
+```
+
+The derived table reads every built capture, keeps the newest capture's value for each hour, and counts how many captures held it. Captures one day apart overlap by about thirteen days, so a missed day loses nothing.
 
 The active check verifies every RPC node is present, the two observers' uptimes differ by a median under one point, and delegated weight agrees per node on at least 85% and in total within 2%. The completed check verifies the first reward address, stake, and potential reward equal the Snowflake validator capture on every validation in both, and when the delegator capture sits in the same `--against` directory, that cumulative delegation and delegation count equal its sum and count. The sweep's check verifies that every validation shared with the full history reads the same and that the sweep spans at least 30 days of end times. The full completed history is about 570 pages and 35 minutes keyless.
 
