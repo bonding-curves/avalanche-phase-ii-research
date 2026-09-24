@@ -11,6 +11,7 @@ import click
 
 from . import __version__
 from . import atomic
+from . import catx
 from . import cblocks
 from . import cchain_rpc
 from . import coingecko
@@ -44,6 +45,7 @@ MODULES = {
     defillama.DATASET_ID: defillama,
     pchain.DATASET_ID: pchain,
     ptx.DATASET_ID: ptx,
+    catx.DATASET_ID: catx,
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,
     derived.DATASET_ID: derived,

@@ -12,10 +12,11 @@ This directory defines the machine-readable contracts for research data used in 
 | `snowflake.primary-staking-rewards` | One Parquet row per reward transaction closing a staking period | Implemented, tested, and captured live |
 | `snowflake.primary-staking-supply` | One Parquet row per staking transaction with the block supply context behind its potential reward | Implemented, tested, and captured live |
 | `snowflake.primary-burn-events` | One deduplicated P- or X-Chain transaction per row with recorded AVAX burn | Implemented, tested, and captured for 2026-09-16; not an all-chain burn total |
-| `data-api.c-chain-atomic-burn` | One C-Chain import or export per row with the exact AVAX input-minus-output burn | Implemented, tested, and captured for 2026-09-16; not a historical C burn total |
+| `data-api.c-chain-atomic-burn` | One C-Chain import or export per row with the exact AVAX input-minus-output burn | Implemented, tested, and captured for the full history on 2026-09-23: 1,171,886 transactions, five imports left for the node record below |
 | `c-chain-rpc.receipt-gap-repairs` | One C-Chain transaction receipt per row for a specified block missing from the Snowflake share | Implemented and checked for block 95,492,477; a source repair, not a combined daily burn |
 | `snowflake.primary-burn-daily` | One Parquet row per UTC date and chain (P or X) with the AVAX burned, how each burn was established, the L1 validator fees, and the hashes the share cannot settle | Implemented, tested, and captured for the full history on 2026-09-23; 24 P-Chain imports settled by the node record below |
 | `p-chain-rpc.transactions` | One Parquet row per requested P-Chain transaction with the AVAX it consumed, created, and burned, from the node's own record | Implemented, tested, and captured for the 24 imports the share and the Data API cannot settle |
+| `c-chain-rpc.atomic-transactions` | One Parquet row per requested C-Chain import with the AVAX it consumed, created, and burned, decoded from the node's signed transaction | Implemented, tested, and captured for the five 2021 imports whose consumed UTXOs the Data API lists incompletely |
 | `snowflake.c-chain-evm-burn-daily` | One Parquet row per UTC day with the exact EVM fee burn over the share's complete C blocks, the blocks read once where the share repeats them, and the absent and short blocks counted | Implemented, tested, and captured 2020-09-23 to 2026-09-21 in seven year runs; three days of 2023 and about forty of 2025 wait on the block-fee capture |
 | `snowflake.c-chain-block-gaps` | One Parquet row per C block the share lacks or holds without all its receipts | Implemented and tested; the full-history capture is the next step |
 | `data-api.c-chain-block-fees` | One Parquet row per gap block read from the Data API block record with the fees burned in it | Implemented and tested; the capture waits on the gaps run and on the Data API's keyless rate limit |
@@ -292,7 +293,15 @@ uv run --locked avalanche data build data-api.c-chain-block-fees --from data/run
 uv run --locked avalanche data check data-api.c-chain-block-fees --capture data/runs/c-block-fees-example/capture --dataset data/runs/c-block-fees-example/dataset --against data/runs/c-block-gaps-example/dataset
 ```
 
-The block-fee walk and the C atomic walk write one record per line as it arrives and keep their lines when the Data API refuses further requests; continue either with `--param resume=<kept directory>`. Keyless, the API refused after about a thousand requests an hour on 2026-09-23. With a Data API key from [AvaCloud](https://app.avacloud.io) exported as `AVALANCHE_DATA_API_KEY`, it allows about 750 block requests a minute, and `--param workers=8` on the block-fee walk uses that. The key is sent only to `glacier-api.avax.network` and never enters a capture or a receipt. The atomic history is one walk from the newest transaction back to the first C block, `--param start=2020-09-23 --param end=<yesterday> --param max_pages=30000`, about nine thousand pages.
+The atomic check counts the imports whose consumed UTXOs the Data API lists incompletely, so that its AVAX unlocked falls below the AVAX created; their burn is null in the built rows. Read those from the C-Chain node, which returns the signed transaction, and the ledger applies them:
+
+```bash
+uv run --locked avalanche data fetch c-chain-rpc.atomic-transactions --output data/runs/c-atomic-transactions-example/capture --param hashes=<hash>,<hash> --timeout 30
+uv run --locked avalanche data build c-chain-rpc.atomic-transactions --from data/runs/c-atomic-transactions-example/capture --output data/runs/c-atomic-transactions-example/dataset
+uv run --locked avalanche data check c-chain-rpc.atomic-transactions --capture data/runs/c-atomic-transactions-example/capture --dataset data/runs/c-atomic-transactions-example/dataset
+```
+
+The block-fee walk and the C atomic walk write one record per line as it arrives and keep their lines when the Data API refuses further requests; continue either with `--param resume=<kept directory>`. Keyless, the API refused after about a thousand requests an hour on 2026-09-23. With a Data API key from [AvaCloud](https://app.avacloud.io) exported as `AVALANCHE_DATA_API_KEY`, it allows about 750 block requests a minute, and `--param workers=8` on the block-fee walk uses that. The key is sent only to `glacier-api.avax.network` and never enters a capture or a receipt. The atomic history is one walk from the newest transaction back to the first C block, `--param start=2020-09-23 --param end=<yesterday> --param max_pages=30000`, 11,648 pages on 2026-09-23.
 
 Then derive and check the ledger. The derive takes the newest built run of the P and X burns, the staking rewards, the staking-period log, and the staking supply, and every current run of the repairs, the C EVM years, the atomic walks, and the Data API supply snapshots:
 

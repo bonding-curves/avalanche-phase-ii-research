@@ -55,6 +55,7 @@ MANY_INPUTS = {
     "c-block-fees": "data-api.c-chain-block-fees",
     "c-receipt-repairs": "c-chain-rpc.receipt-gap-repairs",
     "c-atomic": "data-api.c-chain-atomic-burn",
+    "c-atomic-transactions": "c-chain-rpc.atomic-transactions",
     "supply-checkpoints": "data-api.avax-supply",
 }
 REQUIRED_MANY = {"c-evm-daily", "c-atomic"}
@@ -262,16 +263,24 @@ evm_days AS (
     LEFT JOIN gap_status s USING (date_utc)
     LEFT JOIN gap_amounts a USING (date_utc)
 ),
+atomic_rows AS (
+    SELECT transaction_hash, arg_min(accepted_at, run_rank) AS accepted_at, arg_min(burned_navax, run_rank) AS burned_navax FROM c_atomic GROUP BY 1
+),
 atomic AS (
-    SELECT accepted_at::DATE AS date_utc, sum(burned_navax)::DECIMAL(38,0) * {navax} AS burned_wei
-    FROM (SELECT transaction_hash, arg_min(accepted_at, run_rank) AS accepted_at, arg_min(burned_navax, run_rank) AS burned_navax FROM c_atomic GROUP BY 1)
+    -- An import the Data API leaves unsettled (null burn) takes the node's burn from its signed transaction.
+    SELECT a.accepted_at::DATE AS date_utc, sum(coalesce(a.burned_navax, t.burned_navax))::DECIMAL(38,0) * {navax} AS burned_wei,
+           count(*) FILTER (WHERE a.burned_navax IS NULL) AS unsettled,
+           count(*) FILTER (WHERE a.burned_navax IS NULL AND t.burned_navax IS NOT NULL) AS settled
+    FROM atomic_rows a LEFT JOIN (SELECT transaction_hash, arg_min(burned_navax, run_rank) AS burned_navax FROM c_atomic_transactions GROUP BY 1) t USING (transaction_hash)
     GROUP BY 1
 ),
 atomic_days AS (
     SELECT c.date_utc, coalesce(a.burned_wei, 0)::DECIMAL(38,0) AS burned_wei,
            CASE WHEN c.date_utc < DATE '{c_first}' THEN 'complete'
-                WHEN EXISTS (SELECT 1 FROM windows w WHERE w.component = 'c_atomic' AND c.date_utc >= w.start_date AND c.date_utc < w.end_date) THEN 'complete'
-                ELSE 'missing' END AS coverage
+                WHEN NOT EXISTS (SELECT 1 FROM windows w WHERE w.component = 'c_atomic' AND c.date_utc >= w.start_date AND c.date_utc < w.end_date) THEN 'missing'
+                WHEN coalesce(a.unsettled, 0) = 0 THEN 'complete'
+                WHEN a.settled = a.unsettled THEN 'repaired'
+                ELSE 'incomplete' END AS coverage
     FROM calendar c LEFT JOIN atomic a USING (date_utc)
 ),
 stake AS (
@@ -340,13 +349,14 @@ ORDER BY date_utc
 
 def compute(connection: Any, meta: dict[str, Any]) -> None:
     """Build ``ledger`` from the input views: one row per UTC date from genesis to the burn-daily run's last day."""
-    for name in ("p_transactions", "c_block_gaps", "c_block_fees", "c_receipt_repairs", "supply_checkpoints"):
+    for name in ("p_transactions", "c_block_gaps", "c_block_fees", "c_receipt_repairs", "c_atomic_transactions", "supply_checkpoints"):
         if not meta["has"][name.replace("_", "-")]:
             empty = {
                 "p_transactions": "SELECT 0 AS run_rank, '' AS run, ''::VARCHAR AS transaction_hash, 0::BIGINT AS burned_navax WHERE FALSE",
                 "c_block_gaps": "SELECT 0 AS run_rank, '' AS run, 0::BIGINT AS block_height, DATE '2020-01-01' AS date_utc WHERE FALSE",
                 "c_block_fees": "SELECT 0 AS run_rank, '' AS run, 0::BIGINT AS block_height, DATE '2020-01-01' AS date_utc, 0::DECIMAL(38,0) AS fees_wei WHERE FALSE",
                 "c_receipt_repairs": "SELECT 0 AS run_rank, '' AS run, 0::BIGINT AS block_height, TIMESTAMP '2020-01-01' AS block_timestamp, 0::DECIMAL(38,0) AS burned_wei WHERE FALSE",
+                "c_atomic_transactions": "SELECT 0 AS run_rank, '' AS run, ''::VARCHAR AS transaction_hash, 0::BIGINT AS burned_navax WHERE FALSE",
                 "supply_checkpoints": "SELECT 0 AS run_rank, '' AS run, TIMESTAMP '2020-01-01' AS observed_at WHERE FALSE",
             }[name]
             connection.execute(f"CREATE OR REPLACE VIEW {name} AS {empty}")

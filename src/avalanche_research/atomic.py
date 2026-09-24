@@ -311,8 +311,12 @@ def read_rows(capture_dir: Path) -> tuple[dict[str, Any], list[tuple[Any, ...]]]
             if unlocked != _utxo_amount(inputs) or created != _utxo_amount(outputs):
                 raise DataError(f"atomic AVAX summary differs from transaction inputs or outputs: {tx_hash}")
             burned = unlocked - created
-            if unlocked <= 0 or burned < 0:
+            if created < 0 or (item["txType"] == "ExportTx" and (unlocked <= 0 or burned < 0)):
                 raise DataError(f"invalid atomic AVAX balance: {tx_hash}")
+            if unlocked <= 0 or burned < 0:
+                # An import whose consumed UTXOs the API lists incompletely: its burn is unsettled here, and
+                # c-chain-rpc.atomic-transactions settles it from the node's signed transaction.
+                burned = None
             rows.append((
                 tx_hash, item["txType"], datetime.fromtimestamp(timestamp, UTC).replace(tzinfo=None),
                 int(item["blockHeight"]), item["blockHash"], unlocked, created, burned,
@@ -326,7 +330,8 @@ def _summary(rows: list[tuple[Any, ...]]) -> dict[str, Any]:
         "import_rows": sum(row[1] == "ImportTx" for row in rows),
         "export_rows": sum(row[1] == "ExportTx" for row in rows),
         "distinct_blocks": len({row[3] for row in rows}),
-        "burned_navax": sum(row[7] for row in rows),
+        "burned_navax": sum(row[7] for row in rows if row[7] is not None),
+        "unsettled_rows": sum(row[7] is None for row in rows),
     }
 
 

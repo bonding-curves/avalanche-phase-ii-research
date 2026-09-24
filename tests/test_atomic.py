@@ -53,7 +53,7 @@ def test_atomic_capture_build_check(tmp_path):
     dataset_dir = tmp_path / "dataset"
     built = atomic.build(atomic.DATASET_ID, capture_dir, dataset_dir)
     checked = atomic.check(capture_dir, dataset_dir)
-    assert built["summary"] == {"rows": 2, "import_rows": 0, "export_rows": 2, "distinct_blocks": 2, "burned_navax": 80}
+    assert built["summary"] == {"rows": 2, "import_rows": 0, "export_rows": 2, "distinct_blocks": 2, "burned_navax": 80, "unsettled_rows": 0}
     assert checked["status"] == "pass" and checked["summary"]["pages"] == 2
     rows = duckdb.sql(f"SELECT transaction_hash, burned_navax FROM read_parquet('{dataset_dir / 'c-chain-atomic-burn.parquet'}') ORDER BY 1").fetchall()
     assert rows == [("b", 30), ("c", 50)]
@@ -80,6 +80,21 @@ def test_atomic_rejects_negative_burn_and_missing_history(tmp_path):
             atomic.DATASET_ID, tmp_path / "short", parameters={"start": "2026-09-16", "end": "2026-09-17", "max_pages": "1"},
             request=lambda url, timeout: (json.dumps(pages()[0]).encode(), {"http_status": 200}),
         )
+
+
+def test_an_import_with_missing_inputs_is_kept_unsettled(tmp_path):
+    """The Data API lists some 2021 imports with fewer consumed UTXOs than they spent: the burn is null, not negative."""
+    source_pages = pages()
+    short = transaction("a", stamp(16, 9), 0, 500)
+    short["consumedUtxos"] = []
+    source_pages[1]["transactions"][0] = short
+    capture_dir = capture_sample(tmp_path, source_pages)
+    dataset_dir = tmp_path / "dataset"
+    built = atomic.build(atomic.DATASET_ID, capture_dir, dataset_dir)
+    assert built["summary"]["unsettled_rows"] == 1 and built["summary"]["burned_navax"] == 30
+    assert atomic.check(capture_dir, dataset_dir)["status"] == "pass"
+    rows = duckdb.sql(f"SELECT transaction_hash, unlocked_navax, created_navax, burned_navax FROM read_parquet('{dataset_dir / 'c-chain-atomic-burn.parquet'}') ORDER BY 1").fetchall()
+    assert rows == [("a", 0, 500, None), ("b", 230, 200, 30)]
 
 
 def test_atomic_rejects_tampered_body(tmp_path):

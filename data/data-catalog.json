@@ -593,7 +593,7 @@
       "name": "Avalanche C-Chain public JSON-RPC",
       "source_type": "rest_api",
       "status": "implemented",
-      "authority": "Direct public C-Chain block and transaction-receipt responses, retained only for explicitly identified gaps in the Snowflake share.",
+      "authority": "Direct public C-Chain block, transaction-receipt, and atomic-transaction responses, retained only for explicitly identified gaps in the Snowflake share and the Data API.",
       "documentation_url": "https://build.avax.network/docs/rpcs/c-chain/eth/eth_getBlockByNumber",
       "authentication": "none; the public endpoint at api.avax.network answers JSON-RPC POST requests",
       "reuse_status": "Public access observed; node operators may rate-limit.",
@@ -601,6 +601,22 @@
         {
           "id": "block-and-receipts",
           "url": "https://api.avax.network/ext/bc/C/rpc",
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "get-atomic-tx",
+          "url": "https://api.avax.network/ext/bc/C/avax",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "avax.getAtomicTx",
+            "params": {
+              "txID": "<transaction hash>",
+              "encoding": "hex"
+            },
+            "id": 1
+          },
           "response_fields": [
             "result"
           ]
@@ -939,6 +955,11 @@
           "id": "c-atomic",
           "dataset_id": "data-api.c-chain-atomic-burn",
           "role": "C-Chain import and export burns, every current run"
+        },
+        {
+          "id": "c-atomic-transactions",
+          "dataset_id": "c-chain-rpc.atomic-transactions",
+          "role": "node records that settle the C-Chain imports whose Data API burn is unsettled"
         },
         {
           "id": "supply-checkpoints",
@@ -2159,6 +2180,72 @@
       ]
     },
     {
+      "id": "c-chain-rpc.atomic-transactions",
+      "name": "C-Chain atomic transactions by hash from a public node",
+      "source_id": "avalanche-c-chain-rpc",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per explicitly requested C-Chain import with the AVAX it consumed, created, and burned, decoded from the node's signed transaction. Captured for the imports whose consumed UTXOs the Data API lists incompletely, so that its burn comes out negative; the raw avax.getAtomicTx responses stay hashed in the capture, and each is checked against its hex checksum and against the transaction ID, which is the CB58 SHA-256 of the signed bytes.",
+      "endpoint_ids": [
+        "get-atomic-tx"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "base58 hash",
+          "derivation": "the requested C-Chain atomic transaction hash, equal to the CB58 SHA-256 of the signed transaction bytes"
+        },
+        {
+          "name": "tx_kind",
+          "type": "string",
+          "unit": "kind",
+          "derivation": "'ImportTx'; any other kind is refused"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "C-Chain block",
+          "derivation": "the node's blockHeight for the transaction"
+        },
+        {
+          "name": "input_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum of AVAX amounts over the imported inputs"
+        },
+        {
+          "name": "output_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum of AVAX amounts over the EVM outputs"
+        },
+        {
+          "name": "burned_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "input_navax minus output_navax: the AVAX the transaction destroyed"
+        },
+        {
+          "name": "input_count",
+          "type": "integer",
+          "unit": "inputs",
+          "derivation": "AVAX inputs counted, at least one"
+        },
+        {
+          "name": "output_count",
+          "type": "integer",
+          "unit": "outputs",
+          "derivation": "AVAX outputs counted"
+        }
+      ]
+    },
+    {
       "id": "defillama.pool-yields",
       "name": "DeFi pool yields on Avalanche and proof-of-stake staking products",
       "source_id": "defillama",
@@ -3080,7 +3167,7 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One C-Chain import or export per row. The AVAX burn is the transaction's AVAX amount unlocked minus amount created, including any amount above the protocol minimum fee. The API lists newest transactions first; a dated capture pages backward until it crosses the requested start date.",
+      "description": "One C-Chain import or export per row. The AVAX burn is the transaction's AVAX amount unlocked minus amount created, including any amount above the protocol minimum fee. The API lists newest transactions first; a dated capture pages backward until it crosses the requested start date. Where the API lists fewer consumed UTXOs than an import spent, its AVAX unlocked falls below the AVAX created; the row keeps both amounts and burned_navax is null, unsettled, and c-chain-rpc.atomic-transactions settles it from the node. The full history holds five such imports, from 2021-02-10 to 2021-02-12.",
       "endpoint_ids": [
         "c-chain-atomic-transactions"
       ],
@@ -3659,6 +3746,7 @@
         "c-block-fees",
         "c-receipt-repairs",
         "c-atomic",
+        "c-atomic-transactions",
         "supply-checkpoints"
       ],
       "fields": [
@@ -3714,7 +3802,7 @@
           "name": "burned_c_atomic_wei",
           "type": "integer",
           "unit": "wei",
-          "derivation": "AVAX unlocked minus created by the day's C-Chain imports and exports, from data-api.c-chain-atomic-burn, times 10^9"
+          "derivation": "AVAX unlocked minus created by the day's C-Chain imports and exports, from data-api.c-chain-atomic-burn, with each import the API leaves unsettled taken from c-chain-rpc.atomic-transactions, times 10^9"
         },
         {
           "name": "burned_wei",
@@ -3786,7 +3874,7 @@
           "name": "c_atomic_coverage",
           "type": "string",
           "unit": "coverage",
-          "derivation": "'complete' when the day lies inside a C atomic run's window (a day without imports or exports burns nothing), else 'missing'; days before the first C block are complete at zero"
+          "derivation": "'complete' when the day lies inside a C atomic run's window (a day without imports or exports burns nothing) and every import that day is settled by the API; 'repaired' when the node settles the rest; 'incomplete' when one stays unsettled; else 'missing'; days before the first C block are complete at zero"
         },
         {
           "name": "stake_coverage",

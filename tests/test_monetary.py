@@ -85,9 +85,14 @@ def root(tmp_path: Path, monkeypatch) -> Path:
     make_run(runs, "c-fees", "data-api.c-chain-block-fees", "c-chain-block-fees",
              f"SELECT 7 AS block_height, '0x7' AS block_hash, TIMESTAMP '2020-09-13 12:00:00' AS block_timestamp, DATE '2020-09-13' AS date_utc, 3 AS transactions, 63000 AS gas_used, 25000000000::DECIMAL(38,0) AS base_fee_wei, ({WEI} / 2)::DECIMAL(38,0) AS fees_wei",
              "2026-09-23T18:22:00Z")
+    # Atomic: 'a1' burns one AVAX; 'a2' is an import the API lists with no consumed UTXOs, unsettled, and the node settles it at zero.
     make_run(runs, "c-atomic", "data-api.c-chain-atomic-burn", "c-chain-atomic-burn",
-             f"SELECT 'a1' AS transaction_hash, 'ImportTx' AS tx_type, TIMESTAMP '2020-09-13 01:00:00' AS accepted_at, 6 AS block_height, '0x6' AS block_hash, 2 * {BIG} AS unlocked_navax, {BIG} AS created_navax, {BIG} AS burned_navax",
+             f"SELECT 'a1' AS transaction_hash, 'ImportTx' AS tx_type, TIMESTAMP '2020-09-13 01:00:00' AS accepted_at, 6 AS block_height, '0x6' AS block_hash, 2 * {BIG} AS unlocked_navax, {BIG} AS created_navax, {BIG} AS burned_navax"
+             f" UNION ALL SELECT 'a2', 'ImportTx', TIMESTAMP '2020-09-13 02:00:00', 6, '0x6', 0, {BIG} // 2, NULL::BIGINT",
              "2026-09-23T18:23:00Z", {"start_timestamp": 1599868800, "end_timestamp": 1600128000})
+    make_run(runs, "c-atomic-transactions", "c-chain-rpc.atomic-transactions", "atomic-transactions",
+             f"SELECT 'a2' AS transaction_hash, 'ImportTx' AS tx_kind, 6 AS block_height, {BIG} // 2 AS input_navax, {BIG} // 2 AS output_navax, 0 AS burned_navax, 1 AS input_count, 1 AS output_count",
+             "2026-09-23T18:23:30Z")
     make_run(runs, "supply-2020-09-14", "data-api.avax-supply", "avax-supply",
              "SELECT TIMESTAMP '2020-09-14 12:00:00' AS observed_at, 360000067.5 AS total_supply_avax, 0.0 AS circulating_supply_avax, 0.0 AS total_staked_avax, 0.0 AS total_locked_avax, 69.0 AS total_rewards_avax, 0.000006 AS total_p_burned_avax, 0.0000012 AS total_x_burned_avax, 8.5 AS total_c_burned_avax, 0.0 AS l1_validator_fees_avax, 360000000.0 AS genesis_unlock_avax, 0.0 AS supply_identity_gap_avax",
              "2026-09-23T18:24:00Z")
@@ -116,9 +121,10 @@ def test_derive_replays_supply_until_the_first_incomplete_day(root):
     day = rows["2020-09-12"]
     assert day["p_coverage"] == "repaired" and int(day["burned_p_transactions_wei"]) == (1000 + 4135) * NAVAX
     assert day["c_evm_coverage"] == "complete" and int(day["burned_c_evm_wei"]) == 4 * WEI and day["complete"]
-    # 09-13: the absent block's fee comes from the block record, the atomic import burns one AVAX, L1 fees start.
+    # 09-13: the absent block's fee comes from the block record, the atomic import burns one AVAX and the node settles
+    # the other at zero, L1 fees start.
     day = rows["2020-09-13"]
-    assert day["c_evm_coverage"] == "repaired" and int(day["burned_c_evm_gap_wei"]) == WEI // 2 and int(day["burned_c_evm_wei"]) == 3 * WEI + WEI // 2
+    assert day["c_atomic_coverage"] == "repaired" and day["c_evm_coverage"] == "repaired" and int(day["burned_c_evm_gap_wei"]) == WEI // 2 and int(day["burned_c_evm_wei"]) == 3 * WEI + WEI // 2
     assert int(day["burned_c_atomic_wei"]) == WEI and int(day["burned_p_l1_validator_fees_wei"]) == 500 * NAVAX
     assert int(day["issued_rewards_wei"]) == 19 * WEI and day["complete"]
     expected_close = 360_000_000 * WEI + 69 * WEI - (4 * 1300 + 4135 + 500) * NAVAX - (4 * WEI) - (3 * WEI + WEI // 2) - WEI
@@ -137,6 +143,18 @@ def test_derive_replays_supply_until_the_first_incomplete_day(root):
     checked = monetary.check(output / "capture", output / "dataset", root=root)
     assert checked["status"] == "pass", checked["findings"]
     assert "daily conservation" in checked["checked"]
+
+
+def test_an_unsettled_import_without_a_node_record_stops_the_supply(root):
+    import shutil
+
+    shutil.rmtree(root / "c-atomic-transactions")
+    output = root / "ledger"
+    result = monetary.derive(monetary.DATASET_ID, output, None, root)
+    relation = duckdb.sql(f"SELECT date_utc, c_atomic_coverage, burned_c_atomic_wei FROM read_parquet('{output / 'dataset' / 'avax-monetary-daily.parquet'}') ORDER BY date_utc")
+    rows = {str(record[0]): record[1:] for record in relation.fetchall()}
+    assert rows["2020-09-13"] == ("incomplete", WEI)
+    assert result["build"]["summary"]["supply_through"] == "2020-09-12"
 
 
 def test_check_reports_a_changed_input_and_a_checkpoint_gap(root):
