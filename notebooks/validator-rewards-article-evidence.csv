@@ -1,0 +1,41 @@
+target_id,target,domain,stage,source_figure,dataset_id,evidence_state,status,blocked_by,next_action
+VR-SRC-01,Research questions,Article,Source,The Question,,reported,complete,,Preserve the approved questions as the notebook contract
+VR-SRC-02,Assumptions and identification boundaries,Article,Source,The Model; Extrapolation Caveat,,reported,complete,,Keep assumptions beside every dependent result
+VR-SRC-03,Source visual inventory,Article,Source,figure-01 through figure-09,,observed,complete,,Use the nine archived assets as immutable visual references
+VR-SRC-04,Claim and evidence classification,Article,Validation,All sections,,derived,complete,,Apply transcription reconstruction and reproduction labels consistently
+VR-SRC-05,Missing-method request,Article,Validation,Appendices A through D,,derived,complete,,Request the reproducibility packet from Eric or the Foundation
+VR-DATA-01,Validator staking transactions,Validators,Data,,snowflake.primary-validator-stakes,observed,available,,Pin the reviewed dataset run and receipt
+VR-DATA-02,Delegator staking transactions,Delegators,Data,,snowflake.primary-delegator-stakes,observed,available,,Pin the reviewed dataset run and receipt
+VR-DATA-03,Staking reward outcomes,Outcomes,Data,,snowflake.primary-staking-rewards,observed,available,,Pin the reviewed dataset run and receipt
+VR-DATA-04,Protocol supply context,Protocol,Data,figure-07,snowflake.primary-staking-supply,observed,available,,Pin the reviewed dataset run and receipt
+VR-DATA-05,AVAX price and volatility,Market,Data,,defillama.avax-price-daily; coingecko.avax-market-daily,observed,available,,Choose and document the primary series and cross-check
+VR-DATA-06,Article observation window,Market,Data,Table A1,,unavailable,ambiguous,Article start and end dates are not reported,Test candidate windows against the reported 278 weeks
+VR-DATA-07,Validator delegation and reward linkage,Market,Data,,snowflake.primary-validator-stakes; snowflake.primary-delegator-stakes; snowflake.primary-staking-rewards,derived,derivable,,Validate keys timing boundaries and unmatched records
+VR-DATA-08,Dataset validation and provenance,Article,Validation,,data catalog and build receipts,observed,available,,Select pinned runs and surface their validation summaries
+VR-EDA-01,Validator population audit,Validators,EDA,,snowflake.primary-validator-stakes,derived,derivable,Article inclusion and exclusion rules are not reported,Report population dates filters missingness and duplicates
+VR-EDA-02,Delegator population audit,Delegators,EDA,,snowflake.primary-delegator-stakes,derived,derivable,Article observation grain and filters are not reported,Compare candidate populations with 374740 reported observations
+VR-EDA-03,Observed stake-weighted duration distribution,Validators,EDA,figure-08,snowflake.primary-validator-stakes,derived,derivable,Article weighting and population rules are not reported,Produce the observed Figure 8 analogue with explicit weighting
+VR-EDA-04,Observed validation-yield distribution,Outcomes,EDA,figure-09,snowflake.primary-validator-stakes; snowflake.primary-staking-rewards; snowflake.primary-staking-supply,derived,derivable,Article yield definition and weighting are not reported,Compare potential realized and annualized yield definitions
+VR-EDA-05,Fee and delegation distributions,Delegators,EDA,,snowflake.primary-validator-stakes; snowflake.primary-delegator-stakes; snowflake.primary-staking-rewards,derived,derivable,Article aggregation rules are not reported,Describe fees delegated stake and fee income before modeling
+VR-EDA-06,Weekly market coverage,Market,EDA,Table A1,snowflake.primary-validator-stakes; snowflake.primary-delegator-stakes,provisional,ambiguous,Weekly product availability and outside population are not reported,Construct and compare candidate weekly market panels
+VR-DEL-01,Delegator product definition,Delegators,Estimation,Appendix A,,reported,ambiguous,Exact validator-duration product construction is not reported,Specify candidate product keys and availability rules
+VR-DEL-02,Delegator weekly markets,Market,Estimation,Table A1,,unavailable,blocked,Market construction and zero-share handling are missing,Obtain the original market-building method or document a reconstruction
+VR-DEL-03,Outside option and market shares,Market,Estimation,Appendix A,,unavailable,blocked,Outside-option population and zero-share procedure are missing,Obtain or justify the outside-option construction
+VR-DEL-04,Delegator feature matrix,Delegators,Estimation,figure-02,,reported,blocked,The eleventh feature and exact transformations are missing,Recover every feature definition and transformation
+VR-DEL-05,Delegator coefficients and inference,Delegators,Estimation,figure-02,,reported,blocked,Complete design matrix and covariance method are missing,Refit only after market and feature contracts are reviewed
+VR-DEL-06,Delegator fit and expected delegation,Delegators,Estimation,figure-01,,reported,blocked,Adaptive expectations and delegation forecast rules are missing,Reproduce fit then implement the disclosed forecast bridge
+VR-VAL-01,Validator alternative choice sets,Validators,Estimation,Appendix B,,unavailable,blocked,Duration grid fee grid and availability rules are missing,Obtain or reconstruct the approximately 1.5 million alternatives
+VR-VAL-02,Validator utility specification,Validators,Estimation,figure-04,,reported,available,,Implement the disclosed utility skeleton with explicit missing interactions
+VR-VAL-03,APY-thinking validator model,Validators,Estimation,figure-05,,reported,blocked,Twenty coefficients and interaction definitions are missing,Obtain the complete APY specification before claiming reproduction
+VR-VAL-04,Period-yield validator model,Validators,Estimation,figure-03,,reported,blocked,Complete coefficients and interactions are missing,Obtain the complete comparator specification
+VR-VAL-05,Validator model comparison,Validators,Validation,figure-03,,reported,blocked,Choice sets and both complete fitted models are missing,Recompute likelihood information criteria and pseudo R squared
+VR-VAL-06,Yield-duration marginal rate of substitution,Validators,Validation,figure-06,,reported,blocked,Full derivatives interactions and evaluation grid are missing,Recompute the six MRS values from reviewed fitted models
+VR-SIM-01,Protocol reward formula,Protocol,Simulation,figure-07,snowflake.primary-staking-supply,reported,derivable,Exact protocol revision and integer arithmetic must be pinned,Implement the pinned protocol calculation independently
+VR-SIM-02,Historical reward backtest,Protocol,Validation,figure-07,snowflake.primary-staking-supply; snowflake.primary-staking-rewards,derived,derivable,,Compare calculated and captured potential rewards by protocol regime
+VR-SIM-03,Six policy scenario manifest,Protocol,Simulation,Appendix D,,reported,complete,,Preserve parameters reported means and extrapolation states
+VR-SIM-04,Scenario duration distributions,Outcomes,Simulation,figure-08,,reported,blocked,Fitted models simulation population weights and grid are missing,Obtain machine-readable series or reconstruct after model validation
+VR-SIM-05,Scenario yield distributions,Outcomes,Simulation,figure-09,,reported,blocked,Fitted models yield definition weights and grid are missing,Obtain machine-readable series or reconstruct after model validation
+VR-SIM-06,Scenario delegation outcomes,Outcomes,Simulation,Policy Simulations,,reported,blocked,Delegation substitution and adaptive-expectations rules are missing,Recompute scenario levels and changes after both models are linked
+VR-AUD-01,Numeric published-target comparison,Outcomes,Validation,figure-01 through figure-09,,provisional,requested,Computed reproduction results do not yet exist,Record target result error tolerance and claim class for every result
+VR-AUD-02,Visual parity comparison,Outcomes,Validation,figure-01 through figure-09,,provisional,requested,Computed figures do not yet exist,Compare fixed-size source and HoloViews renders with stated tolerance
+VR-AUD-03,Evidence and limitations review,Article,Validation,All sections,,derived,available,,Review every result for provenance support
