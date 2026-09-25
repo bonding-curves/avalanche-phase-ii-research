@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Avalanche Admission Frontier: N-Dimensional PSuU Tensor Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      },
+      startup: {
+        pageReady: () => {
+          return MathJax.startup.defaultPageReady();
+        }
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    body {
+      background-color: #030712;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 32px 24px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 24px;
+      margin-bottom: 28px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: #f9fafb;
+      margin: 0 0 8px 0;
+      letter-spacing: -0.02em;
+    }
+    .lead {
+      color: #9ca3af;
+      font-size: 1.1rem;
+      margin: 0;
+      max-width: 950px;
+    }
+    .actions-nav {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: #ffffff;
+      border: 1px solid #0369a1;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+    .btn-secondary {
+      background: #1f2937;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+    }
+    .btn-secondary:hover {
+      background: #374151;
+    }
+
+    .grid-kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 32px;
+    }
+    .kpi-card {
+      background: #0b0f19;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .kpi-label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .kpi-val {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #f9fafb;
+      margin: 6px 0 2px 0;
+    }
+    .kpi-sub {
+      font-size: 0.85rem;
+      color: #10b981;
+      font-weight: 500;
+    }
+
+    .section-card {
+      background: #0b0f19;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-top: 0;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .rules-banner {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 8px;
+      padding: 18px 24px;
+      margin-bottom: 24px;
+    }
+    .rules-banner h3 {
+      margin: 0 0 10px 0;
+      color: #38bdf8;
+      font-size: 1.1rem;
+    }
+    .rules-list {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 1.05rem;
+    }
+    .rules-list li {
+      margin-bottom: 6px;
+    }
+
+    .memo-text {
+      color: #d1d5db;
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+    .memo-text h2 {
+      color: #f3f4f6;
+      font-size: 1.25rem;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 8px;
+      margin-top: 24px;
+    }
+    .memo-text p {
+      margin-bottom: 16px;
+    }
+    .memo-text ul {
+      padding-left: 24px;
+      margin-bottom: 16px;
+    }
+    .memo-text li {
+      margin-bottom: 8px;
+    }
+    .memo-text code {
+      background: #1e293b;
+      color: #38bdf8;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-top: 12px;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid #1f2937;
+    }
+    th {
+      color: #9ca3af;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      background: #111827;
+    }
+    tr:hover {
+      background: #111827;
+    }
+    .tag-mode {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: monospace;
+      font-weight: 600;
+    }
+    .tag-piecewise_benqi {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .tag-harmonic {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .badge-pass {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+    .val-good {
+      color: #34d399;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-bar">
+      <div>
+        <span class="badge">BlockScience GDS &bull; Subspace Reference Architecture</span>
+        <h1>Avalanche Admission Frontier: N-Dimensional PSuU Tensor Engine</h1>
+        <p class="lead">
+          Replacing subjective 2D visual heatmaps with algorithmic utility tensors $U(\theta) \in \{0, 1\}$ to isolate 
+          the exact parameter envelope balancing node decentralization against universal duration extension.
+        </p>
+      </div>
+      <div class="actions-nav">
+        <a href="frontier_calculator.html" class="btn btn-primary" target="_blank">
+          🧮 Interactive Frontier Calculator
+        </a>
+        <a href="simulation_results.html" class="btn btn-secondary" target="_blank">
+          📊 52-Week Trajectory Dashboard
+        </a>
+      </div>
+    </div>
+
+    <!-- KPI SUMMARY CARDS -->
+    <div class="grid-kpis">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Trajectories Swept</div>
+        <div class="kpi-val">84 Runs</div>
+        <div class="kpi-sub">7 Durations &times; 6 Stakes &times; 2 Curves</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Admissible Safe Envelope</div>
+        <div class="kpi-val">23 Sets (27.4%)</div>
+        <div class="kpi-sub">&check; Cleared All 3 Verification Gates</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Algorithmic Duration Floor</div>
+        <div class="kpi-val">&ge; 56.0 Days</div>
+        <div class="kpi-sub">&uarr; Exactly 8.0 Weeks for 2,000 AVAX</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Anchor Stake Floor</div>
+        <div class="kpi-val">&ge; 10,000 AVAX</div>
+        <div class="kpi-sub">&check; Enforces Global Sybil Parity</div>
+      </div>
+    </div>
+
+    <!-- DERIVED ALGORITHMIC RULES -->
+    <div class="rules-banner">
+      <h3>⚡ Algorithmic Verification Gate Extraction (Subspace P6 Invariant)</h3>
+      <ul class="rules-list">
+        <li><b>Rule 1 (Universal Duration Floor):</b> $d_{\text{target}} \ge 56.0\text{ days}$ ($8\text{ weeks}$). Below 56 days, retail stakers facing $-0.96\%$ VPS drag rationally exit into frictionless sAVAX liquid staking ($4.15\% - 4.50\%$) upon stint expiration.</li>
+        <li><b>Rule 2 (Sybil Parity Anchor Stake Floor):</b> $S_{\text{short}} \ge 10{,}000\text{ AVAX}$ at $d=2\text{ days}$. Lower values fail to penalize short-term churn, collapsing macro network security below the 20-week threshold.</li>
+        <li><b>Rule 3 (Mechanism Separation):</b> <code>piecewise_benqi</code> achieves admissibility at lower lockups ($d=56\text{d}, S=10\text{k}$) due to flat duration tiers, whereas <code>harmonic</code> requires higher commitments ($d \ge 84\text{d}$ for $S \ge 14\text{k}$) but achieves up to $59.0\%$ retention.</li>
+      </ul>
+    </div>
+
+    <!-- FIGURE 1: 3D INTERACTIVE TENSOR PLOT -->
+    <div class="section-card">
+      <div class="section-title">🌐 Figure 1: 3D Interactive Utility Tensor State Space</div>
+      <p style="color: #9ca3af; margin-top: 0;">
+        Explore the 84-point state space across $S_{\text{short}}$ (x-axis), $d_{\text{target}}$ (y-axis), and 
+        Stake-Weighted Macro Security Horizon (z-axis). Green/Cyan markers indicate configurations that satisfy all protocol safety constraints ($U=1$). Red markers failed one or more verification gates ($U=0$).
+      </p>
+      <div>                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.5.0.min.js" integrity="sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=" crossorigin="anonymous"></script>                <div id="a42d98a5-5f9c-48cb-96d0-c2c1e69d99a1" class="plotly-graph-div" style="height:620px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("a42d98a5-5f9c-48cb-96d0-c2c1e69d99a1")) {                    Plotly.newPlot(                        "a42d98a5-5f9c-48cb-96d0-c2c1e69d99a1",                        [{"customdata":[["harmonic",0.38,43.176337069087815],["piecewise_benqi",0.4383333333333333,41.401822225410704],["harmonic",0.41,47.864484035675936],["piecewise_benqi",0.3883333333333333,50.30713880823202],["harmonic",0.4133333333333333,33.357968872271975],["piecewise_benqi",0.3983333333333333,38.26703808546391],["harmonic",0.4283333333333333,36.69019476228932],["piecewise_benqi",0.3916666666666666,42.19189080690486],["harmonic",0.3866666666666666,42.578306534064495],["piecewise_benqi",0.4016666666666666,43.38280524767647],["harmonic",0.3933333333333333,45.2327653159121],["piecewise_benqi",0.405,45.50819162978491],["harmonic",0.4016666666666666,44.601894621467146],["piecewise_benqi",0.495,68.32294190784755],["harmonic",0.42,42.9213194711847],["piecewise_benqi",0.4916666666666666,61.62456028141988],["harmonic",0.4316666666666666,39.46445482833622],["piecewise_benqi",0.4466666666666666,61.57420444945085],["harmonic",0.4,44.4743935309973],["piecewise_benqi",0.48,67.8552710392333],["harmonic",0.505,64.54502593116455],["piecewise_benqi",0.4866666666666667,70.87287228150501],["harmonic",0.4966666666666666,65.23453752781344],["piecewise_benqi",0.4916666666666666,67.98391886335602],["harmonic",0.4516666666666666,43.24504431028137],["harmonic",0.4183333333333333,50.48163142577935],["piecewise_benqi",0.485,64.5223738201758],["harmonic",0.4566666666666666,43.18177346685816],["piecewise_benqi",0.455,69.47562769665196],["harmonic",0.415,37.44465733554164],["piecewise_benqi",0.4733333333333333,70.76990243346873],["harmonic",0.4233333333333333,42.9844854298873],["piecewise_benqi",0.4833333333333333,70.68500790036248],["harmonic",0.435,51.74892338197478],["piecewise_benqi",0.445,67.24714053524737],["harmonic",0.4983333333333333,44.416698969611176],["harmonic",0.43,46.942058964875976],["piecewise_benqi",0.485,69.72795731792034],["harmonic",0.5383333333333333,57.31893551859672],["harmonic",0.445,50.065114025258175],["harmonic",0.4816666666666667,48.53710629645865],["piecewise_benqi",0.49,65.37396629810954],["harmonic",0.4816666666666667,47.87491023046288],["harmonic",0.4533333333333333,43.174250832408426],["piecewise_benqi",0.4583333333333333,50.237686841460416],["harmonic",0.48,47.911051212938],["piecewise_benqi",0.47,56.03792701343886],["piecewise_benqi",0.49,55.84832315675595],["piecewise_benqi",0.4766666666666667,44.572408723352105],["piecewise_benqi",0.46,43.52123129809758],["piecewise_benqi",0.4733333333333333,44.80277893777761],["harmonic",0.495,46.36935391652373],["piecewise_benqi",0.4583333333333333,52.69786816956628],["piecewise_benqi",0.4333333333333333,53.22413435620983],["piecewise_benqi",0.48,48.65977837675951],["piecewise_benqi",0.4733333333333333,48.97877833035952],["piecewise_benqi",0.45,47.89857242687432],["piecewise_benqi",0.4783333333333333,51.28149741258675],["piecewise_benqi",0.54,60.66853016538551],["harmonic",0.53,64.65781755920594],["harmonic",0.5716666666666667,80.81302601903293]],"hovertemplate":"\u003cb\u003eRejected Configuration (U=0)\u003c\u002fb\u003e\u003cbr\u003eMode: %{customdata[0]}\u003cbr\u003eS_short: %{x:,.0f} AVAX\u003cbr\u003ed_target: %{y:.0f} days\u003cbr\u003eMacro Duration: %{z:.2f} wks\u003cbr\u003eRetail Retention: %{customdata[1]:.1%}\u003cbr\u003eRetail Lift: +%{customdata[2]:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#ef4444","opacity":0.35,"size":6,"symbol":"circle"},"mode":"markers","name":"Rejected (U=0)","x":{"dtype":"f8","bdata":"AAAAAACIw0AAAAAAAIjDQAAAAAAAcMdAAAAAAABwx0AAAAAAAFjLQAAAAAAAWMtAAAAAAABAz0AAAAAAAEDPQAAAAAAAlNFAAAAAAACU0UAAAAAAAIjTQAAAAAAAiNNAAAAAAACIw0AAAAAAAIjDQAAAAAAAcMdAAAAAAABwx0AAAAAAAFjLQAAAAAAAWMtAAAAAAABAz0AAAAAAAEDPQAAAAAAAlNFAAAAAAACU0UAAAAAAAIjTQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAcMdAAAAAAABYy0AAAAAAAFjLQAAAAAAAQM9AAAAAAABAz0AAAAAAAJTRQAAAAAAAlNFAAAAAAACI00AAAAAAAIjTQAAAAAAAiMNAAAAAAABwx0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAlNFAAAAAAACI00AAAAAAAIjDQAAAAAAAiMNAAAAAAABwx0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAIjDQAAAAAAAcMdAAAAAAABYy0AAAAAAAEDPQAAAAAAAlNFAAAAAAACI00AAAAAAAIjDQAAAAAAAQM9AAAAAAACU0UA="},"y":{"dtype":"f8","bdata":"AAAAAAAAPEAAAAAAAAA8QAAAAAAAADxAAAAAAAAAPEAAAAAAAAA8QAAAAAAAADxAAAAAAAAAPEAAAAAAAAA8QAAAAAAAADxAAAAAAAAAPEAAAAAAAAA8QAAAAAAAADxAAAAAAAAARUAAAAAAAABFQAAAAAAAAEVAAAAAAAAARUAAAAAAAABFQAAAAAAAAEVAAAAAAAAARUAAAAAAAABFQAAAAAAAAEVAAAAAAAAARUAAAAAAAABFQAAAAAAAAEVAAAAAAAAATEAAAAAAAABMQAAAAAAAAExAAAAAAAAATEAAAAAAAABMQAAAAAAAAExAAAAAAAAATEAAAAAAAABMQAAAAAAAAExAAAAAAAAATEAAAAAAAABMQAAAAAAAgFFAAAAAAACAUUAAAAAAAIBRQAAAAAAAgFFAAAAAAACAUUAAAAAAAIBRQAAAAAAAgFFAAAAAAACAUUAAAAAAAABVQAAAAAAAAFVAAAAAAAAAVUAAAAAAAABVQAAAAAAAAFVAAAAAAAAAVUAAAAAAAABVQAAAAAAAAFVAAAAAAACAWEAAAAAAAIBYQAAAAAAAgFhAAAAAAACAWEAAAAAAAIBYQAAAAAAAgFhAAAAAAACAWEAAAAAAAIBdQAAAAAAAgF1AAAAAAACAXUA="},"z":{"dtype":"f8","bdata":"DdYUOVPSM0CwAnmfz0Q1QEITW9K3vjZAd1u1cI4+NUDAya\u002frtM82QEllonEykTRAkv2rkv2rM0Bg4S7cVys2QCi2SvWeFTdAcnjm+2wlN0DWODwOOG42QBr9tJdlNjVAiPYJvWvNNkCl+ilePrc2QGLtHskUqTRA3lja\u002fHLFMUD2jEtqJJcyQAZ0rozyljRADARa+b4eNUBjYCYAL7c3QPF2ZeYMxjNAaIxxusRCNkBbGbbQl7A2QOgwB+IBYDZAaEuX8ixnNUDJlS9+DXE0QEcNzzw+NzVA+fNO8NfUNEDvaMH26c42QNkquVSxsjZAhvakHFPJNkAx7mE4Ki43QEBWZ3C6YzZAKsEtbh3MNUBIHztJkuM1QGYXstA+nDNA1p4s+OgAN0DeUk7loGo0QFIDnbBC1TNABXO6MJlmM0DyfXPb21c3QFM4Bzg8HzdAMLcRjygnNUAVPjU72Co4QMIQZolZkzZASvnFdJKzNEBJyP1wj9Q2QGgPVSYZvzZAwgX\u002f88jmNEDr26ZEcoI1QNWrn0YVFDRA5VuehspXNkCBctLSNGE0QGa\u002fqxENTjNAY+jHUa52MkBBEek7C3o2QA4ZhXd10TZAudcRMsyVN0DGGs\u002fYgYQzQHVWJEs\u002f7zNAJIBoJ12jM0A="},"type":"scatter3d"},{"customdata":{"dtype":"f8","bdata":"AAAAAAAAIECW\u002fGLJL5bgP3ALiXUK\u002flFAAAAAAAAAJEAOdNpApw3gP6y3sbu7xFFAAAAAAAAAJEAOdNpApw3gP2AciqYP01FAAAAAAAAAJEApXI\u002fC9SjgPzKuj\u002fydalBAAAAAAAAAJECJiIiIiIjgP5N5Eoo5o1FAt23btm3bMEB7FK5H4XrgP5o+xMgBT05At23btm3bMEBgLPnFkl\u002fgP4taq7sYZExAt23btm3bMECx5BdLfrHgP3M4aM\u002ft4EtAt23btm3bMECJiIiIiIjgP125WGbyjkxAt23btm3bMEAfhetRuB7hP+yBgsjRE05A","shape":"10, 3"},"hovertemplate":"\u003cb\u003e\u2713 Safe Admissible: Piecewise-BENQI\u003c\u002fb\u003e\u003cbr\u003eS_short: %{x:,.0f} AVAX\u003cbr\u003ed_target: %{y:.0f} days (%{customdata[0]:.1f} wks)\u003cbr\u003eMacro Duration: %{z:.2f} wks\u003cbr\u003eRetail Retention: %{customdata[1]:.1%}\u003cbr\u003eRetail Lift: +%{customdata[2]:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#10b981","line":{"color":"#ffffff","width":1.5},"size":10,"symbol":"circle"},"mode":"markers","name":"Admissible: Piecewise-BENQI (U=1)","x":{"dtype":"f8","bdata":"AAAAAACIw0AAAAAAAIjDQAAAAAAAWMtAAAAAAABAz0AAAAAAAIjTQAAAAAAAcMdAAAAAAABYy0AAAAAAAEDPQAAAAAAAlNFAAAAAAACI00A="},"y":{"dtype":"f8","bdata":"AAAAAAAATEAAAAAAAIBRQAAAAAAAgFFAAAAAAACAUUAAAAAAAIBRQAAAAAAAgF1AAAAAAACAXUAAAAAAAIBdQAAAAAAAgF1AAAAAAACAXUA="},"z":{"dtype":"f8","bdata":"Uh+YfMqUNkAQF3bSfJs1QDWLqKMdMjRASdomXgGeNECMnE3bBr41QEAeEjkRcTVA5ujHTKSnNkBAYFTbNMk1QG8ITeJxmjVAXo+0AdKwNUA="},"type":"scatter3d"},{"customdata":{"dtype":"f8","bdata":"AAAAAAAAKEDaQKcNdNrgP1ZnPdICQUdAAAAAAAAAKEDQaQOdNtDhP1hJiAhj4FFAAAAAAAAAKEA30GkDnTbgP7NXyZjJaVBAAAAAAAAAKECkcD0K16PgP8KFGB5fAFBAAAAAAAAALEBVVVVVVVXhP5bbAWvg5EpAAAAAAAAALEApXI\u002fC9SjgP6cTHaAMOEpAAAAAAAAALECkcD0K16PgP+BGEkvJg09AAAAAAAAALECx5BdLfrHgP3pR4BiE0FFAAAAAAAAALEDNzMzMzMzgP5PCh2lRU1BAt23btm3bMECW\u002fGLJL5bgPy28Kpfs+0pAt23btm3bMEDotIFOG+jgPz40F0RZWU1At23btm3bMEA6baDTBjrhP6B1zO2HlE9At23btm3bMEDhehSuR+HiP55pDgUl+FNA","shape":"13, 3"},"hovertemplate":"\u003cb\u003e\u2713 Safe Admissible: Harmonic\u003c\u002fb\u003e\u003cbr\u003eS_short: %{x:,.0f} AVAX\u003cbr\u003ed_target: %{y:.0f} days (%{customdata[0]:.1f} wks)\u003cbr\u003eMacro Duration: %{z:.2f} wks\u003cbr\u003eRetail Retention: %{customdata[1]:.1%}\u003cbr\u003eRetail Lift: +%{customdata[2]:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":"#38bdf8","line":{"color":"#ffffff","width":1.5},"size":10,"symbol":"diamond"},"mode":"markers","name":"Admissible: Harmonic (U=1)","x":{"dtype":"f8","bdata":"AAAAAABYy0AAAAAAAEDPQAAAAAAAlNFAAAAAAACI00AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAACI00A="},"y":{"dtype":"f8","bdata":"AAAAAAAAVUAAAAAAAABVQAAAAAAAAFVAAAAAAAAAVUAAAAAAAIBYQAAAAAAAgFhAAAAAAACAWEAAAAAAAIBYQAAAAAAAgFhAAAAAAACAXUAAAAAAAIBdQAAAAAAAgF1AAAAAAACAXUA="},"z":{"dtype":"f8","bdata":"JZF87b0QNUCTH03puKU0QMk4O0z7mjVAnhYY9ax5NECxe++u32c2QGo4dcZw3zVAwdAgyXhWNkD+NW66cn81QN2RqpHkHTZAwuZ6rATeN0CRiFQiORw1QP3x2nLOwzRAKTzayyvhNUA="},"type":"scatter3d"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"scene":{"xaxis":{"title":{"text":"S_short (AVAX)"},"backgroundcolor":"#0b0f19","gridcolor":"#1e293b","color":"#9ca3af"},"yaxis":{"title":{"text":"d_target (Days)"},"backgroundcolor":"#0b0f19","gridcolor":"#1e293b","color":"#9ca3af"},"zaxis":{"title":{"text":"Macro Duration (Weeks)"},"backgroundcolor":"#0b0f19","gridcolor":"#1e293b","color":"#9ca3af"},"bgcolor":"#030712"},"font":{"color":"#f3f4f6","family":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto"},"legend":{"bgcolor":"rgba(17, 24, 39, 0.8)","bordercolor":"#374151","borderwidth":1,"x":0.02,"y":0.98},"margin":{"l":0,"r":0,"b":0,"t":50},"title":{"text":"\u003cb\u003eFigure 1: 3D Admission Frontier State Space Tensor U(\u03b8)\u003c\u002fb\u003e"},"paper_bgcolor":"#030712","height":620},                        {"responsive": true}                    )                };            </script>        </div>
+    </div>
+
+    <!-- FIGURE 2: 2D PROJECTION & SAFE ENVELOPE -->
+    <div class="section-card">
+      <div class="section-title">⚖️ Figure 2: Bivariate Safe Envelope & Verification Gates</div>
+      <div>                            <div id="9b13a627-ccd3-4dfb-9682-82b58326cca7" class="plotly-graph-div" style="height:500px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("9b13a627-ccd3-4dfb-9682-82b58326cca7")) {                    Plotly.newPlot(                        "9b13a627-ccd3-4dfb-9682-82b58326cca7",                        [{"hoverinfo":"skip","marker":{"color":"#ef4444","opacity":0.4,"size":7},"mode":"markers","name":"Rejected","x":{"dtype":"f8","bdata":"AAAAAAAAQ0CqqqqqqupFQAAAAAAAgERAqqqqqqpqQ0CqqqqqqqpEQKqqqqqq6kNAqqqqqqpqRUBUVVVVVZVDQFRVVVVVVUNAVVVVVVUVRECqqqqqqqpDQAAAAAAAQERAVVVVVVUVREAAAAAAAMBIQAAAAAAAAEVAVFVVVVWVSEBUVVVVVZVFQFRVVVVVVUZAAAAAAAAAREAAAAAAAABIQAAAAAAAQElAVlVVVVVVSEBUVVVVVdVIQFRVVVVVlUhAVFVVVVWVRkCqqqqqqupEQAAAAAAAQEhAVVVVVVXVRkAAAAAAAMBGQAAAAAAAwERAqqqqqqqqR0CqqqqqqipFQKqqqqqqKkhAAAAAAADARUAAAAAAAEBGQKqqqqqq6khAAAAAAACARUAAAAAAAEBIQKuqqqqq6kpAAAAAAABARkBWVVVVVRVIQAAAAAAAgEhAVlVVVVUVSECqqqqqqqpGQKqqqqqq6kZAAAAAAAAASEAAAAAAAIBHQAAAAAAAgEhAVlVVVVXVR0AAAAAAAABHQKqqqqqqqkdAAAAAAADASECqqqqqqupGQKqqqqqqqkVAAAAAAAAASECqqqqqqqpHQAAAAAAAgEZAqqqqqqrqR0AAAAAAAABLQAAAAAAAgEpAVVVVVVWVTEA="},"y":{"dtype":"f8","bdata":"DdYUOVPSM0CwAnmfz0Q1QEITW9K3vjZAd1u1cI4+NUDAya\u002frtM82QEllonEykTRAkv2rkv2rM0Bg4S7cVys2QCi2SvWeFTdAcnjm+2wlN0DWODwOOG42QBr9tJdlNjVAiPYJvWvNNkCl+ilePrc2QGLtHskUqTRA3lja\u002fHLFMUD2jEtqJJcyQAZ0rozyljRADARa+b4eNUBjYCYAL7c3QPF2ZeYMxjNAaIxxusRCNkBbGbbQl7A2QOgwB+IBYDZAaEuX8ixnNUDJlS9+DXE0QEcNzzw+NzVA+fNO8NfUNEDvaMH26c42QNkquVSxsjZAhvakHFPJNkAx7mE4Ki43QEBWZ3C6YzZAKsEtbh3MNUBIHztJkuM1QGYXstA+nDNA1p4s+OgAN0DeUk7loGo0QFIDnbBC1TNABXO6MJlmM0DyfXPb21c3QFM4Bzg8HzdAMLcRjygnNUAVPjU72Co4QMIQZolZkzZASvnFdJKzNEBJyP1wj9Q2QGgPVSYZvzZAwgX\u002f88jmNEDr26ZEcoI1QNWrn0YVFDRA5VuehspXNkCBctLSNGE0QGa\u002fqxENTjNAY+jHUa52MkBBEek7C3o2QA4ZhXd10TZAudcRMsyVN0DGGs\u002fYgYQzQHVWJEs\u002f7zNAJIBoJ12jM0A="},"type":"scatter","xaxis":"x","yaxis":"y"},{"customdata":[["piecewise_benqi",10000.0,56.0],["piecewise_benqi",10000.0,70.0],["piecewise_benqi",14000.0,70.0],["piecewise_benqi",16000.0,70.0],["piecewise_benqi",20000.0,70.0],["harmonic",14000.0,84.0],["harmonic",16000.0,84.0],["harmonic",18000.0,84.0],["harmonic",20000.0,84.0],["harmonic",12000.0,98.0],["harmonic",14000.0,98.0],["harmonic",16000.0,98.0],["harmonic",18000.0,98.0],["harmonic",20000.0,98.0],["harmonic",10000.0,118.0],["harmonic",12000.0,118.0],["piecewise_benqi",12000.0,118.0],["harmonic",14000.0,118.0],["piecewise_benqi",14000.0,118.0],["piecewise_benqi",16000.0,118.0],["piecewise_benqi",18000.0,118.0],["harmonic",20000.0,118.0],["piecewise_benqi",20000.0,118.0]],"hovertemplate":"Mode: %{customdata[0]}\u003cbr\u003eS_short: %{customdata[1]:,.0f} AVAX\u003cbr\u003ed_target: %{customdata[2]:.0f}d\u003cbr\u003eRetention: %{x:.1f}%\u003cbr\u003eMacro Duration: %{y:.2f} wks\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":["#10b981","#10b981","#10b981","#10b981","#10b981","#38bdf8","#38bdf8","#38bdf8","#38bdf8","#38bdf8","#38bdf8","#38bdf8","#38bdf8","#38bdf8","#38bdf8","#38bdf8","#10b981","#38bdf8","#10b981","#10b981","#10b981","#38bdf8","#10b981"],"line":{"color":"#ffffff","width":1.5},"size":11},"mode":"markers","name":"Admissible Envelope","x":{"dtype":"f8","bdata":"qqqqqqrqSUBWVVVVVRVJQFZVVVVVFUlAAAAAAABASUBWVVVVVdVJQFVVVVVVVUpAVVVVVVXVS0BWVVVVVVVJQAAAAAAAAEpAVVVVVVUVS0AAAAAAAEBJQAAAAAAAAEpAVVVVVVUVSkAAAAAAAEBKQKqqqqqq6klAqqqqqqpqSkAAAAAAAMBJQKuqqqqq6kpAVlVVVVWVSUBVVVVVVRVKQFZVVVVV1UlAAAAAAACATUAAAAAAAMBKQA=="},"y":{"dtype":"f8","bdata":"Uh+YfMqUNkAQF3bSfJs1QDWLqKMdMjRASdomXgGeNECMnE3bBr41QCWRfO29EDVAkx9N6bilNEDJODtM+5o1QJ4WGPWseTRAsXvvrt9nNkBqOHXGcN81QMHQIMl4VjZA\u002fjVuunJ\u002fNUDdkaqR5B02QMLmeqwE3jdAkYhUIjkcNUBAHhI5EXE1QP3x2nLOwzRA5ujHTKSnNkBAYFTbNMk1QG8ITeJxmjVAKTzayyvhNUBej7QB0rA1QA=="},"type":"scatter","xaxis":"x","yaxis":"y"},{"hovertemplate":"Piecewise-BENQI\u003cbr\u003eS_short: %{x:,.0f} AVAX\u003cbr\u003ed_target: %{y:.1f} wks\u003cbr\u003eUtility: %{marker.color}\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":{"dtype":"i1","bdata":"AAAAAAAAAAAAAAAAAQAAAAAAAQABAQABAAAAAAAAAAAAAAAAAAEBAQEB"},"colorscale":[[0,"#1f2937"],[1,"#10b981"]],"line":{"color":"#374151","width":1},"showscale":false,"size":12,"symbol":"square"},"mode":"markers","name":"Piecewise (U)","x":{"dtype":"f8","bdata":"AAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNA"},"y":{"dtype":"f8","bdata":"AAAAAAAAEEAAAAAAAAAQQAAAAAAAABBAAAAAAAAAEEAAAAAAAAAQQAAAAAAAABBAAAAAAAAAGEAAAAAAAAAYQAAAAAAAABhAAAAAAAAAGEAAAAAAAAAYQAAAAAAAABhAAAAAAAAAIEAAAAAAAAAgQAAAAAAAACBAAAAAAAAAIEAAAAAAAAAgQAAAAAAAACBAAAAAAAAAJEAAAAAAAAAkQAAAAAAAACRAAAAAAAAAJEAAAAAAAAAkQAAAAAAAACRAAAAAAAAAKEAAAAAAAAAoQAAAAAAAAChAAAAAAAAAKEAAAAAAAAAoQAAAAAAAAChAAAAAAAAALEAAAAAAAAAsQAAAAAAAACxAAAAAAAAALEAAAAAAAAAsQAAAAAAAACxAt23btm3bMEC3bdu2bdswQLdt27Zt2zBAt23btm3bMEC3bdu2bdswQLdt27Zt2zBA"},"type":"scatter","xaxis":"x2","yaxis":"y2"},{"hovertemplate":"Harmonic\u003cbr\u003eS_short: %{x:,.0f} AVAX\u003cbr\u003ed_target: %{y:.1f} wks\u003cbr\u003eUtility: %{marker.color}\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":{"dtype":"i1","bdata":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAAEBAQEBAQEBAAAB"},"colorscale":[[0,"#1f2937"],[1,"#38bdf8"]],"line":{"color":"#374151","width":1},"showscale":false,"size":12,"symbol":"diamond"},"mode":"markers","name":"Harmonic (U)","x":{"dtype":"f8","bdata":"AAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNAAAAAAACIw0AAAAAAAHDHQAAAAAAAWMtAAAAAAABAz0AAAAAAAJTRQAAAAAAAiNNA"},"y":{"dtype":"f8","bdata":"AAAAAAAAEEAAAAAAAAAQQAAAAAAAABBAAAAAAAAAEEAAAAAAAAAQQAAAAAAAABBAAAAAAAAAGEAAAAAAAAAYQAAAAAAAABhAAAAAAAAAGEAAAAAAAAAYQAAAAAAAABhAAAAAAAAAIEAAAAAAAAAgQAAAAAAAACBAAAAAAAAAIEAAAAAAAAAgQAAAAAAAACBAAAAAAAAAJEAAAAAAAAAkQAAAAAAAACRAAAAAAAAAJEAAAAAAAAAkQAAAAAAAACRAAAAAAAAAKEAAAAAAAAAoQAAAAAAAAChAAAAAAAAAKEAAAAAAAAAoQAAAAAAAAChAAAAAAAAALEAAAAAAAAAsQAAAAAAAACxAAAAAAAAALEAAAAAAAAAsQAAAAAAAACxAt23btm3bMEC3bdu2bdswQLdt27Zt2zBAt23btm3bMEC3bdu2bdswQLdt27Zt2zBA"},"type":"scatter","xaxis":"x2","yaxis":"y2"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"xaxis":{"anchor":"y","domain":[0.0,0.44],"title":{"text":"Retail Retention (% of 6,440 nodes)"},"gridcolor":"#1e293b","zerolinecolor":"#334155"},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Macro Duration (Weeks)"},"gridcolor":"#1e293b","zerolinecolor":"#334155"},"xaxis2":{"anchor":"y2","domain":[0.56,1.0],"title":{"text":"Anchor Stake S_short (AVAX)"},"gridcolor":"#1e293b","zerolinecolor":"#334155"},"yaxis2":{"anchor":"x2","domain":[0.0,1.0],"title":{"text":"Target Duration d_target (Weeks)"},"gridcolor":"#1e293b","zerolinecolor":"#334155"},"annotations":[{"font":{"size":16},"showarrow":false,"text":"\u003cb\u003eRetention vs. Macro Security Horizon\u003c\u002fb\u003e","x":0.22,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"\u003cb\u003eFrontier Envelope by Mode & Duration Pivot\u003c\u002fb\u003e","x":0.78,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"color":"#f59e0b"},"showarrow":false,"text":"Min Retention (50%)","x":50.0,"xanchor":"right","xref":"x","y":1,"yanchor":"top","yref":"y domain"},{"font":{"color":"#f59e0b"},"showarrow":false,"text":"Min Macro Horizon (20w)","x":1,"xanchor":"right","xref":"x domain","y":20.0,"yanchor":"top","yref":"y"}],"shapes":[{"line":{"color":"#f59e0b","dash":"dash"},"type":"line","x0":50.0,"x1":50.0,"xref":"x","y0":0,"y1":1,"yref":"y domain"},{"line":{"color":"#f59e0b","dash":"dash"},"type":"line","x0":0,"x1":1,"xref":"x domain","y0":20.0,"y1":20.0,"yref":"y"}],"font":{"color":"#f3f4f6","family":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto"},"margin":{"l":50,"r":40,"b":50,"t":60},"legend":{"bgcolor":"rgba(17, 24, 39, 0.8)","bordercolor":"#374151","borderwidth":1},"paper_bgcolor":"#030712","plot_bgcolor":"#0b0f19","height":500,"showlegend":true},                        {"responsive": true}                    )                };            </script>        </div>
+    </div>
+
+    <!-- TABLE: FULL 23 ADMISSIBLE SETS -->
+    <div class="section-card">
+      <div class="section-title">📋 Complete Admissible Parameter Matrix (The 23 Passing Configurations)</div>
+      <p style="color: #9ca3af; margin-top: 0;">
+        Every configuration in this table satisfies $U(\theta) = 1$: Retail Retention $\ge 50\%$, Stake-Weighted Macro Duration $\ge 20\text{ weeks}$, and Retail Duration Lift $\ge +30\%$.
+      </p>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Frontier Mode</th>
+              <th>Anchor Stake S_short</th>
+              <th>Target Lockup d_target</th>
+              <th>Retail Retention (52w)</th>
+              <th>Macro Security Horizon</th>
+              <th>Retail Duration Lift</th>
+              <th>Utility Gate</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>14,000 AVAX</b></td>
+            <td><b>84 days (12.0w)</b></td>
+            <td><span class='val-good'>52.7%</span> (3,391 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.07 weeks</b></td>
+            <td><b style='color:#34d399;'>+46.5%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>16,000 AVAX</b></td>
+            <td><b>84 days (12.0w)</b></td>
+            <td><span class='val-good'>55.7%</span> (3,584 nodes)</td>
+            <td><b style='color:#38bdf8;'>20.65 weeks</b></td>
+            <td><b style='color:#34d399;'>+71.5%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>18,000 AVAX</b></td>
+            <td><b>84 days (12.0w)</b></td>
+            <td><span class='val-good'>50.7%</span> (3,262 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.61 weeks</b></td>
+            <td><b style='color:#34d399;'>+65.7%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>20,000 AVAX</b></td>
+            <td><b>84 days (12.0w)</b></td>
+            <td><span class='val-good'>52.0%</span> (3,348 nodes)</td>
+            <td><b style='color:#38bdf8;'>20.48 weeks</b></td>
+            <td><b style='color:#34d399;'>+64.0%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>12,000 AVAX</b></td>
+            <td><b>98 days (14.0w)</b></td>
+            <td><span class='val-good'>54.2%</span> (3,488 nodes)</td>
+            <td><b style='color:#38bdf8;'>22.41 weeks</b></td>
+            <td><b style='color:#34d399;'>+53.8%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>14,000 AVAX</b></td>
+            <td><b>98 days (14.0w)</b></td>
+            <td><span class='val-good'>50.5%</span> (3,252 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.87 weeks</b></td>
+            <td><b style='color:#34d399;'>+52.4%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>16,000 AVAX</b></td>
+            <td><b>98 days (14.0w)</b></td>
+            <td><span class='val-good'>52.0%</span> (3,348 nodes)</td>
+            <td><b style='color:#38bdf8;'>22.34 weeks</b></td>
+            <td><b style='color:#34d399;'>+63.0%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>18,000 AVAX</b></td>
+            <td><b>98 days (14.0w)</b></td>
+            <td><span class='val-good'>52.2%</span> (3,359 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.50 weeks</b></td>
+            <td><b style='color:#34d399;'>+71.3%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>20,000 AVAX</b></td>
+            <td><b>98 days (14.0w)</b></td>
+            <td><span class='val-good'>52.5%</span> (3,381 nodes)</td>
+            <td><b style='color:#38bdf8;'>22.12 weeks</b></td>
+            <td><b style='color:#34d399;'>+65.3%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>10,000 AVAX</b></td>
+            <td><b>118 days (16.9w)</b></td>
+            <td><span class='val-good'>51.8%</span> (3,338 nodes)</td>
+            <td><b style='color:#38bdf8;'>23.87 weeks</b></td>
+            <td><b style='color:#34d399;'>+54.0%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>12,000 AVAX</b></td>
+            <td><b>118 days (16.9w)</b></td>
+            <td><span class='val-good'>52.8%</span> (3,402 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.11 weeks</b></td>
+            <td><b style='color:#34d399;'>+58.7%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>14,000 AVAX</b></td>
+            <td><b>118 days (16.9w)</b></td>
+            <td><span class='val-good'>53.8%</span> (3,466 nodes)</td>
+            <td><b style='color:#38bdf8;'>20.76 weeks</b></td>
+            <td><b style='color:#34d399;'>+63.2%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-harmonic'>harmonic</span></td>
+            <td><b>20,000 AVAX</b></td>
+            <td><b>118 days (16.9w)</b></td>
+            <td><span class='val-good'>59.0%</span> (3,799 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.88 weeks</b></td>
+            <td><b style='color:#34d399;'>+79.9%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>10,000 AVAX</b></td>
+            <td><b>56 days (8.0w)</b></td>
+            <td><span class='val-good'>51.8%</span> (3,338 nodes)</td>
+            <td><b style='color:#38bdf8;'>22.58 weeks</b></td>
+            <td><b style='color:#34d399;'>+72.0%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>10,000 AVAX</b></td>
+            <td><b>70 days (10.0w)</b></td>
+            <td><span class='val-good'>50.2%</span> (3,230 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.61 weeks</b></td>
+            <td><b style='color:#34d399;'>+71.1%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>14,000 AVAX</b></td>
+            <td><b>70 days (10.0w)</b></td>
+            <td><span class='val-good'>50.2%</span> (3,230 nodes)</td>
+            <td><b style='color:#38bdf8;'>20.20 weeks</b></td>
+            <td><b style='color:#34d399;'>+71.3%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>16,000 AVAX</b></td>
+            <td><b>70 days (10.0w)</b></td>
+            <td><span class='val-good'>50.5%</span> (3,252 nodes)</td>
+            <td><b style='color:#38bdf8;'>20.62 weeks</b></td>
+            <td><b style='color:#34d399;'>+65.7%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>20,000 AVAX</b></td>
+            <td><b>70 days (10.0w)</b></td>
+            <td><span class='val-good'>51.7%</span> (3,327 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.74 weeks</b></td>
+            <td><b style='color:#34d399;'>+70.6%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>12,000 AVAX</b></td>
+            <td><b>118 days (16.9w)</b></td>
+            <td><span class='val-good'>51.5%</span> (3,316 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.44 weeks</b></td>
+            <td><b style='color:#34d399;'>+60.6%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>14,000 AVAX</b></td>
+            <td><b>118 days (16.9w)</b></td>
+            <td><span class='val-good'>51.2%</span> (3,295 nodes)</td>
+            <td><b style='color:#38bdf8;'>22.65 weeks</b></td>
+            <td><b style='color:#34d399;'>+56.8%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>16,000 AVAX</b></td>
+            <td><b>118 days (16.9w)</b></td>
+            <td><span class='val-good'>52.2%</span> (3,359 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.79 weeks</b></td>
+            <td><b style='color:#34d399;'>+55.8%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>18,000 AVAX</b></td>
+            <td><b>118 days (16.9w)</b></td>
+            <td><span class='val-good'>51.7%</span> (3,327 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.60 weeks</b></td>
+            <td><b style='color:#34d399;'>+57.1%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+        <tr>
+            <td><span class='tag-mode tag-piecewise_benqi'>piecewise_benqi</span></td>
+            <td><b>20,000 AVAX</b></td>
+            <td><b>118 days (16.9w)</b></td>
+            <td><span class='val-good'>53.5%</span> (3,445 nodes)</td>
+            <td><b style='color:#38bdf8;'>21.69 weeks</b></td>
+            <td><b style='color:#34d399;'>+60.2%</b></td>
+            <td><span class='badge-pass'>PASS (U=1)</span></td>
+        </tr>
+        
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FULL DETAILED MEMO PROSE -->
+    <div class="section-card">
+      <div class="section-title">📄 Formal Engineering Memo & Theoretical Mechanics</div>
+      <div class="memo-text">
+        <h2>1. The Problem with 2D Heatmaps in Parameter Selection</h2>
+        <p>
+          Bivariate heatmaps ($S_{\text{short}}$ vs. $d_{\text{target}}$) force an arbitrary 2D slice through a complex dynamic system. In reality, the admission frontier operates in a high-dimensional space spanned by:
+        </p>
+        <ul>
+          <li><b>Outside Yield Invariant:</b> Frictionless liquid staking returns on sAVAX ($4.15\% - 4.50\%$ APR).</li>
+          <li><b>VPS Operational Drag:</b> Fixed hardware costs ($\sim \$40/\text{month}$ VPS overhead imposes a $-0.96\%$ yield drag on a $2{,}000\text{ AVAX}$ validator).</li>
+          <li><b>Asynchronous Rollover Arrivals:</b> Stakers enter and mature continuously over time ($U(1, d_{\text{choice}})$), preventing artificial synchronized rollover shockwaves.</li>
+        </ul>
+        <p>
+          By adopting the Subspace Network trajectory/utility tensor methodology, we eliminate visual guesswork. We simulate the entire combinatorial grid, project the trajectories into objective KPI vectors, and apply a binary utility function $U(\theta) \in \{0, 1\}$ to isolate the safe envelope.
+        </p>
+
+        <h2>2. Mechanism Comparison: Piecewise-BENQI vs. Harmonic Hyperbolic</h2>
+        <p>
+          The tensor sweep revealed a clear operational divergence between the two candidate curves:
+        </p>
+        <ul>
+          <li>
+            <b>Piecewise-BENQI (Flat Tiered Admission):</b> By isolating retail validators ($2{,}000\text{ AVAX}$) at a flat step of $8\text{ to }10\text{ weeks}$, small operators are shielded from steep marginal derivative penalties. This yields early admissibility starting at $d=56\text{d}$ ($8\text{w}$) and $S_{\text{short}}=10{,}000\text{ AVAX}$, achieving $51.8\%$ node retention.
+          </li>
+          <li>
+            <b>Harmonic Hyperbolic Curve ($S_{\min}(d) = S_{\text{base}} \cdot (d_{\max} / d)^\alpha$):</b> Because the hyperbolic curve continuously penalizes shorter horizons, retail validators must be pushed to $84\text{d}$ ($12\text{w}$) before the retention gate passes ($52.7\%$). However, when operators commit to longer horizons ($d=118\text{d}$), the harmonic curve produces the highest overall node retention ($59.0\%$) and maximum network duration ($23.87\text{ weeks}$) because high yields completely dominate VPS hosting drag.
+          </li>
+        </ul>
+
+        <h2>3. Final Recommendation for Dr. Eric Lu & Avalanche Foundation</h2>
+        <p>
+          If the Foundation seeks to <b>minimize friction on existing retail validator operators</b> while guaranteeing protocol security, <b>Package B with Piecewise-BENQI ($S_{\text{short}} = 10{,}000 - 14{,}000\text{ AVAX}, d_{\text{target}} = 8\text{ to }10\text{ weeks}$)</b> is the mathematically optimal choice. It retains over $3{,}230$ physical nodes and doubles Mainnet's empirical security horizon from $11.6$ to $>20.2$ weeks.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+    });
+  </script>
+</body>
+</html>

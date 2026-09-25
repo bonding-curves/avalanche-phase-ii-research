@@ -9,6 +9,7 @@ from typing import Dict, Any, Tuple
 
 # Exact ACP-285 ARR Lookup (Helicon Post-Ramp at Current Supply 470M AVAX)
 ACP285_ARR_SCHEDULE = {
+    2: 0.03950,    # Live under ACP-273 (48h minimum)
     14: 0.04078,
     30: 0.04183,
     42: 0.04261,
@@ -126,7 +127,8 @@ def p_validator_renewal_and_entry(params: Dict[str, Any], step: int, sH: list, s
         s_min_fn = lambda d: s_min_harmonic(d, s_short, p)
 
     dt_days = params.get("dt_days", 7)
-    candidate_durations = [14, 30, 42, 56, 70, 84, 119, 180, 365]
+    # Include 2 days (48 hours) as enacted under ACP-273
+    candidate_durations = [2, 14, 30, 42, 56, 70, 84, 119, 180, 365]
 
     validators = s["validators"]
     renewals = {}
@@ -160,22 +162,19 @@ def p_validator_renewal_and_entry(params: Dict[str, Any], step: int, sH: list, s
                 # The validator looks at their best entry horizon (typically d_min = feasible_d[0])
                 d_entry = feasible_d[0]
                 arr_entry = ACP285_ARR_SCHEDULE.get(d_entry, 0.04078 + 0.023 * (d_entry / 365.0))
-                fee_bonus = deleg_ratio * arr_entry * val.commission_fee
+                fee_bonus = deleg_ratio * arr_entry * val.commission_fee if val.delegations_received_avax > 0 else 0.0
                 net_validator_yield = arr_entry - cloud_drag + fee_bonus
                 
                 # Economic spread: net standalone yield minus liquid staking outside option
                 spread = net_validator_yield - savax_apy
                 
-                # Illiquidity friction: stakers prefer shorter horizons (baseline 37.1d)
-                # Excess commitment beyond 30d adds illiquidity pressure
-                excess_lockup_months = max(0.0, (d_entry - 30.0) / 30.0)
+                # Illiquidity friction: post-Etna empirical median is 15.0d
+                excess_lockup_months = max(0.0, (d_entry - 15.0) / 30.0)
                 
                 # Probability of exit per renewal event:
-                # Negative spread + lockup pressure increases probability of shutting down cloud VPS
                 if spread < 0:
                     p_exit = min(0.35, 0.02 + 0.12 * (-spread / 0.01) + 0.02 * excess_lockup_months)
                 else:
-                    # Positive spread: validator earns more than liquid staking!
                     p_exit = max(0.01, 0.02 - 0.015 * (spread / 0.005) + 0.01 * excess_lockup_months)
                 
                 # Random choice: exit vs renew
@@ -183,14 +182,13 @@ def p_validator_renewal_and_entry(params: Dict[str, Any], step: int, sH: list, s
                     renewals[nid] = {"action": "exit", "chosen_duration": 0, "bond": val.self_bond_avax}
                     continue
                 
-                # Stage 2: Among feasible durations, retail validators strongly favor the shortest admissible
+                # Stage 2: Among feasible durations, retail validators favor the shortest admissible
                 dur_utilities = []
                 dur_bonds = []
                 for d in feasible_d:
                     req_stake = s_min_fn(d)
                     bond = max(val.self_bond_avax, req_stake)
                     arr_d = ACP285_ARR_SCHEDULE.get(d, 0.04078 + 0.023 * (d / 365.0))
-                    # Penalty for locking beyond minimum necessary:
                     lockup_penalty = 1.2 * ((d - d_entry) / 30.0)
                     u_d = 20.0 * (arr_d - 0.040) - lockup_penalty
                     dur_utilities.append(u_d)
@@ -211,27 +209,35 @@ def p_validator_renewal_and_entry(params: Dict[str, Any], step: int, sH: list, s
             else:
                 # ---------------------------------------------------------
                 # WHALE / INSTITUTIONAL OPERATOR CHOICE MODEL (>= 6,000 AVAX)
-                # Whales have institutional balance sheets, low VPS drag relative to capital,
-                # and optimize ACP-285 ARR term premium vs treasury liquidity needs.
+                # Whales balance ACP-285 ARR term premium against treasury liquidity.
+                # Crucially: Whales with active delegations (BENQI) lose delegation fee revenue
+                # if they drop below 14 days, because delegators cannot bind to stints < 14d!
                 # ---------------------------------------------------------
+                has_delegations = val.delegations_received_avax > 0
                 whale_utilities = []
                 for d in candidate_durations:
                     arr = ACP285_ARR_SCHEDULE.get(d, 0.04078 + 0.023 * (d / 365.0))
                     liq_cost = (d / 365.0) ** 1.1 * 1.8
-                    u = 20.0 * (arr - 0.04078) - liq_cost
+                    
+                    # If duration is < 14 days, delegations are forfeited under P-Chain rules
+                    deleg_penalty = 2.5 if (d < 14 and has_delegations) else 0.0
+                    
+                    u = 20.0 * (arr - 0.04078) - liq_cost - deleg_penalty
                     whale_utilities.append(u)
                 
                 max_u = max(whale_utilities)
                 exp_u = np.exp([u - max_u for u in whale_utilities])
                 p_w = exp_u / np.sum(exp_u)
                 chosen_idx = int(np.random.choice(len(candidate_durations), p=p_w))
+                chosen_d = candidate_durations[chosen_idx]
                 
                 renewals[nid] = {
                     "action": "renew",
-                    "chosen_duration": candidate_durations[chosen_idx],
+                    "chosen_duration": chosen_d,
                     "bond": val.self_bond_avax,
                 }
                 pchain_txs += 1
+
 
     return {
         "renewals": renewals,

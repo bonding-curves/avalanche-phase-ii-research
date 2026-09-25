@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Avalanche Validator Research Notebooks Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background-color: #030712; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px 24px; line-height: 1.6; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: 2.2rem; font-weight: 800; color: #f9fafb; margin: 0 0 12px 0; }
+    p.subtitle { color: #9ca3af; font-size: 1.1rem; margin-bottom: 32px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .card { background: #0b0f19; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; transition: transform 0.15s, border-color 0.15s; display: flex; flex-direction: column; justify-content: space-between; }
+    .card:hover { transform: translateY(-3px); border-color: #38bdf8; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 12px; }
+    .badge-eda { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-psuu { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .card-title { font-size: 1.25rem; font-weight: 700; color: #f3f4f6; margin: 0 0 8px 0; }
+    .card-desc { color: #9ca3af; font-size: 0.95rem; margin-bottom: 20px; flex-grow: 1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; background: #2563eb; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: background 0.15s; }
+    .btn:hover { background: #1d4ed8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Avalanche Validator Research Notebooks</h1>
+    <p class="subtitle">Interactive HTML renders of the primary validator data studies, empirical EDA, and PSuU digital twin simulations.</p>
+    
+    <div class="grid">
+      <!-- ACP Policy Matrix Dashboard -->
+      <div class="card" style="border-color: #e84142;">
+        <div>
+          <span class="badge" style="background: rgba(232, 65, 66, 0.2); color: #f87171; border: 1px solid rgba(232, 65, 66, 0.4);">Strategic Architecture</span>
+          <div class="card-title">ACP Policy Matrix & Foundation Cryptoeconomics</div>
+          <div class="card-desc">Interactive matrix of the 36-ACP portfolio, Foundation macroeconomic doctrine (Matias Antonio & Dr. Eric Lu: Measure, Capture, Distribute; GCP/GCI), and Tinbergen policy alignment.</div>
+        </div>
+        <a class="btn" style="background: #dc2626;" href="acp_policy_matrix_dashboard.html" target="_blank">Open ACP Matrix Dashboard &rarr;</a>
+      </div>
+
+      <!-- Upgrade Regimes Table -->
+      <div class="card" style="border-color: #38bdf8;">
+        <div>
+          <span class="badge badge-eda" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">Highlighted Reference</span>
+          <div class="card-title">Upgrade Regimes Validator Metrics</div>
+          <div class="card-desc">The canonical table breaking down all 57,521 validator staking periods across 15 protocol regimes: Genesis, Apricot 1-6, Banff, Cortina, Durango, Etna, Fortuna, Granite, and Helicon.</div>
+        </div>
+        <a class="btn" style="background: #059669;" href="upgrade_regimes_validator_metrics.html" target="_blank">Open Regimes Viewer &rarr;</a>
+      </div>
+
+      <!-- Snowflake Notebook -->
+      <div class="card">
+        <div>
+          <span class="badge badge-eda">Data Provider Notebook</span>
+          <div class="card-title">Snowflake Provider & Staking EDA</div>
+          <div class="card-desc">Interactive linked canvas, cohort lifelines, duration against size across eras, and the source queries for all 15 protocol regimes.</div>
+        </div>
+        <a class="btn" href="notebooks/snowflake.html" target="_blank">Open Notebook &rarr;</a>
+      </div>
+
+      <!-- 01 Reproduction -->
+      <div class="card">
+        <div>
+          <span class="badge badge-eda">Empirical Verification</span>
+          <div class="card-title">01. Validator Rewards Reproduction</div>
+          <div class="card-desc">Validates and reproduces onchain reward calculations against PlatformVM consensus rules and minted supply schedules.</div>
+        </div>
+        <a class="btn" href="notebooks/01_validator_rewards_reproduction.html" target="_blank">Open Notebook &rarr;</a>
+      </div>
+
+      <!-- 02 EDA -->
+      <div class="card">
+        <div>
+          <span class="badge badge-eda">Exploratory Data Analysis</span>
+          <div class="card-title">02. Validator Rewards EDA</div>
+          <div class="card-desc">Deep exploratory analysis of historical staking stints, duration distributions, retail vs whale clustering, and fee economics.</div>
+        </div>
+        <a class="btn" href="notebooks/02_validator_rewards_eda.html" target="_blank">Open Notebook &rarr;</a>
+      </div>
+
+      <!-- 03 Rewards Study -->
+      <div class="card">
+        <div>
+          <span class="badge badge-eda">Staking Behavioral Study</span>
+          <div class="card-title">03. Validator Rewards Study</div>
+          <div class="card-desc">Detailed econometric study of staker tenure preferences, churn cycles, and delegation concentration across the network.</div>
+        </div>
+        <a class="btn" href="notebooks/03_validator_rewards_study.html" target="_blank">Open Notebook &rarr;</a>
+      </div>
+
+      <!-- 03 PSUU Framework -->
+      <div class="card">
+        <div>
+          <span class="badge badge-psuu">PSuU Engineering</span>
+          <div class="card-title">03. PSUU Framework Specification</div>
+          <div class="card-desc">Full BlockScience GDS framework design: system state, parameter spaces, behavioral policies, and verification gates.</div>
+        </div>
+        <a class="btn" href="notebooks/03-psuu-framework.html" target="_blank">Open Notebook &rarr;</a>
+      </div>
+
+      <!-- 08 PSUU Simulation -->
+      <div class="card">
+        <div>
+          <span class="badge badge-psuu">PSuU Digital Twin</span>
+          <div class="card-title">08. PSUU Simulation Execution</div>
+          <div class="card-desc">Trajectory outputs, timestep states, and multi-run stochastic simulations across validator admission frontiers.</div>
+        </div>
+        <a class="btn" href="notebooks/08-psuu-simulation.html" target="_blank">Open Notebook &rarr;</a>
+      </div>
+
+      <!-- PSUU Sweeps -->
+      <div class="card">
+        <div>
+          <span class="badge badge-psuu">PSuU Optimization</span>
+          <div class="card-title">PSUU Parameter Sweeps</div>
+          <div class="card-desc">Multi-dimensional tensor sweeps evaluating S_short, d_target, and retention frontiers across governance horizons.</div>
+        </div>
+        <a class="btn" href="notebooks/psuu_parameter_sweeps.html" target="_blank">Open Notebook &rarr;</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

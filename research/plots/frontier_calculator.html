@@ -245,7 +245,7 @@
       <h1>Avalanche Stake Admission Frontier $S_{\min}(d)$ Visualizer</h1>
     </div>
     <div style="font-size: 0.85rem; color: var(--text-muted);">
-      PlatformVM Dynamic Admission Simulator &bull; ACP-49 &bull; ACP-273 &bull; ACP-285
+      PlatformVM Dynamic Admission Simulator &bull; ACP-49 &bull; ACP-273 (48h Staking) &bull; ACP-285 &bull; Helicon Live
     </div>
   </header>
 
@@ -254,12 +254,12 @@
     <div class="sidebar">
       <div>
         <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
-          Governance Presets
+          Governance Presets (Post-Helicon)
         </div>
         <div class="preset-btn-group">
-          <button class="btn active" id="btn-pkg-a" onclick="applyPreset('pkgA')">Package A<br><span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8;">14k @ 8.0w</span></button>
-          <button class="btn" id="btn-pkg-b" onclick="applyPreset('pkgB')">Package B<br><span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8;">20k @ 12.0w</span></button>
-          <button class="btn" id="btn-pkg-c" onclick="applyPreset('pkgC')">Package C<br><span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8;">20k @ 16.9w</span></button>
+          <button class="btn active" id="btn-pkg-a" onclick="applyPreset('pkgA')">Package A<br><span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8;">10k @ 10.0w (Bal)</span></button>
+          <button class="btn" id="btn-pkg-b" onclick="applyPreset('pkgB')">Package B<br><span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8;">18k @ 16.9w (Opt)</span></button>
+          <button class="btn" id="btn-pkg-c" onclick="applyPreset('pkgC')">Package C<br><span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8;">14k @ 10.0w (Sybil)</span></button>
         </div>
       </div>
 
@@ -451,19 +451,22 @@
 
       if (pkg === 'pkgA') {
         document.getElementById('btn-pkg-a').classList.add('active');
-        document.getElementById('slider-s-short').value = 14000;
-        document.getElementById('slider-d-target').value = 8.0;
+        document.getElementById('slider-s-short').value = 10000;
+        document.getElementById('slider-d-target').value = 10.0;
         document.getElementById('slider-s-floor').value = 500;
+        document.querySelector('input[name="model-family"][value="piecewise"]').checked = true;
       } else if (pkg === 'pkgB') {
         document.getElementById('btn-pkg-b').classList.add('active');
-        document.getElementById('slider-s-short').value = 20000;
-        document.getElementById('slider-d-target').value = 12.0;
-        document.getElementById('slider-s-floor').value = 500;
-      } else if (pkg === 'pkgC') {
-        document.getElementById('btn-pkg-c').classList.add('active');
-        document.getElementById('slider-s-short').value = 20000;
+        document.getElementById('slider-s-short').value = 18000;
         document.getElementById('slider-d-target').value = 16.9;
         document.getElementById('slider-s-floor').value = 500;
+        document.querySelector('input[name="model-family"][value="harmonic"]').checked = true;
+      } else if (pkg === 'pkgC') {
+        document.getElementById('btn-pkg-c').classList.add('active');
+        document.getElementById('slider-s-short').value = 14000;
+        document.getElementById('slider-d-target').value = 10.0;
+        document.getElementById('slider-s-floor').value = 500;
+        document.querySelector('input[name="model-family"][value="piecewise"]').checked = true;
       }
       updateCalculations();
     }
@@ -519,9 +522,9 @@
         barrierSub.style.color = "var(--accent-amber)";
       }
 
-      const retailLift = ((d_target - 37.1) / 37.1) * 100;
+      const retailLift = ((d_target - 15.0) / 15.0) * 100;
       document.getElementById('kpi-retail-lift').innerText = `${retailLift > 0 ? '+' : ''}${retailLift.toFixed(1)}%`;
-      document.getElementById('kpi-lift-sub').innerHTML = `&uarr; From 37.1d to ${Math.round(d_target)}d`;
+      document.getElementById('kpi-lift-sub').innerHTML = `&uarr; From 15.0d to ${Math.round(d_target)}d`;
 
       // Economic spread: APY(d_target) - Cloud VPS (0.96%) + 1.0x Delegation Fee (0.22%) - sAVAX (4.15%)
       const arr_d = getArr(d_target);

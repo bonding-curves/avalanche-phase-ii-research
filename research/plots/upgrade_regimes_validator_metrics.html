@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Avalanche Validator Metrics by Upgrade Regime (Genesis to Helicon)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background-color: #030712; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 32px 24px; line-height: 1.6; }
+    .container { max-width: 1300px; margin: 0 auto; }
+    .header-bar { border-bottom: 1px solid #1f2937; padding-bottom: 20px; margin-bottom: 28px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); margin-bottom: 10px; }
+    h1 { font-size: 2.2rem; font-weight: 800; color: #f9fafb; margin: 0 0 10px 0; }
+    p.sub { color: #9ca3af; font-size: 1.05rem; margin: 0 0 20px 0; }
+    .card { background: #0b0f19; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 28px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+    .section-title { font-size: 1.3rem; font-weight: 700; color: #38bdf8; margin-bottom: 16px; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 12px; margin-bottom: 20px; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #1f2937; }
+    th { color: #9ca3af; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; background: #111827; }
+    tr:hover { background: #111827; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .highlight { background: rgba(56, 189, 248, 0.08); font-weight: 600; color: #38bdf8; }
+    .img-box { text-align: center; margin: 20px 0; background: #030712; padding: 16px; border-radius: 8px; border: 1px solid #1f2937; }
+    img { max-width: 100%; height: auto; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.6); }
+    .btn { display: inline-flex; align-items: center; background: #2563eb; color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-right: 12px; }
+    .btn:hover { background: #1d4ed8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-bar">
+      <span class="badge">BCRG Empirical Reference</span>
+      <h1>Avalanche Validator Metrics Across Protocol Upgrades</h1>
+      <p class="sub">
+        Historical breakdown of all 57,521 validator staking periods across the 15 protocol upgrade regimes since Genesis (from <code>snowflake.ipynb</code> and <code>03_validator_rewards_study.ipynb</code>).
+      </p>
+      <div>
+        <a class="btn" href="notebooks/snowflake.html" target="_blank">Open Full snowflake.html Notebook &rarr;</a>
+        <a class="btn" href="validator_notebooks_portal.html" target="_blank">All Research Notebooks Portal &rarr;</a>
+      </div>
+    </div>
+
+    <!-- TABLE CARD -->
+    <div class="card">
+      <div class="section-title">📊 The UpgradePeriods Empirical Table (57,521 Validator Periods)</div>
+      <p style="color: #9ca3af; font-size: 0.95rem;">
+        Every validator staking period from Genesis through Helicon is assigned to its protocol regime by acceptance time. Durations are measured in weeks; stake is in AVAX.
+      </p>
+      
+      <table>
+        <thead>
+          <tr>
+            <th>Protocol Regime</th>
+            <th>Starts (UTC)</th>
+            <th>Ends (UTC)</th>
+            <th class="num">Length (Wks)</th>
+            <th class="num">Periods</th>
+            <th class="num">Median Duration (Wks)</th>
+            <th class="num">Stake-Weighted Median (Wks)</th>
+            <th class="num">Median Self-Stake (AVAX)</th>
+            <th class="num">Total Self-Stake (AVAX)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>genesis</b></td>
+            <td>2020-09-10</td>
+            <td>2021-03-31 14:00</td>
+            <td class="num">—</td>
+            <td class="num">2,951</td>
+            <td class="num">4.43</td>
+            <td class="num">12.39</td>
+            <td class="num">5,000</td>
+            <td class="num">756,334,177</td>
+          </tr>
+          <tr>
+            <td><b>apricot_phase_1</b></td>
+            <td>2021-03-31 14:00</td>
+            <td>2021-05-10 11:00</td>
+            <td class="num">5.7</td>
+            <td class="num">505</td>
+            <td class="num">4.28</td>
+            <td class="num">4.43</td>
+            <td class="num">2,711</td>
+            <td class="num">37,259,243</td>
+          </tr>
+          <tr>
+            <td><b>apricot_phase_2</b></td>
+            <td>2021-05-10 11:00</td>
+            <td>2021-08-24 14:00</td>
+            <td class="num">15.2</td>
+            <td class="num">1,509</td>
+            <td class="num">4.42</td>
+            <td class="num">13.01</td>
+            <td class="num">3,244</td>
+            <td class="num">196,263,382</td>
+          </tr>
+          <tr>
+            <td><b>apricot_phase_3</b></td>
+            <td>2021-08-24 14:00</td>
+            <td>2021-09-22 21:00</td>
+            <td class="num">4.2</td>
+            <td class="num">655</td>
+            <td class="num">4.98</td>
+            <td class="num">25.71</td>
+            <td class="num">4,000</td>
+            <td class="num">168,337,684</td>
+          </tr>
+          <tr>
+            <td><b>apricot_phase_4</b></td>
+            <td>2021-09-22 21:00</td>
+            <td>2021-12-02 18:00</td>
+            <td class="num">10.1</td>
+            <td class="num">1,471</td>
+            <td class="num">4.14</td>
+            <td class="num">4.29</td>
+            <td class="num">2,075</td>
+            <td class="num">100,440,544</td>
+          </tr>
+          <tr>
+            <td><b>apricot_phase_5</b></td>
+            <td>2021-12-02 18:00</td>
+            <td>2022-09-05 01:30</td>
+            <td class="num">39.5</td>
+            <td class="num">6,875</td>
+            <td class="num">4.29</td>
+            <td class="num">8.83</td>
+            <td class="num">2,033</td>
+            <td class="num">683,514,631</td>
+          </tr>
+          <tr>
+            <td><b>apricot_phase_pre_6</b></td>
+            <td>2022-09-05 01:30</td>
+            <td>2022-09-06 20:00</td>
+            <td class="num">0.25</td>
+            <td class="num">47</td>
+            <td class="num">6.00</td>
+            <td class="num">8.84</td>
+            <td class="num">2,549</td>
+            <td class="num">17,421,353</td>
+          </tr>
+          <tr>
+            <td><b>apricot_phase_6</b></td>
+            <td>2022-09-06 20:00</td>
+            <td>2022-09-07 03:00</td>
+            <td class="num">0.04</td>
+            <td class="num">2</td>
+            <td class="num">14.58</td>
+            <td class="num">25.01</td>
+            <td class="num">33,113</td>
+            <td class="num">66,225</td>
+          </tr>
+          <tr>
+            <td><b>apricot_phase_post_6</b></td>
+            <td>2022-09-07 03:00</td>
+            <td>2022-10-18 16:00</td>
+            <td class="num">5.9</td>
+            <td class="num">783</td>
+            <td class="num">4.42</td>
+            <td class="num">12.86</td>
+            <td class="num">2,140</td>
+            <td class="num">67,516,771</td>
+          </tr>
+          <tr>
+            <td><b>banff</b></td>
+            <td>2022-10-18 16:00</td>
+            <td>2023-04-25 15:00</td>
+            <td class="num">27.0</td>
+            <td class="num">3,431</td>
+            <td class="num">4.43</td>
+            <td class="num">9.67</td>
+            <td class="num">2,202</td>
+            <td class="num">389,656,227</td>
+          </tr>
+          <tr>
+            <td><b>cortina</b></td>
+            <td>2023-04-25 15:00</td>
+            <td>2024-03-06 16:00</td>
+            <td class="num">45.2</td>
+            <td class="num">9,101</td>
+            <td class="num">4.25</td>
+            <td class="num">7.00</td>
+            <td class="num">2,005</td>
+            <td class="num">725,396,653</td>
+          </tr>
+          <tr class="highlight">
+            <td><b>durango</b></td>
+            <td>2024-03-06 16:00</td>
+            <td>2024-12-16 17:00</td>
+            <td class="num">40.7</td>
+            <td class="num">12,657</td>
+            <td class="num">2.14</td>
+            <td class="num">4.43</td>
+            <td class="num">2,005</td>
+            <td class="num">730,947,782</td>
+          </tr>
+          <tr class="highlight">
+            <td><b>etna</b></td>
+            <td>2024-12-16 17:00</td>
+            <td>2025-04-08 15:00</td>
+            <td class="num">16.1</td>
+            <td class="num">5,179</td>
+            <td class="num">2.14</td>
+            <td class="num">4.43</td>
+            <td class="num">2,000</td>
+            <td class="num">301,102,662</td>
+          </tr>
+          <tr class="highlight">
+            <td><b>fortuna</b></td>
+            <td>2025-04-08 15:00</td>
+            <td>2025-11-19 16:00</td>
+            <td class="num">32.2</td>
+            <td class="num">7,775</td>
+            <td class="num">2.14</td>
+            <td class="num">4.15</td>
+            <td class="num">2,000</td>
+            <td class="num">601,308,277</td>
+          </tr>
+          <tr class="highlight">
+            <td><b>granite</b></td>
+            <td>2025-11-19 16:00</td>
+            <td>2026-09-22 15:00</td>
+            <td class="num">43.9</td>
+            <td class="num">4,580</td>
+            <td class="num">3.65</td>
+            <td class="num">3.97</td>
+            <td class="num">14,585</td>
+            <td class="num">890,144,577</td>
+          </tr>
+          <tr>
+            <td><b>helicon</b></td>
+            <td>2026-09-22 15:00</td>
+            <td>Present (Active)</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">Current Regime</td>
+            <td class="num">ACP-273 / ACP-285</td>
+            <td class="num">Live Mainnet</td>
+            <td class="num">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ORIGINAL PNG RENDER -->
+    <div class="card">
+      <div class="section-title">🖼️ Original Render from the Research Notebook (`figures/upgrade-periods-table.png`)</div>
+      <div class="img-box">
+        <img src="upgrade-periods-table.png" alt="Upgrade Periods Table">
+      </div>
+    </div>
+
+    <!-- OBSERVATIONS -->
+    <div class="card">
+      <div class="section-title">🔍 Key Architectural Observations Across Regimes</div>
+      <ul style="color: #d1d5db; font-size: 0.95rem; line-height: 1.8;">
+        <li><b>The Durango Shift:</b> Unweighted median commitment held remarkably steady between <b>4.1 and 5.0 weeks</b> from Genesis all the way through Cortina. At <b>Durango (March 2024)</b>, it collapsed by half to exactly <b>2.14 weeks (15.0 days)</b> and remained frozen there through Etna and Fortuna. Why? Durango moved the start of a staking period to its exact transaction acceptance time, eliminating the padding wallets used to add.</li>
+        <li><b>The Granite Stake Surge:</b> The <b>Granite regime (late 2025 – Sept 2026)</b> differed in stake rather than duration. Median self-stake per period surged to <b>14,585 AVAX</b> (compared to ~2,000 AVAX in every previous regime), while the stake-weighted median duration hit its historical low of <b>3.97 weeks</b>.</li>
+        <li><b>Apricot Phase 6:</b> The three short Apricot Phase 6 sub-regimes hold only 832 periods total across 6 days and represent emergency client hardfork fixes.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
