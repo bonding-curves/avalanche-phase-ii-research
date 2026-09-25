@@ -30,6 +30,17 @@ packages = ["src/avalanche_research"]
 dev = [
   "pytest>=8.4,<9",
 ]
+notebook = [
+  "bokeh>=3.9,<4",
+  "holoviews>=1.23,<2",
+  "hvplot>=0.12,<1",
+  "ipykernel>=7,<8",
+  "jupyterlab>=4.6,<5",
+  "nbconvert>=7.17,<8",
+  "numpy>=2,<3",
+  "panel>=1.9,<2",
+  "param>=2.4,<3",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
