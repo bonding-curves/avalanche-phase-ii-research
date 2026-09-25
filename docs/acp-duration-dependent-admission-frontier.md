@@ -1,7 +1,7 @@
-| ACP | Draft |
+| ACP | (TBD) |
 | :--- | :--- |
 | **Title** | Duration-Dependent Minimum Validator Stake Frontier |
-| **Author(s)** | BCRG Systems Engineering Team, Cryptoeconomics Research Group |
+| **Author(s)** | Hasher Nabi ([@coad1024-cmd](https://github.com/coad1024-cmd)), BCRG Systems Engineering Team |
 | **Status** | Proposed |
 | **Track** | Standards |
 
@@ -158,6 +158,15 @@ The delegator duration firewall remains unaltered:
 
 Consequently, validators registering for durations shorter than 14 days ($2 \le d < 14$) operate strictly as standalone, non-delegated consensus nodes.
 
+## Backwards Compatibility
+
+This specification introduces a state transition rule modifying consensus transaction validity within the PlatformVM. It requires activation through an orchestrated network upgrade.
+
+Compatibility principles:
+1. **No Retrospective Invalidation:** Staking transactions accepted before the activation epoch remain fully valid. Existing validators complete their registered stints under the rules in effect at their registration time.
+2. **Deterministic Activation Epoch:** Once the activation timestamp passes, all newly submitted `AddPermissionlessValidatorTx` transactions must satisfy `VerifyValidatorAdmission`. Transactions offering insufficient self-stake for their registered duration fail syntactic validation and are rejected from the mempool.
+3. **P-Chain Serialization Compatibility:** Transaction binary serialization formats remain identical. The verification logic executes purely within state-verification execution paths.
+
 ## Reference Implementation
 
 The following Go implementation provides the complete, deterministic admission verification function:
@@ -239,15 +248,6 @@ func VerifyValidatorAdmission(startTime, endTime time.Time, bondedWeight uint64)
 	return nil
 }
 ```
-
-## Backwards Compatibility
-
-This specification introduces a state transition rule modifying consensus transaction validity within the PlatformVM. It requires activation through an orchestrated network upgrade.
-
-Compatibility principles:
-1. **No Retrospective Invalidation:** Staking transactions accepted before the activation epoch remain fully valid. Existing validators complete their registered stints under the rules in effect at their registration time.
-2. **Deterministic Activation Epoch:** Once the activation timestamp passes, all newly submitted `AddPermissionlessValidatorTx` transactions must satisfy `VerifyValidatorAdmission`. Transactions offering insufficient self-stake for their registered duration fail syntactic validation and are rejected from the mempool.
-3. **P-Chain Serialization Compatibility:** Transaction binary serialization formats remain identical. The verification logic executes purely within state-verification execution paths.
 
 ## Security Considerations
 
