@@ -6,3 +6,5 @@ public/
 .quartz-cache/
 *.tsbuildinfo
 data/runs/
+scratch/
+research/scratch/
