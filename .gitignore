@@ -6,3 +6,4 @@ public/
 .quartz-cache/
 *.tsbuildinfo
 data/runs/
+release/
