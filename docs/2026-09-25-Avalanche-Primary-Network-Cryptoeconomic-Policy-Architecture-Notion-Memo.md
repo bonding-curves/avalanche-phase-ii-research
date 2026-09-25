@@ -116,9 +116,9 @@ The Foundation macro health targets establish four quantitative operational boun
 | **Validator Liveness Floor** | 80.0% | 93.4% median | **>= 90.0% Uptime (ACP-267)** | Enforces DAG consensus finality speed and low-latency round trip times. |
 
 ### 2.3 Finite Issuance Exhaustion Dynamics
-Under the Avalanche genesis specification, total supply is strictly capped at 720,000,000 AVAX, with 360,000,000 minted at genesis and the remaining 360,000,000 allocated for staking emissions. The emission rate at time $t$ is governed by the remaining unminted supply $S_{\text{rem}}(t)$:
-$$\Delta S(t) = \left( r_{\min} + (r_{\max} - r_{\min}) \frac{d}{T} \right) \cdot \frac{S_{\text{rem}}(t)}{S_{\text{cap}}} \cdot S_{\text{staked}}$$
-Because $S_{\text{rem}}(t) \to 0$ over time, the protocol staking subsidy decays continuously. Long-term security requires capturing transaction revenues through ACP-283, ACP-77, and ACP-103 to replace decaying minting subsidies.
+Under the Avalanche genesis specification, total supply is strictly capped at 720,000,000 AVAX, with 360,000,000 minted at genesis and the remaining 360,000,000 allocated for staking emissions. The annualized reward rate $\text{ARR}(d)$ at time $t$ is governed by the remaining unminted supply $S_{\text{rem}}(t)$:
+$$\text{ARR}(d, t) = \left( r_{\min} + (r_{\max} - r_{\min}) \frac{d}{T} \right) \cdot \frac{S_{\text{rem}}(t)}{S_{\text{cap}}}$$
+where period payout at unlock is prorated by commitment duration $Y(d) = S_{\text{staked}} \cdot \left(\frac{d}{T}\right) \cdot \text{ARR}(d, t)$ (with $T = 365\text{ days}$). Because $S_{\text{rem}}(t) \to 0$ over time, the protocol staking subsidy decays continuously. Long-term security requires capturing transaction revenues through ACP-283, ACP-77, and ACP-103 to replace decaying minting subsidies.
 
 ---
 
