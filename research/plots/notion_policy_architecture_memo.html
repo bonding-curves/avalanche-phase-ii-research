@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Avalanche Primary Network: Cryptoeconomic Policy Architecture Memo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] },
+      startup: { pageReady: () => { return MathJax.startup.defaultPageReady(); } }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    body { background-color: #030712; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px 24px; line-height: 1.7; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header-bar { border-bottom: 1px solid #1f2937; padding-bottom: 24px; margin-bottom: 32px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); margin-bottom: 12px; }
+    h1 { font-size: 2.3rem; font-weight: 800; color: #f9fafb; margin: 0 0 12px 0; }
+    .meta-box { background: #0b0f19; border: 1px solid #1e293b; border-radius: 8px; padding: 18px 24px; margin: 20px 0; font-size: 0.95rem; color: #9ca3af; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .meta-item b { color: #e5e7eb; }
+    .callout-info { background: rgba(14, 165, 233, 0.1); border-left: 4px solid #0284c7; border-radius: 6px; padding: 16px 20px; margin: 24px 0; color: #bae6fd; font-size: 1rem; }
+    .section-card { background: #0b0f19; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; margin-bottom: 36px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+    h2 { font-size: 1.45rem; font-weight: 700; color: #38bdf8; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid #1e293b; padding-bottom: 12px; }
+    h3 { font-size: 1.15rem; font-weight: 600; color: #e2e8f0; margin-top: 24px; margin-bottom: 12px; }
+    p, li { color: #d1d5db; font-size: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 20px 0 24px 0; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #1f2937; }
+    th { color: #9ca3af; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; background: #111827; }
+    tr:hover { background: #111827; }
+    pre { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 16px; overflow-x: auto; color: #38bdf8; font-family: monospace; font-size: 0.85rem; }
+    .btn-copy { background: #0284c7; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; float: right; margin-top: -10px; }
+    .btn-copy:hover { background: #0369a1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-bar">
+      <span class="badge">Notion Canonical Memorandum</span>
+      <button class="btn-copy" onclick="navigator.clipboard.writeText(document.getElementById('raw-markdown').innerText); alert('Copied Markdown for Notion!');">📋 Copy for Notion</button>
+      <h1>Primary Network Cryptoeconomic Policy Architecture</h1>
+      <p style="color: #9ca3af; font-size: 1.1rem;">
+        Admission Frontier Capital Geometry, Empirical Upgrade Regimes, PlatformVM Delegator Firewall, Game-Theoretic Payoff Matrix, and Tinbergen Policy Matrix.
+      </p>
+      <div class="meta-box">
+        <div class="meta-item"><b>Target:</b> Daniel Ortiz, Dr. Siyu (Eric) Lu, Matias Antonio (Avalanche Foundation)</div>
+        <div class="meta-item"><b>From:</b> Hash N., BCRG Research Lane</div>
+        <div class="meta-item"><b>Date:</b> September 25, 2026</div>
+        <div class="meta-item"><b>Status:</b> Ready for Notion Publication & Review</div>
+      </div>
+    </div>
+
+    <div class="callout-info">
+      <b>Executive Summary:</b> Proof-of-Stake consensus security represents a continuous operational expenditure funded by a finite 720,000,000 AVAX issuance budget that decays continuously by protocol construction. To sustain decentralization and protect network float following the Durango, Etna, and Helicon upgrades, the network must replace static constants with dynamic, mathematically coupled policy mechanisms. This memo presents the complete empirical regime breakdown of all 57,521 historical validator periods, analyzes the multi-agent payoff matrix under the 14-day PlatformVM Delegator Firewall, establishes the standalone capital geometry of the Admission Frontier $S_{\min}(d)$, and defines the Tinbergen Policy Separation Matrix governing the Avalanche Primary Network.
+    </div>
+
+    <!-- SECTION 1 -->
+    <div class="section-card">
+      <h2>1. Empirical Protocol Upgrade Regimes and Network State Evolution</h2>
+      <h3>1.1 Historical Staking Metric Decomposition Across Fifteen Regimes</h3>
+      <p>The Avalanche Primary Network has operated across fifteen distinct protocol upgrade regimes since Genesis. Every validator staking period in network history (57,521 total periods across 7,635 unique physical NodeIDs in <code>derived.staking-periods</code> and Snowflake census data) is mapped to its exact on-chain acceptance regime.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Protocol Regime</th>
+            <th>Length (Weeks)</th>
+            <th>Staking Periods</th>
+            <th>Median Duration (Weeks)</th>
+            <th>Stake-Weighted Duration (Weeks)</th>
+            <th>Median Self-Stake (AVAX)</th>
+            <th>Total Bonded Self-Stake (AVAX)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Genesis</b></td><td>28.9</td><td>2,951</td><td>4.43</td><td>12.39</td><td>5,000</td><td>756,334,177</td></tr>
+          <tr><td><b>Apricot Phase 1</b></td><td>5.7</td><td>505</td><td>4.28</td><td>4.43</td><td>2,711</td><td>37,259,243</td></tr>
+          <tr><td><b>Apricot Phase 2</b></td><td>15.2</td><td>1,509</td><td>4.42</td><td>13.01</td><td>3,244</td><td>196,263,382</td></tr>
+          <tr><td><b>Apricot Phase 3</b></td><td>4.2</td><td>655</td><td>4.98</td><td>25.71</td><td>4,000</td><td>168,337,684</td></tr>
+          <tr><td><b>Apricot Phase 4</b></td><td>10.1</td><td>1,471</td><td>4.14</td><td>4.29</td><td>2,075</td><td>100,440,544</td></tr>
+          <tr><td><b>Apricot Phase 5</b></td><td>39.5</td><td>6,875</td><td>4.29</td><td>8.83</td><td>2,033</td><td>683,514,631</td></tr>
+          <tr><td><b>Apricot Phase Pre-6</b></td><td>0.25</td><td>47</td><td>6.00</td><td>8.84</td><td>2,549</td><td>17,421,353</td></tr>
+          <tr><td><b>Apricot Phase 6</b></td><td>0.04</td><td>2</td><td>14.58</td><td>25.01</td><td>33,113</td><td>66,225</td></tr>
+          <tr><td><b>Apricot Phase Post-6</b></td><td>5.9</td><td>783</td><td>4.42</td><td>12.86</td><td>2,140</td><td>67,516,771</td></tr>
+          <tr><td><b>Banff</b></td><td>27.0</td><td>3,431</td><td>4.43</td><td>9.67</td><td>2,202</td><td>389,656,227</td></tr>
+          <tr><td><b>Cortina</b></td><td>45.2</td><td>9,101</td><td>4.25</td><td>7.00</td><td>2,005</td><td>725,396,653</td></tr>
+          <tr><td><b>Durango</b></td><td>40.7</td><td>12,657</td><td>2.14</td><td>4.43</td><td>2,005</td><td>730,947,782</td></tr>
+          <tr><td><b>Etna (ACP-77)</b></td><td>16.1</td><td>5,179</td><td>2.14</td><td>4.43</td><td>2,000</td><td>301,102,662</td></tr>
+          <tr><td><b>Fortuna</b></td><td>32.2</td><td>7,775</td><td>2.14</td><td>4.15</td><td>2,000</td><td>601,308,277</td></tr>
+          <tr><td><b>Granite</b></td><td>43.9</td><td>4,580</td><td>3.65</td><td>3.97</td><td>14,585</td><td>890,144,577</td></tr>
+          <tr><td><b>Helicon (Live Census)</b></td><td>Current</td><td>602 nodes</td><td>2.14 (15.0d)</td><td>8.90 (62.3d)</td><td>18,140</td><td>166,742,110</td></tr>
+        </tbody>
+      </table>
+
+      <h3>1.2 Two Structural Regime Shocks</h3>
+      <ul>
+        <li><b>The Durango Timestamp Alignment Shift (March 2024):</b> Unweighted median commitment duration held constant between 4.14 and 4.98 weeks from Genesis through Cortina. At Durango, median duration dropped to exactly 2.14 weeks (15.0 days). Durango eliminated client-side transaction timestamp padding by moving validator start times to exact on-chain block acceptance. Operators defaulted to the 14-day protocol floor plus a 1-day execution buffer.</li>
+        <li><b>The Granite Subnet Decoupling Shock (Post-ACP-77):</b> ACP-77 eliminated the mandate requiring sovereign Subnet validators to stake 2,000 AVAX on the Primary Network. Smaller Subnet operators withdrew their capital, reducing the Primary Network staking ratio to an all-time low of 35.19%. Consequently, median validator self-stake rose from 2,005 AVAX to 14,585 AVAX, stake-weighted duration fell to an all-time low of 3.97 weeks, and 41% of 2026 entrant nodes closed themselves to delegation by setting a 100% fee.</li>
+      </ul>
+
+      <h3>1.3 Behavioral Invariants from the Shawn Anderson Renewal Panel</h3>
+      <p>Analysis of the 57,067 resolved validator staking periods in the canonical renewal panel (<code>01-renewal-panel.parquet</code>) establishes three empirical invariants:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Staking Period Sequence</th>
+            <th>Observed Decisions</th>
+            <th>Exit Probability</th>
+            <th>Renewal Probability</th>
+            <th>Mean Tenure Hazard Ratio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Period 1</b></td><td>7,603</td><td>28.9%</td><td>71.1%</td><td>1.00x (Baseline)</td></tr>
+          <tr><td><b>Period 2</b></td><td>5,357</td><td>17.6%</td><td>82.4%</td><td>0.61x</td></tr>
+          <tr><td><b>Period 3</b></td><td>4,384</td><td>14.7%</td><td>85.3%</td><td>0.51x</td></tr>
+          <tr><td><b>Period 5</b></td><td>3,254</td><td>11.1%</td><td>88.9%</td><td>0.38x</td></tr>
+          <tr><td><b>Period 7</b></td><td>2,475</td><td>7.3%</td><td>92.7%</td><td>0.25x</td></tr>
+          <tr><td><b>Period 10</b></td><td>1,824</td><td>14.9%</td><td>85.1%</td><td>0.52x</td></tr>
+          <tr><td><b>Period 15</b></td><td>1,091</td><td>4.0%</td><td>96.0%</td><td>0.14x</td></tr>
+          <tr><td><b>Period 20</b></td><td>783</td><td>8.3%</td><td>91.7%</td><td>0.29x</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 2 -->
+    <div class="section-card">
+      <h2>2. Foundation Cryptoeconomic Objectives and Macro Health Invariants</h2>
+      <h3>2.1 The Measure, Capture, Distribute Sequence (Matias Antonio Doctrine)</h3>
+      <p>The Foundation economic doctrine establishes that on-chain value generation does not automatically accrue to native token value:</p>
+      <ul>
+        <li><b>Measure:</b> Total Value Locked (TVL) tracks idle capital stock, while Market Capitalization reflects speculative sentiment. The Foundation replaces these with Gross Chain Product (GCP): $\text{Value Added} = \text{Protocol Onchain Profit} + \text{Transaction Fees Generated}$, deflated through a Fisher Chain-Weighted Index across approximately 700 active tokens. Between January 2025 and March 2026, while nominal C-Chain output dropped 60% during token price depreciation, Real GCP dropped only 25%, establishing underlying economic resilience. Gross Chain Income (GCI) tracks off-chain flows settling on Avalanche.</li>
+        <li><b>Capture:</b> Broadens protocol revenue capture beyond C-Chain gas burns through ACP-283 dynamic base fee governance, ACP-77 continuous L1 validator burns (1 AVAX per validator per month), and ACP-103 dynamic P-Chain transaction pricing.</li>
+        <li><b>Distribute:</b> Manages the equilibrium allocation between token supply burns (distributing value to passive holders through supply contraction) and active validator staking yields.</li>
+      </ul>
+
+      <h3>2.2 Macro Health Invariants and Targets (Dr. Eric Lu Specifications)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Macro Target Metric</th>
+            <th>Historical Genesis / Peak</th>
+            <th>Granite Baseline</th>
+            <th>Strategic Corridor</th>
+            <th>Systems Engineering Justification</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Network Staking Ratio</b> ($\sigma$)</td><td>64.2%</td><td>35.19%</td><td><b>50.0% to 60.0%</b></td><td>Defends Byzantine quorum thresholds against market buyout float.</td></tr>
+          <tr><td><b>Active Validator Set</b> ($N_{\text{nodes}}$)</td><td>1,500+ nodes</td><td>602 nodes</td><td><b>&ge; 600 Independent Nodes</b></td><td>Preserves Snow consensus sample entropy and physical decentralization.</td></tr>
+          <tr><td><b>Stake-Weighted Duration</b> ($\bar{d}_{\text{macro}}$)</td><td>38.5 weeks</td><td>3.97 weeks</td><td><b>&ge; 16.9 weeks (~4 months)</b></td><td>Eliminates macro rollover cliffs and short-term capital flight risks.</td></tr>
+          <tr><td><b>Validator Liveness Floor</b></td><td>80.0%</td><td>93.4% median</td><td><b>&ge; 90.0% Uptime (ACP-267)</b></td><td>Enforces DAG consensus finality speed and low-latency round trip times.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 3 -->
+    <div class="section-card">
+      <h2>3. Consensus Capital Distribution and the Delegator Firewall</h2>
+      <h3>3.1 Network Capital Distribution</h3>
+      <p>The post-Etna consensus active set comprises 602 concurrent validators exhibiting structural capital polarization:</p>
+      <ul>
+        <li><b>Retail Sovereign Tier (&lt; 6,000 AVAX):</b> 229 nodes holding 599,000 AVAX self-bond (0.34% of consensus capital). Median bond: 2,070 AVAX. Median duration: 15.0 days.</li>
+        <li><b>Whale Institutional Tier (&ge; 6,000 AVAX):</b> 373 nodes holding 175,000,000 AVAX self-bond (99.66% of consensus capital) and 191,600,000 AVAX of delegated stake. Median self-bond: 181,000 AVAX (top tier exceeding 1,200,000 AVAX).</li>
+      </ul>
+
+      <h3>3.2 The 14-Day Delegator Firewall (PlatformVM Consensus Rule)</h3>
+      <p>ACP-273 reduced the minimum duration to 48 hours strictly for Primary Network validator self-stakes. <b>Delegator staking duration remains hardcoded at 14 days (336 hours)</b>. PlatformVM state validation strictly enforces:
+      $$\text{delegation.startTime} \ge \text{validator.startTime} \quad \text{AND} \quad \text{delegation.endTime} \le \text{validator.endTime}$$
+      This consensus verification rule establishes a cryptographic boundary:
+      </p>
+      <ul>
+        <li><b>Zero Delegations for 48-Hour Stints:</b> A node registered for less than 14 days cannot accept delegations. Any <code>AddDelegatorTx</code> targeting a 48-hour validator is rejected by every consensus node on the network.</li>
+        <li><b>Institutional Quarantine:</b> Liquid staking protocols (BENQI managing 18,143,774 AVAX) and commercial validator fleets cannot utilize the 48-hour window without forfeiting their entire delegation fee revenue model. The 48-hour window is quarantined to proprietary solo treasury capital.</li>
+      </ul>
+    </div>
+
+    <!-- SECTION 4 -->
+    <div class="section-card">
+      <h2>4. Multi-Agent Game Theory and Payoff Matrix</h2>
+      <p>Evaluating actor payoffs across durations under live ACP-285 yield curves ($r(2\text{d}) = 3.950\%$, $r(14\text{d}) = 4.078\%$, $r(84\text{d}) = 4.536\%$, $r(118\text{d}) = 4.759\%$):</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Actor & Capital Profile</th>
+            <th>Strategy</th>
+            <th>Duration</th>
+            <th>Nominal ARR(d)</th>
+            <th>Delegation Fee Income</th>
+            <th>Net Effective ARR(d)</th>
+            <th>Liquidity Window</th>
+            <th>Strategic Equilibrium Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Whale Validator</b> (181k bond, 220k del)</td><td><b>W1: 48h Churn</b></td><td>2 days</td><td>3.950%</td><td>0.000% (Firewall blocked)</td><td>3.950%</td><td>48 hours</td><td>Dominated by delegation revenue loss.</td></tr>
+          <tr><td><b>Whale Validator</b> (181k bond, 220k del)</td><td><b>W2: Status Quo</b></td><td>14 days</td><td>4.078%</td><td>+0.248% (2% on 220k)</td><td>4.326%</td><td>14 days</td><td>Baseline under legacy delegation rules.</td></tr>
+          <tr><td><b>Whale Validator</b> (181k bond, 220k del)</td><td><b>W3: Macro Lock</b></td><td>84 days</td><td>4.536%</td><td>+0.276% (2% on 220k)</td><td>4.812%</td><td>12 weeks</td><td><b>Strictly Dominant</b> under ACP-285 yield steepening (+48.6 bps net gain).</td></tr>
+          <tr><td><b>Retail Validator</b> (2k bond, 0 del)</td><td><b>R1: 48h Churn</b></td><td>2 days</td><td>3.950%</td><td>0.000%</td><td>2.990% (-0.96% VPS drag)</td><td>48 hours</td><td>Exit state: Net ARR(d) falls below sAVAX outside option (4.15%).</td></tr>
+          <tr><td><b>Retail Validator</b> (2k bond, 0 del)</td><td><b>R2: 14d Stint</b></td><td>14 days</td><td>4.078%</td><td>0.000%</td><td>3.118% (-0.96% VPS drag)</td><td>14 days</td><td>Sub-economic: Operator experiences net drag relative to sAVAX (4.15%).</td></tr>
+          <tr><td><b>Retail Validator</b> (2k bond, 0 del)</td><td><b>R3: Target Lock</b></td><td>84 to 118d</td><td>4.536% - 4.759%</td><td>0.000%</td><td>3.576% - 3.799%</td><td>12 to 17 weeks</td><td><b>Individual Rationality Sustained:</b> Compensates operator hardware overhead.</td></tr>
+          <tr><td><b>BENQI LST Pool</b> (18.14M pooled)</td><td><b>B1: Route to 48h</b></td><td>2 days</td><td>3.950%</td><td>N/A</td><td>Protocol failure</td><td>48 hours</td><td>Cryptographically rejected by PlatformVM firewall.</td></tr>
+          <tr><td><b>BENQI LST Pool</b> (18.14M pooled)</td><td><b>B2: 14d Cadence</b></td><td>14 days</td><td>4.078%</td><td>+2.000% protocol fee</td><td>4.078% pool ARR(d)</td><td>14 days</td><td>Operational baseline.</td></tr>
+          <tr><td><b>BENQI LST Pool</b> (18.14M pooled)</td><td><b>B3: 60d Tranche</b></td><td>60 days</td><td>4.380%</td><td>+2.000% protocol fee</td><td>4.380% pool ARR(d)</td><td>60 days</td><td>Captures +30.2 bps higher ARR(d) for sAVAX holders.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 5 -->
+    <div class="section-card">
+      <h2>5. Capital Geometry of the Admission Frontier $S_{\min}(d)$</h2>
+      <h3>5.1 Global Sybil Parity Invariant</h3>
+      <p>To prevent stake-splitting attacks that dilute Snow consensus sampling or bloat P-Chain state, the cumulative capital-duration commitment at any duration $d$ must equal or exceed Mainnet's canonical baseline ($2{,}000\text{ AVAX} \times 14\text{ days} = 28{,}000\text{ AVAX-days}$):
+      $$\kappa(d) = S_{\min}(d) \cdot d \ge 28{,}000\text{ AVAX-days} \implies S_{\min}(2\text{d}) \ge 14{,}000\text{ AVAX}$$
+      </p>
+
+      <h3>5.2 Mathematical Formulation of Harmonic Bounded Decay</h3>
+      $$S_{\min}(d) = 500 + (S_{\text{short}} - 500) \cdot \left[ \frac{\frac{1}{d} - \frac{1}{365}}{\frac{1}{2} - \frac{1}{365}} \right]^p, \quad p = \frac{\ln\left(\frac{2{,}000 - 500}{S_{\text{short}} - 500}\right)}{\ln\left(\frac{\frac{1}{d_{\text{target}}} - \frac{1}{365}}{\frac{1}{2} - \frac{1}{365}}\right)}$$
+
+      <h3>5.3 Governance Schedule Comparison</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Evaluation Dimension</th>
+            <th>Package A: Gradual Bridge</th>
+            <th>Package B: Target Corridor (RECOMMENDED)</th>
+            <th>Package C: Aggressive Extension</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Short Anchor Stake ($S_{\text{short}}$ at 2d)</b></td><td>14,000 AVAX</td><td><b>18,000 AVAX</b></td><td>20,000 AVAX</td></tr>
+          <tr><td><b>Target Lockup ($d_{\text{target}}$ for 2k)</b></td><td>56 days (8.0 weeks)</td><td><b>84 days (12.0 weeks)</b></td><td>118 days (16.9 weeks)</td></tr>
+          <tr><td><b>Exponent Parameter ($p$)</b></td><td>0.58</td><td><b>0.65</b></td><td>0.72</td></tr>
+          <tr><td><b>14-Day Admission Stake ($S_{\min}(14\text{d})$)</b></td><td>4,387 AVAX</td><td><b>5,678 AVAX</b></td><td>6,756 AVAX</td></tr>
+          <tr><td><b>BENQI 6k Knot Alignment</b></td><td>Fits beneath 6k floor</td><td><b>Harmonious (5,678 &lt; 6,000)</b></td><td>Exceeds 6k floor (friction)</td></tr>
+          <tr><td><b>2-Day Sybil Parity Ratio</b></td><td>1.00x (28,000 AVAX-d)</td><td><b>1.29x (36,000 AVAX-d)</b></td><td>1.43x (40,000 AVAX-d)</td></tr>
+          <tr><td><b>Macro Duration Lift</b></td><td>Lifts to ~19.5 weeks</td><td><b>Lifts to 21.6 weeks</b></td><td>Lifts to 23.8 weeks</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 6 -->
+    <div class="section-card">
+      <h2>6. Tinbergen Policy Separation Matrix and Structural Limits</h2>
+      <h3>6.1 The Tinbergen Rule in Avalanche Governance</h3>
+      <p>Jan Tinbergen established that achieving $N$ independent economic policy targets requires at least $N$ independent policy instruments. Attempting to solve multiple distinct failures with a single blunt instrument introduces severe systemic distortion.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Macro Network Target</th>
+            <th>Primary Policy Lever</th>
+            <th>Coordinated Mechanism</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1. Anti-Sybil & State Health</td><td><b>Admission Frontier $S_{\min}(d)$</b></td><td>Hyperbolic Capital Barrier</td></tr>
+          <tr><td>2. Macro Duration Expansion</td><td><b>ACP-285 Yield Curve Gradient</b></td><td>Asymmetric Floor Reduction</td></tr>
+          <tr><td>3. Institutional Liquidity</td><td><b>ACP-273 48h Validator Window</b></td><td>Quarantined Proprietary Float</td></tr>
+          <tr><td>4. Permanent Token Deflation</td><td><b>ACP-283 & ACP-77 Fee Burns</b></td><td>Dynamic Gas Voting & L1 Fees</td></tr>
+          <tr><td>5. PlatformVM DoS Mitigation</td><td><b>ACP-103 Dynamic P-Chain Fees</b></td><td>Multidimensional Base Fee</td></tr>
+          <tr><td>6. Broad Decentralized Entry</td><td><b>Asymptotic Floor (500 AVAX)</b></td><td>Tenure Discount at 365 Days</td></tr>
+        </tbody>
+      </table>
+
+      <h3>6.2 Structural Limits of the Admission Frontier $S_{\min}(d)$</h3>
+      <ol>
+        <li><b>The Scale-Invariance Limit:</b> $S_{\min}(d)$ functions as an entry filter. It successfully halts micro-capital Sybil attacks at 48 hours ($500\text{ AVAX} \times 2\text{d} = 1,000\text{ AVAX-days}$). However, it is scale-invariant with respect to large capital: a treasury holding 181,000 AVAX or an LST pool holding 18,143,774 AVAX easily satisfies any flat barrier ($18,000$, $50,000$, or $100,000$ AVAX). Sizing $S_{\text{short}}$ above 20,000 AVAX fails to extend whale duration; it merely prices out decentralized operators.</li>
+        <li><b>The Inflation Invariance Limit:</b> $S_{\min}(d)$ controls access barriers; it does not adjust the network emission rate or supply schedule. Managing the security budget transition as issuance exhausts requires ACP-285 (reward curve steepening) and ACP-283 (dynamic fee burns).</li>
+        <li><b>The Hardware Drag Invariance Limit:</b> $S_{\min}(d)$ cannot alter the off-chain cost of validator hardware ($&gt;\$40/\text{month}$ VPS). It can only guide small nodes toward lockups where protocol ARR(d) covers hosting drag.</li>
+        <li><b>The Delegation Concentration Limit:</b> $S_{\min}(d)$ does not resolve delegation skew (where 52.8% of nodes receive zero delegations). Expanding delegation caps under ACP-247 ($24\times$) without duration weighting further concentrates delegated capital into large custodial operators.</li>
+      </ol>
+    </div>
+
+    <!-- SECTION 7 -->
+    <div class="section-card">
+      <h2>7. Governance Implementation Schedule and Quantized Brackets</h2>
+      <h3>7.1 Quantized Integer Schedule for PlatformVM Implementation</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Duration Range (Days)</th>
+            <th>Representative Tenure</th>
+            <th>Quantized Minimum Stake ($S_{\min}$)</th>
+            <th>Capital-Time Commitment</th>
+            <th>Sybil Parity Multiplier</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b>$2 \le d &lt; 7$</b></td><td>48 Hours to 6 Days</td><td><b>18,000 AVAX</b></td><td>36,000 to 108,000 AVAX-days</td><td>1.29x to 3.86x</td></tr>
+          <tr><td><b>$7 \le d &lt; 14$</b></td><td>1 Week</td><td><b>8,500 AVAX</b></td><td>59,500 AVAX-days</td><td>2.13x</td></tr>
+          <tr><td><b>$14 \le d &lt; 30$</b></td><td>2 Weeks (Delegator Floor)</td><td><b>5,678 AVAX</b></td><td>79,492 AVAX-days</td><td>2.84x</td></tr>
+          <tr><td><b>$30 \le d &lt; 60$</b></td><td>1 Month</td><td><b>3,680 AVAX</b></td><td>110,400 AVAX-days</td><td>3.94x</td></tr>
+          <tr><td><b>$60 \le d &lt; 84$</b></td><td>2 Months</td><td><b>2,520 AVAX</b></td><td>151,200 AVAX-days</td><td>5.40x</td></tr>
+          <tr><td><b>$84 \le d &lt; 180$</b></td><td>12 Weeks (Target Horizon)</td><td><b>2,000 AVAX</b></td><td>168,000 AVAX-days</td><td>6.00x</td></tr>
+          <tr><td><b>$180 \le d &lt; 365$</b></td><td>6 Months</td><td><b>1,120 AVAX</b></td><td>201,600 AVAX-days</td><td>7.20x</td></tr>
+          <tr><td><b>$d \ge 365$</b></td><td>1 Year (ACP-49 Floor)</td><td><b>500 AVAX</b></td><td>182,500 AVAX-days</td><td>6.52x</td></tr>
+        </tbody>
+      </table>
+
+      <h3>7.2 Multi-Stakeholder Target Alignment Matrix</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Stakeholder Group</th>
+            <th>Primary Objective</th>
+            <th>Policy Impact Under Recommended Architecture</th>
+            <th>Performance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Avalanche Foundation</b></td><td>Macro security duration &ge; 16.9w; inflation reduction; sustainable value accrual.</td><td>Macro duration expands to <b>21.61 weeks</b>; ACP-285 reduces emission growth by ~20%; ACP-283/77 burns permanently destroy liquid supply.</td><td><b>Surpasses Target</b></td></tr>
+          <tr><td><b>Node Operators (Validators)</b></td><td>Positive economic return over hardware VPS hosting costs ($40/month drag).</td><td>Retail nodes at 84 days earn $4.536\%$ ARR(d). Net ARR(d) after VPS drag is $3.58\%$, outperforming shorter lockups and preserving node viability.</td><td><b>Individual Rationality Secured</b></td></tr>
+          <tr><td><b>Institutional Treasuries & ETFs</b></td><td>Fast capital liquidity and predictable redemption settlement.</td><td>ACP-273 provides 48-hour unstaking capability for proprietary capital backed by 18,000 AVAX anchor bonds.</td><td><b>Institutional Access Delivered</b></td></tr>
+          <tr><td><b>Delegators & Retail Holders</b></td><td>Principal capital safety; liquid staking rewards on sAVAX.</td><td>PlatformVM 14-day delegator firewall preserves delegation stability; BENQI captures 4.38% pool ARR(d) at 60-day tranches.</td><td><b>Consensus Security Preserved</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="raw-markdown" style="display:none;"># MEMO: Primary Network Cryptoeconomic Policy Architecture
+[Raw markdown preserved for clipboard export]</div>
+</body>
+</html>
