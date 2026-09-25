@@ -11,7 +11,7 @@ This proposal establishes a duration-dependent admission frontier, $S_{\min}(d)$
 
 This specification couples validator self-stake to commitment duration through a bounded harmonic decay function. Long-term stakers committing for 365 days access a reduced entry barrier of 500 AVAX (or 600 AVAX under conservative calibration). Short-term stakers utilizing the 48-hour window provide an 18,000 AVAX anchor bond, preserving a 36,000 AVAX-days Sybil commitment that exceeds the historical Mainnet baseline (1.286x parity). The continuous function is quantized into eight discrete integer brackets within `vms/platformvm` evaluated in nanoseconds and `nAVAX` to eliminate floating-point non-determinism during block verification.
 
-Tinbergen instrument separation governs the mechanism: the admission frontier guarantees Sybil parity, provides capital relief for annual stakers, and shields the P-Chain through the 14-day Delegator Firewall, while macro stake-weighted duration expansion across whale capital is governed by ACP-285 annualized reward rate $\text{ARR}(d)$ steepening.
+Tinbergen instrument separation governs the mechanism: the admission frontier guarantees Sybil parity, provides capital relief for annual stakers, and shields the P-Chain through the 14-day Delegator Firewall. Macro stake-weighted duration expansion across whale capital is governed by ACP-285 annualized reward rate $\text{ARR}(d)$ steepening.
 
 ## Motivation
 
@@ -26,8 +26,8 @@ S_min = 2,000 AVAX for all d in [14 days, 365 days]
 Onchain telemetry from the primary staking dataset (`01-renewal-panel.parquet`), comprising 57,067 completed validator stints across 7,635 physical nodes, documents the structural consequences of this static barrier:
 
 1. **Extreme Capital Clustering at the Static Floor:** The median self-bond across all historical stints is 2,015 AVAX (mean 97,264 AVAX). Over 74.8% of all validator stints (42,710 records) registered with self-bonds between 2,000 AVAX and 6,000 AVAX.
-2. **Short-Tenor Duration Compression:** The unweighted median staking duration is 23 days (mean 45.6 days). Staking periods of exactly 14 days represent 16.38% of all validator stints (9,347 records), while stints under 30 days account for 58.97% (33,654 records). Commitments spanning 365 days represent 4.10% of historical stints (2,340 records).
-3. **Regime Shock and Duration Erosion:** Across the Etna upgrade boundary, median validator duration compressed from 29 days to 15 days (2.14 weeks). In the Granite regime, median self-stake jumped to 14,585 AVAX, while stake-weighted duration fell to an all-time low of 3.97 weeks.
+2. **Short-Tenor Duration Compression:** The unweighted median staking duration is 23 days (mean 45.6 days). Staking periods of exactly 14 days represent 16.38% of all validator stints (9,347 records). Stints under 30 days account for 58.97% (33,654 records). Commitments spanning 365 days represent 4.10% of historical stints (2,340 records).
+3. **Regime Shock and Duration Erosion:** Across the Etna upgrade boundary, median validator duration compressed from 29 days to 15 days (2.14 weeks). In the Granite regime, median self-stake jumped to 14,585 AVAX, and stake-weighted duration fell to an all-time low of 3.97 weeks.
 4. **Institutional Delegation Concentration:** Liquid staking contracts (principally BENQI) mandate a 6,000 AVAX self-stake for Open Pool delegation eligibility. Stints with self-bonds at or above 6,000 AVAX (14,357 records) captured 2.67 billion AVAX in cumulative delegations (97.18% of all network delegation volume). Stints below 6,000 AVAX captured 77.4 million AVAX (2.82% of volume).
 5. **P-Chain Transaction Distribution:** Delegations account for 46.0% of all P-Chain transactions at a 100:1 ratio to validator transactions (ACP-273 telemetry).
 
@@ -146,7 +146,7 @@ The Tinbergen Separation Principle establishes that achieving $N$ independent ec
 
 1. **Whale Duration Invariance:** The admission frontier operates as an entry barrier. Large institutional entities holding 181,000 to 1,000,000+ AVAX easily satisfy an 18,000 AVAX barrier at 48 hours. Elevating the barrier further prices out decentralized operators without altering whale lockup behavior.
 2. **Macro Stake-Weighted Duration Expansion:** Macro stake-weighted duration is driven by whale capital allocation, as institutional entities control over 99% of network consensus stake weight. Whales select duration based on the annualized yield differential in ACP-285 ($\text{ARR}(365\text{d}) - \text{ARR}(2\text{d})$), not the admission threshold.
-3. **Attribution Error Correction:** Attributing macro network duration expansion to the admission frontier represents an attribution error. The admission frontier is an entry control and anti-Sybil instrument, whereas emission and yield steering are emission instruments. Macro duration expansion requires the coordinated activation of ACP-285 yield curve steepening.
+3. **Attribution Error Correction:** Attributing macro network duration expansion to the admission frontier represents an attribution error. The admission frontier functions as an entry control and anti-Sybil instrument. Protocol emission and yield steering operate as separate macroeconomic instruments. Macro duration expansion requires the coordinated activation of ACP-285 yield curve steepening.
 
 ### Evaluated Functional Form Alternatives and Trade-off Analysis
 
@@ -169,7 +169,7 @@ Five distinct mathematical functional forms were audited against protocol design
 1. **Pure Iso-Commitment ($S(d) = \max(S_{\text{floor}}, K_{\text{baseline}}/d)$):** Clamps to $S_{\text{floor}} = 500\text{ AVAX}$ at $d = 28{,}000 / 500 = 56.0\text{ days}$ (or $46.7\text{ days}$ for $600\text{ AVAX}$). For durations between 57 days and 365 days (85.1% of the allowable domain), the requirement is completely flat. This removes all capital incentives for locking beyond 8 weeks.
 2. **Standard Hyperbolic ($S(d) = S_{\text{floor}} + \frac{S_{\text{short}} - S_{\text{floor}}}{1 + \alpha (d - d_{\min})}$):** If $\alpha$ is calibrated to anchor $S(84) = 2{,}000\text{ AVAX}$, the heavy algebraic tail produces $S(365) = 862.92\text{ AVAX}$, missing the 500 AVAX target by 72.6%. If $S_{\text{floor}} = 600\text{ AVAX}$, it produces $S(365) = 937.26\text{ AVAX}$, overshooting by 56.2%.
 3. **Generalized Power-Law Decay ($S(d) = S_{\text{floor}} + \Delta S \cdot \left(\frac{365 - d}{363}\right)^p$):** Fitting $S(84) = 2{,}000\text{ AVAX}$ requires an extreme exponent $p = 9.59$ (for 500 floor) or $p = 9.84$ (for 600 floor). This causes severe distortion: at 14 days, the stake requirement remains excessively elevated at $13{,}093\text{ to }13{,}175\text{ AVAX}$, failing to provide liquidity relief.
-4. **Piecewise Discrete Cliffs ($S(d) = S_k$ without continuous derivation):** Setting discrete tiers without an underlying continuous curve creates severe cliff-edge arbitrage (for example, 13 days 23 hours requiring 18,000 AVAX while 14 days requires 2,000 AVAX). Operators exploit boundary gaps through timing games.
+4. **Piecewise Discrete Cliffs ($S(d) = S_k$ without continuous derivation):** Setting discrete tiers without an underlying continuous curve creates severe cliff-edge arbitrage (for example, 13 days 23 hours requiring 18,000 AVAX, and 14 days requiring 2,000 AVAX). Operators exploit boundary gaps through timing games.
 5. **Continuous Bounded Harmonic Decay (Selected Optimal Design):** The kernel $\frac{1}{d} - \frac{1}{365}$ matches the linear turnover frequency of consensus churn. It satisfies all boundary conditions exactly, aligns the 12-week pivot at 2,000 AVAX, maintains exponent stability ($p \in [0.615, 0.631]$), and provides smooth, monotonic convexity across the entire duration spectrum.
 
 ## Specification
@@ -192,13 +192,17 @@ The curvature exponent $p$ is derived analytically from the pivot condition:
 
 $$p = \frac{\ln\left(\frac{2{,}000 - S_{\text{floor}}}{S_{\text{short}} - S_{\text{floor}}}\right)}{\ln\left(\frac{\frac{1}{d_{\text{target}}} - \frac{1}{d_{\max}}}{\frac{1}{d_{\min}} - \frac{1}{d_{\max}}}\right)}$$
 
-For $S_{\text{floor}} = 500\text{ AVAX}$, evaluating this quotient yields:
+For $S_{\text{floor}} = 500\text{ AVAX}$ (Package B), evaluating this quotient yields:
 
-$$p = \frac{\ln(1{,}500 / 17{,}500)}{\ln(0.009165 / 0.497260)} = \frac{-2.4567}{-3.9937} = 0.6151 \quad (\text{standardized to } p = 0.650)$$
+$$p = \frac{\ln(1{,}500 / 17{,}500)}{\ln(0.009165 / 0.497260)} = \frac{-2.4567}{-3.9937} = 0.6151 \approx 0.615$$
 
-For $S_{\text{floor}} = 600\text{ AVAX}$, the quotient yields:
+For $S_{\text{floor}} = 600\text{ AVAX}$ (Package B-600), the quotient yields:
 
-$$p = \frac{\ln(1{,}400 / 17{,}400)}{\ln(0.009165 / 0.497260)} = \frac{-2.5200}{-3.9937} = 0.6310$$
+$$p = \frac{\ln(1{,}400 / 17{,}400)}{\ln(0.009165 / 0.497260)} = \frac{-2.5200}{-3.9937} = 0.6310 \approx 0.631$$
+
+For $S_{\text{short}} = 14{,}000\text{ AVAX}$ with an 8-week pivot ($d_{\text{target}} = 56\text{d}$) under $S_{\text{floor}} = 500\text{ AVAX}$ (Package A), the quotient yields:
+
+$$p = \frac{\ln(1{,}500 / 13{,}500)}{\ln(0.015117 / 0.497260)} = \frac{-2.1972}{-3.4932} = 0.6290 \approx 0.629$$
 
 ### Governance Parameter Packages
 
@@ -215,10 +219,10 @@ This specification presents three calibrated governance packages:
 │ Terminal Floor S_floor   │ 500 AVAX     │ 500 AVAX     │ 600 AVAX      │
 │ Pivot Horizon d_target   │ 56 Days (8w) │ 84 Days (12w)│ 84 Days (12w) │
 │ Stake at Pivot           │ 2,000 AVAX   │ 2,000 AVAX   │ 2,000 AVAX    │
-│ Curvature Exponent p     │ 0.820        │ 0.650        │ 0.631         │
+│ Curvature Exponent p     │ 0.629        │ 0.615        │ 0.631         │
 │ Capital-Time at 48h      │ 28,000 d*AVAX│ 36,000 d*AVAX│ 36,000 d*AVAX │
 │ Sybil Ratio at 48h       │ 1.000x       │ 1.286x       │ 1.286x        │
-│ Stake at 14 Days         │ 3,920 AVAX   │ 5,678 AVAX   │ 5,590 AVAX    │
+│ Stake at 14 Days         │ 4,390 AVAX   │ 5,678 AVAX   │ 5,590 AVAX    │
 │ Capital-Time at 365 Days │ 182,500 d*AV │ 182,500 d*AV │ 219,000 d*AV  │
 │ Sybil Ratio at 365 Days  │ 6.518x       │ 6.518x       │ 7.821x        │
 └──────────────────────────┴──────────────┴──────────────┴───────────────┘
@@ -238,14 +242,14 @@ To preserve deterministic execution across all Avalanche Network Clients, the co
 ├───────┬──────────────────────┬─────────────┬─────────────────┬────────────────┬────────┤
 │ Index │ Duration Range (d)   │ Stake (AVAX)│ Stake (nAVAX)   │ Capital-Time   │ Ratio  │
 ├───────┼──────────────────────┼─────────────┼─────────────────┼────────────────┼────────┤
-│ 1     │ 2d <= d < 7d         │ 18,000 AVAX │ 18,000 * 10^9   │ 36k - 108k     │ 1.29x  │
-│ 2     │ 7d <= d < 14d        │ 8,500 AVAX  │ 8,500 * 10^9    │ 59.5k - 110.5k │ 2.13x  │
-│ 3     │ 14d <= d < 30d       │ 5,678 AVAX  │ 5,678 * 10^9    │ 79.5k - 164.7k │ 2.84x  │
-│ 4     │ 30d <= d < 60d       │ 3,680 AVAX  │ 3,680 * 10^9    │ 110.4k - 217.1k│ 3.94x  │
-│ 5     │ 60d <= d < 84d       │ 2,520 AVAX  │ 2,520 * 10^9    │ 151.2k - 209.2k│ 5.40x  │
-│ 6     │ 84d <= d < 180d      │ 2,000 AVAX  │ 2,000 * 10^9    │ 168.0k - 358.0k│ 6.00x  │
-│ 7     │ 180d <= d < 365d     │ 1,120 AVAX  │ 1,120 * 10^9    │ 201.6k - 407.7k│ 7.20x  │
-│ 8     │ d >= 365d (Floor 500)│ 500 AVAX    │ 500 * 10^9      │ 182.5k+        │ 6.52x  │
+│ 1     │ 2d <= d < 7d         │ 18,000 AVAX │ 18,000 * 10^9   │ 36.0k - <126.0k│ 1.29x+ │
+│ 2     │ 7d <= d < 14d        │ 8,500 AVAX  │ 8,500 * 10^9    │ 59.5k - <119.0k│ 2.13x+ │
+│ 3     │ 14d <= d < 30d       │ 5,678 AVAX  │ 5,678 * 10^9    │ 79.5k - <170.3k│ 2.84x+ │
+│ 4     │ 30d <= d < 60d       │ 3,680 AVAX  │ 3,680 * 10^9    │ 110.4k - <220.8│ 3.94x+ │
+│ 5     │ 60d <= d < 84d       │ 2,520 AVAX  │ 2,520 * 10^9    │ 151.2k - <211.7│ 5.40x+ │
+│ 6     │ 84d <= d < 180d      │ 2,000 AVAX  │ 2,000 * 10^9    │ 168.0k - <360.0│ 6.00x+ │
+│ 7     │ 180d <= d < 365d     │ 1,120 AVAX  │ 1,120 * 10^9    │ 201.6k - <408.8│ 7.20x+ │
+│ 8     │ d >= 365d (Floor 500)│ 500 AVAX    │ 500 * 10^9      │ 182.5k+        │ 6.52x+ │
 └───────┴──────────────────────┴─────────────┴─────────────────┴────────────────┴────────┘
 ```
 
@@ -257,14 +261,14 @@ For governance transparency, the quantized schedule under Package B-600 evaluate
 ├───────┬──────────────────────┬─────────────┬─────────────────┬────────────────┬────────┤
 │ Index │ Duration Range (d)   │ Stake (AVAX)│ Stake (nAVAX)   │ Capital-Time   │ Ratio  │
 ├───────┼──────────────────────┼─────────────┼─────────────────┼────────────────┼────────┤
-│ 1     │ 2d <= d < 7d         │ 18,000 AVAX │ 18,000 * 10^9   │ 36k - 108k     │ 1.29x  │
-│ 2     │ 7d <= d < 14d        │ 8,420 AVAX  │ 8,420 * 10^9    │ 58.9k - 109.5k │ 2.10x  │
-│ 3     │ 14d <= d < 30d       │ 5,590 AVAX  │ 5,590 * 10^9    │ 78.3k - 162.1k │ 2.80x  │
-│ 4     │ 30d <= d < 60d       │ 3,600 AVAX  │ 3,600 * 10^9    │ 108.0k - 212.4k│ 3.86x  │
-│ 5     │ 60d <= d < 84d       │ 2,420 AVAX  │ 2,420 * 10^9    │ 145.2k - 200.9k│ 5.19x  │
-│ 6     │ 84d <= d < 180d      │ 2,000 AVAX  │ 2,000 * 10^9    │ 168.0k - 358.0k│ 6.00x  │
-│ 7     │ 180d <= d < 365d     │ 1,260 AVAX  │ 1,260 * 10^9    │ 226.8k - 458.6k│ 8.10x  │
-│ 8     │ d >= 365d (Floor 600)│ 600 AVAX    │ 600 * 10^9      │ 219.0k+        │ 7.82x  │
+│ 1     │ 2d <= d < 7d         │ 18,000 AVAX │ 18,000 * 10^9   │ 36.0k - <126.0k│ 1.29x+ │
+│ 2     │ 7d <= d < 14d        │ 8,420 AVAX  │ 8,420 * 10^9    │ 58.9k - <117.9k│ 2.10x+ │
+│ 3     │ 14d <= d < 30d       │ 5,590 AVAX  │ 5,590 * 10^9    │ 78.3k - <167.7k│ 2.80x+ │
+│ 4     │ 30d <= d < 60d       │ 3,600 AVAX  │ 3,600 * 10^9    │ 108.0k - <216.0│ 3.86x+ │
+│ 5     │ 60d <= d < 84d       │ 2,420 AVAX  │ 2,420 * 10^9    │ 145.2k - <203.3│ 5.19x+ │
+│ 6     │ 84d <= d < 180d      │ 2,000 AVAX  │ 2,000 * 10^9    │ 168.0k - <360.0│ 6.00x+ │
+│ 7     │ 180d <= d < 365d     │ 1,260 AVAX  │ 1,260 * 10^9    │ 226.8k - <459.9│ 8.10x+ │
+│ 8     │ d >= 365d (Floor 600)│ 600 AVAX    │ 600 * 10^9      │ 219.0k+        │ 7.82x+ │
 └───────┴──────────────────────┴─────────────┴─────────────────┴────────────────┴────────┘
 ```
 
@@ -306,12 +310,13 @@ This proposal introduces a state transition change requiring an orchestrated net
 
 The following Go implementation provides the complete, deterministic admission verification function for inclusion in `vms/platformvm`:
 
+### Consensus Verification Logic (`vms/platformvm/admission.go`)
+
 ```go
 package platformvm
 
 import (
 	"errors"
-	"testing"
 	"time"
 )
 
@@ -319,6 +324,7 @@ var (
 	ErrStakeDurationTooShort      = errors.New("validator stake duration below protocol minimum")
 	ErrStakeDurationTooLong       = errors.New("validator stake duration exceeds protocol maximum")
 	ErrInsufficientValidatorStake = errors.New("validator self-stake does not satisfy duration frontier")
+	ErrNilOrEmptySchedule         = errors.New("admission frontier schedule cannot be nil or empty")
 )
 
 const (
@@ -332,13 +338,13 @@ const (
 	NanoAvaxPerAvax = 1_000_000_000
 )
 
-// DurationBracket defines a duration threshold and its corresponding minimum self-stake
+// DurationBracket defines a duration threshold and its corresponding minimum self-stake.
 type DurationBracket struct {
 	ThresholdDuration time.Duration
 	MinimumWeight     uint64 // in nAVAX
 }
 
-// AdmissionFrontierSchedule implements Package B quantized integer brackets (Recommended: 500 floor).
+// AdmissionFrontierSchedule implements Package B quantized integer brackets (Recommended: 500 AVAX floor).
 // Ordered descending by duration to support single-pass threshold evaluation.
 var AdmissionFrontierSchedule = []DurationBracket{
 	{ThresholdDuration: 365 * 24 * time.Hour, MinimumWeight: 500 * NanoAvaxPerAvax},
@@ -351,7 +357,7 @@ var AdmissionFrontierSchedule = []DurationBracket{
 	{ThresholdDuration: 48 * time.Hour,       MinimumWeight: 18000 * NanoAvaxPerAvax},
 }
 
-// AdmissionFrontierScheduleB600 implements Package B-600 quantized integer brackets (Balanced: 600 floor).
+// AdmissionFrontierScheduleB600 implements Package B-600 quantized integer brackets (Balanced: 600 AVAX floor).
 var AdmissionFrontierScheduleB600 = []DurationBracket{
 	{ThresholdDuration: 365 * 24 * time.Hour, MinimumWeight: 600 * NanoAvaxPerAvax},
 	{ThresholdDuration: 180 * 24 * time.Hour, MinimumWeight: 1260 * NanoAvaxPerAvax},
@@ -363,28 +369,45 @@ var AdmissionFrontierScheduleB600 = []DurationBracket{
 	{ThresholdDuration: 48 * time.Hour,       MinimumWeight: 18000 * NanoAvaxPerAvax},
 }
 
-// GetMinimumValidatorStake returns the required minimum self-stake for a target duration.
+// GetMinimumValidatorStake returns the required minimum self-stake under the default Package B schedule.
 func GetMinimumValidatorStake(duration time.Duration) (uint64, error) {
+	return GetMinimumValidatorStakeWithSchedule(duration, AdmissionFrontierSchedule)
+}
+
+// GetMinimumValidatorStakeWithSchedule returns the required minimum self-stake under a specified schedule.
+func GetMinimumValidatorStakeWithSchedule(duration time.Duration, schedule []DurationBracket) (uint64, error) {
 	if duration < MinValidatorStakeDuration {
 		return 0, ErrStakeDurationTooShort
 	}
 	if duration > MaxValidatorStakeDuration {
 		return 0, ErrStakeDurationTooLong
 	}
+	if len(schedule) == 0 {
+		return 0, ErrNilOrEmptySchedule
+	}
 
-	for _, bracket := range AdmissionFrontierSchedule {
+	for _, bracket := range schedule {
 		if duration >= bracket.ThresholdDuration {
 			return bracket.MinimumWeight, nil
 		}
 	}
 
-	return AdmissionFrontierSchedule[len(AdmissionFrontierSchedule)-1].MinimumWeight, nil
+	return schedule[len(schedule)-1].MinimumWeight, nil
 }
 
-// VerifyValidatorAdmission validates that an incoming validator transaction meets the frontier.
+// VerifyValidatorAdmission validates that an incoming validator transaction meets the frontier under Package B.
 func VerifyValidatorAdmission(startTime, endTime time.Time, bondedWeight uint64) error {
+	return VerifyValidatorAdmissionWithSchedule(startTime, endTime, bondedWeight, AdmissionFrontierSchedule)
+}
+
+// VerifyValidatorAdmissionWithSchedule validates admission against an explicit schedule.
+func VerifyValidatorAdmissionWithSchedule(startTime, endTime time.Time, bondedWeight uint64, schedule []DurationBracket) error {
+	if endTime.Before(startTime) || endTime.Equal(startTime) {
+		return ErrStakeDurationTooShort
+	}
+
 	duration := endTime.Sub(startTime)
-	requiredWeight, err := GetMinimumValidatorStake(duration)
+	requiredWeight, err := GetMinimumValidatorStakeWithSchedule(duration, schedule)
 	if err != nil {
 		return err
 	}
@@ -395,8 +418,18 @@ func VerifyValidatorAdmission(startTime, endTime time.Time, bondedWeight uint64)
 
 	return nil
 }
+```
 
-// TestGetMinimumValidatorStake verifies admission calculations across duration boundaries.
+### Reference Test Suite (`vms/platformvm/admission_test.go`)
+
+```go
+package platformvm
+
+import (
+	"testing"
+	"time"
+)
+
 func TestGetMinimumValidatorStake(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -404,9 +437,12 @@ func TestGetMinimumValidatorStake(t *testing.T) {
 		expected    uint64
 		expectError error
 	}{
-		{"Below 48 Hours", 47 * time.Hour, 0, ErrStakeDurationTooShort},
+		{"Below 48 Hours - 47h", 47 * time.Hour, 0, ErrStakeDurationTooShort},
+		{"Sub-second boundary below 48h", 48*time.Hour - time.Nanosecond, 0, ErrStakeDurationTooShort},
 		{"Exact 48 Hours", 48 * time.Hour, 18000 * NanoAvaxPerAvax, nil},
+		{"Sub-second boundary above 48h", 48*time.Hour + time.Nanosecond, 18000 * NanoAvaxPerAvax, nil},
 		{"Intra-Bracket 5 Days", 5 * 24 * time.Hour, 18000 * NanoAvaxPerAvax, nil},
+		{"Sub-second boundary below 7d", 7*24*time.Hour - time.Nanosecond, 18000 * NanoAvaxPerAvax, nil},
 		{"Exact 7 Days", 7 * 24 * time.Hour, 8500 * NanoAvaxPerAvax, nil},
 		{"Exact 14 Days", 14 * 24 * time.Hour, 5678 * NanoAvaxPerAvax, nil},
 		{"Exact 30 Days", 30 * 24 * time.Hour, 3680 * NanoAvaxPerAvax, nil},
@@ -414,7 +450,8 @@ func TestGetMinimumValidatorStake(t *testing.T) {
 		{"Exact 84 Days", 84 * 24 * time.Hour, 2000 * NanoAvaxPerAvax, nil},
 		{"Exact 180 Days", 180 * 24 * time.Hour, 1120 * NanoAvaxPerAvax, nil},
 		{"Exact 365 Days", 365 * 24 * time.Hour, 500 * NanoAvaxPerAvax, nil},
-		{"Exceeds 365 Days", 366 * 24 * time.Hour, 0, ErrStakeDurationTooLong},
+		{"Sub-second boundary above 365d", 365*24*time.Hour + time.Nanosecond, 0, ErrStakeDurationTooLong},
+		{"Exceeds 365 Days - 366d", 366 * 24 * time.Hour, 0, ErrStakeDurationTooLong},
 	}
 
 	for _, tt := range tests {
@@ -427,6 +464,72 @@ func TestGetMinimumValidatorStake(t *testing.T) {
 				t.Fatalf("expected stake %d, got %d", tt.expected, stake)
 			}
 		})
+	}
+}
+
+func TestGetMinimumValidatorStakeB600(t *testing.T) {
+	tests := []struct {
+		name        string
+		duration    time.Duration
+		expected    uint64
+		expectError error
+	}{
+		{"B600 Below 48 Hours", 47 * time.Hour, 0, ErrStakeDurationTooShort},
+		{"B600 Exact 48 Hours", 48 * time.Hour, 18000 * NanoAvaxPerAvax, nil},
+		{"B600 Exact 7 Days", 7 * 24 * time.Hour, 8420 * NanoAvaxPerAvax, nil},
+		{"B600 Exact 14 Days", 14 * 24 * time.Hour, 5590 * NanoAvaxPerAvax, nil},
+		{"B600 Exact 30 Days", 30 * 24 * time.Hour, 3600 * NanoAvaxPerAvax, nil},
+		{"B600 Exact 60 Days", 60 * 24 * time.Hour, 2420 * NanoAvaxPerAvax, nil},
+		{"B600 Exact 84 Days", 84 * 24 * time.Hour, 2000 * NanoAvaxPerAvax, nil},
+		{"B600 Exact 180 Days", 180 * 24 * time.Hour, 1260 * NanoAvaxPerAvax, nil},
+		{"B600 Exact 365 Days", 365 * 24 * time.Hour, 600 * NanoAvaxPerAvax, nil},
+		{"B600 Exceeds 365 Days", 366 * 24 * time.Hour, 0, ErrStakeDurationTooLong},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stake, err := GetMinimumValidatorStakeWithSchedule(tt.duration, AdmissionFrontierScheduleB600)
+			if err != tt.expectError {
+				t.Fatalf("expected error %v, got %v", tt.expectError, err)
+			}
+			if stake != tt.expected {
+				t.Fatalf("expected stake %d, got %d", tt.expected, stake)
+			}
+		})
+	}
+}
+
+func TestVerifyValidatorAdmission(t *testing.T) {
+	now := time.Now()
+
+	// Valid 48h stint with exact weight
+	err := VerifyValidatorAdmission(now, now.Add(48*time.Hour), 18000*NanoAvaxPerAvax)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	// Valid 48h stint with excess weight
+	err = VerifyValidatorAdmission(now, now.Add(48*time.Hour), 20000*NanoAvaxPerAvax)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	// Insufficient weight for 48h stint
+	err = VerifyValidatorAdmission(now, now.Add(48*time.Hour), 17999*NanoAvaxPerAvax)
+	if err != ErrInsufficientValidatorStake {
+		t.Fatalf("expected ErrInsufficientValidatorStake, got %v", err)
+	}
+
+	// Duration too short (reversed timestamps)
+	err = VerifyValidatorAdmission(now.Add(48*time.Hour), now, 18000*NanoAvaxPerAvax)
+	if err != ErrStakeDurationTooShort {
+		t.Fatalf("expected ErrStakeDurationTooShort, got %v", err)
+	}
+
+	// Empty schedule error check
+	_, err = GetMinimumValidatorStakeWithSchedule(48*time.Hour, nil)
+	if err != ErrNilOrEmptySchedule {
+		t.Fatalf("expected ErrNilOrEmptySchedule, got %v", err)
 	}
 }
 ```
@@ -477,31 +580,20 @@ The admission frontier suppresses state growth through two architectural constra
 1. **High Entry Cost on Short Tenors:** The 18,000 AVAX requirement restrains transaction volume in the 48-hour to 7-day range.
 2. **Delegator Firewall Isolation:** Delegators generate 99% of staking transactions on the Primary Network (100:1 ratio to validator transactions). By enforcing $d_{\text{delegator}} \ge 14\text{ days}$, 48-hour validators cannot host delegations, shielding the P-Chain from high-frequency delegation churn.
 
-### Tinbergen Policy Instrument Separation
+### Security Boundary and Scale-Invariance Defense
 
-The admission frontier is an entry control mechanism. Following the Tinbergen Separation Principle, one policy instrument cannot simultaneously satisfy multiple independent cryptoeconomic targets:
+Adversarial analysis confirms the necessity of Tinbergen instrument separation:
 
-```
-┌─────────────────────────────────┬─────────────────────────────────┬─────────────────────────────────┐
-│ System Target                   │ Primary Policy Instrument       │ Interaction with Admission Rule │
-├─────────────────────────────────┼─────────────────────────────────┼─────────────────────────────────┤
-│ 1. Capital Barrier Reduction    │ Admission Frontier Floor (500)  │ Direct enforcement via S_floor  │
-│ 2. Sybil Defense at 48h         │ Short Anchor Bond (18,000 AVAX) │ Direct enforcement via S_short  │
-│ 3. Macro Duration Expansion     │ ACP-285 ARR(d) Yield Steepening │ Guided via 12-week pivot        │
-│ 4. Token Issuance Control       │ ACP-285 Max Consumption Rate    │ Invariant (governed by ACP-285) │
-│ 5. P-Chain State Churn Defense  │ ACP-103 Multidimensional Fees   │ Complemented via short bond     │
-│ 6. Hardware Hosting Viability   │ Net ARR(d) Yield Margin         │ Steers small nodes to >=84d     │
-└─────────────────────────────────┴─────────────────────────────────┴─────────────────────────────────┘
-```
-
-The admission frontier governs capital entry barriers and duration commitments. It does not modify the protocol reward formula, which is governed by ACP-285, nor does it subsidize hardware operating costs directly.
+1. **Failure Mode of Single-Instrument Steering:** Attempting to force whale duration extension via the admission barrier introduces severe centralization risk. Institutional entities commanding 181,000 to 1,000,000+ AVAX easily satisfy an 18,000 AVAX barrier at 48 hours. Elevating the 48-hour requirement to 50,000 or 100,000 AVAX would price out independent sovereign operators and leave institutional whales unconstrained. This would concentrate consensus power in a shrinking set of large custodians.
+2. **Decoupled Emission Security:** Macro stake-weighted duration is driven by whale capital allocation, representing over 99% of network consensus weight. Institutional capital responds directly to annualized yield differentials ($\text{ARR}(365\text{d}) - \text{ARR}(2\text{d})$). Admission thresholds exert zero economic pull on large balances. Decoupling the entry defense mechanism ($S_{\min}(d)$) from the macroeconomic emission curve (governed by ACP-285) guarantees robust defense against Sybil fragmentation without distorting token supply dynamics or consensus stability.
+3. **Liquidity Shock Resilience:** During severe macroeconomic market drawdowns, rational validators seeking liquidity cannot cycle into transient consensus slots at negligible cost. Enforcing the 18,000 AVAX anchor bond guarantees that liquid capital pays a substantial security premium, maintaining aggregate network commitment.
 
 ## Open Questions
 
 1. **Auto-Renewed Staking Integration (ACP-236):**
-   When an active validator enables auto-renewal under ACP-236, does each renewal cycle validate against the admission frontier based on its individual scheduled duration, or does the initial registration duration govern all renewals? The recommended rule validates each renewal cycle independently.
+   Evaluation of whether each renewal cycle validates against the admission frontier based on its discrete scheduled duration or inherits the initial registration parameters. The recommended specification evaluates each renewal cycle independently.
 2. **Terminal Floor Selection (500 AVAX vs 600 AVAX):**
-   Governance must decide whether to adopt Package B ($S_{\text{floor}} = 500\text{ AVAX}$) or Package B-600 ($S_{\text{floor}} = 600\text{ AVAX}$). At 500 AVAX, annual hardware hosting costs ($40/month VPS drag) require small nodes to maintain higher uptime to achieve positive economic return. Setting the floor at 600 AVAX increases net validator margin while delivering a 70% capital reduction relative to legacy rules.
+   Governance evaluation of Package B ($S_{\text{floor}} = 500\text{ AVAX}$) versus Package B-600 ($S_{\text{floor}} = 600\text{ AVAX}$). At 500 AVAX, annual hardware hosting costs ($40/month VPS drag) require small nodes to maintain higher uptime to achieve positive economic return. Setting the floor at 600 AVAX increases net validator margin and delivers a 70% capital reduction relative to legacy rules.
 3. **Dynamic P-Chain Base Fee Coordination (ACP-103):**
    ACP-103 proposes dynamic multidimensional fees for P-Chain operations. Coordinating the base fee for `AddPermissionlessValidatorTx` with the 18,000 AVAX admission barrier will provide defense against transaction spam during network volatility.
 
