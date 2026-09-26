@@ -11,6 +11,7 @@ import click
 
 from . import __version__
 from . import atomic
+from . import binance
 from . import catx
 from . import builderhub
 from . import cblocks
@@ -38,6 +39,7 @@ from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 
 MODULES = {
     atomic.DATASET_ID: atomic,
+    binance.DATASET_ID: binance,
     cblocks.DATASET_ID: cblocks,
     cblocks.RPC_DATASET_ID: cblocks,
     cchain_rpc.DATASET_ID: cchain_rpc,

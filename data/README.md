@@ -23,6 +23,7 @@ This directory defines the machine-readable contracts for research data used in 
 | `c-chain-rpc.block-receipt-fees` | The same rows computed from a public node's block header and receipts, with no key | Implemented and tested; captured for the 2023 gap blocks on 2026-09-24 |
 | `derived.avax-monetary-daily` | One Parquet row per UTC date with rewards paid out, burns by chain, realized total supply replayed from genesis, and active stake, every amount in wei with a coverage state per component | Implemented, tested, and derived on 2026-09-23; supply is verified through 2020-09-22 until the C-Chain atomic walk and the gap-block fees complete |
 | `coingecko.avax-market-daily` | One Parquet row per day of AVAX price, market capitalization, volume, log return, and 30-day realized volatility | Implemented, tested, and captured live; public API serves the trailing 365 days only |
+| `binance.avax-usdt-daily` | One Parquet row per UTC day of AVAX/USDT open, high, low, close, volumes, log return, and 30-day realized volatility from Binance's public archive | Implemented, tested, and captured from 2020-09-22 to 2026-09-25; every file checked against its published SHA-256 |
 | `defillama.avax-price-daily` | One Parquet row per daily AVAX price observation since 2020-09-22 with log return and 30-day realized volatility | Implemented, tested, and captured live |
 | `p-chain-rpc.current-validators` | One Parquet row per validator in the current Primary Network set with stake, fee, observed uptime, connection, and delegator totals | Implemented, tested, and captured live; a snapshot, not a history |
 | `defillama.pool-yields` | One Parquet row per DefiLlama pool on Avalanche or in a declared proof-of-stake staking project, with yields, TVL, and risk descriptors | Implemented, tested, and captured live; a snapshot |
@@ -163,6 +164,14 @@ uv run --locked avalanche data check coingecko.avax-market-daily \
   --capture data/runs/avax-market-example/capture \
   --dataset data/runs/avax-market-example/dataset \
   --against data/runs/avax-price-example/dataset
+```
+
+The Binance archive gives the same history with exact UTC day boundaries: each day's close is the price at the next midnight, so a feature observed at a Monday 00:00 cutoff reads Sunday's close. The archive publishes a SHA-256 beside every file, and the capture refuses a file that differs. The quote is USDT: against Coinbase's AVAX/USD closes on 1,453 days from October 2021 to September 2025 the median difference is 0.05% and the largest 1.22%. The check compares each day's open with CoinGecko's USD price at the same midnight and reports a day only when the price is both beyond 2% of the open and outside the day's range widened by 2%; on the 365 shared days of 2026-09-26 the median difference is 0.09% and no day is reported. DefiLlama's points are stamped at 00:00, 00:01, or 23:59, so its date labels shift by up to a day; aligned by time of day it agrees with Binance at a median of 0.11%.
+
+```bash
+uv run --locked avalanche data fetch binance.avax-usdt-daily --output data/runs/binance-avax-example/capture --param end=<first day not captured>
+uv run --locked avalanche data build binance.avax-usdt-daily --from data/runs/binance-avax-example/capture --output data/runs/binance-avax-example/dataset
+uv run --locked avalanche data check binance.avax-usdt-daily --capture data/runs/binance-avax-example/capture --dataset data/runs/binance-avax-example/dataset --against data/runs/avax-market-example/dataset
 ```
 
 The cross-check pairs each CoinGecko midnight observation with the DefiLlama observation nearest that day's start when it lies within three hours, reports the median and maximum relative difference and the days it could not align, and raises a finding for any aligned day beyond 10%.

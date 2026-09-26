@@ -89,6 +89,32 @@
       ]
     },
     {
+      "id": "binance-public-data",
+      "name": "Binance public market data archive",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Exchange candles published by Binance for its AVAX/USDT market, the full history since AVAX began trading on 2020-09-22. Third-party market observations, quoted in USDT, not USD; they establish nothing on chain.",
+      "documentation_url": "https://github.com/binance/binance-public-data",
+      "authentication": "none; static files served at data.binance.vision, each beside a CHECKSUM file carrying its SHA-256",
+      "reuse_status": "Public archive observed 2026-09-27. A day's file appears the following day.",
+      "endpoints": [
+        {
+          "id": "avax-usdt-1d-monthly",
+          "url": "https://data.binance.vision/data/spot/monthly/klines/AVAXUSDT/1d/",
+          "response_fields": [
+            "AVAXUSDT-1d-<YYYY-MM>.zip"
+          ]
+        },
+        {
+          "id": "avax-usdt-1d-daily",
+          "url": "https://data.binance.vision/data/spot/daily/klines/AVAXUSDT/1d/",
+          "response_fields": [
+            "AVAXUSDT-1d-<YYYY-MM-DD>.zip"
+          ]
+        }
+      ]
+    },
+    {
       "id": "defillama",
       "name": "DefiLlama public API",
       "source_type": "rest_api",
@@ -1982,6 +2008,86 @@
           "type": "number",
           "unit": "annualized; null until 30 returns exist",
           "derivation": "sample standard deviation of the trailing 30 log returns times sqrt(365)"
+        }
+      ]
+    },
+    {
+      "id": "binance.avax-usdt-daily",
+      "name": "AVAX daily candles, full history",
+      "source_id": "binance-public-data",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"
+      ],
+      "description": "One row per UTC day from 2020-09-22, AVAX's first day on Binance, with the day's AVAX/USDT open, high, low, close, volumes, and trade count, the daily log return, and annualized 30-day realized volatility. Every archive file is checked against its published SHA-256. The quote is USDT; the check compares each day's open with CoinGecko's USD price at the same midnight wherever both exist.",
+      "endpoint_ids": [
+        "avax-usdt-1d-monthly",
+        "avax-usdt-1d-daily"
+      ],
+      "fields": [
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC calendar date",
+          "derivation": "the candle's open time, in milliseconds before 2025 and microseconds from 2025"
+        },
+        {
+          "name": "open_usdt",
+          "type": "number",
+          "unit": "USDT per AVAX",
+          "derivation": "first trade price of the day"
+        },
+        {
+          "name": "high_usdt",
+          "type": "number",
+          "unit": "USDT per AVAX",
+          "derivation": "highest trade price of the day"
+        },
+        {
+          "name": "low_usdt",
+          "type": "number",
+          "unit": "USDT per AVAX",
+          "derivation": "lowest trade price of the day"
+        },
+        {
+          "name": "close_usdt",
+          "type": "number",
+          "unit": "USDT per AVAX",
+          "derivation": "last trade price of the day; the price at the next midnight"
+        },
+        {
+          "name": "volume_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "base asset volume"
+        },
+        {
+          "name": "quote_volume_usdt",
+          "type": "number",
+          "unit": "USDT",
+          "derivation": "quote asset volume"
+        },
+        {
+          "name": "trades",
+          "type": "integer",
+          "unit": "trades",
+          "derivation": "number of trades"
+        },
+        {
+          "name": "log_return",
+          "type": "number",
+          "unit": "natural log of consecutive closes; null on the first row",
+          "derivation": "ln(close_usdt / previous close_usdt)"
+        },
+        {
+          "name": "realized_volatility_30d",
+          "type": "number",
+          "unit": "annualized; null until 30 returns exist",
+          "derivation": "sample standard deviation of the 30 log returns ending that day times sqrt(365)"
         }
       ]
     },
