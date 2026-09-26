@@ -11,7 +11,7 @@ This proposal establishes a duration-dependent admission frontier, $S_{\min}(d)$
 
 This specification couples validator self-stake to commitment duration through a bounded harmonic decay function. Long-term stakers committing for 365 days access a reduced entry barrier of 500 AVAX (or 600 AVAX under conservative calibration). Short-term stakers utilizing the 48-hour window provide an 18,000 AVAX anchor bond, preserving a 36,000 AVAX-days Sybil commitment that exceeds the historical Mainnet baseline (1.286x parity). The continuous function is quantized into eight discrete integer brackets within `vms/platformvm` evaluated in nanoseconds and `nAVAX` to eliminate floating-point non-determinism during block verification.
 
-Tinbergen instrument separation governs the mechanism: the admission frontier guarantees Sybil parity, provides capital relief for annual stakers, and shields the P-Chain through the 14-day Delegator Firewall. Macro stake-weighted duration expansion across whale capital is governed by ACP-285 annualized reward rate $\text{ARR}(d)$ steepening.
+Tinbergen instrument separation governs the mechanism: the admission frontier $S_{\min}(d)$ exists for three explicit protocol objectives: Retail Entry Relief (500 to 600 AVAX), 48-Hour Sybil Parity (18,000 AVAX anchor bond), and P-Chain Churn Defense—while macro stake-weighted duration expansion across institutional whale capital is governed by ACP-285 annualized reward rate $\text{ARR}(d)$ steepening.
 
 ## Motivation
 
@@ -101,12 +101,13 @@ Coupling stake to duration via an admission frontier $S_{\min}(d)$ guarantees th
 
 ### Policy Goals and System Objectives
 
-This specification addresses four concrete protocol objectives:
+This specification enforces three explicit protocol objectives:
 
-1. **Sybil Parity Invariant:** Guarantee that cumulative capital-time commitment satisfies $K(d) = S_{\min}(d) \cdot d \ge 28{,}000\text{ AVAX-days}$ across every allowable duration $d \in [2\text{d}, 365\text{d}]$.
-2. **Decentralized Long-Term Access:** Lower the capital barrier for annual stakers to 500 AVAX (Package B) or 600 AVAX (Package B-600), delivering a 70% to 75% barrier reduction relative to historical Mainnet rules.
-3. **Retail Validator Duration Lift:** Establish an 84-day pivot horizon ($2{,}000\text{ AVAX}$) that economically guides retail operators into longer commitments where protocol annualized reward rates $\text{ARR}(d)$ overcome fixed server hosting costs ($40/month VPS drag).
-4. **P-Chain State Churn Mitigation:** Constrain high-frequency validator churn and maintain the 14-day Delegator Firewall to shield retail delegation traffic from transient consensus turnover.
+1. **48-Hour Sybil Parity Invariant:** Guarantee that short-duration validator commitments satisfy $K(2\text{d}) = S_{\min}(2\text{d}) \cdot 2\text{d} \ge 36{,}000\text{ AVAX-days}$, establishing a 1.286x security buffer relative to the historical Mainnet baseline ($2,000\text{ AVAX} \times 14\text{d} = 28,000\text{ AVAX-days}$).
+2. **Retail Entry Relief:** Lower the capital entry barrier for 365-day stakers from 2,000 AVAX down to 500 AVAX (Package B) or 600 AVAX (Package B-600), delivering a 70% to 75% barrier reduction for sovereign home operators.
+3. **P-Chain Churn Defense:** Constrain high-frequency validator turnover through the $18,000\text{ AVAX}$ anchor bond and maintain the 14-day Delegator Firewall to isolate retail delegation traffic from transient consensus churn.
+
+Macro stake-weighted network duration expansion across institutional whale capital is explicitly governed by ACP-285 annualized reward rate $\text{ARR}(d)$ steepening—not by the admission frontier.
 
 ### Modeling Assumptions and Behavioral Invariants
 
