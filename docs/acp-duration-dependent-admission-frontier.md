@@ -7,7 +7,7 @@
 
 ## Abstract
 
-This proposal establishes a duration-dependent admission frontier, $S_{\min}(d)$, for Primary Network consensus validators in AvalancheGo. The protocol currently enforces a static minimum self-stake of 2,000 AVAX across all allowable durations from 14 days to 365 days. In the historical record of 57,067 validator stints spanning 7,635 distinct nodes, this static requirement produced extreme duration compression: the median staking period is 23 days, compressing to 15 days following the Etna network upgrade. Independent proposals reduce the minimum stake to 500 AVAX (ACP-49) and shorten the minimum duration to 48 hours (ACP-273). If implemented as uncoupled static parameters, an operator can register a consensus validator with 500 AVAX for 48 hours. This reduces the capital-time Sybil commitment from the historical 28,000 AVAX-days to 1,000 AVAX-days, a 96.43% reduction in economic security.
+This proposal establishes a duration-dependent admission frontier, $S_{\min}(d)$, for Primary Network consensus validators in AvalancheGo. The protocol currently enforces a static minimum self-stake of 2,000 AVAX across all allowable durations from 14 days to 365 days. In the historical record of 57,067 validator stints spanning 7,635 distinct nodes, this static requirement produced extreme duration compression: the median staking period is 23 days, compressing to 15 days following the Etna network upgrade. This proposal recommends reducing the minimum stake to 500 AVAX (a BCRG-proposed parameter, derived from the ACP-13 SOV bond precedent) while ACP-273 shortens the minimum duration to 48 hours. If these reductions are implemented as uncoupled static parameters, an operator can register a consensus validator with 500 AVAX for 48 hours. This reduces the capital-time Sybil commitment from the historical 28,000 AVAX-days to 1,000 AVAX-days, a 96.43% reduction in economic security.
 
 This specification couples validator self-stake to commitment duration through a bounded harmonic decay function. Long-term stakers committing for 365 days access a reduced entry barrier of 500 AVAX (or 600 AVAX under conservative calibration). Short-term stakers utilizing the 48-hour window provide an 18,000 AVAX anchor bond, preserving a 36,000 AVAX-days Sybil commitment that exceeds the historical Mainnet baseline (1.286x parity). The continuous function is quantized into eight discrete integer brackets within `vms/platformvm` evaluated in nanoseconds and `nAVAX` to eliminate floating-point non-determinism during block verification.
 
@@ -54,8 +54,8 @@ Onchain telemetry from the primary staking dataset (`01-renewal-panel.parquet`),
 
 ### Decoupled Sybil Vulnerability
 
-Two pending proposals modify these parameters independently:
-- **ACP-49:** Lowers minimum validator self-stake from 2,000 AVAX to 500 AVAX.
+Two parameter changes modify these constraints independently:
+- **BCRG-Proposed Floor (500 AVAX):** Lowers minimum validator self-stake from 2,000 AVAX to 500 AVAX, derived from the ACP-13 SOV bond precedent.
 - **ACP-273:** Lowers minimum validator duration from 14 days to 48 hours.
 
 Implementing these proposals as uncoupled static parameters allows a node operator to occupy an active consensus slot with:
@@ -72,7 +72,7 @@ This combination reduces the economic commitment per validator slot by 96.43%. A
 ┌────────────────────────────────────────────────────────────────────────┐
 │                   DECOUPLED SYBIL COLLAPSE METRICS                     │
 ├──────────────────────────┬──────────────────────┬──────────────────────┤
-│ Metric                   │ Historical Mainnet   │ Decoupled ACP-49/273 │
+│ Metric                   │ Historical Mainnet   │ Decoupled 500/ACP-273│
 ├──────────────────────────┼──────────────────────┼──────────────────────┤
 │ Minimum Self-Stake       │ 2,000 AVAX           │ 500 AVAX             │
 │ Minimum Duration         │ 14 Days              │ 2 Days               │
@@ -184,7 +184,7 @@ $$S_{\min}(d) = S_{\text{floor}} + (S_{\text{short}} - S_{\text{floor}}) \cdot \
 where:
 - $d_{\min} = 2\text{ days}$ (the 48-hour floor specified in ACP-273).
 - $d_{\max} = 365\text{ days}$ (the annual staking limit).
-- $S_{\text{floor}} = 500\text{ AVAX}$ (the ACP-49 barrier) or $600\text{ AVAX}$ (the balanced barrier).
+- $S_{\text{floor}} = 500\text{ AVAX}$ (BCRG-proposed barrier, derived from the ACP-13 SOV bond precedent) or $600\text{ AVAX}$ (the balanced barrier).
 - $S_{\text{short}} = 18{,}000\text{ AVAX}$ (the short-term anchor bond).
 - $d_{\text{target}} = 84\text{ days}$ (the 12-week intermediate calibration pivot).
 - $S(d_{\text{target}}) = 2{,}000\text{ AVAX}$ (the legacy Mainnet stake threshold).
