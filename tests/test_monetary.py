@@ -216,3 +216,15 @@ def test_a_stale_many_input_run_is_skipped_and_a_required_one_is_demanded(root):
     (root / "c-atomic" / "capture" / "capture.json").write_bytes(canonical_bytes(broken))
     with pytest.raises(DataError, match="no built run of data-api.c-chain-atomic-burn"):
         monetary.select_inputs(None, root, CATALOG)
+
+
+def test_the_api_c_burn_is_bracketed_by_evm_fees_only(root, monkeypatch):
+    """The Data API's totalCBurned leaves out import and export burns, so the bracket is the ledger's EVM burns."""
+    monkeypatch.setattr(monetary, "CHECKPOINT_TOLERANCE_AVAX", 0.01)
+    make_run(root, "supply-2020-09-13", "data-api.avax-supply", "avax-supply",
+             "SELECT TIMESTAMP '2020-09-13 12:00:00' AS observed_at, 360000000.0 AS total_supply_avax, 0.0 AS circulating_supply_avax, 0.0 AS total_staked_avax, 0.0 AS total_locked_avax, 69.0 AS total_rewards_avax, 0.0 AS total_p_burned_avax, 0.0 AS total_x_burned_avax, 7.2 AS total_c_burned_avax, 0.0 AS l1_validator_fees_avax, 360000000.0 AS genesis_unlock_avax, 0.0 AS supply_identity_gap_avax",
+             "2026-09-23T18:25:00Z")
+    summary = monetary.derive(monetary.DATASET_ID, root / "ledger", None, root)["build"]["summary"]
+    point = next(item for item in summary["checkpoints"] if item["observed_at"].startswith("2020-09-13"))
+    # EVM fees: 4 AVAX through 09-12, 7.5 through 09-13. The 1 AVAX atomic burn of 09-13 is not in the bracket.
+    assert (point["c_burned"]["ledger_before_avax"], point["c_burned"]["ledger_after_avax"], point["c_burned"]["within"]) == (4.0, 7.5, True)

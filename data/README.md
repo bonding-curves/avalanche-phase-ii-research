@@ -335,7 +335,7 @@ uv run --locked avalanche data derive derived.avax-monetary-daily --output data/
 uv run --locked avalanche data check derived.avax-monetary-daily --capture data/runs/monetary-daily-example/capture --dataset data/runs/monetary-daily-example/dataset
 ```
 
-The check verifies the input runs still hash as recorded, that every day with a supply conserves exactly (close equals open plus rewards minus burns) and opens at the previous close, that every coverage value is one of complete, repaired, incomplete, or missing, that each Data API supply snapshot's cumulative rewards and burns by chain lie between the ledger's totals through the day before and through the snapshot day when the ledger is complete that far, and that the P-Chain supply counter equals genesis plus rewards paid plus the potential rewards of open periods within 0.05%. The build summary names the first incomplete day and the last day with a verified supply.
+The check verifies the input runs still hash as recorded, that every day with a supply conserves exactly (close equals open plus rewards minus burns) and opens at the previous close, that every coverage value is one of complete, repaired, incomplete, or missing, that each Data API supply snapshot's cumulative rewards and burns by chain lie between the ledger's totals through the day before and through the snapshot day when the ledger is complete that far (the API's C burn counts EVM fees only, so it is compared with the ledger's EVM burns), and that the P-Chain supply counter equals genesis plus rewards paid plus the potential rewards of open periods within 0.05%. The build summary names the first incomplete day and the last day with a verified supply.
 
 ## Use datasets from a notebook
 

@@ -422,13 +422,16 @@ def gap_fee_agreement(connection: Any) -> dict[str, int]:
 
 
 def checkpoints(connection: Any) -> list[dict[str, Any]]:
-    """Each Data API supply snapshot against the ledger's cumulative totals through the day before and through its day."""
+    """Each Data API supply snapshot against the ledger's cumulative totals through the day before and through its day.
+
+    The API's totalCBurned counts C-Chain EVM fees only, so it is compared with the ledger's EVM burns; the ledger's
+    import and export burns are real and stay in its supply, but have no counterpart in the API's figure."""
     rows = connection.execute(
         """
         WITH cumulative AS (
             SELECT date_utc,
                    sum(issued_rewards_wei) OVER w AS rewards, sum(burned_p_wei) OVER w AS p, sum(burned_x_wei) OVER w AS x,
-                   sum(burned_c_evm_wei + burned_c_atomic_wei) OVER w AS c, total_supply_close_wei AS supply, complete
+                   sum(burned_c_evm_wei) OVER w AS c, total_supply_close_wei AS supply, complete
             FROM ledger WINDOW w AS (ORDER BY date_utc ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
         ),
         snapshots AS (
