@@ -471,6 +471,8 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "c-chain-rpc.block-receipt-fees",
         "derived.staking-periods",
         "derived.node-table",
+        "derived.validator-weeks",
+        "derived.observed-delegations",
         "derived.avax-monetary-daily",
         "builder-hub.validator-uptime",
         "derived.validator-uptime-hourly",

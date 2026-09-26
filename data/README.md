@@ -37,6 +37,8 @@ This directory defines the machine-readable contracts for research data used in 
 | `builder-hub.validator-uptime` | One capture of Builder Hub's validator explorer: one Parquet row per validator per hour of its rolling 332-hour window of median uptime across Ava Labs' observing nodes, with companion tables of validator scalars, daily bench totals, and hourly block proposals | Implemented, tested, and captured daily from 2026-09-24; the first capture reaches back to 2026-09-10 08:00 UTC |
 | `derived.staking-periods` | One Parquet row per staking period, validators and delegators together, with reward outcome, supply reading, upgrade regime, and the protocol kernel's reward for the row | Implemented, tested, and derived from the four Snowflake staking runs |
 | `derived.node-table` | One Parquet row per validator node: the three clocks (span, tenure, current streak) and their stake weights, stake and fee history, delegation, rewards and failures, upgrade regimes, and the reward address as an operator proxy, all clipped at the validator capture time | Implemented, tested, and derived from the staking-period log and the two Snowflake stake runs |
+| `derived.validator-weeks` | One Parquet row per validator node per UTC week, from 2020-09-21 to the last full week before Helicon: stake, fee, age, days staked, completed and started periods, the reward address, delegated weight and capacity, and whether the node was on offer, all known at the Monday cutoff, with the week's delegations as outcomes | Implemented, tested, and derived on 2026-09-27: 385,922 rows on 7,644 nodes over 313 weeks |
+| `derived.observed-delegations` | One Parquet row per delegation accepted in the same window, with its exact duration, week, delegator address, and whether its validator was on offer at that week's cutoff | Implemented, tested, and derived on 2026-09-27: 7,056,204 delegations |
 | `derived.validator-uptime-hourly` | One Parquet row per validator per hour across every Builder Hub capture, with the number of captures that held the hour and whether they disagreed | Implemented, tested, and derived daily; the only record of hourly uptime percentages outside Ava Labs, and it exists only from the captures on |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
@@ -288,6 +290,21 @@ uv run --locked avalanche data check derived.node-table --capture data/runs/node
 ```
 
 On the 2026-09-22 runs this builds 7,644 rows in about two seconds and loads as the `node_table` view.
+
+## Derive the validator-week panel
+
+`derived.validator-weeks` lays the staking-period log out by node and UTC week, Monday 00:00 to the next Monday, for every week a node is validating at the Monday cutoff or first starts a period during it. Every feature reads only staking transactions accepted before the cutoff: the node's own stake and fee, its age since first stake (gaps included) and its days staked (gaps excluded), its completed and started periods, the reward address of its latest transaction, the stake already delegated to it, and the delegation capacity left under the weight limit of five times its own stake and at most 3 million AVAX. A node is on offer when at least fourteen days remain in its period and at least 25 AVAX of capacity is left throughout them, counting delegations already scheduled to start. The week's outcomes are the delegations accepted in it, with and without the one address behind 93% of delegation events. Gap weeks between a node's periods have no row, because whether the node returns is not known at their cutoff.
+
+`derived.observed-delegations` keeps every delegation of the window with its exact duration in seconds and in weeks, and flags one whose validator was not on offer at its week's cutoff, which is how a validator renewing mid-week shows. Two delegations of 2023-06-02 have no row at all: they were accepted for validators scheduled to start the following week, which the protocol allowed before Durango.
+
+```bash
+uv run --locked avalanche data derive derived.validator-weeks --output data/runs/validator-weeks-example
+uv run --locked avalanche data check derived.validator-weeks --capture data/runs/validator-weeks-example/capture --dataset data/runs/validator-weeks-example/dataset
+uv run --locked avalanche data derive derived.observed-delegations --output data/runs/observed-delegations-example
+uv run --locked avalanche data check derived.observed-delegations --capture data/runs/observed-delegations-example/capture --dataset data/runs/observed-delegations-example/dataset
+```
+
+The panel's check rebuilds every week before 2025-01-06 from staking transactions accepted before that date and requires the rows to be identical to the full build's, which proves no early row reads a later event; on the 2026-09-27 build all 293,690 are. It also requires one row per node and week and that every delegation of the window is counted either in a row's outcomes or as having no row. Each build takes a few seconds.
 
 ## Build the monetary daily ledger
 

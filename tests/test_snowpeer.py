@@ -98,6 +98,8 @@ def test_catalog_schema_and_references_are_valid():
         "c-chain-rpc.block-receipt-fees",
         "derived.staking-periods",
         "derived.node-table",
+        "derived.validator-weeks",
+        "derived.observed-delegations",
         "derived.avax-monetary-daily",
         "builder-hub.validator-uptime",
         "derived.validator-uptime-hourly",

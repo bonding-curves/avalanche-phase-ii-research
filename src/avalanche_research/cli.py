@@ -30,6 +30,7 @@ from . import snowflake
 from . import snowpeer
 from . import treasury
 from . import validators_api
+from . import weeks
 from . import yields
 from .catalog import DataError, canonical_bytes, load_catalog, now
 from .model import backtest as model_backtest
@@ -59,6 +60,7 @@ MODULES = {
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
     **{dataset_id: validators_api for dataset_id in validators_api.DATASET_IDS},
     **{dataset_id: builderhub for dataset_id in builderhub.DATASET_IDS},
+    **{dataset_id: weeks for dataset_id in weeks.DATASET_IDS},
 }
 
 

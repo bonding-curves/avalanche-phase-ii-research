@@ -4006,6 +4006,286 @@
       ]
     },
     {
+      "id": "derived.validator-weeks",
+      "name": "Validator-week panel",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per Primary Network validator node per UTC week, Monday 00:00 to the next Monday, from 2020-09-21 to the last full week before Helicon (2026-09-14), for every week the node is validating at the Monday cutoff or first starts a period during it. Every feature is computed from staking transactions accepted before the cutoff, so a row does not change when later events are appended; the check rebuilds the weeks before 2025-01-06 from truncated inputs and compares them. Outcomes are the delegations accepted during the week, counted with and without the one address that made 93% of delegation events. Built for the S2 input contract of the validator study; it asserts nothing about the article's unpublished market size or sample rule.",
+      "input_ids": [
+        "staking-periods",
+        "validator-stakes",
+        "delegator-stakes"
+      ],
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "the validator node; the unit is a node, not an operator (interface rule I2)"
+        },
+        {
+          "name": "week_start_utc",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "Monday 00:00 of the week; the feature cutoff"
+        },
+        {
+          "name": "active_at_week_start",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "a validator period of the node, accepted before the cutoff, spans the cutoff; false for a node whose period starts during the week"
+        },
+        {
+          "name": "offered_at_week_start",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "active at the cutoff, at least 14 days left in the period, and at least 25 AVAX of delegation capacity left throughout the next 14 days; a 100% fee does not remove the offer (decision SD4)"
+        },
+        {
+          "name": "validator_transaction_hash",
+          "type": "string",
+          "unit": "hash",
+          "derivation": "the validator period active at the cutoff"
+        },
+        {
+          "name": "period_start",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "start of that period"
+        },
+        {
+          "name": "period_end",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "committed end of that period"
+        },
+        {
+          "name": "days_remaining",
+          "type": "number",
+          "unit": "days",
+          "derivation": "period_end minus the cutoff"
+        },
+        {
+          "name": "self_stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "the node's own stake in the active period (glossary G22)"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "the active period's delegation fee (G12)"
+        },
+        {
+          "name": "first_start_known",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "earliest start among the node's validator periods known at the week's cutoff, Monday 00:00 UTC: from staking transactions accepted before it"
+        },
+        {
+          "name": "node_age_weeks",
+          "type": "number",
+          "unit": "weeks",
+          "derivation": "cutoff minus first_start_known, gaps included: span (G18); the named alternative is days_staked_weeks"
+        },
+        {
+          "name": "days_staked_weeks",
+          "type": "number",
+          "unit": "weeks",
+          "derivation": "validating time before the cutoff, overlapping periods counted once, gaps excluded (G19)"
+        },
+        {
+          "name": "completed_periods",
+          "type": "integer",
+          "unit": "periods",
+          "derivation": "validator periods ended by the cutoff: past_stint_count as decided in SD9"
+        },
+        {
+          "name": "started_periods",
+          "type": "integer",
+          "unit": "periods",
+          "derivation": "validator periods started before the cutoff, the current one included: the named alternative"
+        },
+        {
+          "name": "reward_address_asof",
+          "type": "string",
+          "unit": "address",
+          "derivation": "reward address of the node's latest validator transaction known at the week's cutoff, Monday 00:00 UTC: from staking transactions accepted before it; an operator proxy, not an identity"
+        },
+        {
+          "name": "delegated_avax_at_week_start",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "stake of delegations to the active period, accepted before the cutoff, spanning it"
+        },
+        {
+          "name": "max_delegated_avax_14d",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "largest delegated stake on the active period at the cutoff or at any scheduled start of a known delegation in the next 14 days"
+        },
+        {
+          "name": "max_weight_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "min(5 x self_stake_avax, 3,000,000): the validator's weight limit, self-stake included (AvalancheGo MaxValidatorWeightFactor and MaxValidatorStake)"
+        },
+        {
+          "name": "capacity_left_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "max_weight_avax minus self-stake minus delegated_avax_at_week_start"
+        },
+        {
+          "name": "capacity_left_avax_14d",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "max_weight_avax minus self-stake minus max_delegated_avax_14d"
+        },
+        {
+          "name": "delegations_all",
+          "type": "integer",
+          "unit": "delegations",
+          "derivation": "delegations to the node accepted during the week"
+        },
+        {
+          "name": "delegated_avax_all",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "their stake"
+        },
+        {
+          "name": "delegations_excl_concentrated",
+          "type": "integer",
+          "unit": "delegations",
+          "derivation": "the same without the concentrated address avax1tnuesf6cqwnjw7fxjyk7lhch0vhf0v95wj5jvy (decision SD8)"
+        },
+        {
+          "name": "delegated_avax_excl_concentrated",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "their stake"
+        }
+      ]
+    },
+    {
+      "id": "derived.observed-delegations",
+      "name": "Observed delegations of the validator-week window",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per delegation accepted from 2020-09-21 to 2026-09-21, with its exact duration, its week, its delegator address, and whether its validator was on offer at that week's cutoff. Every delegation of the window is here; one whose validator has no row in the validator-week panel that week is flagged rather than dropped.",
+      "input_ids": [
+        "staking-periods",
+        "validator-stakes",
+        "delegator-stakes"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "hash",
+          "derivation": "the delegation's staking transaction"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "the validator node delegated to"
+        },
+        {
+          "name": "validator_transaction_hash",
+          "type": "string",
+          "unit": "hash",
+          "derivation": "the validator period the delegation sits in"
+        },
+        {
+          "name": "delegator_address",
+          "type": "string",
+          "unit": "address",
+          "derivation": "the delegator's address from the delegator stakes capture"
+        },
+        {
+          "name": "concentrated_address",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "the delegator is avax1tnuesf6cqwnjw7fxjyk7lhch0vhf0v95wj5jvy (decision SD8)"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "acceptance time of the transaction"
+        },
+        {
+          "name": "week_start_utc",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "Monday 00:00 of the week holding accepted_at (decision SD2)"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "start of the delegation"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "end of the delegation"
+        },
+        {
+          "name": "duration_seconds",
+          "type": "integer",
+          "unit": "seconds",
+          "derivation": "end_time minus start_time (decision SD3)"
+        },
+        {
+          "name": "duration_weeks",
+          "type": "number",
+          "unit": "weeks",
+          "derivation": "duration_seconds / 604800, not rounded"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "delegated stake"
+        },
+        {
+          "name": "node_week_row",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "the validator-week panel has a row for this node and week"
+        },
+        {
+          "name": "validator_offered_at_week_start",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "that row's offered_at_week_start"
+        },
+        {
+          "name": "not_in_week_start_risk_set",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "the validator was not on offer at the week's cutoff, or has no row that week; the event-time eligibility check is separate"
+        }
+      ]
+    },
+    {
       "id": "derived.avax-monetary-daily",
       "name": "AVAX monetary daily ledger",
       "source_id": "derived",
