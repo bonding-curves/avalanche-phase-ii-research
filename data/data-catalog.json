@@ -1103,6 +1103,21 @@
           "id": "builder-hub-uptime",
           "dataset_id": "builder-hub.validator-uptime",
           "role": "Builder Hub's rolling window of hourly uptime per validator, every run under the current contract"
+        },
+        {
+          "id": "monetary-daily",
+          "dataset_id": "derived.avax-monetary-daily",
+          "role": "realized supply and active stake at each day's close, for the market stock"
+        },
+        {
+          "id": "binance-daily",
+          "dataset_id": "binance.avax-usdt-daily",
+          "role": "AVAX price and volatility at each day's close"
+        },
+        {
+          "id": "defillama-daily",
+          "dataset_id": "defillama.avax-price-daily",
+          "role": "AVAX USD price and volatility, the named alternative"
         }
       ]
     }
@@ -4020,7 +4035,8 @@
       "input_ids": [
         "staking-periods",
         "validator-stakes",
-        "delegator-stakes"
+        "delegator-stakes",
+        "staking-supply"
       ],
       "fields": [
         {
@@ -4172,6 +4188,54 @@
           "type": "number",
           "unit": "AVAX",
           "derivation": "their stake"
+        },
+        {
+          "name": "supply_counter_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "the P-Chain supply counter at its last reading before the cutoff: the supply the reward formula uses (decision RD8); null in the first week, before any reading"
+        },
+        {
+          "name": "supply_read_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "acceptance time of the staking transaction that reading comes from"
+        },
+        {
+          "name": "gross_rate_14d",
+          "type": "number",
+          "unit": "fraction per year",
+          "derivation": "the protocol kernel's annualized reward rate (annualized_reward_rate) of a 25 AVAX delegation starting at the cutoff, against supply_counter_avax (decision SD9), for fourteen days, the shortest delegation; active rows only"
+        },
+        {
+          "name": "net_rate_14d",
+          "type": "number",
+          "unit": "fraction per year",
+          "derivation": "gross_rate_14d times one minus delegation_fee_rate"
+        },
+        {
+          "name": "log_net_apy_14d",
+          "type": "number",
+          "unit": "natural log",
+          "derivation": "ln(net_rate_14d) when positive; null at a 100% fee, which stays an offer"
+        },
+        {
+          "name": "gross_rate_remaining",
+          "type": "number",
+          "unit": "fraction per year",
+          "derivation": "the protocol kernel's annualized reward rate (annualized_reward_rate) of a 25 AVAX delegation starting at the cutoff, against supply_counter_avax (decision SD9), for the time left in the node's period, the longest delegation it can take; null under fourteen days"
+        },
+        {
+          "name": "net_rate_remaining",
+          "type": "number",
+          "unit": "fraction per year",
+          "derivation": "gross_rate_remaining times one minus delegation_fee_rate"
+        },
+        {
+          "name": "log_net_apy_remaining",
+          "type": "number",
+          "unit": "natural log",
+          "derivation": "ln(net_rate_remaining) when positive"
         }
       ]
     },
@@ -4190,7 +4254,8 @@
       "input_ids": [
         "staking-periods",
         "validator-stakes",
-        "delegator-stakes"
+        "delegator-stakes",
+        "staking-supply"
       ],
       "fields": [
         {
@@ -4282,6 +4347,186 @@
           "type": "boolean",
           "unit": "flag",
           "derivation": "the validator was not on offer at the week's cutoff, or has no row that week; the event-time eligibility check is separate"
+        },
+        {
+          "name": "validator_fee_rate",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "delegation fee of the validator period the delegation sits in"
+        },
+        {
+          "name": "supply_counter_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "the P-Chain supply counter last read before the week's cutoff"
+        },
+        {
+          "name": "gross_rate",
+          "type": "number",
+          "unit": "fraction per year",
+          "derivation": "the protocol kernel's annualized reward rate of a 25 AVAX delegation of this duration starting at the week's cutoff, against supply_counter_avax"
+        },
+        {
+          "name": "net_rate",
+          "type": "number",
+          "unit": "fraction per year",
+          "derivation": "gross_rate times one minus validator_fee_rate"
+        },
+        {
+          "name": "log_net_apy",
+          "type": "number",
+          "unit": "natural log",
+          "derivation": "ln(net_rate) when positive"
+        }
+      ]
+    },
+    {
+      "id": "derived.market-weeks",
+      "name": "Delegation market weeks",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC week of the validator-week window with what belongs to the week rather than to a node: the unstaked supply stock at the Monday cutoff, the week's delegated volume by stratum, the concentrated address's share of events and AVAX, the AVAX price and 30-day volatility at the close of the Sunday before the cutoff, and coverage. The stock is a candidate, not an observed market size or outside share (decision SD6).",
+      "input_ids": [
+        "staking-periods",
+        "validator-stakes",
+        "delegator-stakes",
+        "staking-supply",
+        "monetary-daily",
+        "binance-daily",
+        "defillama-daily"
+      ],
+      "fields": [
+        {
+          "name": "week_start_utc",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "Monday 00:00 of the week"
+        },
+        {
+          "name": "supply_date",
+          "type": "string",
+          "unit": "UTC calendar date",
+          "derivation": "the Sunday before the cutoff, whose close is the cutoff"
+        },
+        {
+          "name": "total_supply_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "realized total supply at that close, from derived.avax-monetary-daily"
+        },
+        {
+          "name": "active_validator_stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "validator self-stake active at 23:59:59 that Sunday"
+        },
+        {
+          "name": "active_delegated_stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "delegated stake active then"
+        },
+        {
+          "name": "unstaked_supply_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "total supply minus both stakes: a candidate stock, not the population choosing whether to delegate (SD6)"
+        },
+        {
+          "name": "supply_checked",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "the ledger marks that Sunday complete"
+        },
+        {
+          "name": "validators_active",
+          "type": "integer",
+          "unit": "nodes",
+          "derivation": "validator-week rows active at the cutoff"
+        },
+        {
+          "name": "validators_offered",
+          "type": "integer",
+          "unit": "nodes",
+          "derivation": "validator-week rows on offer at the cutoff"
+        },
+        {
+          "name": "delegations_all",
+          "type": "integer",
+          "unit": "delegations",
+          "derivation": "delegations accepted during the week, every one, with or without a validator-week row"
+        },
+        {
+          "name": "delegated_avax_all",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "their stake: a flow, which can include stake that matured during the week"
+        },
+        {
+          "name": "delegations_excl_concentrated",
+          "type": "integer",
+          "unit": "delegations",
+          "derivation": "the same without the concentrated address"
+        },
+        {
+          "name": "delegated_avax_excl_concentrated",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "their stake"
+        },
+        {
+          "name": "concentrated_event_share",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "the concentrated address's share of the week's delegation events (SD8)"
+        },
+        {
+          "name": "concentrated_avax_share",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "its share of the week's delegated AVAX"
+        },
+        {
+          "name": "price_date",
+          "type": "string",
+          "unit": "UTC calendar date",
+          "derivation": "the last completed day before the cutoff"
+        },
+        {
+          "name": "price_usdt",
+          "type": "number",
+          "unit": "USDT per AVAX",
+          "derivation": "binance.avax-usdt-daily close of price_date: the price at the cutoff"
+        },
+        {
+          "name": "volatility_30d",
+          "type": "number",
+          "unit": "annualized",
+          "derivation": "the 30 daily log returns ending price_date, sample standard deviation times sqrt(365); null before 30 returns exist"
+        },
+        {
+          "name": "price_usd_defillama",
+          "type": "number",
+          "unit": "USD per AVAX",
+          "derivation": "defillama.avax-price-daily point nearest the cutoff within a day, the named alternative"
+        },
+        {
+          "name": "volatility_30d_defillama",
+          "type": "number",
+          "unit": "annualized",
+          "derivation": "that point's 30-day realized volatility"
+        },
+        {
+          "name": "price_present",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "price_usdt exists; false in the first week, before AVAX traded"
         }
       ]
     },

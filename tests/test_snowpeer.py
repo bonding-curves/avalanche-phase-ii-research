@@ -100,6 +100,7 @@ def test_catalog_schema_and_references_are_valid():
         "derived.node-table",
         "derived.validator-weeks",
         "derived.observed-delegations",
+        "derived.market-weeks",
         "derived.avax-monetary-daily",
         "builder-hub.validator-uptime",
         "derived.validator-uptime-hourly",

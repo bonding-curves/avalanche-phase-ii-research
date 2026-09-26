@@ -10,6 +10,13 @@ accepted during the week, counted with and without the one address that made 93%
 week, and whether its validator was on offer at that week's cutoff. No delegation is dropped: one whose validator has no
 row in its week is flagged, and the panel's summary counts it.
 
+``derived.market-weeks`` has one row per week with what belongs to the week rather than to a node: the unstaked supply
+stock at the Monday cutoff, the week's delegated volume by stratum, the concentrated address's share of events and
+AVAX, the AVAX price and 30-day volatility at the last completed day before the cutoff, and coverage.
+
+Yield quotes follow the S2 decision: the protocol kernel's annualized reward rate for a 25 AVAX delegation starting at
+the cutoff, against the P-Chain supply counter last read before it, times one minus the validator's fee.
+
 The window, the concentrated address, and the protocol limits are parameters in the capture receipt.
 """
 
@@ -22,21 +29,34 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from datetime import datetime
+
 import duckdb
 
 from . import __version__, datasets
 from .catalog import DataError, canonical_bytes, contract_hash, dataset, load_catalog, now, sha256
+from .model.protocol import annualized_reward_rate
 
 WEEKS_ID = "derived.validator-weeks"
 DELEGATIONS_ID = "derived.observed-delegations"
-DATASET_IDS = (WEEKS_ID, DELEGATIONS_ID)
+MARKET_ID = "derived.market-weeks"
+DATASET_IDS = (WEEKS_ID, DELEGATIONS_ID, MARKET_ID)
 SOURCE_ID = "derived"
-TABLES = {WEEKS_ID: "validator-weeks", DELEGATIONS_ID: "observed-delegations"}
+TABLES = {WEEKS_ID: "validator-weeks", DELEGATIONS_ID: "observed-delegations", MARKET_ID: "market-weeks"}
 INPUTS = {
     "staking-periods": "derived.staking-periods",
     "validator-stakes": "snowflake.primary-validator-stakes",
     "delegator-stakes": "snowflake.primary-delegator-stakes",
+    "staking-supply": "snowflake.primary-staking-supply",
 }
+MARKET_INPUTS = {
+    "monetary-daily": "derived.avax-monetary-daily",
+    "binance-daily": "binance.avax-usdt-daily",
+    "defillama-daily": "defillama.avax-price-daily",
+}
+VIEW_NAMES = {"staking-periods": "periods", "validator-stakes": "validators", "delegator-stakes": "delegators", "staking-supply": "supply",
+              "monetary-daily": "ledger", "binance-daily": "binance", "defillama-daily": "defillama"}
+QUOTE_STAKE_NAVAX = 25 * 10**9
 # The pre-Helicon window of decision SD10: the first Monday week holding a captured delegation to the last full week
 # before Helicon activated on 2026-09-22 15:00 UTC.
 WINDOW_START = "2020-09-21"
@@ -62,12 +82,25 @@ WEEK_COLUMNS = {
     "delegated_avax_at_week_start": "DOUBLE", "max_delegated_avax_14d": "DOUBLE", "max_weight_avax": "DOUBLE",
     "capacity_left_avax": "DOUBLE", "capacity_left_avax_14d": "DOUBLE",
     "delegations_all": "BIGINT", "delegated_avax_all": "DOUBLE", "delegations_excl_concentrated": "BIGINT", "delegated_avax_excl_concentrated": "DOUBLE",
+    "supply_counter_avax": "DOUBLE", "supply_read_at": "TIMESTAMP",
+    "gross_rate_14d": "DOUBLE", "net_rate_14d": "DOUBLE", "log_net_apy_14d": "DOUBLE",
+    "gross_rate_remaining": "DOUBLE", "net_rate_remaining": "DOUBLE", "log_net_apy_remaining": "DOUBLE",
 }
 DELEGATION_COLUMNS = {
     "transaction_hash": "VARCHAR", "node_id": "VARCHAR", "validator_transaction_hash": "VARCHAR", "delegator_address": "VARCHAR",
     "concentrated_address": "BOOLEAN", "accepted_at": "TIMESTAMP", "week_start_utc": "TIMESTAMP",
     "start_time": "TIMESTAMP", "end_time": "TIMESTAMP", "duration_seconds": "BIGINT", "duration_weeks": "DOUBLE",
     "stake_avax": "DOUBLE", "node_week_row": "BOOLEAN", "validator_offered_at_week_start": "BOOLEAN", "not_in_week_start_risk_set": "BOOLEAN",
+    "validator_fee_rate": "DOUBLE", "supply_counter_avax": "DOUBLE", "gross_rate": "DOUBLE", "net_rate": "DOUBLE", "log_net_apy": "DOUBLE",
+}
+MARKET_COLUMNS = {
+    "week_start_utc": "TIMESTAMP", "supply_date": "DATE", "total_supply_avax": "DOUBLE", "active_validator_stake_avax": "DOUBLE",
+    "active_delegated_stake_avax": "DOUBLE", "unstaked_supply_avax": "DOUBLE", "supply_checked": "BOOLEAN",
+    "validators_active": "BIGINT", "validators_offered": "BIGINT",
+    "delegations_all": "BIGINT", "delegated_avax_all": "DOUBLE", "delegations_excl_concentrated": "BIGINT", "delegated_avax_excl_concentrated": "DOUBLE",
+    "concentrated_event_share": "DOUBLE", "concentrated_avax_share": "DOUBLE",
+    "price_date": "DATE", "price_usdt": "DOUBLE", "volatility_30d": "DOUBLE", "price_usd_defillama": "DOUBLE", "volatility_30d_defillama": "DOUBLE",
+    "price_present": "BOOLEAN",
 }
 
 # Every feature of week w reads only transactions accepted before w. A period starts no earlier than its acceptance, so
@@ -152,6 +185,13 @@ SELECT week_start_utc, node_id,
        max(delegated_navax) / 1e9 AS max_delegated_avax_14d
 FROM weight GROUP BY 1, 2;
 
+-- The P-Chain supply counter last read before each cutoff: the supply the reward formula uses (decision RD8).
+CREATE OR REPLACE TABLE cutoff_supply AS
+SELECT w.week_start_utc, s.block_supply_navax AS supply_navax, s.accepted_at AS supply_read_at
+FROM weeks w ASOF LEFT JOIN (
+    SELECT accepted_at, block_supply_navax FROM supply WHERE block_supply_navax IS NOT NULL AND accepted_at < TIMESTAMP '{{known_until}}'
+) s ON w.week_start_utc > s.accepted_at;
+
 CREATE OR REPLACE TABLE outcomes AS
 SELECT k.week_start_utc, k.node_id,
        count(d.transaction_hash) AS delegations_all, coalesce(sum(d.stake_navax), 0) / 1e9 AS delegated_avax_all,
@@ -172,8 +212,17 @@ SELECT k.node_id, k.week_start_utc, k.active_at_week_start,
        least({WEIGHT_FACTOR} * a.stake_navax / 1e9, {MAX_WEIGHT_AVAX}) AS max_weight_avax,
        least({WEIGHT_FACTOR} * a.stake_navax / 1e9, {MAX_WEIGHT_AVAX}) - a.stake_navax / 1e9 - c.delegated_avax_at_week_start AS capacity_left_avax,
        least({WEIGHT_FACTOR} * a.stake_navax / 1e9, {MAX_WEIGHT_AVAX}) - a.stake_navax / 1e9 - c.max_delegated_avax_14d AS capacity_left_avax_14d,
-       o.delegations_all, o.delegated_avax_all, o.delegations_excl_concentrated, o.delegated_avax_excl_concentrated
+       o.delegations_all, o.delegated_avax_all, o.delegations_excl_concentrated, o.delegated_avax_excl_concentrated,
+       q.supply_navax / 1e9 AS supply_counter_avax, q.supply_read_at,
+       CASE WHEN k.active_at_week_start THEN annual_rate(k.week_start_utc, {MIN_DURATION_DAYS} * 86400, q.supply_navax) END AS gross_rate_14d,
+       gross_rate_14d * (1 - a.delegation_fee_rate) AS net_rate_14d,
+       CASE WHEN net_rate_14d > 0 THEN ln(net_rate_14d) END AS log_net_apy_14d,
+       CASE WHEN k.active_at_week_start AND epoch(a.period_end - k.week_start_utc) >= {MIN_DURATION_DAYS} * 86400
+            THEN annual_rate(k.week_start_utc, epoch(a.period_end - k.week_start_utc)::BIGINT, q.supply_navax) END AS gross_rate_remaining,
+       gross_rate_remaining * (1 - a.delegation_fee_rate) AS net_rate_remaining,
+       CASE WHEN net_rate_remaining > 0 THEN ln(net_rate_remaining) END AS log_net_apy_remaining
 FROM keys k
+JOIN cutoff_supply q USING (week_start_utc)
 LEFT JOIN active a USING (week_start_utc, node_id)
 JOIN history h USING (week_start_utc, node_id)
 JOIN staked s USING (week_start_utc, node_id)
@@ -188,10 +237,61 @@ SELECT d.transaction_hash, d.node_id, d.validator_transaction_hash, d.delegator_
        epoch(d.end_time - d.start_time)::BIGINT AS duration_seconds, epoch(d.end_time - d.start_time) / {SECONDS_PER_WEEK} AS duration_weeks,
        d.stake_navax / 1e9 AS stake_avax,
        p.node_id IS NOT NULL AS node_week_row, coalesce(p.offered_at_week_start, FALSE) AS validator_offered_at_week_start,
-       NOT coalesce(p.offered_at_week_start, FALSE) AS not_in_week_start_risk_set
+       NOT coalesce(p.offered_at_week_start, FALSE) AS not_in_week_start_risk_set,
+       vv.delegation_fee_rate AS validator_fee_rate, q.supply_navax / 1e9 AS supply_counter_avax,
+       annual_rate(date_trunc('week', d.accepted_at), epoch(d.end_time - d.start_time)::BIGINT, q.supply_navax) AS gross_rate,
+       gross_rate * (1 - vv.delegation_fee_rate) AS net_rate,
+       CASE WHEN net_rate > 0 THEN ln(net_rate) END AS log_net_apy
 FROM d LEFT JOIN panel p ON p.node_id = d.node_id AND p.week_start_utc = date_trunc('week', d.accepted_at)
+LEFT JOIN v vv ON vv.transaction_hash = d.validator_transaction_hash
+LEFT JOIN cutoff_supply q ON q.week_start_utc = date_trunc('week', d.accepted_at)
 WHERE d.accepted_at >= TIMESTAMP '{{window_start}}' AND d.accepted_at < TIMESTAMP '{{window_end}}'
 ORDER BY d.accepted_at, d.transaction_hash;
+"""
+
+# Market facts of each week: the stock at the cutoff from the ledger's close of the Sunday before, the week's flows from
+# the observed delegations, and the price and volatility of that Sunday, the last completed day (decision SD7).
+MARKET_SQL = """
+CREATE OR REPLACE TABLE market AS
+WITH flows AS (
+    SELECT week_start_utc, count(*) AS delegations_all, sum(stake_avax) AS delegated_avax_all,
+           count(*) FILTER (WHERE NOT concentrated_address) AS delegations_excl_concentrated,
+           coalesce(sum(stake_avax) FILTER (WHERE NOT concentrated_address), 0) AS delegated_avax_excl_concentrated,
+           count(*) FILTER (WHERE concentrated_address) / count(*) AS concentrated_event_share,
+           coalesce(sum(stake_avax) FILTER (WHERE concentrated_address), 0) / sum(stake_avax) AS concentrated_avax_share
+    FROM observed GROUP BY 1
+), llama AS (
+    -- DefiLlama stamps its points at 00:00, 00:01, or 23:59, sometimes two on one date: take the one nearest the cutoff.
+    SELECT w.week_start_utc, arg_min(y.price_usd, abs(epoch(y.observed_at - w.week_start_utc))) AS price_usd,
+           arg_min(y.realized_volatility_30d, abs(epoch(y.observed_at - w.week_start_utc))) AS realized_volatility_30d
+    FROM weeks w JOIN defillama y ON y.observed_at BETWEEN w.week_start_utc - INTERVAL 1 DAY AND w.week_start_utc + INTERVAL 1 DAY
+    GROUP BY 1
+), offers AS (
+    SELECT week_start_utc, count(*) FILTER (WHERE active_at_week_start) AS validators_active, count(*) FILTER (WHERE offered_at_week_start) AS validators_offered
+    FROM panel GROUP BY 1
+)
+SELECT w.week_start_utc, (w.week_start_utc - INTERVAL 1 DAY)::DATE AS supply_date,
+       l.total_supply_close_wei::DOUBLE / 1e18 AS total_supply_avax,
+       l.active_validator_stake_wei::DOUBLE / 1e18 AS active_validator_stake_avax,
+       l.active_delegated_stake_wei::DOUBLE / 1e18 AS active_delegated_stake_avax,
+       (l.total_supply_close_wei - l.active_validator_stake_wei - l.active_delegated_stake_wei)::DOUBLE / 1e18 AS unstaked_supply_avax,
+       coalesce(l.complete AND l.total_supply_close_wei IS NOT NULL, FALSE) AS supply_checked,
+       coalesce(o.validators_active, 0) AS validators_active, coalesce(o.validators_offered, 0) AS validators_offered,
+       coalesce(f.delegations_all, 0) AS delegations_all, coalesce(f.delegated_avax_all, 0) AS delegated_avax_all,
+       coalesce(f.delegations_excl_concentrated, 0) AS delegations_excl_concentrated,
+       coalesce(f.delegated_avax_excl_concentrated, 0) AS delegated_avax_excl_concentrated,
+       f.concentrated_event_share, f.concentrated_avax_share,
+       (w.week_start_utc - INTERVAL 1 DAY)::DATE AS price_date,
+       b.close_usdt AS price_usdt, b.realized_volatility_30d AS volatility_30d,
+       y.price_usd AS price_usd_defillama, y.realized_volatility_30d AS volatility_30d_defillama,
+       b.close_usdt IS NOT NULL AS price_present
+FROM weeks w
+LEFT JOIN ledger l ON l.date_utc = (w.week_start_utc - INTERVAL 1 DAY)::DATE
+LEFT JOIN offers o USING (week_start_utc)
+LEFT JOIN flows f USING (week_start_utc)
+LEFT JOIN binance b ON b.observation_date = (w.week_start_utc - INTERVAL 1 DAY)::DATE
+LEFT JOIN llama y USING (week_start_utc)
+ORDER BY w.week_start_utc
 """
 
 SUMMARY_SQL = """
@@ -232,13 +332,18 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     return build_preview(dataset_id, capture_dir, output)
 
 
+def inputs_of(dataset_id: str) -> dict[str, str]:
+    return {**INPUTS, **MARKET_INPUTS} if dataset_id == MARKET_ID else dict(INPUTS)
+
+
 def select_inputs(dataset_id: str, pinned: dict[str, str] | None, root: Path | None) -> list[dict[str, Any]]:
     pinned = pinned or {}
-    unknown = sorted(set(pinned) - set(INPUTS.values()))
+    wanted = inputs_of(dataset_id)
+    unknown = sorted(set(pinned) - set(wanted.values()))
     if unknown:
         raise DataError(f"not an input of {dataset_id}: {', '.join(unknown)}")
     selected = []
-    for input_id, input_dataset in INPUTS.items():
+    for input_id, input_dataset in wanted.items():
         run = pinned.get(input_dataset)
         record = datasets.receipt(input_dataset, run, root)
         parquet = datasets.parquet_path(input_dataset, run, root)
@@ -252,9 +357,13 @@ def select_inputs(dataset_id: str, pinned: dict[str, str] | None, root: Path | N
 
 
 def load_inputs(connection: Any, paths: dict[str, Path]) -> None:
-    names = {"staking-periods": "periods", "validator-stakes": "validators", "delegator-stakes": "delegators"}
     for input_id, path in paths.items():
-        connection.execute(f"CREATE OR REPLACE VIEW {names[input_id]} AS SELECT * FROM read_parquet('{str(path).replace(chr(39), chr(39) * 2)}')")
+        connection.execute(f"CREATE OR REPLACE VIEW {VIEW_NAMES[input_id]} AS SELECT * FROM read_parquet('{str(path).replace(chr(39), chr(39) * 2)}')")
+
+
+def quote(start: datetime, duration_seconds: int, supply_navax: int) -> float:
+    """The protocol kernel's annualized reward rate of a 25 AVAX delegation starting at the cutoff (decision SD9)."""
+    return annualized_reward_rate(start, duration_seconds, QUOTE_STAKE_NAVAX, supply_navax)
 
 
 def compute(connection: Any, window_start: str = WINDOW_START, window_end: str = WINDOW_END, known_until: str | None = None) -> None:
@@ -262,8 +371,14 @@ def compute(connection: Any, window_start: str = WINDOW_START, window_end: str =
     which is how the check proves that earlier rows do not depend on later events."""
     sql = PANEL_SQL.format(window_start=window_start, window_end=window_end, known_until=known_until or window_end)
     try:
+        from duckdb.sqltypes import BIGINT, DOUBLE, TIMESTAMP
+
+        if not connection.execute("SELECT count(*) FROM duckdb_functions() WHERE function_name = 'annual_rate'").fetchone()[0]:
+            connection.create_function("annual_rate", quote, [TIMESTAMP, BIGINT, BIGINT], DOUBLE)
         for statement in [item.strip() for item in sql.split(";") if item.strip()]:
             connection.execute(statement)
+        if connection.execute("SELECT count(*) FROM duckdb_views() WHERE view_name = 'ledger'").fetchone()[0]:
+            connection.execute(MARKET_SQL)
     except duckdb.Error as error:
         raise DataError(f"validator-week computation failed: {error}") from error
 
@@ -303,7 +418,7 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
         try:
             load_inputs(connection, {item["input_id"]: item["path"] for item in inputs})
             compute(connection)
-            table = "panel" if dataset_id == WEEKS_ID else "observed"
+            table = {WEEKS_ID: "panel", DELEGATIONS_ID: "observed", MARKET_ID: "market"}[dataset_id]
             connection.execute(f"COPY {table} TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(parquet_path)])
             summary = summarize(connection)
         finally:
@@ -392,10 +507,10 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                 parquet = str(dataset_dir / f"{TABLES[dataset_id]}.parquet").replace("'", "''")
                 connection.execute(f"CREATE VIEW built AS SELECT * FROM read_parquet('{parquet}')")
                 columns = [row[0] for row in connection.execute("DESCRIBE built").fetchall()]
-                expected = WEEK_COLUMNS if dataset_id == WEEKS_ID else DELEGATION_COLUMNS
+                expected = {WEEKS_ID: WEEK_COLUMNS, DELEGATIONS_ID: DELEGATION_COLUMNS, MARKET_ID: MARKET_COLUMNS}[dataset_id]
                 if columns != list(expected):
                     findings.append("Parquet columns differ from the declared fields")
-                key = "node_id, week_start_utc" if dataset_id == WEEKS_ID else "transaction_hash"
+                key = {WEEKS_ID: "node_id, week_start_utc", DELEGATIONS_ID: "transaction_hash", MARKET_ID: "week_start_utc"}[dataset_id]
                 rows, keys = connection.execute(f"SELECT count(*), count(DISTINCT ({key})) FROM built").fetchone()
                 summary.update({"rows": rows, "distinct_keys": keys})
                 if rows != keys:
@@ -409,7 +524,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
             summary["delegations_without_row"] = built["delegations"] - built["delegations_with_row"]
         except (OSError, KeyError, TypeError, json.JSONDecodeError, duckdb.Error) as error:
             findings.append(f"invalid dataset output: {error}")
-    if dataset_id == WEEKS_ID and len(paths) == len(INPUTS):
+    if dataset_id == WEEKS_ID and set(paths) == set(INPUTS):
         checked.append("rows before the invariance cutoff do not read later events")
         result = invariance(paths, receipt.get("parameters", {}).get("invariance_cutoff", INVARIANCE_CUTOFF))
         summary["invariance"] = result
