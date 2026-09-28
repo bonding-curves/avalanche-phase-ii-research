@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +17,7 @@ SPEC = importlib.util.spec_from_file_location(
 assert SPEC and SPEC.loader
 check_links = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(check_links)
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_links.py"
 
 
 class CheckLinksTests(unittest.TestCase):
@@ -86,6 +90,52 @@ class CheckLinksTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ValueError, "build is incomplete"):
                 check_links.check(Path(directory))
+
+    def test_baseline_rejects_replacement_failure_even_at_same_count(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            public = Path(directory)
+            index = public / "index.html"
+            index.write_text('<a href="/old">Old</a>')
+            baseline = check_links.make_baseline(check_links.check(public, site="client"), "abc123")
+            self.assertEqual(len(baseline["known"]), 1)
+            self.assertEqual(
+                check_links.compare_baseline(check_links.check(public, site="client"), baseline)["status"],
+                "pass",
+            )
+
+            index.write_text('<a href="/new">New</a>')
+            comparison = check_links.compare_baseline(check_links.check(public, site="client"), baseline)
+            self.assertEqual(comparison["status"], "fail")
+            self.assertEqual(comparison["new"], [["/", "/new", "missing target", 1]])
+            self.assertEqual(comparison["resolved"], 1)
+
+            index.write_text("<h1>Home</h1>")
+            comparison = check_links.compare_baseline(check_links.check(public, site="client"), baseline)
+            self.assertEqual(comparison["status"], "pass")
+            self.assertEqual(comparison["resolved"], 1)
+            with self.assertRaisesRegex(ValueError, "site does not match"):
+                check_links.compare_baseline(check_links.check(public, site="bcrg"), baseline)
+
+            index.write_text('<a href="/old">One</a><a href="/old">Two</a>')
+            comparison = check_links.compare_baseline(check_links.check(public, site="client"), baseline)
+            self.assertEqual(comparison["new"], [["/", "/old", "missing target", 1]])
+
+    def test_cli_baseline_gate_checks_the_built_output(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            public = Path(directory) / "public"
+            public.mkdir()
+            index = public / "index.html"
+            index.write_text('<a href="/known">Known</a>')
+            baseline_path = Path(directory) / "baseline.json"
+            baseline_path.write_text(json.dumps(
+                check_links.make_baseline(check_links.check(public, site="client"), "abc123")
+            ))
+            command = [sys.executable, str(SCRIPT), str(public), "--site", "client", "--baseline", str(baseline_path)]
+            self.assertEqual(subprocess.run(command, capture_output=True).returncode, 0)
+            index.write_text('<a href="/new">New</a>')
+            failed = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(failed.returncode, 1)
+            self.assertIn("NEW /: /new", failed.stdout)
 
 
 if __name__ == "__main__":

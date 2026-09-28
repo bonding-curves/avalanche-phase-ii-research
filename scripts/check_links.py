@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import re
+from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
@@ -168,19 +169,86 @@ def check(public: Path, content: Path | None = None, site: str | None = None) ->
     }
 
 
+def _fingerprints(report: dict[str, object]) -> Counter[tuple[str, str, str]]:
+    return Counter(
+        (item["page"], item["destination"], item["reason"])
+        for item in report["broken_links"]
+    )
+
+
+def make_baseline(report: dict[str, object], revision: str) -> dict[str, object]:
+    if not report["site"] or not revision:
+        raise ValueError("A site label and source revision are required for a baseline")
+    return {
+        "schema_version": "quartz-link-baseline/v1",
+        "site": report["site"],
+        "source_revision": revision,
+        "build_sha256": report["build_sha256"],
+        "known": [list(item) + [count] for item, count in sorted(_fingerprints(report).items())],
+    }
+
+
+def compare_baseline(report: dict[str, object], baseline: dict[str, object]) -> dict[str, object]:
+    if baseline.get("schema_version") != "quartz-link-baseline/v1":
+        raise ValueError("Unsupported link baseline schema")
+    if not report["site"] or baseline.get("site") != report["site"]:
+        raise ValueError("Link baseline site does not match the checked site")
+    known_rows = baseline.get("known")
+    if not isinstance(known_rows, list) or any(
+        not isinstance(row, list) or len(row) != 4
+        or not all(isinstance(part, str) for part in row[:3])
+        or not isinstance(row[3], int) or isinstance(row[3], bool) or row[3] < 1
+        for row in known_rows
+    ):
+        raise ValueError("Malformed link baseline fingerprints")
+    known = {tuple(row[:3]): row[3] for row in known_rows}
+    if len(known) != len(known_rows):
+        raise ValueError("Duplicate link baseline fingerprints")
+    current = _fingerprints(report)
+    known_counter = Counter(known)
+    added = current - known_counter
+    removed = known_counter - current
+    return {
+        "status": "pass" if not added else "fail",
+        "new": [list(item) + [count] for item, count in sorted(added.items())],
+        "known_remaining": sum((current & known_counter).values()),
+        "resolved": sum(removed.values()),
+        "baseline_revision": baseline.get("source_revision"),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("public", type=Path, help="Built Quartz public directory")
     parser.add_argument("--content", type=Path, help="Input Markdown directory for source attribution")
     parser.add_argument("--site", help="Site label in the report, such as client or bcrg")
     parser.add_argument("--json", action="store_true", help="Print every finding as JSON")
+    baseline_mode = parser.add_mutually_exclusive_group()
+    baseline_mode.add_argument("--baseline", type=Path, help="Fail only on new link failures")
+    baseline_mode.add_argument("--write-baseline", type=Path, help="Explicitly capture known failures")
+    parser.add_argument("--revision", help="Source revision label required when writing a baseline")
     args = parser.parse_args()
+    if args.write_baseline and (not args.site or not args.revision):
+        parser.error("--write-baseline requires --site and --revision")
+    if args.baseline and not args.site:
+        parser.error("--baseline requires --site")
     result = check(args.public, content=args.content, site=args.site)
+    if args.write_baseline:
+        baseline = make_baseline(result, args.revision or "")
+        args.write_baseline.write_text(json.dumps(baseline, indent=2) + "\n")
+        print(f"Captured {len(baseline['known'])} known failures for {baseline['site']}")
+        return
+    comparison = None
+    if args.baseline:
+        comparison = compare_baseline(result, json.loads(args.baseline.read_text()))
+        result["baseline_comparison"] = comparison
+    gate_status = (comparison or result)["status"]
+    result["gate_status"] = gate_status
     if args.json:
         print(json.dumps(result, indent=2))
     else:
         print(
-            f"{result['status']}: {result['pages']} pages, "
+            f"{gate_status}: {result['pages']} pages, "
             f"{result['local_links_checked']} local links checked, "
             f"{len(result['broken_links'])} broken occurrences across "
             f"{result['affected_pages']} pages and {result['failing_destinations']} destinations, "
@@ -190,7 +258,15 @@ def main() -> None:
             print(f"{group['occurrences']:>4} {group['destination']} ({group['reason']})")
         if len(result["groups"]) > 12:
             print(f"... {len(result['groups']) - 12} more destinations; use --json for all findings")
-    if result["status"] != "pass":
+        if comparison:
+            print(
+                f"baseline: {len(comparison['new'])} new, "
+                f"{comparison['known_remaining']} known remaining, "
+                f"{comparison['resolved']} resolved"
+            )
+            for page, destination, reason, count in comparison["new"][:12]:
+                print(f"NEW {page}: {destination} ({reason}, +{count})")
+    if gate_status != "pass":
         raise SystemExit(1)
 
 
