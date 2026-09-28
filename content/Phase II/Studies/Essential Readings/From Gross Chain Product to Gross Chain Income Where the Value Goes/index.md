@@ -10,4 +10,4 @@ Source material admitted to the Essential Readings collection.
 
 ## Contents
 
-- [Source Article](Source%20Article)
+- [Source Article](/Phase-II/Studies/Essential%20Readings/From%20Gross%20Chain%20Product%20to%20Gross%20Chain%20Income%20Where%20the%20Value%20Goes/Source%20Article)

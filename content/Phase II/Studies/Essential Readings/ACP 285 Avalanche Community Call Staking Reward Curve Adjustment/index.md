@@ -10,4 +10,4 @@ Source material admitted to the Essential Readings collection.
 
 ## Contents
 
-- [Source Video](Source%20Video)
+- [Source Video](/Phase-II/Studies/Essential%20Readings/ACP%20285%20Avalanche%20Community%20Call%20Staking%20Reward%20Curve%20Adjustment/Source%20Video)

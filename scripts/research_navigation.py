@@ -89,18 +89,6 @@ def _route(root: Path, page: Path) -> str:
     return route + "/" if trailing else route
 
 
-def _relative_link(source: Path, target: Path) -> str:
-    relative = Path(os.path.relpath(target, source.parent))
-    parts = list(relative.parts)
-    trailing = parts[-1] == "index.md"
-    if trailing:
-        parts.pop()
-    else:
-        parts[-1] = Path(parts[-1]).stem
-    link = "/".join(quote(part, safe=".-") for part in parts)
-    return link + "/" if trailing else link
-
-
 def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
     if registry.get("schema_version") != "research-navigation/v3":
         raise RegistryError("unsupported schema_version")
@@ -177,15 +165,15 @@ def render(registry: dict[str, Any], root: Path = ROOT) -> dict[Path, str]:
             package_index = source_page.parent / "index.md"
             source_type = SOURCE_TYPES[source["source_type"]]
             collection_items.append(
-                f"- [{source['title']}]({_relative_link(collection_index, package_index)}) · {source_type}"
+                f"- [{source['title']}]({_route(root, package_index)}) · {source_type}"
             )
             study = studies_by_source.get(source_id)
             component_items = [
-                f"- [{SOURCE_PAGE_TITLES[source['source_type']]}]({_relative_link(package_index, source_page)})"
+                f"- [{SOURCE_PAGE_TITLES[source['source_type']]}]({_route(root, source_page)})"
             ]
             if study:
                 component_items.extend(
-                    f"- [{component['title']}]({_relative_link(package_index, _page(root, component['page'], 'component.page'))})"
+                    f"- [{component['title']}]({_route(root, _page(root, component['page'], 'component.page'))})"
                     for component in study["components"]
                 )
                 description = "Source material and reviewed research components for this study."

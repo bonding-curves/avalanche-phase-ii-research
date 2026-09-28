@@ -10,4 +10,4 @@ Source material admitted to the Essential Readings collection.
 
 ## Contents
 
-- [Source Article](Source%20Article)
+- [Source Article](/Phase-II/Studies/Essential%20Readings/The%20Avalanche%20Foundation%20Unveils%20its%20Economic%20Research%20Agenda/Source%20Article)

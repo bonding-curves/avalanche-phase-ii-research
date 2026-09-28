@@ -42,6 +42,27 @@
       "source_type": "model_artifact",
       "canonical_url": null,
       "local_page": "content/Phase II/Studies/Essential Readings/January Staking and Price Model A Three-Image Reconstruction/Source Model Artifact.md"
+    },
+    {
+      "id": "lit:foundation-validator-redesign",
+      "title": "Why Avalanche Validator Economics Need a Redesign",
+      "source_type": "article",
+      "canonical_url": "https://x.com/i/article/2038984867807993857",
+      "local_page": "content/Phase II/Studies/Essential Readings/Why Avalanche Validator Economics Need a Redesign/Source Article.md"
+    },
+    {
+      "id": "lit:foundation-gcp-intro",
+      "title": "Measuring Blockchain Economies: Introducing Gross Chain Product",
+      "source_type": "article",
+      "canonical_url": "https://www.linkedin.com/pulse/measuring-blockchain-economies-introducing-gross-chain-lu-phd-juj3c",
+      "local_page": "content/Phase II/Studies/Essential Readings/Measuring Blockchain Economies Introducing Gross Chain Product/Source Article.md"
+    },
+    {
+      "id": "lit:foundation-static-constants",
+      "title": "From Static Constants to Dynamic Variables: Where Avalanche's Economics Are Headed",
+      "source_type": "article",
+      "canonical_url": "https://www.linkedin.com/pulse/from-static-constants-dynamic-variables-where-avalanches-matias-a-xh02e",
+      "local_page": "content/Phase II/Studies/Essential Readings/From Static Constants to Dynamic Variables Where Avalanches Economics Are Headed/Source Article.md"
     }
   ],
   "collections": [
@@ -52,11 +73,14 @@
       "description": "Primary research sources selected for Phase II study.",
       "source_ids": [
         "lit:avax-economic-agenda",
-        "lit:eric-equilibrium",
-        "lit:eric-validator-rewards",
+        "lit:foundation-validator-redesign",
+        "lit:foundation-gcp-intro",
         "lit:eric-gcp-gci",
-        "lit:acp-285-community-call",
-        "evidence:eric-january-images"
+        "lit:eric-equilibrium",
+        "evidence:eric-january-images",
+        "lit:eric-validator-rewards",
+        "lit:foundation-static-constants",
+        "lit:acp-285-community-call"
       ],
       "index": "content/Phase II/Studies/Essential Readings/index.md"
     }
