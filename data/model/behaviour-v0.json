@@ -1,0 +1,751 @@
+{
+  "version": "v0",
+  "status": "v0, unreviewed",
+  "generated_at": "2026-09-28T19:10:08Z",
+  "generated_by": "uv run python -m avalanche_research.estimation",
+  "inputs": {
+    "derived.validator-weeks": "validator-weeks-2026-09-27",
+    "derived.observed-delegations": "observed-delegations-2026-09-27",
+    "derived.market-weeks": "market-weeks-2026-09-27",
+    "derived.staking-periods": "staking-periods-2026-09-22",
+    "us-treasury.par-yield-daily": "treasury-yields-helicon-baseline-early"
+  },
+  "fit_window": [
+    "2021-01-01",
+    "2024-12-31"
+  ],
+  "holdout_window": [
+    "2025-01-01",
+    "2025-12-31"
+  ],
+  "spread_definition": "staking rate minus external yield, both annual fractions, at the Monday 00:00 UTC cutoff. Staking rate: model.protocol.annualized_reward_rate for a 14-day, 2,000 AVAX stake at the P-Chain supply counter read before the cutoff, gross of fees, the quote sim.engine uses. External yield: US Treasury 3-month par yield on the last date before the cutoff (par_yield_daily.yield_rate, already a fraction).",
+  "spread_mean_fit_window": 0.04226422290956083,
+  "spread_fit_window": {
+    "min": 0.006360043071249995,
+    "max": 0.09254183450642857,
+    "weeks": 209
+  },
+  "validator_entry": {
+    "base_per_day": 6.6265862762282195,
+    "spread_elasticity": -3.277280411047936,
+    "ci95": {
+      "base_per_day": [
+        5.530707418969225,
+        7.939607422675802
+      ],
+      "spread_elasticity": [
+        -7.137980862830139,
+        0.5834200407342673
+      ]
+    },
+    "identified": false,
+    "form": "new validators per day = base_per_day * exp(spread_elasticity * spread)",
+    "diagnostics": {
+      "rate_at_mean_spread": 5.769457592314935,
+      "weeks": 209,
+      "entries": 8489.0,
+      "se": {
+        "log_base_per_day": 0.0922333529298729,
+        "spread_elasticity": 1.9697813236543713
+      },
+      "half_window_elasticity": [
+        4.796690375996811,
+        -24.785747543096385
+      ],
+      "holdout": {
+        "weeks": 52,
+        "entries": 2271.0,
+        "predicted": 2298.661697278669,
+        "loglik": -516.377752214565,
+        "loglik_no_spread": -523.2615385064179,
+        "rmse_per_week": 26.706081803716177
+      }
+    }
+  },
+  "validator_duration": {
+    "menu_days": [
+      14,
+      30,
+      90,
+      180,
+      365
+    ],
+    "probabilities": [
+      0.4379285012146042,
+      0.3654733102176526,
+      0.14951256353508316,
+      0.027606682131714192,
+      0.019478942900945904
+    ],
+    "spread_elasticity": 17.98134273809106,
+    "ci95": {
+      "probabilities": [
+        [
+          0.39947060815817603,
+          0.47626730778937587
+        ],
+        [
+          0.3365031138873903,
+          0.39488787857955243
+        ],
+        [
+          0.13489479074409882,
+          0.16504365578477026
+        ],
+        [
+          0.02344057562748159,
+          0.03259192624356274
+        ],
+        [
+          0.014128694000466863,
+          0.026387927636551737
+        ]
+      ],
+      "spread_elasticity": [
+        13.332663074341552,
+        22.63002240184057
+      ]
+    },
+    "identified": false,
+    "form": "P(days_k) proportional to probabilities_k * exp(spread_elasticity * spread * days_k / 365)",
+    "diagnostics": {
+      "probabilities_at_mean_spread": [
+        0.4091311784875585,
+        0.3530067128497974,
+        0.16362879324318866,
+        0.036439999945472895,
+        0.03779331547398235
+      ],
+      "starts": 39284,
+      "weeks": 209,
+      "se": {
+        "const_30": 0.08456186666734664,
+        "const_90": 0.08848911662106541,
+        "const_180": 0.1107791177361977,
+        "const_365": 0.18056126872520809,
+        "spread_x_years": 2.3718189213769754
+      },
+      "coefficients": {
+        "const_30": -0.18086240395218056,
+        "const_90": -1.0746752314916126,
+        "const_180": -2.763997808173757,
+        "const_365": -3.1127216269386646,
+        "spread_x_years": 17.98134273809106
+      },
+      "observed_shares_fit": {
+        "14": 0.4136289583545464,
+        "30": 0.3540627227369922,
+        "90": 0.1601415334487323,
+        "180": 0.034950616026881175,
+        "365": 0.03721616943284798
+      },
+      "observed_shares_holdout": {
+        "14": 0.664453125,
+        "30": 0.203046875,
+        "90": 0.10625,
+        "180": 0.0115625,
+        "365": 0.0146875
+      },
+      "half_window_elasticity": [
+        -9.529808165425056,
+        130.42427260690715
+      ],
+      "holdout": {
+        "starts": 12800,
+        "loglik": -13596.144563815029,
+        "loglik_no_spread": -13812.771053725875
+      }
+    }
+  },
+  "validator_renewal": {
+    "probability": 0.8196814960788372,
+    "spread_elasticity": -3.4722897676839994,
+    "ci95": {
+      "probability": [
+        0.7963778606671924,
+        0.8408511104724297
+      ],
+      "spread_elasticity": [
+        -6.166031323516483,
+        -0.7785482118515161
+      ]
+    },
+    "identified": false,
+    "form": "logit P(renew within 7 days of period end) = logit(probability) + spread_elasticity * spread",
+    "diagnostics": {
+      "probability_at_mean_spread": 0.8020911309482204,
+      "ended_periods": 38150,
+      "renewed_share": 0.8015465268676278,
+      "se": {
+        "logit_probability": 0.07672760249455585,
+        "spread_elasticity": 1.374383191262887
+      },
+      "half_window_elasticity": [
+        3.683425135124311,
+        -12.709877964118833
+      ],
+      "holdout": {
+        "ended_periods": 13845,
+        "renewed_share": 0.7728421812928855,
+        "predicted_share": 0.8121675792576463,
+        "loglik": -7485.140537410412,
+        "loglik_no_spread": -7453.067052502718
+      }
+    }
+  },
+  "validator_exit": {
+    "base_per_day": 0.003977720707597188,
+    "ci95": {
+      "base_per_day": [
+        0.00359402791966557,
+        0.004402375936222488
+      ]
+    },
+    "identified": true,
+    "form": "validators leaving per active validator per day = base_per_day (a period end with no new period within 7 days)",
+    "diagnostics": {
+      "weeks": 209,
+      "exits": 7613.0,
+      "active_validator_days": 1913910.4447453704,
+      "holdout": {
+        "exits": 3120.0,
+        "predicted": 1739.9482951189611,
+        "rate_per_day": 0.007132676667759668
+      }
+    }
+  },
+  "delegation_flow": {
+    "sensitivity": -0.03583173135702232,
+    "form": "net weekly delegated flow / unstaked supply = sensitivity * tanh(staking_apr - external_yield)",
+    "ci95": {
+      "sensitivity": [
+        -0.24132344623289137,
+        0.1696599835188467
+      ]
+    },
+    "identified": false,
+    "primary_stratum": "all",
+    "strata": {
+      "all": {
+        "sensitivity": -0.03583173135702232,
+        "se": 0.10484463821619248,
+        "ci95": [
+          -0.24132344623289137,
+          0.1696599835188467
+        ],
+        "weeks": 209,
+        "mean_ratio": -0.0013098485426652723,
+        "half_window_sensitivity": [
+          -0.038814144883188406,
+          0.04788502922659478
+        ],
+        "with_intercept": {
+          "intercept": {
+            "estimate": 0.000537255217551173,
+            "se": 0.0034352247409249045,
+            "ci95": [
+              -0.006195661553462578,
+              0.007270171988564923
+            ]
+          },
+          "sensitivity": {
+            "estimate": -0.04378103213679327,
+            "se": 0.1486020663424792,
+            "ci95": [
+              -0.3350357301962842,
+              0.24747366592269768
+            ]
+          }
+        },
+        "holdout": {
+          "weeks": 52,
+          "rmse": 0.0074459938198936275,
+          "rmse_zero_flow": 0.007379488354576862,
+          "pearson_r": 0.0185100816363167,
+          "mean_ratio": 0.0006849517444199092,
+          "mean_predicted": -0.0005266994894878364
+        }
+      },
+      "excl_concentrated": {
+        "sensitivity": -0.04016110279251063,
+        "se": 0.10471493451487188,
+        "ci95": [
+          -0.24539860308512973,
+          0.1650763975001085
+        ],
+        "weeks": 209,
+        "mean_ratio": -0.0015485005806094127,
+        "half_window_sensitivity": [
+          -0.04280282776738765,
+          0.033992482989352146
+        ],
+        "with_intercept": {
+          "intercept": {
+            "estimate": 0.00038822907843507313,
+            "se": 0.003433790026562879,
+            "ci95": [
+              -0.006341875704101005,
+              0.007118333860971151
+            ]
+          },
+          "sensitivity": {
+            "estimate": -0.045905392685125196,
+            "se": 0.14849834927986325,
+            "ci95": [
+              -0.3369568090373066,
+              0.24514602366705626
+            ]
+          }
+        },
+        "holdout": {
+          "weeks": 52,
+          "rmse": 0.006493680549473535,
+          "rmse_zero_flow": 0.006514500364939615,
+          "pearson_r": -0.040713241824336846,
+          "mean_ratio": -0.0005595076033953192,
+          "mean_predicted": -0.0005903379919691861
+        }
+      }
+    },
+    "ledger_check": {
+      "weeks": 209,
+      "pearson_r": 0.9999999999999998,
+      "median_abs_difference_avax": 6.705522537231445e-08,
+      "max_abs_difference_avax": 1.3727694749832153e-06
+    }
+  },
+  "delegator_choice": {
+    "coefficients": {
+      "log_net_apy_14d": -3.8315880622159066,
+      "delegation_fee_rate": -21.044463625375585,
+      "log_capacity_left_avax": 0.31867157584293226,
+      "node_age_weeks": 0.00473039179782579,
+      "completed_periods": -0.011728246691845273
+    },
+    "se": {
+      "log_net_apy_14d": 0.10381648651822882,
+      "delegation_fee_rate": 0.48309392913778015,
+      "log_capacity_left_avax": 0.01831364619670625,
+      "node_age_weeks": 0.0004929574486004035,
+      "completed_periods": 0.0031546688814525123
+    },
+    "ci95": {
+      "log_net_apy_14d": [
+        -4.035064636793123,
+        -3.62811148763869
+      ],
+      "delegation_fee_rate": [
+        -21.991310327635578,
+        -20.09761692311559
+      ],
+      "log_capacity_left_avax": [
+        0.28277748887177906,
+        0.35456566281408547
+      ],
+      "node_age_weeks": [
+        0.0037642129526582447,
+        0.005696570642993336
+      ],
+      "completed_periods": [
+        -0.017911284082641456,
+        -0.005545209301049092
+      ]
+    },
+    "primary_stratum": "excl_concentrated",
+    "identified": {
+      "log_net_apy_14d": false,
+      "delegation_fee_rate": false,
+      "log_capacity_left_avax": true,
+      "node_age_weeks": true,
+      "completed_periods": true
+    },
+    "identified_note": "log_net_apy_14d and delegation_fee_rate are collinear by construction: within a week every node has the same gross 14-day rate, so log_net_apy_14d equals ln(1 - fee) plus a week constant (within-week correlation -0.866, within_week_correlation). Neither coefficient can be read alone. Only the total fee effect (strata.*.fee_effect) is interpretable. Estimates are kept. Relabelled 2026-09-28 after review. The runs psuu-sweep-v0-2026-09-28 and backtest-2025-v0 used this file before the relabel (sha256 afc37561...). The engine does not read delegator_choice, so the relabel changes no run.",
+    "form": "P(node i | week w) = softmax over offered nodes of sum_k coefficients_k * feature_ik",
+    "strata": {
+      "all": {
+        "outcome": "delegations_all",
+        "coefficients": {
+          "log_net_apy_14d": -11.55609876637731,
+          "delegation_fee_rate": -59.487063457069084,
+          "log_capacity_left_avax": 0.28044836329631945,
+          "node_age_weeks": 0.011058908076455373,
+          "completed_periods": -0.036813563558379114
+        },
+        "se": {
+          "log_net_apy_14d": 0.4008144074197603,
+          "delegation_fee_rate": 1.9594642459922142,
+          "log_capacity_left_avax": 0.007312520906066168,
+          "node_age_weeks": 0.0003422936985691019,
+          "completed_periods": 0.0012099106925276641
+        },
+        "ci95": {
+          "log_net_apy_14d": [
+            -12.341680569404804,
+            -10.770516963349817
+          ],
+          "delegation_fee_rate": [
+            -63.32754280820776,
+            -55.64658410593041
+          ],
+          "log_capacity_left_avax": [
+            0.26611608568423356,
+            0.29478064090840533
+          ],
+          "node_age_weeks": [
+            0.010388024755124924,
+            0.011729791397785821
+          ],
+          "completed_periods": [
+            -0.03918494494024325,
+            -0.03444218217651498
+          ]
+        },
+        "converged": true,
+        "fit": {
+          "weeks": 209,
+          "rows": 183517,
+          "delegations": 4598823,
+          "loglik": -27738327.166045174,
+          "loglik_uniform": -31287894.622646082,
+          "loglik_gain_per_delegation": 0.7718425902890605
+        },
+        "holdout": {
+          "weeks": 52,
+          "rows": 31065,
+          "delegations": 961302,
+          "loglik": -5128288.51196214,
+          "loglik_uniform": -6056006.303513053,
+          "loglik_gain_per_delegation": 0.9650638317104436
+        },
+        "fee_effect": {
+          "0.02": {
+            "estimate": -47.69512594035754,
+            "se": 1.5518657550776724,
+            "ci95": [
+              -50.736726929150834,
+              -44.65352495156425
+            ]
+          },
+          "0.05": {
+            "estimate": -47.322748966145596,
+            "se": 1.5390062869404624,
+            "ci95": [
+              -50.33914586052962,
+              -44.30635207176157
+            ]
+          },
+          "0.10": {
+            "estimate": -46.64695371664985,
+            "se": 1.5156711721871612,
+            "ci95": [
+              -49.61761462654229,
+              -43.6762928067574
+            ]
+          }
+        },
+        "reduced_without_fee": {
+          "log_net_apy_14d": {
+            "estimate": 44.365845021819126,
+            "se": 1.5801317412264573,
+            "ci95": [
+              41.26884371818671,
+              47.462846325451544
+            ]
+          },
+          "log_capacity_left_avax": {
+            "estimate": 0.2802308823556888,
+            "se": 0.00732276725418749,
+            "ci95": [
+              0.26587852227031206,
+              0.2945832424410656
+            ]
+          },
+          "node_age_weeks": {
+            "estimate": 0.011042084779312735,
+            "se": 0.0003414757575716566,
+            "ci95": [
+              0.010372804592878758,
+              0.011711364965746712
+            ]
+          },
+          "completed_periods": {
+            "estimate": -0.03665864506256636,
+            "se": 0.0012074362361997747,
+            "ci95": [
+              -0.03902517659914651,
+              -0.034292113525986205
+            ]
+          }
+        }
+      },
+      "excl_concentrated": {
+        "outcome": "delegations_excl_concentrated",
+        "coefficients": {
+          "log_net_apy_14d": -3.8315880622159066,
+          "delegation_fee_rate": -21.044463625375585,
+          "log_capacity_left_avax": 0.31867157584293226,
+          "node_age_weeks": 0.00473039179782579,
+          "completed_periods": -0.011728246691845273
+        },
+        "se": {
+          "log_net_apy_14d": 0.10381648651822882,
+          "delegation_fee_rate": 0.48309392913778015,
+          "log_capacity_left_avax": 0.01831364619670625,
+          "node_age_weeks": 0.0004929574486004035,
+          "completed_periods": 0.0031546688814525123
+        },
+        "ci95": {
+          "log_net_apy_14d": [
+            -4.035064636793123,
+            -3.62811148763869
+          ],
+          "delegation_fee_rate": [
+            -21.991310327635578,
+            -20.09761692311559
+          ],
+          "log_capacity_left_avax": [
+            0.28277748887177906,
+            0.35456566281408547
+          ],
+          "node_age_weeks": [
+            0.0037642129526582447,
+            0.005696570642993336
+          ],
+          "completed_periods": [
+            -0.017911284082641456,
+            -0.005545209301049092
+          ]
+        },
+        "converged": true,
+        "fit": {
+          "weeks": 209,
+          "rows": 183517,
+          "delegations": 284577,
+          "loglik": -1835437.866869561,
+          "loglik_uniform": -1926508.9086775894,
+          "loglik_gain_per_delegation": 0.3200224958729218
+        },
+        "holdout": {
+          "weeks": 52,
+          "rows": 31065,
+          "delegations": 41925,
+          "loglik": -243167.5319038894,
+          "loglik_uniform": -266727.8027888136,
+          "loglik_gain_per_delegation": 0.5619623347626521
+        },
+        "fee_effect": {
+          "0.02": {
+            "estimate": -17.134679888420578,
+            "se": 0.3880028382426439,
+            "ci95": [
+              -17.89515147727548,
+              -16.374208299565677
+            ]
+          },
+          "0.05": {
+            "estimate": -17.01121303356937,
+            "se": 0.38509217715282495,
+            "ci95": [
+              -17.765979831517026,
+              -16.256446235621713
+            ]
+          },
+          "0.10": {
+            "estimate": -16.7871435562468,
+            "se": 0.379828152398681,
+            "ci95": [
+              -17.531593055262604,
+              -16.042694057230996
+            ]
+          }
+        },
+        "reduced_without_fee": {
+          "log_net_apy_14d": {
+            "estimate": 14.807002585460923,
+            "se": 0.3406863503593451,
+            "ci95": [
+              14.139269608732212,
+              15.474735562189634
+            ]
+          },
+          "log_capacity_left_avax": {
+            "estimate": 0.3175221215867281,
+            "se": 0.018308288827565817,
+            "ci95": [
+              0.28163853486614204,
+              0.35340570830731416
+            ]
+          },
+          "node_age_weeks": {
+            "estimate": 0.004697560456949659,
+            "se": 0.0004913648054532436,
+            "ci95": [
+              0.003734503134990771,
+              0.005660617778908547
+            ]
+          },
+          "completed_periods": {
+            "estimate": -0.011367382358801517,
+            "se": 0.003158550962768159,
+            "ci95": [
+              -0.017558028489161423,
+              -0.005176736228441612
+            ]
+          }
+        }
+      },
+      "concentrated_only": {
+        "outcome": "delegations_concentrated",
+        "coefficients": {
+          "log_net_apy_14d": -13.282150258988185,
+          "delegation_fee_rate": -71.22730791724412,
+          "log_capacity_left_avax": 0.27764331523599467,
+          "node_age_weeks": 0.011327416246323435,
+          "completed_periods": -0.038039070264690396
+        },
+        "se": {
+          "log_net_apy_14d": 0.5277459057278345,
+          "delegation_fee_rate": 2.132864504727252,
+          "log_capacity_left_avax": 0.007672629611991617,
+          "node_age_weeks": 0.00036266062419012797,
+          "completed_periods": 0.0012458064312551966
+        },
+        "ci95": {
+          "log_net_apy_14d": [
+            -14.316513227203211,
+            -12.247787290773159
+          ],
+          "delegation_fee_rate": [
+            -75.40764553041339,
+            -67.04697030407485
+          ],
+          "log_capacity_left_avax": [
+            0.26260523752977555,
+            0.2926813929422138
+          ],
+          "node_age_weeks": [
+            0.01061661448429997,
+            0.012038218008346901
+          ],
+          "completed_periods": [
+            -0.04048080600165896,
+            -0.03559733452772183
+          ]
+        },
+        "converged": true,
+        "fit": {
+          "weeks": 209,
+          "rows": 183517,
+          "delegations": 4314246,
+          "loglik": -25809502.658801362,
+          "loglik_uniform": -29361385.713968493,
+          "loglik_gain_per_delegation": 0.8232917305056622
+        },
+        "holdout": {
+          "weeks": 52,
+          "rows": 31065,
+          "delegations": 919377,
+          "loglik": -4874714.356306387,
+          "loglik_uniform": -5789278.500724238,
+          "loglik_gain_per_delegation": 0.9947650902925038
+        },
+        "fee_effect": {
+          "0.02": {
+            "estimate": -57.67409336725618,
+            "se": 1.5951039867965646,
+            "ci95": [
+              -60.8004397329737,
+              -54.54774700153865
+            ]
+          },
+          "0.05": {
+            "estimate": -57.24609711830919,
+            "se": 1.578130470475576,
+            "ci95": [
+              -60.339176003346566,
+              -54.15301823327181
+            ]
+          },
+          "0.10": {
+            "estimate": -56.46936318503502,
+            "se": 1.547328491019878,
+            "ci95": [
+              -59.50207129968669,
+              -53.43665507038335
+            ]
+          }
+        },
+        "reduced_without_fee": {
+          "log_net_apy_14d": {
+            "estimate": 55.13675271965243,
+            "se": 1.5606663870614024,
+            "ci95": [
+              52.07790280912983,
+              58.195602630175024
+            ]
+          },
+          "log_capacity_left_avax": {
+            "estimate": 0.27764204176561064,
+            "se": 0.007674711150226597,
+            "ci95": [
+              0.26259988431941855,
+              0.2926841992118027
+            ]
+          },
+          "node_age_weeks": {
+            "estimate": 0.011322976582133675,
+            "se": 0.00036251222373016216,
+            "ci95": [
+              0.01061246567966703,
+              0.012033487484600319
+            ]
+          },
+          "completed_periods": {
+            "estimate": -0.03800355579220984,
+            "se": 0.0012454644606770488,
+            "ci95": [
+              -0.04044462127916146,
+              -0.035562490305258224
+            ]
+          }
+        }
+      }
+    },
+    "coverage": {
+      "fit": {
+        "all_delegations": 5440692,
+        "in_panel": 4598823,
+        "to_not_offered_rows": 841420,
+        "to_full_fee_rows": 449,
+        "excl_all": 366143,
+        "excl_in_panel": 284577,
+        "offered_rows": 185372,
+        "full_fee_rows": 1855,
+        "observed_delegations": 5440694
+      },
+      "holdout": {
+        "all_delegations": 1174727,
+        "in_panel": 961302,
+        "to_not_offered_rows": 213336,
+        "to_full_fee_rows": 89,
+        "excl_all": 62845,
+        "excl_in_panel": 41925,
+        "offered_rows": 32680,
+        "full_fee_rows": 1615,
+        "observed_delegations": 1174727
+      }
+    },
+    "within_week_correlation": {
+      "log_net_apy_14d~delegation_fee_rate": -0.8656760446193471,
+      "log_net_apy_14d~log_capacity_left_avax": -0.35084017613419194,
+      "log_net_apy_14d~node_age_weeks": -0.008996189447436,
+      "log_net_apy_14d~completed_periods": 0.05090879537941743,
+      "delegation_fee_rate~log_capacity_left_avax": 0.48921057244036564,
+      "delegation_fee_rate~node_age_weeks": 0.003045617398288542,
+      "delegation_fee_rate~completed_periods": -0.14418093111006766,
+      "log_capacity_left_avax~node_age_weeks": 0.2681446619418487,
+      "log_capacity_left_avax~completed_periods": 0.10770533228643869,
+      "node_age_weeks~completed_periods": 0.5224682837996881
+    }
+  }
+}

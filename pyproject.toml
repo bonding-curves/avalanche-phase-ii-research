@@ -30,6 +30,11 @@ packages = ["src/avalanche_research"]
 dev = [
   "pytest>=8.4,<9",
 ]
+model = [
+  "numpy>=2,<3",
+  "scipy>=1.14,<2",
+  "scikit-learn>=1.6,<2",
+]
 notebook = [
   "bokeh>=3.9,<4",
   "holoviews>=1.23,<2",
