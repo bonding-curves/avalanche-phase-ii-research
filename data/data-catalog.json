@@ -4802,6 +4802,116 @@
           "derivation": "latest captured_at among the captures that held the hour"
         }
       ]
+    },
+    {
+      "id": "derived.helicon-commitments",
+      "name": "Validation cycles started after Helicon",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per Primary Network validation cycle that started at or after Helicon's activation on 2026-09-22 15:00 UTC, which lowered the minimum validator duration from 14 days to 48 hours and added auto-renewal. A cycle is a distinct transaction hash and start time, because an auto-renewed validation keeps its hash while its start and end move forward. Built from every snapshot run of the validator set, so a renewal seen between two snapshots is kept, and from the staking-period log for each node's history before Helicon. Each cycle carries its duration and bin, whether its node validated before Helicon, and the change from the node's previous validator period. The build summary compares the bins with the validator periods started in the 30 days before activation. Cycles are known only from the snapshots: one that starts and ends between two snapshots is not seen.",
+      "input_ids": [
+        "staking-periods",
+        "current-validators"
+      ],
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "the validator node, a node and not an operator (glossary G1)"
+        },
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "the validator staking transaction, shared by every cycle of an auto-renewed validation"
+        },
+        {
+          "name": "cycle_start",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "start_time of the cycle in the snapshots, at or after 2026-09-22 15:00 UTC"
+        },
+        {
+          "name": "cycle_end",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "end_time of the cycle in the first snapshot showing it"
+        },
+        {
+          "name": "duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "cycle_end minus cycle_start in seconds over 86,400 (glossary G5)"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "own stake in the first snapshot showing the cycle. An auto-renewed validation can restake its reward, so it may grow from one cycle to the next"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "delegation fee rate in the first snapshot showing the cycle (glossary G12)"
+        },
+        {
+          "name": "first_seen_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "observed_at of the first snapshot showing the cycle"
+        },
+        {
+          "name": "cycle_number",
+          "type": "integer",
+          "unit": "cycles",
+          "derivation": "1 for the first observed cycle of the transaction, 2 and up for each auto-renewal, in start order"
+        },
+        {
+          "name": "auto_renewed",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "the transaction has more than one observed cycle. A transaction still in its first cycle reads false until it renews"
+        },
+        {
+          "name": "node_status",
+          "type": "string",
+          "unit": "new or returning",
+          "derivation": "returning when the node has a validator period starting before activation in the staking-period log or in an earlier snapshot, else new"
+        },
+        {
+          "name": "previous_duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "duration of the node's latest validator period that started before this cycle, from the staking-period log or the snapshots. For a renewal it is the previous cycle. Null when the node has no earlier period"
+        },
+        {
+          "name": "duration_change_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "duration_days minus previous_duration_days, null when there is no previous period"
+        },
+        {
+          "name": "lowered",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "the cycle is shorter than the previous period by more than lowered_threshold_days (1 day), null when there is no previous period"
+        },
+        {
+          "name": "duration_bin",
+          "type": "string",
+          "unit": "duration bin",
+          "derivation": "48h to 7d, 7d to 14d, 14d to 30d, 30d to 90d, 90d to 180d, 180d to 365d, or over 365d. Each bin includes its lower bound and excludes its upper, except 180d to 365d, which includes 365 days, the protocol maximum. Under 48h appears only if a cycle breaks the Helicon minimum"
+        }
+      ]
     }
   ]
 }

@@ -41,6 +41,7 @@ This directory defines the machine-readable contracts for research data used in 
 | `derived.observed-delegations` | One Parquet row per delegation accepted in the same window, with its exact duration, week, delegator address, and whether its validator was on offer at that week's cutoff | Implemented, tested, and derived on 2026-09-27: 7,056,204 delegations |
 | `derived.market-weeks` | One Parquet row per week of the same window: the unstaked supply stock at the Monday cutoff, the week's delegated volume by stratum, the concentrated address's share, and the AVAX price and 30-day volatility at the cutoff | Implemented, tested, and derived on 2026-09-27: 313 weeks |
 | `derived.validator-uptime-hourly` | One Parquet row per validator per hour across every Builder Hub capture, with the number of captures that held the hour and whether they disagreed | Implemented, tested, and derived daily; the only record of hourly uptime percentages outside Ava Labs, and it exists only from the captures on |
+| `derived.helicon-commitments` | One Parquet row per validation cycle started at or after Helicon's activation, with its duration and bin, whether the node validated before Helicon, the change from the node's previous period, and whether the transaction auto-renewed | Implemented, tested, and derived daily from 2026-09-28 over every validator snapshot: 73 cycles on 67 nodes on the first run |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -291,6 +292,19 @@ uv run --locked avalanche data check derived.node-table --capture data/runs/node
 ```
 
 On the 2026-09-22 runs this builds 7,644 rows in about two seconds and loads as the `node_table` view.
+
+## Track validation commitments after Helicon
+
+`derived.helicon-commitments` follows the validator duration choices Helicon opened on 2026-09-22 15:00 UTC, when the minimum validator duration fell from 14 days to 48 hours and auto-renewal began. It has one row per validation cycle that started at or after activation. A cycle is a distinct transaction hash and start time, because an auto-renewed validation keeps its hash while its start and end move forward. For that reason the derive reads every built run of `p-chain-rpc.current-validators` under the current catalog contract, not only the newest, and records each run as its own input in the capture receipt with its run name and hash. The staking-period log is the one pinnable input and gives each node's history before Helicon, together with snapshot cycles the log does not yet hold.
+
+Each row carries the cycle's duration and bin, its stake and fee from the first snapshot that shows it, and its number within the transaction. A node is `returning` when it has a validator period that started before activation and `new` otherwise. `previous_duration_days` is the node's latest validator period that started before the cycle, which for a renewal is the cycle before it. A cycle is `lowered` when it is more than one day shorter than that period. The bins run from the 48-hour minimum to 7, 14, 30, 90, 180, and 365 days, and each includes its lower bound. The build summary counts cycles, nodes, new and returning nodes, lowered and raised cycles, auto-renewed transactions, and cycles and transactions by bin, beside the same bins for the validator periods started in the 30 days before activation.
+
+```bash
+uv run --locked avalanche data derive derived.helicon-commitments --output data/runs/helicon-commitments-example
+uv run --locked avalanche data check derived.helicon-commitments --capture data/runs/helicon-commitments-example/capture --dataset data/runs/helicon-commitments-example/dataset
+```
+
+The check verifies the input runs still hash as recorded, one row per cycle, that every cycle starts at or after activation and lasts at least 48 hours, and that every renewal starts where the transaction's previous cycle ended with the next cycle number. It then rebuilds the table from the recorded inputs and requires the same rows. A cycle is seen only if a snapshot falls inside it, so the summary reports the longest wait between snapshots since activation. Above 48 hours a minimum-length cycle can pass unseen. The daily validator capture derives and checks a new run after each snapshot. On the 2026-09-28 run it builds 73 cycles from nine snapshots in a few seconds.
 
 ## Derive the validator-week panel
 
