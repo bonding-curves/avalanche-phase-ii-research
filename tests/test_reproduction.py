@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import pytest
+import pandas as pd
 
 from avalanche_research.model.protocol import MAINNET_REWARD
 from avalanche_research.model.types import ModelError, NAVAX_PER_AVAX, RewardConfig, SECONDS_PER_DAY
-from avalanche_research.reproduction import figure7_frame
+from avalanche_research.reproduction import figure7_frame, figure8_observed_bins
 
 
 STAKE = 1_000_000 * NAVAX_PER_AVAX
@@ -40,3 +41,33 @@ def test_figure7_rejects_invalid_fixture():
     with pytest.raises(ModelError):
         figure7_frame({"baseline": MAINNET_REWARD}, {"one day": SECONDS_PER_DAY},
                       stake_navax=SUPPLY + 1, supply_navax=SUPPLY)
+
+
+def test_figure8_observed_bins_keep_count_and_stake_weights_separate():
+    commitments = pd.DataFrame({
+        "duration_weeks": [2.0, 2.5, 3.0],
+        "stake_avax": [1_000.0, 1_000.0, 8_000.0],
+    })
+
+    bins = figure8_observed_bins(commitments)
+
+    assert bins.commitments.sum() == len(commitments)
+    assert bins.self_stake_avax.sum() == commitments.stake_avax.sum()
+    assert bins.commitment_share_pct.sum() == pytest.approx(100)
+    assert bins.self_stake_share_pct.sum() == pytest.approx(100)
+    two_weeks = bins.loc[bins.duration_interval.eq("[2, 3)")].iloc[0]
+    three_weeks = bins.loc[bins.duration_interval.eq("[3, 4)")].iloc[0]
+    assert two_weeks.commitments == 2
+    assert two_weeks.self_stake_share_pct == pytest.approx(20)
+    assert three_weeks.commitments == 1
+    assert three_weeks.self_stake_share_pct == pytest.approx(80)
+
+
+@pytest.mark.parametrize("bad", [
+    pd.DataFrame(columns=["duration_weeks", "stake_avax"]),
+    pd.DataFrame({"duration_weeks": [0], "stake_avax": [1]}),
+    pd.DataFrame({"duration_weeks": [2], "stake_avax": [float("nan")]}),
+])
+def test_figure8_rejects_invalid_population(bad):
+    with pytest.raises(ModelError):
+        figure8_observed_bins(bad)
