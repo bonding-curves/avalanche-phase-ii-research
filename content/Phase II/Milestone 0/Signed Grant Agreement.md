@@ -8,8 +8,6 @@ source_pages_excluded: 10-14
 aliases:
   - Phase-2/contract/index
 ---
-# Signed Grant Agreement
-
 > **Confidential.** This reading copy transcribes the operative agreement and Exhibits A and B on PDF pages 1-9. The signed PDF controls. This is not an amendment, legal interpretation, or evidence of milestone acceptance. Only share within authorized private access.
 
 **Editorial scope:** PDF pages 10-14 are intentionally excluded: the DocuSign completion certificate, event audit metadata (including IP addresses and additional contacts), and Electronic Record and Signature Disclosure. The complete local transcription retains those pages outside the website. Signature graphics are described, not replicated. Repeated envelope headers and page footers are consolidated; line wrapping and table presentation are normalized. Source wording and apparent drafting anomalies are retained.

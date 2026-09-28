@@ -13,7 +13,7 @@ SPEC.loader.exec_module(collection_navigation)
 
 class CollectionNavigationTest(unittest.TestCase):
     def fixture(self, root: Path) -> tuple[dict, Path]:
-        study_page = root / "content/Phase II/Studies/Essential Readings/Source/index.md"
+        study_page = root / "content/Phase II/Essential Readings/Source/index.md"
         source_page = study_page.parent / "Source Article.md"
         component = study_page.parent / "Reproduction.md"
         source_page.parent.mkdir(parents=True)
@@ -22,7 +22,7 @@ class CollectionNavigationTest(unittest.TestCase):
         registry = {
             "schema_version": "research-navigation/v3",
             "sources": [{"id": "lit:source", "title": "Source title", "source_type": "article", "canonical_url": "https://example.com/source", "local_page": source_page.relative_to(root).as_posix()}],
-            "collections": [{"id": "collection:readings", "title": "Essential Readings", "collection_type": "curated_reading_list", "description": "Fixture", "source_ids": ["lit:source"], "index": "content/Phase II/Studies/Essential Readings/index.md"}],
+            "collections": [{"id": "collection:readings", "title": "Essential Readings", "collection_type": "curated_reading_list", "description": "Fixture", "source_ids": ["lit:source"], "index": "content/Phase II/Essential Readings/index.md"}],
             "studies": [{"id": "study:source", "source_id": "lit:source", "collection_id": "collection:readings", "page": study_page.relative_to(root).as_posix(), "components": [{"title": "Reproduction", "page": component.relative_to(root).as_posix()}]}],
         }
         registry_path = root / "registry.json"
@@ -36,10 +36,10 @@ class CollectionNavigationTest(unittest.TestCase):
             report = collection_navigation.result("build", root, registry_path)
             self.assertEqual(report["status"], "pass")
             self.assertEqual(report["coverage"], [{"collection_id": "collection:readings", "members": 1, "local_editions": 1, "studies": 1}])
-            collection_text = (root / "content/Phase II/Studies/Essential Readings/index.md").read_text()
+            collection_text = (root / "content/Phase II/Essential Readings/index.md").read_text()
             self.assertIn("title: Essential Readings", collection_text)
             self.assertIn("[Source title](Source/) · Article", collection_text)
-            package_text = (root / "content/Phase II/Studies/Essential Readings/Source/index.md").read_text()
+            package_text = (root / "content/Phase II/Essential Readings/Source/index.md").read_text()
             self.assertIn("[Source Article](Source%20Article)", package_text)
             self.assertIn("[Reproduction](Reproduction)", package_text)
             self.assertEqual(collection_navigation.result("check", root, registry_path)["status"], "pass")

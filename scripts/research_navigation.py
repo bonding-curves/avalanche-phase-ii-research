@@ -188,7 +188,7 @@ def render(registry: dict[str, Any], root: Path = ROOT) -> dict[Path, str]:
                     f"- [{component['title']}]({_relative_link(package_index, _page(root, component['page'], 'component.page'))})"
                     for component in study["components"]
                 )
-                description = "Source material and reviewed research components for this study."
+                description = "The source, and the research built on it as each part is delivered."
             else:
                 description = "Source material admitted to the Essential Readings collection."
             outputs[package_index] = (
@@ -197,7 +197,6 @@ def render(registry: dict[str, Any], root: Path = ROOT) -> dict[Path, str]:
                 f"description: \"{description}\"\n"
                 f"source_id: \"{source_id}\"\n"
                 "---\n\n"
-                f"# {source['title']}\n\n"
                 f"{description}\n\n"
                 "## Contents\n\n"
                 + "\n".join(component_items)
@@ -206,9 +205,8 @@ def render(registry: dict[str, Any], root: Path = ROOT) -> dict[Path, str]:
         outputs[collection_index] = (
             "---\n"
             f"title: {collection['title']}\n"
-            "description: Primary sources and their reviewed research components.\n"
+            "description: The Foundation articles and sources the Phase II research reproduces and builds on.\n"
             "---\n\n"
-            f"# {collection['title']}\n\n"
             + "\n".join(collection_items)
             + "\n"
         )
