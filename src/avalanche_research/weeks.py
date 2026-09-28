@@ -8,7 +8,9 @@ accepted during the week, counted with and without the one address that made 93%
 
 ``derived.observed-delegations`` has one row per delegation accepted in the window, with its exact duration, its
 week, and whether its validator was on offer at that week's cutoff. No delegation is dropped: one whose validator has no
-row in its week is flagged, and the panel's summary counts it.
+row in its week is flagged, and the panel's summary counts it. Each delegation also carries its event-time eligibility:
+the validator's room at acceptance over the delegation's own interval, from the delegations accepted in earlier blocks,
+and a reason code for every delegation not offered at the cutoff and for every one the reconstruction finds ineligible.
 
 ``derived.market-weeks`` has one row per week with what belongs to the week rather than to a node: the unstaked supply
 stock at the Monday cutoff, the week's delegated volume by stratum, the concentrated address's share of events and
@@ -26,16 +28,23 @@ import json
 import os
 import shutil
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any
-
-from datetime import datetime
 
 import duckdb
 
 from . import __version__, datasets
-from .catalog import DataError, canonical_bytes, contract_hash, dataset, load_catalog, now, sha256
-from .model.protocol import annualized_reward_rate
+from .catalog import (
+    DataError,
+    canonical_bytes,
+    contract_hash,
+    dataset,
+    load_catalog,
+    now,
+    sha256,
+)
+from .model.protocol import MAINNET_UPGRADES, annualized_reward_rate
 
 WEEKS_ID = "derived.validator-weeks"
 DELEGATIONS_ID = "derived.observed-delegations"
@@ -70,6 +79,16 @@ MAX_WEIGHT_AVAX = 3_000_000
 MIN_DELEGATION_AVAX = 25
 MIN_DURATION_DAYS = 14
 SECONDS_PER_WEEK = 604_800
+NAVAX_PER_AVAX = 10**9
+# AvalancheGo v1.4.5 (2021-05-21) to v1.4.x checked delegated weight against five times the validator's stake only; v1.5.0
+# restored min(5x, MaxValidatorStake) from Apricot Phase 3 (add_delegator_tx.go isAP3), which also fixed the heap used for
+# the peak (fixedMaxStakeAmount). Delegations accepted before this instant are judged against both limits separately.
+AP3_ACTIVATION = MAINNET_UPGRADES.time("apricot_phase_3").strftime("%Y-%m-%d %H:%M:%S")
+# Reason codes. A delegation not offered at its week's cutoff gets exactly one NOT_OFFERED code; a delegation the
+# event-time reconstruction finds ineligible gets exactly one INELIGIBLE code. Both are null otherwise.
+NOT_OFFERED_REASONS = ("no_node_week_row", "validator_not_active_at_cutoff", "other_period_than_cutoff", "period_ends_within_14d",
+                       "full_at_cutoff_room_at_accept", "full_at_cutoff_no_room_at_accept", "unclassified")
+INELIGIBLE_REASONS = ("no_validator_period", "outside_validator_period", "over_3m_cap_before_ap3", "over_weight_before_ap3", "over_capacity")
 # A row of the check's rebuild from inputs truncated here must equal the full build's row.
 INVARIANCE_CUTOFF = "2025-01-06"
 
@@ -92,6 +111,7 @@ DELEGATION_COLUMNS = {
     "start_time": "TIMESTAMP", "end_time": "TIMESTAMP", "duration_seconds": "BIGINT", "duration_weeks": "DOUBLE",
     "stake_avax": "DOUBLE", "node_week_row": "BOOLEAN", "validator_offered_at_week_start": "BOOLEAN", "not_in_week_start_risk_set": "BOOLEAN",
     "validator_fee_rate": "DOUBLE", "supply_counter_avax": "DOUBLE", "gross_rate": "DOUBLE", "net_rate": "DOUBLE", "log_net_apy": "DOUBLE",
+    "capacity_at_accept_avax": "DOUBLE", "eligible_at_accept": "BOOLEAN", "ineligibility_reason": "VARCHAR", "not_offered_reason": "VARCHAR",
 }
 MARKET_COLUMNS = {
     "week_start_utc": "TIMESTAMP", "supply_date": "DATE", "total_supply_avax": "DOUBLE", "active_validator_stake_avax": "DOUBLE",
@@ -115,7 +135,7 @@ FROM periods p LEFT JOIN validators s USING (transaction_hash)
 WHERE p.role = 'validator' AND p.accepted_at < TIMESTAMP '{{known_until}}';
 
 CREATE OR REPLACE TABLE d AS
-SELECT p.transaction_hash, p.node_id, p.validator_transaction_hash, s.delegator_address, p.accepted_at, p.start_time, p.end_time, p.stake_navax
+SELECT p.transaction_hash, p.node_id, p.validator_transaction_hash, s.delegator_address, p.accepted_at, p.block_height, p.start_time, p.end_time, p.stake_navax
 FROM periods p LEFT JOIN delegators s USING (transaction_hash)
 WHERE p.role = 'delegator' AND p.accepted_at < TIMESTAMP '{{known_until}}';
 
@@ -179,11 +199,16 @@ SELECT p.week_start_utc, p.node_id, p.point, coalesce(sum(k.stake_navax), 0) AS 
 FROM points p LEFT JOIN known_d k ON k.week_start_utc = p.week_start_utc AND k.node_id = p.node_id AND k.start_time <= p.point AND k.end_time > p.point
 GROUP BY 1, 2, 3;
 
+-- Room is computed in integer nAVAX and converted once: subtracting AVAX doubles left full validators at -1e-10.
 CREATE OR REPLACE TABLE capacity AS
-SELECT week_start_utc, node_id,
-       max(delegated_navax) FILTER (WHERE point = week_start_utc) / 1e9 AS delegated_avax_at_week_start,
-       max(delegated_navax) / 1e9 AS max_delegated_avax_14d
-FROM weight GROUP BY 1, 2;
+SELECT c.week_start_utc, c.node_id, c.delegated_navax_at_week_start, c.max_delegated_navax_14d,
+       least({WEIGHT_FACTOR} * a.stake_navax, {MAX_WEIGHT_AVAX * NAVAX_PER_AVAX}) AS max_weight_navax,
+       max_weight_navax - a.stake_navax - c.delegated_navax_at_week_start AS capacity_left_navax,
+       max_weight_navax - a.stake_navax - c.max_delegated_navax_14d AS capacity_left_navax_14d
+FROM (SELECT week_start_utc, node_id, max(delegated_navax) FILTER (WHERE point = week_start_utc) AS delegated_navax_at_week_start,
+             max(delegated_navax) AS max_delegated_navax_14d
+      FROM weight GROUP BY 1, 2) c
+JOIN active a USING (week_start_utc, node_id);
 
 -- The P-Chain supply counter last read before each cutoff: the supply the reward formula uses (decision RD8).
 CREATE OR REPLACE TABLE cutoff_supply AS
@@ -203,15 +228,14 @@ GROUP BY 1, 2;
 CREATE OR REPLACE TABLE panel AS
 SELECT k.node_id, k.week_start_utc, k.active_at_week_start,
        coalesce(k.active_at_week_start AND epoch(a.period_end - k.week_start_utc) >= {MIN_DURATION_DAYS} * 86400
-                AND least({WEIGHT_FACTOR} * a.stake_navax / 1e9, {MAX_WEIGHT_AVAX}) - a.stake_navax / 1e9 - c.max_delegated_avax_14d >= {MIN_DELEGATION_AVAX}, FALSE) AS offered_at_week_start,
+                AND c.capacity_left_navax_14d >= {MIN_DELEGATION_AVAX * NAVAX_PER_AVAX}, FALSE) AS offered_at_week_start,
        a.validator_transaction_hash, a.period_start, a.period_end, epoch(a.period_end - k.week_start_utc) / 86400 AS days_remaining,
        a.stake_navax / 1e9 AS self_stake_avax, a.delegation_fee_rate,
        h.first_start_known, epoch(k.week_start_utc - h.first_start_known) / {SECONDS_PER_WEEK} AS node_age_weeks, s.days_staked_weeks,
        h.completed_periods, h.started_periods, h.reward_address_asof,
-       c.delegated_avax_at_week_start, c.max_delegated_avax_14d,
-       least({WEIGHT_FACTOR} * a.stake_navax / 1e9, {MAX_WEIGHT_AVAX}) AS max_weight_avax,
-       least({WEIGHT_FACTOR} * a.stake_navax / 1e9, {MAX_WEIGHT_AVAX}) - a.stake_navax / 1e9 - c.delegated_avax_at_week_start AS capacity_left_avax,
-       least({WEIGHT_FACTOR} * a.stake_navax / 1e9, {MAX_WEIGHT_AVAX}) - a.stake_navax / 1e9 - c.max_delegated_avax_14d AS capacity_left_avax_14d,
+       c.delegated_navax_at_week_start / 1e9 AS delegated_avax_at_week_start, c.max_delegated_navax_14d / 1e9 AS max_delegated_avax_14d,
+       least({WEIGHT_FACTOR} * a.stake_navax, {MAX_WEIGHT_AVAX * NAVAX_PER_AVAX}) / 1e9 AS max_weight_avax,
+       c.capacity_left_navax / 1e9 AS capacity_left_avax, c.capacity_left_navax_14d / 1e9 AS capacity_left_avax_14d,
        o.delegations_all, o.delegated_avax_all, o.delegations_excl_concentrated, o.delegated_avax_excl_concentrated,
        q.supply_navax / 1e9 AS supply_counter_avax, q.supply_read_at,
        CASE WHEN k.active_at_week_start THEN annual_rate(k.week_start_utc, {MIN_DURATION_DAYS} * 86400, q.supply_navax) END AS gross_rate_14d,
@@ -230,6 +254,64 @@ LEFT JOIN capacity c USING (week_start_utc, node_id)
 JOIN outcomes o USING (week_start_utc, node_id)
 ORDER BY k.week_start_utc, k.node_id;
 
+-- Event-time eligibility. A delegation X is checked against the delegations to the same validator period accepted in
+-- earlier blocks (the order inside one block is not in the data, so block peers do not count against each other). Their
+-- weight is a step function over half-open [start, end) intervals. Its peak over X's [start_time, end_time) is at X's
+-- start or at the start of an earlier-accepted delegation still pending inside the interval.
+CREATE OR REPLACE TABLE stake_steps AS
+WITH ev AS (
+    SELECT validator_transaction_hash AS vh, start_time AS t, stake_navax::HUGEINT AS delta FROM d
+    UNION ALL
+    SELECT validator_transaction_hash, end_time, -stake_navax::HUGEINT FROM d
+)
+SELECT vh, t, sum(sum(delta)) OVER (PARTITION BY vh ORDER BY t) AS active_navax FROM ev GROUP BY vh, t;
+
+-- Everything active at X's start that X may not count: X itself, block peers, and later-accepted delegations that
+-- start no later than X.
+CREATE OR REPLACE TABLE not_prior_at_start AS
+SELECT x.transaction_hash, sum(y.stake_navax) AS navax
+FROM d x JOIN d y ON y.validator_transaction_hash = x.validator_transaction_hash AND y.block_height >= x.block_height
+     AND y.start_time <= x.start_time AND y.end_time > x.start_time
+GROUP BY 1;
+
+CREATE OR REPLACE TABLE pending_points AS
+SELECT DISTINCT x.transaction_hash, x.validator_transaction_hash AS vh, x.block_height, y.start_time AS point
+FROM d x JOIN d y ON y.validator_transaction_hash = x.validator_transaction_hash AND y.block_height < x.block_height
+     AND y.start_time > x.start_time AND y.start_time < x.end_time;
+
+CREATE OR REPLACE TABLE pending_peak AS
+SELECT transaction_hash, max(navax) AS navax FROM (
+    SELECT p.transaction_hash, p.point, coalesce(sum(z.stake_navax), 0) AS navax
+    FROM pending_points p LEFT JOIN d z ON z.validator_transaction_hash = p.vh AND z.block_height < p.block_height
+         AND z.start_time <= p.point AND z.end_time > p.point
+    GROUP BY 1, 2
+) GROUP BY 1;
+
+CREATE OR REPLACE TABLE eligibility AS
+WITH peak AS (
+    SELECT x.transaction_hash, x.accepted_at, x.start_time, x.end_time, x.stake_navax,
+           greatest(s.active_navax - n.navax, coalesce(pp.navax, 0)) AS peak_navax,
+           vv.transaction_hash IS NOT NULL AS has_period, vv.start_time AS period_start, vv.end_time AS period_end, vv.stake_navax AS self_navax
+    FROM d x
+    JOIN stake_steps s ON s.vh = x.validator_transaction_hash AND s.t = x.start_time
+    JOIN not_prior_at_start n USING (transaction_hash)
+    LEFT JOIN pending_peak pp USING (transaction_hash)
+    LEFT JOIN v vv ON vv.transaction_hash = x.validator_transaction_hash
+), room AS (
+    SELECT *, least({WEIGHT_FACTOR} * self_navax, {MAX_WEIGHT_AVAX * NAVAX_PER_AVAX}) - self_navax - peak_navax AS capacity_navax,
+           ({WEIGHT_FACTOR} - 1) * self_navax - peak_navax AS factor_room_navax
+    FROM peak
+)
+SELECT transaction_hash, capacity_navax / 1e9 AS capacity_at_accept_avax,
+       CASE WHEN NOT has_period THEN 'no_validator_period'
+            WHEN start_time < period_start OR end_time > period_end THEN 'outside_validator_period'
+            WHEN capacity_navax >= stake_navax THEN NULL
+            WHEN accepted_at < TIMESTAMP '{AP3_ACTIVATION}' AND factor_room_navax >= stake_navax THEN 'over_3m_cap_before_ap3'
+            WHEN accepted_at < TIMESTAMP '{AP3_ACTIVATION}' THEN 'over_weight_before_ap3'
+            ELSE 'over_capacity' END AS ineligibility_reason,
+       ineligibility_reason IS NULL AS eligible_at_accept
+FROM room;
+
 CREATE OR REPLACE TABLE observed AS
 SELECT d.transaction_hash, d.node_id, d.validator_transaction_hash, d.delegator_address,
        d.delegator_address IS NOT DISTINCT FROM '{CONCENTRATED_ADDRESS}' AS concentrated_address,
@@ -241,10 +323,20 @@ SELECT d.transaction_hash, d.node_id, d.validator_transaction_hash, d.delegator_
        vv.delegation_fee_rate AS validator_fee_rate, q.supply_navax / 1e9 AS supply_counter_avax,
        annual_rate(date_trunc('week', d.accepted_at), epoch(d.end_time - d.start_time)::BIGINT, q.supply_navax) AS gross_rate,
        gross_rate * (1 - vv.delegation_fee_rate) AS net_rate,
-       CASE WHEN net_rate > 0 THEN ln(net_rate) END AS log_net_apy
+       CASE WHEN net_rate > 0 THEN ln(net_rate) END AS log_net_apy,
+       e.capacity_at_accept_avax, e.eligible_at_accept, e.ineligibility_reason,
+       CASE WHEN p.offered_at_week_start THEN NULL
+            WHEN p.node_id IS NULL THEN 'no_node_week_row'
+            WHEN NOT p.active_at_week_start THEN 'validator_not_active_at_cutoff'
+            WHEN p.validator_transaction_hash <> d.validator_transaction_hash THEN 'other_period_than_cutoff'
+            WHEN p.days_remaining < {MIN_DURATION_DAYS} THEN 'period_ends_within_14d'
+            WHEN p.capacity_left_avax_14d < {MIN_DELEGATION_AVAX} AND e.eligible_at_accept THEN 'full_at_cutoff_room_at_accept'
+            WHEN p.capacity_left_avax_14d < {MIN_DELEGATION_AVAX} THEN 'full_at_cutoff_no_room_at_accept'
+            ELSE 'unclassified' END AS not_offered_reason
 FROM d LEFT JOIN panel p ON p.node_id = d.node_id AND p.week_start_utc = date_trunc('week', d.accepted_at)
 LEFT JOIN v vv ON vv.transaction_hash = d.validator_transaction_hash
 LEFT JOIN cutoff_supply q ON q.week_start_utc = date_trunc('week', d.accepted_at)
+LEFT JOIN eligibility e ON e.transaction_hash = d.transaction_hash
 WHERE d.accepted_at >= TIMESTAMP '{{window_start}}' AND d.accepted_at < TIMESTAMP '{{window_end}}'
 ORDER BY d.accepted_at, d.transaction_hash;
 """
@@ -383,8 +475,23 @@ def compute(connection: Any, window_start: str = WINDOW_START, window_end: str =
         raise DataError(f"validator-week computation failed: {error}") from error
 
 
+def reason_counts(connection: Any, table: str = "observed") -> dict[str, dict[str, int]]:
+    """Delegations per reason code, the null code named ``offered`` or ``eligible``, so each set sums to the row count."""
+    counts: dict[str, dict[str, int]] = {}
+    for column, null_name, codes in (("not_offered_reason", "offered", NOT_OFFERED_REASONS), ("ineligibility_reason", "eligible", INELIGIBLE_REASONS)):
+        found = dict(connection.execute(f"SELECT coalesce({column}, '{null_name}'), count(*) FROM {table} GROUP BY 1").fetchall())
+        counts[column] = {name: int(found.pop(name, 0)) for name in (null_name, *codes)} | {name: int(value) for name, value in found.items()}
+    return counts
+
+
 def summarize(connection: Any) -> dict[str, Any]:
-    return {key: (float(value) if key.endswith("avax") else value) for key, value in zip(SUMMARY_KEYS, connection.execute(SUMMARY_SQL).fetchone())}
+    summary = {key: (float(value) if key.endswith("avax") else value) for key, value in zip(SUMMARY_KEYS, connection.execute(SUMMARY_SQL).fetchone())}
+    counts = reason_counts(connection)
+    summary["delegations_by_not_offered_reason"] = counts["not_offered_reason"]
+    summary["delegations_by_ineligibility_reason"] = counts["ineligibility_reason"]
+    summary["node_weeks_capacity_below_zero"] = connection.execute(
+        "SELECT count(*) FILTER (WHERE capacity_left_avax < 0 OR capacity_left_avax_14d < 0) FROM panel").fetchone()[0]
+    return summary
 
 
 def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, root: Path | None = None) -> dict[str, Any]:
@@ -421,6 +528,9 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
             table = {WEEKS_ID: "panel", DELEGATIONS_ID: "observed", MARKET_ID: "market"}[dataset_id]
             connection.execute(f"COPY {table} TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(parquet_path)])
             summary = summarize(connection)
+            # The shared summary counts the panel. Rows and keys on the receipt describe the table this run holds.
+            key = {WEEKS_ID: "node_id, week_start_utc", DELEGATIONS_ID: "transaction_hash", MARKET_ID: "week_start_utc"}[dataset_id]
+            summary["rows"], summary["distinct_keys"] = connection.execute(f"SELECT count(*), count(DISTINCT ({key})) FROM {table}").fetchone()
         finally:
             connection.close()
         build_receipt = {
@@ -515,6 +625,21 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                 summary.update({"rows": rows, "distinct_keys": keys})
                 if rows != keys:
                     findings.append(f"{rows - keys} rows repeat a key")
+                if dataset_id == DELEGATIONS_ID:
+                    checked.append("every delegation classified")
+                    counts = reason_counts(connection, "built")
+                    summary["reasons"] = counts
+                    for column, values in counts.items():
+                        if sum(values.values()) != rows:
+                            findings.append(f"{column} counts sum to {sum(values.values())}, not {rows}")
+                    mismatched = connection.execute(
+                        "SELECT count(*) FILTER (WHERE (not_offered_reason IS NULL) <> validator_offered_at_week_start), "
+                        "count(*) FILTER (WHERE (ineligibility_reason IS NULL) IS DISTINCT FROM eligible_at_accept), "
+                        "count(*) FILTER (WHERE not_offered_reason = 'unclassified') FROM built").fetchone()
+                    for count, text in zip(mismatched, ("not_offered_reason disagrees with the cutoff flag",
+                                                        "ineligibility_reason disagrees with eligible_at_accept", "delegations unclassified")):
+                        if count:
+                            findings.append(f"{count} {text}")
             finally:
                 connection.close()
             built = build_receipt["summary"]

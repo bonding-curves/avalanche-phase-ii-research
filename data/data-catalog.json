@@ -4377,6 +4377,30 @@
           "type": "number",
           "unit": "natural log",
           "derivation": "ln(net_rate) when positive"
+        },
+        {
+          "name": "capacity_at_accept_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "min(5 x validator stake, 3,000,000) minus the validator stake minus the peak, over the delegation's [start_time, end_time), of the stake of delegations to the same validator period accepted in earlier blocks, computed in nAVAX, and negative when over the limit"
+        },
+        {
+          "name": "eligible_at_accept",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "the delegation lies inside its validator period and capacity_at_accept_avax is at least its stake"
+        },
+        {
+          "name": "ineligibility_reason",
+          "type": "string",
+          "unit": "code",
+          "derivation": "null when eligible_at_accept, otherwise no_validator_period, outside_validator_period, over_3m_cap_before_ap3 (within 5 x validator stake, accepted before Apricot Phase 3, when AvalancheGo v1.4.5 to v1.4.x checked only that limit), over_weight_before_ap3, or over_capacity"
+        },
+        {
+          "name": "not_offered_reason",
+          "type": "string",
+          "unit": "code",
+          "derivation": "null when validator_offered_at_week_start, otherwise the first that holds of no_node_week_row, validator_not_active_at_cutoff, other_period_than_cutoff, period_ends_within_14d, full_at_cutoff_room_at_accept, full_at_cutoff_no_room_at_accept, else unclassified"
         }
       ]
     },
