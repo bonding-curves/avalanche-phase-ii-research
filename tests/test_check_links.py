@@ -1,0 +1,61 @@
+"""Tests for rendered Quartz link validation."""
+
+from __future__ import annotations
+
+import importlib.util
+import tempfile
+import unittest
+from pathlib import Path
+
+
+SPEC = importlib.util.spec_from_file_location(
+    "check_links", Path(__file__).resolve().parents[1] / "scripts" / "check_links.py"
+)
+assert SPEC and SPEC.loader
+check_links = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(check_links)
+
+
+class CheckLinksTests(unittest.TestCase):
+    def test_local_routes_and_fragments(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            public = Path(directory)
+            (public / "index.html").write_text(
+                '<a href="/notes/#result">Good</a><a href="https://example.org">External</a>'
+            )
+            (public / "notes").mkdir()
+            (public / "notes" / "index.html").write_text(
+                '<h2 id="result">Result</h2><a href="../missing">Bad</a>'
+                '<a href="#absent">Bad fragment</a>'
+            )
+            result = check_links.check(public)
+            self.assertEqual(result["pages"], 2)
+            self.assertEqual(result["local_links_checked"], 3)
+            self.assertEqual(result["external_links_skipped"], 1)
+            self.assertEqual(
+                [item["reason"] for item in result["broken_links"]],
+                ["missing target", "missing fragment"],
+            )
+
+    def test_relative_markdown_projection_path_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            public = Path(directory)
+            page = public / "Wiki" / "BCRG" / "Journal" / "weeks" / "2026-W37"
+            page.mkdir(parents=True)
+            (page / "index.html").write_text(
+                '<a href="../../../requirements/2026-04/grant-proposal-v2.5">Proposal</a>'
+            )
+            result = check_links.check(public)
+            self.assertEqual(result["status"], "fail")
+            self.assertEqual(result["broken_links"][0]["reason"], "missing target")
+
+    def test_dotted_page_name_resolves_without_losing_suffix(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            public = Path(directory)
+            (public / "index.html").write_text('<a href="/proposal-v2.5">Proposal</a>')
+            (public / "proposal-v2.5.html").write_text("<h1>Proposal</h1>")
+            self.assertEqual(check_links.check(public)["status"], "pass")
+
+
+if __name__ == "__main__":
+    unittest.main()
