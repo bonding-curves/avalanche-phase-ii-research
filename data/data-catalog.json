@@ -1120,6 +1120,177 @@
           "role": "AVAX USD price and volatility, the named alternative"
         }
       ]
+    },
+    {
+      "id": "etf-issuers",
+      "name": "AVAX exchange-traded product issuers",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Each issuer's own published figures for its product: Bitwise for BAVA, VanEck for VAVX, 21Shares for its Avalanche product and two baskets that hold AVAX, and Grayscale's filings with the SEC for GAVA. The issuer is the authority for its own NAV, shares outstanding, and AVAX held. None of these is an on-chain observation.",
+      "documentation_url": "https://www.sec.gov/search-filings/edgar-application-programming-interfaces",
+      "authentication": "none; VanEck's blocks answer a browser User-Agent and the capture keeps one cookie jar for them, and SEC EDGAR requires a User-Agent that names a contact",
+      "reuse_status": "Public issuer disclosures and SEC filings. Issuer website terms govern redistribution of the web figures; SEC filings are public records.",
+      "notes": [
+        "Measured 2026-09-28. bavaetf.com embeds its fund record as Next.js data in the page: net assets, shares outstanding, NAV, the AVAX units held (holdings.basket), the share staked, reward rates, 32 custody wallets with balances, and a daily NAV series since 2026-04-14. Shares outstanding and AVAX units are current only.",
+        "Measured 2026-09-28. VanEck's VAVX blocks give net assets, shares outstanding, AVAX in trust, AVAX per 1,000 shares, the share staked, staking yields, and the NAV, all as of the prior business day and current only.",
+        "Measured 2026-09-28. 21Shares' API answers gzipped JSON. product_details gives units outstanding, total NAV, and per constituent the weight, price, and AVAX entitlement per unit. product_valuation_history gives one row per valuation date since launch (2021-11-18 for AVAX) with NAV per unit, units outstanding, total NAV, the index level, and each underlying's price. MOON (Sygnum Platform Winners) and KEYS (Bitwise Select 10) are baskets in which AVAX is one constituent.",
+        "Grayscale's GAVA page refuses automated requests. Its 10-Q filings, through SEC companyfacts, give quarter-end AVAX held (InvestmentOwnedBalanceContracts), shares outstanding, NAV per share, and net assets. Where a later filing restates a period, the latest filing's value is kept. AVAX per share stays near 2.4 on every quarter end from 2024-12-31, so the filed share counts before the 1-for-5 reverse split of 2026-03-05 read as restated for it.",
+        "BAVA's wallets can be mapped to Primary Network validators through the Data API. On 2026-09-28 they staked 1,679,864 AVAX on 20 validators, 63.05% of the fund's 2,664,323 AVAX. The capture keeps the wallet list in the raw page and does not map it."
+      ],
+      "endpoints": [
+        {
+          "id": "bava-page",
+          "url": "https://bavaetf.com/",
+          "response_fields": [
+            "fundDetails.netAssets",
+            "fundDetails.sharesOutstanding",
+            "fundDetails.asOfDate",
+            "fundDetails.stakingMetrics",
+            "holdings.basket[].companyName",
+            "holdings.basket[].shares",
+            "holdings.basket[].weight",
+            "holdings.asOfDate",
+            "navAndMarketPrice.nav",
+            "navAndMarketPrice.chart.nav",
+            "wallets.walletBalances[].address",
+            "wallets.walletBalances[].balance",
+            "wallets.walletBalances[].active"
+          ]
+        },
+        {
+          "id": "vaneck-vavx-nav",
+          "url": "https://www.vaneck.com/Main/NavInformationBlock/GetContent/?blockId=353894&pageId=353872&ticker=VAVX",
+          "response_fields": [
+            "data.AsOfDate",
+            "data.Navs[Total Net Assets]",
+            "data.Navs[Shares Outstanding]",
+            "data.Navs[AVAX in Trust]",
+            "data.Navs[AVAX per 1,000 Shares]"
+          ]
+        },
+        {
+          "id": "vaneck-vavx-staking",
+          "url": "https://www.vaneck.com/Main/FundDetailsBlock/GetContent/?blockId=353892&pageId=353872&ticker=VAVX",
+          "response_fields": [
+            "data.LongVersionAsOfDate",
+            "data.Values[Percentage Staked]",
+            "data.Values[Staking Yield on Staked AVAX]",
+            "data.Values[Gross staking yield]",
+            "data.Values[Net Staking Yield]"
+          ]
+        },
+        {
+          "id": "vaneck-vavx-prices",
+          "url": "https://www.vaneck.com/Main/HistoPricesBlock/GetContent/?blockId=164035&pageId=353872&ticker=VAVX",
+          "response_fields": [
+            "data.AsOfDate",
+            "data.PricesViewModel.NavCurrent",
+            "data.PricesViewModel.LastPriceCurrent"
+          ]
+        },
+        {
+          "id": "twentyone-shares-avax-details",
+          "url": "https://api.primary.21shares.com/api/product_details/AVAX",
+          "response_fields": [
+            "success",
+            "data.ticker",
+            "data.product_name",
+            "data.valuation_date",
+            "data.total_units_outstanding",
+            "data.total_nav",
+            "data.nav_per_unit",
+            "data.constituents[].ticker",
+            "data.constituents[].weight",
+            "data.constituents[].price",
+            "data.constituents[].coin_entitlement_per_share"
+          ]
+        },
+        {
+          "id": "twentyone-shares-moon-details",
+          "url": "https://api.primary.21shares.com/api/product_details/MOON",
+          "response_fields": [
+            "success",
+            "data.ticker",
+            "data.product_name",
+            "data.valuation_date",
+            "data.total_units_outstanding",
+            "data.total_nav",
+            "data.nav_per_unit",
+            "data.constituents[].ticker",
+            "data.constituents[].weight",
+            "data.constituents[].price",
+            "data.constituents[].coin_entitlement_per_share"
+          ]
+        },
+        {
+          "id": "twentyone-shares-keys-details",
+          "url": "https://api.primary.21shares.com/api/product_details/KEYS",
+          "response_fields": [
+            "success",
+            "data.ticker",
+            "data.product_name",
+            "data.valuation_date",
+            "data.total_units_outstanding",
+            "data.total_nav",
+            "data.nav_per_unit",
+            "data.constituents[].ticker",
+            "data.constituents[].weight",
+            "data.constituents[].price",
+            "data.constituents[].coin_entitlement_per_share"
+          ]
+        },
+        {
+          "id": "twentyone-shares-avax-history",
+          "url": "https://api.primary.21shares.com/api/product_valuation_history/AVAX",
+          "response_fields": [
+            "success",
+            "data[].valuation_date",
+            "data[].nav_per_share",
+            "data[].total_units_outstanding",
+            "data[].total_nav",
+            "data[].index",
+            "data[].underlying"
+          ]
+        },
+        {
+          "id": "twentyone-shares-moon-history",
+          "url": "https://api.primary.21shares.com/api/product_valuation_history/MOON",
+          "response_fields": [
+            "success",
+            "data[].valuation_date",
+            "data[].nav_per_share",
+            "data[].total_units_outstanding",
+            "data[].total_nav",
+            "data[].index",
+            "data[].underlying"
+          ]
+        },
+        {
+          "id": "twentyone-shares-keys-history",
+          "url": "https://api.primary.21shares.com/api/product_valuation_history/KEYS",
+          "response_fields": [
+            "success",
+            "data[].valuation_date",
+            "data[].nav_per_share",
+            "data[].total_units_outstanding",
+            "data[].total_nav",
+            "data[].index",
+            "data[].underlying"
+          ]
+        },
+        {
+          "id": "sec-gava-facts",
+          "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0002035053.json",
+          "response_fields": [
+            "entityName",
+            "facts.us-gaap.InvestmentOwnedBalanceContracts.units.Avax",
+            "facts.us-gaap.SharesOutstanding.units.shares",
+            "facts.us-gaap.NetAssetValuePerShare.units.USD/shares",
+            "facts.us-gaap.AssetsNet.units.USD",
+            "facts.us-gaap.InvestmentOwnedPercentOfNetAssets.units.pure"
+          ]
+        }
+      ]
     }
   ],
   "datasets": [
@@ -4934,6 +5105,209 @@
           "type": "string",
           "unit": "duration bin",
           "derivation": "48h to 7d, 7d to 14d, 14d to 30d, 30d to 90d, 90d to 180d, 180d to 365d, or over 365d. Each bin includes its lower bound and excludes its upper, except 180d to 365d, which includes 365 days, the protocol maximum. Under 48h appears only if a cycle breaks the Helicon minimum"
+        }
+      ]
+    },
+    {
+      "id": "etf-issuers.avax-fund-snapshot",
+      "name": "AVAX exchange-traded products, current figures per issuer",
+      "source_id": "etf-issuers",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "description": "One row per fund per capture with the issuer's current NAV, net assets, shares outstanding, AVAX held, and share staked. BAVA and VAVX publish shares outstanding and AVAX held only as a current figure, so the daily capture is the series. The GAVA row is its latest quarterly SEC filing. Checked for required values, non-negative AVAX held, BAVA's AVAX held against its basket units, 21Shares' AVAX held against the fund's NAV in AVAX over the AVAX price within 0.5%, VAVX's AVAX per 1,000 shares against AVAX in trust, and NAV times shares against net assets.",
+      "endpoint_ids": [
+        "bava-page",
+        "vaneck-vavx-nav",
+        "vaneck-vavx-staking",
+        "vaneck-vavx-prices",
+        "twentyone-shares-avax-details",
+        "twentyone-shares-moon-details",
+        "twentyone-shares-keys-details",
+        "sec-gava-facts"
+      ],
+      "fields": [
+        {
+          "name": "captured_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the capture's completion time"
+        },
+        {
+          "name": "issuer",
+          "type": "string",
+          "unit": "name",
+          "derivation": "Bitwise, VanEck, 21Shares, or Grayscale"
+        },
+        {
+          "name": "fund",
+          "type": "string",
+          "unit": "name",
+          "derivation": "the product's name as the issuer gives it"
+        },
+        {
+          "name": "ticker",
+          "type": "string",
+          "unit": "code",
+          "derivation": "the issuer's ticker: BAVA, VAVX, AVAX (21Shares Avalanche Staking ETP), MOON, KEYS, or GAVA"
+        },
+        {
+          "name": "endpoint_id",
+          "type": "string",
+          "unit": "catalog endpoint ID",
+          "derivation": "the endpoint the row's figures come from"
+        },
+        {
+          "name": "as_of",
+          "type": "string",
+          "unit": "issuer's ISO date",
+          "derivation": "BAVA holdings.asOfDate, VAVX data.AsOfDate, 21Shares data.valuation_date, GAVA the latest period end with an AVAX balance"
+        },
+        {
+          "name": "nav_usd",
+          "type": "number",
+          "unit": "USD per share",
+          "derivation": "BAVA navAndMarketPrice.nav, VAVX NavCurrent, 21Shares nav_per_unit, GAVA NetAssetValuePerShare"
+        },
+        {
+          "name": "net_assets_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "BAVA fundDetails.netAssets, VAVX Total Net Assets, 21Shares total_nav, GAVA AssetsNet"
+        },
+        {
+          "name": "shares_outstanding",
+          "type": "number",
+          "unit": "shares",
+          "derivation": "BAVA fundDetails.sharesOutstanding, VAVX Shares Outstanding, 21Shares total_units_outstanding, GAVA SharesOutstanding from the latest filing that reports the period"
+        },
+        {
+          "name": "avax_held",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "BAVA the Avalanche line of holdings.basket (shares), VAVX AVAX in Trust, 21Shares the AVAX constituent's coin_entitlement_per_share times units outstanding, GAVA InvestmentOwnedBalanceContracts"
+        },
+        {
+          "name": "avax_per_share",
+          "type": "number",
+          "unit": "AVAX per share",
+          "derivation": "VAVX AVAX per 1,000 Shares over 1,000, 21Shares coin_entitlement_per_share, otherwise avax_held over shares_outstanding"
+        },
+        {
+          "name": "avax_weight",
+          "type": "number",
+          "unit": "fraction of net assets",
+          "derivation": "the AVAX line's weight: 1 for single-asset funds, the constituent weight for the 21Shares baskets, GAVA InvestmentOwnedPercentOfNetAssets"
+        },
+        {
+          "name": "avax_held_derived",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "true when avax_held is computed from a per-unit figure rather than reported as a total (21Shares)"
+        },
+        {
+          "name": "staked_share",
+          "type": "number",
+          "unit": "fraction of AVAX held",
+          "derivation": "BAVA stakingMetrics.currentPercentageOfAssetsStaked, VAVX Percentage Staked over 100, null where the issuer reports none"
+        }
+      ]
+    },
+    {
+      "id": "etf-issuers.avax-fund-history",
+      "name": "AVAX exchange-traded products, published valuation histories",
+      "source_id": "etf-issuers",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "description": "One row per fund per valuation date from the histories issuers publish: 21Shares' daily valuations for AVAX, MOON, and KEYS, BAVA's daily NAV since 2026-04-14, and GAVA's quarter-end SEC filings. Units outstanding over time are the fund flows for the 21Shares products. AVAX held is reported for GAVA and for BAVA's current date, derived as total NAV over the AVAX price for the single-asset 21Shares product, and null for the baskets and for BAVA's earlier dates. Checked for required values, non-negative AVAX held, one row per fund and date, BAVA's AVAX held against its basket units, the AVAX price against the index for the single-asset product, and NAV times shares against net assets.",
+      "endpoint_ids": [
+        "bava-page",
+        "twentyone-shares-avax-history",
+        "twentyone-shares-moon-history",
+        "twentyone-shares-keys-history",
+        "sec-gava-facts"
+      ],
+      "fields": [
+        {
+          "name": "captured_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the capture's completion time"
+        },
+        {
+          "name": "issuer",
+          "type": "string",
+          "unit": "name",
+          "derivation": "Bitwise, VanEck, 21Shares, or Grayscale"
+        },
+        {
+          "name": "fund",
+          "type": "string",
+          "unit": "name",
+          "derivation": "the product's name as the issuer gives it"
+        },
+        {
+          "name": "ticker",
+          "type": "string",
+          "unit": "code",
+          "derivation": "the issuer's ticker: BAVA, VAVX, AVAX (21Shares Avalanche Staking ETP), MOON, KEYS, or GAVA"
+        },
+        {
+          "name": "endpoint_id",
+          "type": "string",
+          "unit": "catalog endpoint ID",
+          "derivation": "the endpoint the row's figures come from"
+        },
+        {
+          "name": "valuation_date",
+          "type": "string",
+          "unit": "issuer's ISO date",
+          "derivation": "21Shares data[].valuation_date, BAVA the UTC date of each navAndMarketPrice.chart.nav timestamp (4 pm New York), GAVA the period end"
+        },
+        {
+          "name": "nav_usd",
+          "type": "number",
+          "unit": "USD per share",
+          "derivation": "21Shares nav_per_share, BAVA the chart NAV, GAVA NetAssetValuePerShare"
+        },
+        {
+          "name": "net_assets_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "21Shares total_nav, BAVA fundDetails.netAssets on its as-of date only, GAVA AssetsNet"
+        },
+        {
+          "name": "shares_outstanding",
+          "type": "number",
+          "unit": "shares",
+          "derivation": "21Shares total_units_outstanding, BAVA fundDetails.sharesOutstanding on its as-of date only, GAVA SharesOutstanding from the latest filing that reports the period"
+        },
+        {
+          "name": "avax_price_usd",
+          "type": "number",
+          "unit": "USD per AVAX",
+          "derivation": "21Shares underlying.AVAX, null for BAVA and GAVA"
+        },
+        {
+          "name": "avax_held",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "21Shares AVAX total_nav over underlying.AVAX; BAVA the basket units on its as-of date; GAVA InvestmentOwnedBalanceContracts; null otherwise"
+        },
+        {
+          "name": "avax_per_share",
+          "type": "number",
+          "unit": "AVAX per share",
+          "derivation": "avax_held over shares_outstanding"
+        },
+        {
+          "name": "avax_held_derived",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "true when avax_held is computed rather than reported, false when reported, null when avax_held is null"
         }
       ]
     }
