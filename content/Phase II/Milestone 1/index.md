@@ -5,7 +5,11 @@ description: "Data ingestion, model definition, and behavioral calibration."
 
 # Milestone 1
 
-**Period:** Months 1–2, April 15–June 14, 2026
+**Working period:** June 15–August 14, 2026
+
+**Signed agreement period:** Months 1–2, April 15–June 14, 2026
+
+The project works to the schedule of proposal v2.5. The signed agreement's dates are shown for reference.
 
 **Focus:** Data ingestion, model definition, and behavioral calibration
 

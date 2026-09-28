@@ -5,7 +5,11 @@ description: "PSUU implementation, Monte Carlo sweeps, and sensitivity analysis.
 
 # Milestone 2
 
-**Period:** Months 3–4, June 15–August 14, 2026
+**Working period:** August 15–October 14, 2026
+
+**Signed agreement period:** Months 3–4, June 15–August 14, 2026
+
+The project works to the schedule of proposal v2.5. The signed agreement's dates are shown for reference.
 
 **Focus:** PSUU implementation, Monte Carlo sweeps, and sensitivity analysis
 

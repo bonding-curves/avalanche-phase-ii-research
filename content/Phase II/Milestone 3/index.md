@@ -5,7 +5,11 @@ description: "Recommendations, documentation, and knowledge transfer."
 
 # Milestone 3
 
-**Period:** Months 5–6, August 15–October 14, 2026
+**Working period:** October 15–December 14, 2026, followed by revisions, handoff, and closeout from December 15, 2026 to January 14, 2027
+
+**Signed agreement period:** Months 5–6, August 15–October 14, 2026
+
+The project works to the schedule of proposal v2.5. The signed agreement's dates are shown for reference.
 
 **Focus:** Recommendations, documentation, and knowledge transfer
 
