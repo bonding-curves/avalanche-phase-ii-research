@@ -1,14 +1,14 @@
 """Builder Hub validator uptime: capture, build, check, and the merged hourly table.
 
 Builder Hub's validator explorer serves, for every current Primary Network validator, the hourly median uptime across
-Ava Labs' observing nodes for a rolling window of about 332 hours. It is the only public history of uptime
-percentages: the protocol keeps none. A capture takes the validator list and one detail per node, and also asks again
+Ava Labs' observing nodes for a rolling window, 332 hours until 2026-09-27 and about 175 since. It is the only public
+history of uptime percentages: the protocol keeps none. A capture takes the validator list and one detail per node, and also asks again
 for nodes the previous capture listed that are no longer listed, so a validator's last hours are kept after it ends.
 Each detail is one JSON line written as it arrives. A capture that stops keeps its lines in ``.<output>.partial`` beside
 the output and the next capture into the same output resumes from them.
 
 ``derived.validator-uptime-hourly`` merges every built capture into one row per node per hour. Consecutive daily
-captures overlap by about thirteen days, so the merged table grows without gaps as long as no two captures are more
+captures overlap by about six days, so the merged table grows without gaps as long as no two captures are more
 than a window apart, which the check against the previous capture verifies.
 """
 
