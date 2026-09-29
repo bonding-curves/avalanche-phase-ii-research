@@ -21,6 +21,8 @@ MEASURES = (
     "duration_days", "observed_rewards_avax", "reward_outcomes",
 )
 IDENTITY_COLUMNS = ("Total Nodes", "Total Validator Reward Addresses", "Total Delegator Funding Addresses")
+ADDRESS_LINK_COLUMNS = ("Validator Node-address Pairs", "Delegator Node-address Pairs")
+LINKED_NODE_COLUMNS = ("Validator Nodes with Addresses", "Delegator Nodes with Addresses")
 VIEWS = ("Total", "Per Calendar Unit", "Per Commitment", "Per Node", "Per Node per Calendar Unit",
          "Per Address", "Per Address per Calendar Unit")
 
@@ -87,7 +89,7 @@ METRIC_COLUMNS = {
 _IDENTITY_COUNTS_SQL = """
 WITH events AS ({events}),
 buckets AS (
-    SELECT role, identity, accepted_at::DATE AS day_bucket,
+    SELECT role, node_id, identity, accepted_at::DATE AS day_bucket,
            date_trunc('week', accepted_at)::DATE AS week_bucket,
            date_trunc('year', accepted_at)::DATE AS year_bucket,
            CASE WHEN starts_with(era, 'apricot_') THEN 'apricot' ELSE era END AS era_bucket
@@ -102,27 +104,29 @@ SELECT role,
             WHEN grouping(week_bucket) = 0 THEN week_bucket::VARCHAR
             WHEN grouping(year_bucket) = 0 THEN year_bucket::VARCHAR
             WHEN grouping(era_bucket) = 0 THEN era_bucket ELSE 'All' END AS bucket,
-       count(DISTINCT identity) AS identities
+       count(DISTINCT identity) AS identities,
+       count(DISTINCT (node_id, identity)) FILTER (WHERE node_id IS NOT NULL AND identity IS NOT NULL) AS links,
+       count(DISTINCT node_id) FILTER (WHERE identity IS NOT NULL) AS linked_nodes
 FROM buckets
 GROUP BY GROUPING SETS ((role, day_bucket), (role, week_bucket), (role, year_bucket),
                         (role, era_bucket), (role))
 """
 
 _NODE_EVENTS = """
-SELECT role, accepted_at, regime AS era, node_id AS identity FROM read_parquet(?)
+SELECT role, accepted_at, regime AS era, node_id, node_id AS identity FROM read_parquet(?)
 """
 _REWARD_ADDRESS_EVENTS = """
 SELECT 'validator' AS role, source.accepted_at, coalesce(upgrades.regime, 'genesis') AS era,
-       source.identity
+       source.node_id, source.identity
 FROM (
-    SELECT validator.accepted_at, json_extract_string(address.value, '$') AS identity
+    SELECT validator.accepted_at, validator.node_id, json_extract_string(address.value, '$') AS identity
     FROM read_parquet(?) validator, json_each(validator.reward_addresses) address
 ) source
 ASOF LEFT JOIN upgrades ON source.accepted_at >= upgrades.activated_at
 """
 _DELEGATOR_ADDRESS_EVENTS = """
 SELECT 'delegator' AS role, source.accepted_at, coalesce(upgrades.regime, 'genesis') AS era,
-       source.delegator_address AS identity
+       source.node_id, source.delegator_address AS identity
 FROM read_parquet(?) source
 ASOF LEFT JOIN upgrades ON source.accepted_at >= upgrades.activated_at
 """
@@ -157,11 +161,13 @@ def accepted_commitments(parquet: str) -> pd.DataFrame:
 
 
 def distinct_identities(periods: str, validators: str, delegators: str) -> pd.DataFrame:
-    """Count distinct node IDs and source addresses within each complete interval."""
+    """Count nodes, addresses, and distinct observed node-address links by interval."""
     sources = (
-        ("Total Nodes", _NODE_EVENTS, periods),
-        ("Total Validator Reward Addresses", _REWARD_ADDRESS_EVENTS, validators),
-        ("Total Delegator Funding Addresses", _DELEGATOR_ADDRESS_EVENTS, delegators),
+        ("Total Nodes", None, None, _NODE_EVENTS, periods),
+        ("Total Validator Reward Addresses", ADDRESS_LINK_COLUMNS[0], LINKED_NODE_COLUMNS[0],
+         _REWARD_ADDRESS_EVENTS, validators),
+        ("Total Delegator Funding Addresses", ADDRESS_LINK_COLUMNS[1], LINKED_NODE_COLUMNS[1],
+         _DELEGATOR_ADDRESS_EVENTS, delegators),
     )
     with duckdb.connect() as db:
         db.execute("CREATE TEMP TABLE upgrades(regime VARCHAR, activated_at TIMESTAMP)")
@@ -169,9 +175,13 @@ def distinct_identities(periods: str, validators: str, delegators: str) -> pd.Da
                        [(item.name, item.activated_at.replace(tzinfo=None))
                         for item in MAINNET_UPGRADES.upgrades])
         counts = None
-        for column, events, parquet in sources:
+        for column, links, linked_nodes, events, parquet in sources:
             part = db.execute(_IDENTITY_COUNTS_SQL.format(events=events), [parquet]).df()
             part = part.rename(columns={"identities": column})
+            if links is None:
+                part = part.drop(columns=["links", "linked_nodes"])
+            else:
+                part = part.rename(columns={"links": links, "linked_nodes": linked_nodes})
             counts = part if counts is None else counts.merge(part, on=["role", "grain", "bucket"], how="outer")
     return counts
 
@@ -248,8 +258,17 @@ def cohort_table(daily: pd.DataFrame, cutoffs: Mapping[str, pd.Timestamp], grain
         for role, column in (("validator", IDENTITY_COLUMNS[1]), ("delegator", IDENTITY_COLUMNS[2])):
             applicable = result["role"].eq(role)
             result.loc[applicable, column] = result.loc[applicable, column].fillna(0)
+        for role, columns in (("validator", (ADDRESS_LINK_COLUMNS[0], LINKED_NODE_COLUMNS[0])),
+                              ("delegator", (ADDRESS_LINK_COLUMNS[1], LINKED_NODE_COLUMNS[1]))):
+            for column in columns:
+                if column in result:
+                    applicable = result["role"].eq(role)
+                    result.loc[applicable, column] = result.loc[applicable, column].fillna(0)
     else:
         for column in IDENTITY_COLUMNS:
+            result[column] = float("nan")
+    for column in (*ADDRESS_LINK_COLUMNS, *LINKED_NODE_COLUMNS):
+        if column not in result:
             result[column] = float("nan")
     result[list(MEASURES)] = result[list(MEASURES)].fillna(0)
     result[["commitments", "reward_outcomes"]] = result[["commitments", "reward_outcomes"]].astype(int)
@@ -257,6 +276,10 @@ def cohort_table(daily: pd.DataFrame, cutoffs: Mapping[str, pd.Timestamp], grain
     count = result["commitments"].replace(0, float("nan"))
     nodes = result["Total Nodes"].replace(0, float("nan"))
     addresses = result[IDENTITY_COLUMNS[1]].combine_first(result[IDENTITY_COLUMNS[2]]).replace(0, float("nan"))
+    links = result[ADDRESS_LINK_COLUMNS[0]].combine_first(result[ADDRESS_LINK_COLUMNS[1]])
+    linked_nodes = result[LINKED_NODE_COLUMNS[0]].combine_first(result[LINKED_NODE_COLUMNS[1]]).replace(
+        0, float("nan"),
+    )
     outcome_count = result["reward_outcomes"].replace(0, float("nan"))
     result["Total Days"] = days
     result["Commitments / Day"] = result["commitments"] / days
@@ -264,6 +287,8 @@ def cohort_table(daily: pd.DataFrame, cutoffs: Mapping[str, pd.Timestamp], grain
     result["Commitments / Node / Day"] = result["Commitments / Node"] / days
     result["Commitments / Address"] = result["commitments"] / addresses
     result["Commitments / Address / Day"] = result["Commitments / Address"] / days
+    result["Addresses per Node"] = links / linked_nodes
+    result["Nodes per Address"] = links / addresses
     for metric, source in METRIC_SOURCES.items():
         total = result[source]
         result[_metric_column(metric, "Total")] = total
@@ -277,7 +302,8 @@ def cohort_table(daily: pd.DataFrame, cutoffs: Mapping[str, pd.Timestamp], grain
     result["Role"] = result["role"].str.title()
     result = result.rename(columns={"commitments": "Total Commitments"})
     columns = ["Reporting Interval", "Start (UTC)", "End (UTC)", "Role", "Total Days", "Total Nodes",
-               "Total Validator Reward Addresses", "Total Delegator Funding Addresses", "Total Commitments",
+               "Total Validator Reward Addresses", "Total Delegator Funding Addresses",
+               "Addresses per Node", "Nodes per Address", "Total Commitments",
                "Commitments / Day", "Commitments / Node", "Commitments / Node / Day",
                "Commitments / Address", "Commitments / Address / Day"]
     columns.extend(_metric_column(metric, view) for metric in METRIC_SOURCES for view in VIEWS)
@@ -325,10 +351,16 @@ def for_population(table: pd.DataFrame, population: str) -> pd.DataFrame:
 def selected_columns(table: pd.DataFrame, metrics: list[str], views: list[str], period: str) -> pd.DataFrame:
     """Keep cohort context and show only the selected metric and view intersections."""
     columns = list(table.columns[:table.columns.get_loc("Total Nodes")])
-    if "Total" in views and "Nodes" in metrics:
-        columns.append("Total Nodes")
-    if "Total" in views and "Addresses" in metrics:
-        columns.extend(column for column in ("Total Addresses", *IDENTITY_COLUMNS[1:]) if column in table.columns)
+    if "Nodes" in metrics:
+        if "Total" in views:
+            columns.append("Total Nodes")
+        if "Per Address" in views:
+            columns.append("Nodes per Address")
+    if "Addresses" in metrics:
+        if "Total" in views:
+            columns.extend(column for column in ("Total Addresses", *IDENTITY_COLUMNS[1:]) if column in table.columns)
+        if "Per Node" in views:
+            columns.append("Addresses per Node")
     if "Total" in views and "Commitments" in metrics:
         columns.append("Total Commitments")
     commitment_views = {
@@ -396,6 +428,8 @@ class StakingCohorts(pm.Parameterized):
                 "Nodes are distinct validator NodeIDs receiving these commitments. Validator reward addresses count "
                 "all reward-owner addresses; delegator funding addresses count the largest funder per delegation, "
                 "not unique people. "
+                "Addresses per Node divides distinct node-address links by nodes with a recorded address; "
+                "Nodes per Address divides those links by distinct recorded addresses. "
                 "Total Committed Duration sums each new commitment's duration; it is not the row's elapsed time. "
                 "Reporting intervals group commitments by acceptance time. Rate Unit changes only the calendar-time "
                 "denominator, so reward rates are cohort-normalized, not payout flows. "

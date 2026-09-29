@@ -54,6 +54,8 @@ def test_day_includes_zero_commitment_intervals_and_partial_day_rates(cohorts):
     assert empty["Reward Outcomes"] == "0/0"
     assert pd.isna(empty["Duration / Commitment (days)"])
     assert pd.isna(empty["Commitments / Address"])
+    assert pd.isna(empty["Addresses per Node"])
+    assert pd.isna(empty["Nodes per Address"])
     first = table[(table["Role"] == "Validator") & (table["Reporting Interval"] == "2026-09-21")].iloc[0]
     assert first["Commitments / Day"] == pytest.approx(4)
     assert first["Stake / Day (AVAX)"] == pytest.approx(600)
@@ -109,24 +111,26 @@ def test_identity_counts_deduplicate_within_each_interval(tmp_path):
         "periods": [
             ("validator", "n1", "2026-09-21 12:00:00", "granite"),
             ("validator", "n2", "2026-09-21 13:00:00", "granite"),
+            ("validator", "n3", "2026-09-21 14:00:00", "granite"),
             ("validator", "n1", "2026-09-23 12:00:00", "helicon"),
             ("delegator", "n1", "2026-09-21 12:00:00", "granite"),
             ("delegator", "n1", "2026-09-23 12:00:00", "helicon"),
         ],
         "validators": [
-            ("2026-09-21 12:00:00", '["A", "B"]'),
-            ("2026-09-21 13:00:00", '["B"]'),
-            ("2026-09-23 12:00:00", '["C"]'),
+            ("n1", "2026-09-21 12:00:00", '["A", "B"]'),
+            ("n2", "2026-09-21 13:00:00", '["B"]'),
+            ("n3", "2026-09-21 14:00:00", None),
+            ("n1", "2026-09-23 12:00:00", '["C"]'),
         ],
         "delegators": [
-            ("2026-09-21 12:00:00", "X"),
-            ("2026-09-23 12:00:00", "X"),
+            ("n1", "2026-09-21 12:00:00", "X"),
+            ("n1", "2026-09-23 12:00:00", "X"),
         ],
     }
     columns = {
         "periods": ["role", "node_id", "accepted_at", "regime"],
-        "validators": ["accepted_at", "reward_addresses"],
-        "delegators": ["accepted_at", "delegator_address"],
+        "validators": ["node_id", "accepted_at", "reward_addresses"],
+        "delegators": ["node_id", "accepted_at", "delegator_address"],
     }
     paths = {}
     with duckdb.connect() as db:
@@ -139,21 +143,39 @@ def test_identity_counts_deduplicate_within_each_interval(tmp_path):
             db.unregister("rows")
     counts = distinct_identities(*(str(paths[name]) for name in records))
     all_rows = counts[counts.grain.eq("All")].set_index("role")
-    assert all_rows.loc["validator", "Total Nodes"] == 2
+    assert all_rows.loc["validator", "Total Nodes"] == 3
     assert all_rows.loc["validator", "Total Validator Reward Addresses"] == 3
+    assert all_rows.loc["validator", "Validator Node-address Pairs"] == 4
+    assert all_rows.loc["validator", "Validator Nodes with Addresses"] == 2
     assert all_rows.loc["delegator", "Total Nodes"] == 1
     assert all_rows.loc["delegator", "Total Delegator Funding Addresses"] == 1
+    assert all_rows.loc["delegator", "Delegator Node-address Pairs"] == 1
     day = counts[(counts.grain.eq("Day")) & (counts.role.eq("validator"))].set_index("bucket")
     assert day.loc["2026-09-21", "Total Validator Reward Addresses"] == 2
+    assert day.loc["2026-09-21", "Validator Node-address Pairs"] == 3
     assert day.loc["2026-09-23", "Total Nodes"] == 1
+
+
+def test_address_links_do_not_treat_missing_addresses_as_zero(cohorts):
+    identities = pd.DataFrame([{
+        "role": "validator", "grain": "All", "bucket": "All", "Total Nodes": 3,
+        "Total Validator Reward Addresses": 3, "Total Delegator Funding Addresses": float("nan"),
+        "Validator Node-address Pairs": 4,
+        "Validator Nodes with Addresses": 2,
+    }])
+    validator = cohort_table(*cohorts, "All", identities).set_index("Role").loc["Validator"]
+    assert validator["Addresses per Node"] == 2
+    assert validator["Nodes per Address"] == pytest.approx(4 / 3)
 
 
 def test_node_and_time_denominators(cohorts):
     identities = pd.DataFrame([
         {"role": "validator", "grain": "All", "bucket": "All", "Total Nodes": 2,
-         "Total Validator Reward Addresses": 3},
+         "Total Validator Reward Addresses": 3, "Validator Node-address Pairs": 4,
+         "Validator Nodes with Addresses": 2},
         {"role": "delegator", "grain": "All", "bucket": "All", "Total Nodes": 1,
-         "Total Delegator Funding Addresses": 1},
+         "Total Delegator Funding Addresses": 1, "Delegator Node-address Pairs": 1,
+         "Delegator Nodes with Addresses": 1},
     ])
     table = cohort_table(*cohorts, "All", identities).set_index("Role")
     validator = table.loc["Validator"]
@@ -169,6 +191,8 @@ def test_node_and_time_denominators(cohorts):
     assert validator["Commitments / Address"] == 1
     assert validator["Stake / Address (AVAX)"] == pytest.approx(800 / 3)
     assert validator["Rewards / Address (AVAX)"] == pytest.approx(4 / 3)
+    assert validator["Addresses per Node"] == 2
+    assert validator["Nodes per Address"] == pytest.approx(4 / 3)
     assert table.loc["Delegator", "Commitments / Address"] == 1
     assert pd.isna(validator["Total Delegator Funding Addresses"])
     weekly = rates_per(table, "Week")
@@ -177,6 +201,8 @@ def test_node_and_time_denominators(cohorts):
     assert weekly.loc["Validator", "Committed Duration / Week (commitment-days/week)"] == pytest.approx(49 / 3)
     assert weekly.loc["Validator", "Commitments / Address / Week"] == pytest.approx(7 / 3)
     assert weekly.loc["Validator", "Stake / Address / Week (AVAX)"] == pytest.approx(800 * 7 / 9)
+    visible = selected_columns(weekly, ["Nodes", "Addresses"], ["Per Address", "Per Node"], "Week")
+    assert visible.columns[-2:].tolist() == ["Nodes per Address", "Addresses per Node"]
 
 
 def test_population_selection_shows_only_applicable_address_count():
