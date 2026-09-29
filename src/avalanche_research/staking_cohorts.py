@@ -21,7 +21,8 @@ MEASURES = (
     "duration_days", "observed_rewards_avax", "reward_outcomes",
 )
 IDENTITY_COLUMNS = ("Total Nodes", "Total Validator Reward Addresses", "Total Delegator Funding Addresses")
-VIEWS = ("Total", "Per Calendar Unit", "Per Commitment", "Per Node", "Per Node per Calendar Unit")
+VIEWS = ("Total", "Per Calendar Unit", "Per Commitment", "Per Node", "Per Node per Calendar Unit",
+         "Per Address", "Per Address per Calendar Unit")
 
 
 def denominator_options(rate_unit: str) -> dict[str, str]:
@@ -32,6 +33,8 @@ def denominator_options(rate_unit: str) -> dict[str, str]:
         "Per Commitment": "Per Commitment",
         "Per Node": "Per Node",
         f"Per Node per {rate_unit}": "Per Node per Calendar Unit",
+        "Per Address": "Per Address",
+        f"Per Address per {rate_unit}": "Per Address per Calendar Unit",
     }
 
 
@@ -49,6 +52,8 @@ METRIC_COLUMNS = {
         "Per Commitment": "Stake / Commitment (AVAX)",
         "Per Node": "Stake / Node (AVAX)",
         "Per Node per Calendar Unit": "Stake / Node / {period} (AVAX)",
+        "Per Address": "Stake / Address (AVAX)",
+        "Per Address per Calendar Unit": "Stake / Address / {period} (AVAX)",
     },
     "Duration": {
         "Total": "Total Committed Duration (commitment-days)",
@@ -56,6 +61,8 @@ METRIC_COLUMNS = {
         "Per Commitment": "Duration / Commitment (days)",
         "Per Node": "Committed Duration / Node (commitment-days/node)",
         "Per Node per Calendar Unit": "Committed Duration / Node / {period} (commitment-days/node/{period_unit})",
+        "Per Address": "Committed Duration / Address (commitment-days/address)",
+        "Per Address per Calendar Unit": "Committed Duration / Address / {period} (commitment-days/address/{period_unit})",
     },
     "Stake-duration": {
         "Total": "Total Stake-duration (AVAX-days)",
@@ -63,6 +70,8 @@ METRIC_COLUMNS = {
         "Per Commitment": "Stake-duration / Commitment (AVAX-days)",
         "Per Node": "Stake-duration / Node (AVAX-days)",
         "Per Node per Calendar Unit": "Stake-duration / Node / {period} (AVAX-days)",
+        "Per Address": "Stake-duration / Address (AVAX-days)",
+        "Per Address per Calendar Unit": "Stake-duration / Address / {period} (AVAX-days)",
     },
     "Rewards": {
         "Total": "Total Rewards (AVAX)",
@@ -70,6 +79,8 @@ METRIC_COLUMNS = {
         "Per Commitment": "Rewards / Commitment (AVAX)",
         "Per Node": "Rewards / Node (AVAX)",
         "Per Node per Calendar Unit": "Rewards / Node / {period} (AVAX)",
+        "Per Address": "Rewards / Address (AVAX)",
+        "Per Address per Calendar Unit": "Rewards / Address / {period} (AVAX)",
     },
 }
 
@@ -243,11 +254,14 @@ def cohort_table(daily: pd.DataFrame, cutoffs: Mapping[str, pd.Timestamp], grain
     days = (result["End (UTC)"] - result["Start (UTC)"]) / DAY
     count = result["commitments"].replace(0, float("nan"))
     nodes = result["Total Nodes"].replace(0, float("nan"))
+    addresses = result[IDENTITY_COLUMNS[1]].combine_first(result[IDENTITY_COLUMNS[2]]).replace(0, float("nan"))
     outcome_count = result["reward_outcomes"].replace(0, float("nan"))
     result["Total Days"] = days
     result["Commitments / Day"] = result["commitments"] / days
     result["Commitments / Node"] = result["commitments"] / nodes
     result["Commitments / Node / Day"] = result["Commitments / Node"] / days
+    result["Commitments / Address"] = result["commitments"] / addresses
+    result["Commitments / Address / Day"] = result["Commitments / Address"] / days
     for metric, source in METRIC_SOURCES.items():
         total = result[source]
         result[_metric_column(metric, "Total")] = total
@@ -255,12 +269,15 @@ def cohort_table(daily: pd.DataFrame, cutoffs: Mapping[str, pd.Timestamp], grain
         result[_metric_column(metric, "Per Commitment")] = total / (outcome_count if metric == "Rewards" else count)
         result[_metric_column(metric, "Per Node")] = total / nodes
         result[_metric_column(metric, "Per Node per Calendar Unit")] = total / nodes / days
+        result[_metric_column(metric, "Per Address")] = total / addresses
+        result[_metric_column(metric, "Per Address per Calendar Unit")] = total / addresses / days
     result["Reward Outcomes"] = result["reward_outcomes"].astype(str) + "/" + result["commitments"].astype(str)
     result["Role"] = result["role"].str.title()
     result = result.rename(columns={"commitments": "Total Commitments"})
     columns = ["Reporting Interval", "Start (UTC)", "End (UTC)", "Role", "Total Days", "Total Nodes",
                "Total Validator Reward Addresses", "Total Delegator Funding Addresses", "Total Commitments",
-               "Commitments / Day", "Commitments / Node", "Commitments / Node / Day"]
+               "Commitments / Day", "Commitments / Node", "Commitments / Node / Day",
+               "Commitments / Address", "Commitments / Address / Day"]
     columns.extend(_metric_column(metric, view) for metric in METRIC_SOURCES for view in VIEWS)
     columns.append("Reward Outcomes")
     result = result[columns].sort_values(["Start (UTC)", "Role"], ascending=[False, True])
@@ -272,15 +289,18 @@ def rates_per(table: pd.DataFrame, denominator: str) -> pd.DataFrame:
     factor = DAYS_PER_RATE_PERIOD[denominator]
     result = table.copy()
     result["Total Days"] = result["Total Days"] / factor
-    rate_columns = ["Commitments / Day", "Commitments / Node / Day"]
+    rate_columns = ["Commitments / Day", "Commitments / Node / Day", "Commitments / Address / Day"]
     rate_columns.extend(_metric_column(metric, view) for metric in METRIC_SOURCES
-                        for view in ("Per Calendar Unit", "Per Node per Calendar Unit"))
+                        for view in ("Per Calendar Unit", "Per Node per Calendar Unit",
+                                     "Per Address per Calendar Unit"))
     result[rate_columns] = result[rate_columns] * factor
     names = {"Total Days": f"Total {denominator}s",
              "Commitments / Day": f"Commitments / {denominator}",
-             "Commitments / Node / Day": f"Commitments / Node / {denominator}"}
+             "Commitments / Node / Day": f"Commitments / Node / {denominator}",
+             "Commitments / Address / Day": f"Commitments / Address / {denominator}"}
     names.update({_metric_column(metric, view): _metric_column(metric, view, denominator)
-                  for metric in METRIC_SOURCES for view in ("Per Calendar Unit", "Per Node per Calendar Unit")})
+                  for metric in METRIC_SOURCES for view in ("Per Calendar Unit", "Per Node per Calendar Unit",
+                                                            "Per Address per Calendar Unit")})
     return result.rename(columns=names)
 
 
@@ -310,6 +330,8 @@ def selected_columns(table: pd.DataFrame, metrics: list[str], views: list[str], 
         "Per Calendar Unit": f"Commitments / {period}",
         "Per Node": "Commitments / Node",
         "Per Node per Calendar Unit": f"Commitments / Node / {period}",
+        "Per Address": "Commitments / Address",
+        "Per Address per Calendar Unit": f"Commitments / Address / {period}",
     }
     if "Commitments" in metrics:
         columns.extend(commitment_views[view] for view in VIEWS if view in views and view in commitment_views)
@@ -365,6 +387,7 @@ class StakingCohorts(pm.Parameterized):
                 "Rewards include known outcomes only. `Reward Outcomes` is n known outcomes / m total commitments; "
                 "Rewards / Commitment divides by n, not all m commitments. "
                 "Rewards / Node divides known rewards by all cohort nodes. "
+                "Rewards / Address divides known rewards by all cohort addresses. "
                 "Nodes are distinct validator NodeIDs receiving these commitments. Validator reward addresses count "
                 "all reward-owner addresses; delegator funding addresses count the largest funder per delegation, "
                 "not unique people. "

@@ -53,6 +53,7 @@ def test_day_includes_zero_commitment_intervals_and_partial_day_rates(cohorts):
     assert empty["Total Commitments"] == 0
     assert empty["Reward Outcomes"] == "0/0"
     assert pd.isna(empty["Duration / Commitment (days)"])
+    assert pd.isna(empty["Commitments / Address"])
     first = table[(table["Role"] == "Validator") & (table["Reporting Interval"] == "2026-09-21")].iloc[0]
     assert first["Commitments / Day"] == pytest.approx(4)
     assert first["Stake / Day (AVAX)"] == pytest.approx(600)
@@ -149,11 +150,17 @@ def test_node_and_time_denominators(cohorts):
     assert validator["Committed Duration / Node / Day (commitment-days/node/day)"] == pytest.approx(7 / 6)
     assert validator["Stake / Node (AVAX)"] == 400
     assert validator["Rewards / Node (AVAX)"] == 2
+    assert validator["Commitments / Address"] == 1
+    assert validator["Stake / Address (AVAX)"] == pytest.approx(800 / 3)
+    assert validator["Rewards / Address (AVAX)"] == pytest.approx(4 / 3)
+    assert table.loc["Delegator", "Commitments / Address"] == 1
     assert pd.isna(validator["Total Delegator Funding Addresses"])
     weekly = rates_per(table, "Week")
     assert weekly.loc["Validator", "Total Weeks"] == pytest.approx(3 / 7)
     assert weekly.loc["Validator", "Commitments / Node / Week"] == pytest.approx(3.5)
     assert weekly.loc["Validator", "Committed Duration / Week (commitment-days/week)"] == pytest.approx(49 / 3)
+    assert weekly.loc["Validator", "Commitments / Address / Week"] == pytest.approx(7 / 3)
+    assert weekly.loc["Validator", "Stake / Address / Week (AVAX)"] == pytest.approx(800 * 7 / 9)
 
 
 def test_population_selection_shows_only_applicable_address_count():
@@ -196,6 +203,24 @@ def test_count_quantities_control_existing_columns(cohorts):
     assert "Total Commitments" not in selected_columns(table, ["Nodes"], [], "Week")
 
 
+def test_address_denominators_follow_population_and_rate_unit(cohorts):
+    identities = pd.DataFrame([
+        {"role": "validator", "grain": "All", "bucket": "All", "Total Nodes": 2,
+         "Total Validator Reward Addresses": 3},
+        {"role": "delegator", "grain": "All", "bucket": "All", "Total Nodes": 1,
+         "Total Delegator Funding Addresses": 1},
+    ])
+    table = cohort_table(*cohorts, "All", identities)
+    weekly = rates_per(for_population(table, "Both"), "Week")
+    visible = selected_columns(weekly, ["Commitments", "Stake"],
+                               ["Per Address", "Per Address per Calendar Unit"], "Week")
+    assert visible.columns.tolist()[-4:] == [
+        "Commitments / Address", "Commitments / Address / Week",
+        "Stake / Address (AVAX)", "Stake / Address / Week (AVAX)",
+    ]
+    assert weekly.set_index("Role")["Total Addresses"].to_dict() == {"Validator": 3, "Delegator": 1}
+
+
 def test_denominator_labels_follow_rate_unit_without_changing_view_keys():
     daily = denominator_options("Day")
     weekly = denominator_options("Week")
@@ -203,6 +228,8 @@ def test_denominator_labels_follow_rate_unit_without_changing_view_keys():
     assert "Per Day" in daily and "Per Node per Day" in daily
     assert weekly["Per Week"] == "Per Calendar Unit"
     assert weekly["Per Node per Week"] == "Per Node per Calendar Unit"
+    assert weekly["Per Address"] == "Per Address"
+    assert weekly["Per Address per Week"] == "Per Address per Calendar Unit"
 
 
 def test_panel_keeps_one_table_when_selections_change(monkeypatch):
