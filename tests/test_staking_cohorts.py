@@ -4,7 +4,9 @@ import pandas as pd
 import pytest
 import duckdb
 
-from avalanche_research.staking_cohorts import cohort_table, distinct_identities, for_population, rates_per
+from avalanche_research.staking_cohorts import (
+    cohort_table, distinct_identities, for_population, rates_per, selected_columns,
+)
 
 
 @pytest.fixture
@@ -139,10 +141,17 @@ def test_node_and_time_denominators(cohorts):
     assert validator["Total Days"] == 3
     assert validator["Commitments / Node"] == pytest.approx(1.5)
     assert validator["Commitments / Node / Day"] == pytest.approx(0.5)
+    assert validator["Total Committed Duration (commitment-days)"] == 7
+    assert validator["Committed Duration / Day (commitment-days/day)"] == pytest.approx(7 / 3)
+    assert validator["Committed Duration / Node (commitment-days/node)"] == pytest.approx(7 / 2)
+    assert validator["Committed Duration / Node / Day (commitment-days/node/day)"] == pytest.approx(7 / 6)
+    assert validator["Stake / Node (AVAX)"] == 400
+    assert validator["Rewards / Node (AVAX)"] == 2
     assert pd.isna(validator["Total Delegator Funding Addresses"])
     weekly = rates_per(table, "Week")
     assert weekly.loc["Validator", "Total Weeks"] == pytest.approx(3 / 7)
     assert weekly.loc["Validator", "Commitments / Node / Week"] == pytest.approx(3.5)
+    assert weekly.loc["Validator", "Committed Duration / Week (commitment-days/week)"] == pytest.approx(49 / 3)
 
 
 def test_population_selection_shows_only_applicable_address_count():
@@ -158,3 +167,17 @@ def test_population_selection_shows_only_applicable_address_count():
     assert delegators.columns.tolist() == ["Role", "Total Delegator Funding Addresses"]
     assert both.columns.tolist() == ["Role", "Total Addresses"]
     assert both["Total Addresses"].tolist() == [3, 2]
+
+
+def test_metric_and_view_selections_keep_context_and_filter_families(cohorts):
+    table = rates_per(for_population(cohort_table(*cohorts, "All"), "Validators"), "Week")
+    visible = selected_columns(table, ["Duration", "Rewards"], ["Total", "/ Node / Period"], "Week")
+    assert visible.columns.tolist() == [
+        "Period", "Start (UTC)", "End (UTC)", "Role", "Total Weeks", "Total Nodes",
+        "Total Validator Reward Addresses", "Total Commitments", "Commitments / Node / Week",
+        "Total Committed Duration (commitment-days)",
+        "Committed Duration / Node / Week (commitment-days/node/week)",
+        "Total Rewards (AVAX)", "Rewards / Node / Week (AVAX)", "Reward Outcomes",
+    ]
+    context = selected_columns(table, [], [], "Week")
+    assert context.columns.tolist() == visible.columns.tolist()[:8]
