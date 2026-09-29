@@ -48,7 +48,7 @@ Performance measurement in mechanism design requires strict structural disciplin
 └──────────────────────────┴─────────────────────────────────────────────┘
 ```
 
-This specification establishes a 5-axiom evaluation framework and defines the canonical **3-MOE + 2-TPM Architecture** to guide empirical parameter calibration.
+This specification establishes a 5-axiom evaluation framework and defines the canonical **3-MOE + 1-TPM + 1-Monitoring Indicator Architecture** to guide empirical parameter calibration.
 
 ---
 
@@ -106,14 +106,14 @@ Every metric proposed for evaluation must pass all five axiomatic tests:
 | **M-02** | Joint Distribution $P(S, d)$ | Partial | Yes | ❌ Subsumes M-01 | ❌ Descriptive manifold | **DEMOTE $\to$ Diagnostic State Manifold**. Visualizes validator wealth-time migration. |
 | **M-03** | Stake-Weighted Duration $\bar{d}_{\text{stake}}$ | ❌ Misattributed | ❌ Fails (99.8% whale driven) | Partial | ⚠️ Target exists, wrong lever | **REMOVE from $S_{\min}(d)$ $\to$ Relocate to ACP-285**. Resolves policy attribution error. |
 | **M-04** | Turnover Rate $N_{\text{turnover}}$ | ✅ Yes (Obj 3) | ✅ Yes | ✅ Orthogonal | ✅ Yes ($\min N_{\text{turnover}}$) | **RETAIN $\to$ Canonical MOE-3**. High-fidelity measure of identity cycling suppression. |
-| **M-05** | Concentration $\text{HHI}_{\text{seat}}$ | ✅ Yes (Safety) | Partial | ✅ Orthogonal | ✅ Yes ($\text{HHI} \le \theta_{\text{HHI}}$) | **RECLASSIFY $\to$ Canonical TPM-1**. Binary safety ceiling against consensus cartelization. |
+| **M-05** | Concentration $\text{HHI}_{\text{seat}}$ | ✅ Yes (Safety) | ❌ No (emergent outcome — `S_min(d)` cannot directly control who participates beyond the threshold) | ✅ Orthogonal | ⚠️ Observable but not enforceable by this mechanism | **RECLASSIFY → Monitoring Indicator (non-gating diagnostic)**. Measured each simulation step. If a parameter triple `(S_short, S_floor, p)` consistently yields high HHI, flag it as undesirable — but do not use as a binary pass/fail gate since `S_min(d)` has no direct actuator over stake concentration above the admission floor. |
 | **M-06** | State Storage $M_{\text{state}}$ | ✅ Yes (Safety) | ✅ Yes | ❌ Time-integral of M-04 | ✅ Yes ($M_{\text{state}} \le \text{RAM}$) | **RECLASSIFY $\to$ Canonical TPM-2**. Physical hardware resource constraint. |
 
 ---
 
-## 6. The Canonical 3-MOE + 2-TPM Architecture
+## 6. The Canonical 3-MOE + 1-TPM + 1-Monitoring Indicator Architecture
 
-Under this validated architecture, the measurement suite consists of exactly **3 Measures of Effectiveness** (evaluating the 3 Core Objectives) and **2 Technical Performance Measures** (evaluating system safety and hardware invariants).
+Under this validated architecture, the measurement suite consists of exactly **3 Measures of Effectiveness** (evaluating the 3 Core Objectives), **1 Technical Performance Measure** (physical RAM safety invariant), and **1 Monitoring Indicator** (HHI — measured but not enforced by this mechanism).
 
 ```mermaid
 flowchart LR
@@ -129,18 +129,22 @@ flowchart LR
         MOE3["MOE 3: Off-Peak Turnover Rate<br/>N_turnover <= Baseline"]
     end
 
-    subgraph TPMs["Technical Performance Measures (TPMs)"]
-        TPM1["TPM 1: Seat HHI Ceiling<br/>HHI_seat <= theta_HHI"]
-        TPM2["TPM 2: State Memory Budget<br/>M_state <= RAM_cap"]
+    subgraph TPMs["Technical Performance Measure (TPM)"]
+        TPM2["TPM 1: State Memory Budget<br/>M_state <= RAM_cap"]
+    end
+
+    subgraph Monitor["Monitoring Indicators (non-gating)"]
+        HHI["HHI_seat: Stake Concentration<br/>Measured — not enforced by S_min(d)"]
     end
 
     Obj1 -->|1-to-1 Mapping| MOE1
     Obj2 -->|1-to-1 Mapping| MOE2
     Obj3 -->|1-to-1 Mapping| MOE3
 
-    MOE1 -.->|Constrained By| TPM1
     MOE3 -.->|Constrained By| TPM2
+    MOE1 -.->|Observed Via| HHI
 ```
+
 
 ---
 
@@ -178,23 +182,28 @@ flowchart LR
 
 ---
 
-### 6.2 Technical Performance Measures (TPMs) — Binary Safety Invariants
+### 6.2 Technical Performance Measure (TPM) — Binary Safety Invariant
 
-TPMs are not optimization goals; they are binary constraint gates that ensure parameter choices do not induce collateral damage to network decentralization or hardware viability.
+TPMs are not optimization goals; they are binary constraint gates that ensure parameter choices do not induce collateral damage to hardware viability.
 
-#### **TPM 1: Consensus Seat Decentralization Invariant ($\text{HHI}_{\text{seat}}$)**
-* **Formal Definition:**
-  $$\text{HHI}_{\text{seat}} = \sum_{i=1}^{N_{\text{entities}}} \left( \frac{\text{Seats}_i}{N_{\text{total\_seats}}} \right)^2$$
-* **Invariant Threshold:**
-  $$\text{HHI}_{\text{seat}} \le \theta_{\text{HHI}}$$
-* **Failure Condition:** If setting $S_{\text{short}}$ too high or $p$ too steep causes smaller node operators to exit entirely rather than extend duration, $\text{HHI}_{\text{seat}}$ breaches $\theta_{\text{HHI}}$, signaling consensus centralization.
-
-#### **TPM 2: Consensus State Memory Ceiling ($M_{\text{state}}$)**
+#### **TPM 1: Consensus State Memory Ceiling ($M_{\text{state}}$)**
 * **Formal Definition:**
   $$M_{\text{state}} = M_{\text{BLS\_cache}} + M_{\text{peer\_table}} + M_{\text{P-chain\_index}}$$
 * **Invariant Threshold:**
   $$M_{\text{state}} \le \bar{M}_{\max}$$
 * **Failure Condition:** Peak dynamic memory consumption of PlatformVM validator tracking exceeding pre-allocated RAM budgets on reference validator hardware.
+
+---
+
+### 6.3 Monitoring Indicator — Non-Gating Diagnostic
+
+#### **HHI Seat Concentration ($\text{HHI}_{\text{seat}}$)**
+* **Formal Definition:**
+  $$\text{HHI}_{\text{seat}} = \sum_{i=1}^{N_{\text{entities}}} \left( \frac{\text{Seats}_i}{N_{\text{total\_seats}}} \right)^2$$
+* **Why this is NOT a TPM:**
+  The admission frontier `S_min(d)` is an **entry filter** — it controls who may participate, but has no actuator over how stake is *distributed* among validators who clear the threshold. HHI is an **emergent property** of the validator pool composition. Enforcing an HHI ceiling would require a separate protocol-level mechanism (e.g., seat caps, stake-weighted lottery), which is outside the scope of this proposal.
+* **Role in simulation:** Measured at every cadCAD simulation step as a **diagnostic signal**. If a parameter triple `(S_short, S_floor, p)` consistently yields rising HHI across sweep iterations, flag that configuration as undesirable and deprioritise it — but do not use HHI as a binary pass/fail gate during parameter selection.
+
 
 ---
 
@@ -216,8 +225,9 @@ To observe agent-based simulation trajectories (cadCAD / radCAD) and historical 
 | **Obj 1: Short-Duration Sybil Parity** | **MOE 1: $R_{\text{sybil}}$** | $\frac{S(d_{\min}) \cdot d_{\min}}{K_{\text{baseline}}}$ | $\ge 1.0$ | $S_{\text{short}}$ | Analytical Proof & Syntactic Gate |
 | **Obj 2: Terminal Stake Boundary** | **MOE 2: $F_{\text{terminal}}$** | $\frac{S(d_{\max})}{S_{\text{floor}}}$ | $\equiv 1.0$ | $S_{\text{floor}}$ | Boundary Condition Verification |
 | **Obj 3: Off-Peak State Churn Defense** | **MOE 3: $N_{\text{turnover}}$** | $\frac{V_{\text{in}} + V_{\text{out}}}{\bar{V} \cdot T}$ | $\le \text{Baseline}$ | $p$ | Discrete-Event cadCAD Simulation |
-| *Safety Guardrail: Decentralization* | **TPM 1: $\text{HHI}_{\text{seat}}$** | $\sum s_i^2$ | $\le \theta_{\text{HHI}}$ | $(S_{\text{short}}, p)$ | Empirical Telemetry & cadCAD Sweep |
-| *Physical Constraint: RAM Budget* | **TPM 2: $M_{\text{state}}$** | $M_{\text{BLS}} + M_{\text{P-Chain}}$ | $\le \bar{M}_{\max}$ | $(S_{\text{short}}, p)$ | Node Benchmarks & Stress Tests |
+| *Physical Constraint: RAM Budget* | **TPM 1: $M_{\text{state}}$** | $M_{\text{BLS}} + M_{\text{P-Chain}}$ | $\le \bar{M}_{\max}$ | $(S_{\text{short}}, p)$ | Node Benchmarks & Stress Tests |
+| *Monitoring (non-gating diagnostic)* | **HHI Indicator: $\text{HHI}_{\text{seat}}$** | $\sum s_i^2$ | Flagged if rising — **not a pass/fail gate** | Emergent (not directly controlled by $S_{\min}(d)$) | cadCAD Sweep Observation |
+
 
 ---
 
