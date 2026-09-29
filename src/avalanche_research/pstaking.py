@@ -27,6 +27,7 @@ record, and every reward row takes the realized reward from the node's reward ou
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -135,6 +136,26 @@ def select_inputs(pinned: dict[str, str] | None, root: Path | None) -> list[dict
     return inputs
 
 
+BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
+def node_id(value: str) -> str:
+    """A node ID as every other table writes it. The node's JSON prints an AddAutoRenewedValidatorTx's nodeID as hex
+    bytes; the usual form is ``NodeID-`` and CB58, base58 of the bytes and the last four bytes of their SHA-256."""
+    if value.startswith("NodeID-"):
+        return value
+    try:
+        raw = bytes.fromhex(value.removeprefix("0x"))
+    except ValueError as error:
+        raise DataError(f"a node ID is neither NodeID- nor hex: {value}") from error
+    data = raw + hashlib.sha256(raw).digest()[-4:]
+    number, text = int.from_bytes(data, "big"), ""
+    while number:
+        number, digit = divmod(number, 58)
+        text = BASE58[digit] + text
+    return "NodeID-" + "1" * (len(data) - len(data.lstrip(b"\0"))) + text
+
+
 def _utc(seconds: int) -> datetime:
     return datetime.fromtimestamp(seconds, UTC).replace(tzinfo=None)
 
@@ -170,7 +191,7 @@ def _stake(row: tuple[Any, ...]) -> dict[str, Any] | None:
         return None
     unsigned = json.loads(unsigned_json)
     if tx_type == "AddAutoRenewedValidatorTx":
-        node_id, weight, end = unsigned["nodeID"], staked_navax, int(block_time.replace(tzinfo=UTC).timestamp()) + int(unsigned["period"])
+        node, weight, end = node_id(unsigned["nodeID"]), staked_navax, int(block_time.replace(tzinfo=UTC).timestamp()) + int(unsigned["period"])
         shares, owner = unsigned["delegationShares"], unsigned["validationRewardsOwner"]
         renewal = {"auto_compound_shares": int(unsigned["autoCompoundRewardShares"]), "period": int(unsigned["period"])}
     else:
@@ -178,7 +199,7 @@ def _stake(row: tuple[Any, ...]) -> dict[str, Any] | None:
         if unsigned.get("subnetID", PRIMARY_SUBNET) != PRIMARY_SUBNET:
             return None
         validator = unsigned["validator"]
-        node_id, weight, end = validator["nodeID"], int(validator["weight"]), int(validator["end"])
+        node, weight, end = validator["nodeID"], int(validator["weight"]), int(validator["end"])
         shares = unsigned.get("shares")
         owner = unsigned.get("validationRewardsOwner", unsigned.get("rewardsOwner")) if tx_type in VALIDATOR_TYPES else None
     stake_outputs = unsigned.get("stake") or []
@@ -192,7 +213,7 @@ def _stake(row: tuple[Any, ...]) -> dict[str, Any] | None:
     start = block_time
     return {
         "transaction_hash": tx_hash, "accepted_at": block_time, "block_height": height, "tx_index": index, "tx_type": tx_type,
-        "node_id": node_id, "start_time": start, "end_time": _utc(end), "duration_seconds": end - int(start.replace(tzinfo=UTC).timestamp()),
+        "node_id": node, "start_time": start, "end_time": _utc(end), "duration_seconds": end - int(start.replace(tzinfo=UTC).timestamp()),
         "stake_navax": weight, "shares": shares, "reward_addresses": _addresses(owner) if owner is not None else None,
         "staked_utxo_count": len(stake_outputs), "utxo_stake_navax": staked_navax if stake_outputs else None,
         "delegator_address": min(funding, key=lambda address: (-funding[address], address)) if funding else None,
@@ -364,8 +385,8 @@ def _validators(loaded: dict[str, Any], result: dict[str, Any]) -> list[tuple[An
     for tx_hash, record in loaded["records"].items():
         if record[1] in ("AddValidatorTx", "AddPermissionlessValidatorTx", "AddAutoRenewedValidatorTx"):
             periods.setdefault(tx_hash, (record[2], record[5], record[6]))
-    for tx_hash, node_id, start, end in loaded["current"]:
-        periods.setdefault(tx_hash, (node_id, start, end))
+    for tx_hash, node, start, end in loaded["current"]:
+        periods.setdefault(tx_hash, (node, start, end))
     return [(tx_hash, *period) for tx_hash, period in periods.items()]
 
 

@@ -140,3 +140,9 @@ def test_an_auto_renewed_cycle_restakes_and_starts_the_next(root):
     assert (second["cycle"], second["start_time"]) == (2, first["end_time"]) and second["rewarded"] is pd.NA
     assert second["weight_navax"] == first["weight_navax"] + first["restaked_validation_navax"]
     assert pstaking.check(output / "capture", output / "dataset", root=root)["status"] == "pass"
+
+
+def test_a_hex_node_id_becomes_the_usual_form():
+    # The node's JSON for AddAutoRenewedValidatorTx 21Z1fyuk…, and the node ID its current-validator list gives on 2026-09-29.
+    assert pstaking.node_id("0x2b61d4dfd4c238cacaacb49bd5375e0314f5f4d7") == "NodeID-4xPFhnudEnoSKEFbQxNMXfWZGe4DTr5NH"
+    assert pstaking.node_id("NodeID-4xPFhnudEnoSKEFbQxNMXfWZGe4DTr5NH") == "NodeID-4xPFhnudEnoSKEFbQxNMXfWZGe4DTr5NH"
