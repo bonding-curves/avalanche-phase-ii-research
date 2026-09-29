@@ -120,6 +120,7 @@ def test_catalog_schema_and_references_are_valid():
         "derived.p-chain-delegator-stakes",
         "derived.p-chain-staking-rewards",
         "derived.p-chain-staking-supply",
+        "derived.p-chain-staking-cycles",
         "derived.c-chain-evm-burn-daily",
         "derived.primary-burn-daily",
         "derived.seamed-validator-stakes",

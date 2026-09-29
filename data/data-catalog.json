@@ -6814,6 +6814,125 @@
       ]
     },
     {
+      "id": "derived.p-chain-staking-cycles",
+      "name": "Cycles of ACP-236 auto-renewed validators, from a P-Chain walk",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "rewards",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per cycle of each ACP-236 auto-renewed validator that a p-chain-rpc.blocks walk sees start, from Helicon on. The replay that rebuilds the supply counter models each cycle end as AvalancheGo v1.15.0 does: an abort forfeits the cycle's reward and ends the validator, a commit with a next period restakes the auto-compound share of the reward and of the delegation fees and starts the next cycle at the end of this one, and a commit without one ends the validator. The running cycle has null outcome columns. The share has no counterpart, since a cycle end is a RewardAutoRenewedValidatorTx.",
+      "input_ids": [
+        "p-chain-blocks",
+        "p-chain-staking-transactions",
+        "reward-utxos",
+        "current-validators"
+      ],
+      "fields": [
+        {
+          "name": "validator_transaction_hash",
+          "type": "string",
+          "unit": "base58 hash",
+          "derivation": "the AddAutoRenewedValidatorTx that started the validator; every cycle keeps it"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "node ID",
+          "derivation": "the transaction's nodeID"
+        },
+        {
+          "name": "cycle",
+          "type": "integer",
+          "unit": "cycle",
+          "derivation": "1 for the cycle the transaction started, then one more per renewal"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the accepting block's time for cycle 1, the previous cycle's end after"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "start plus the period in effect; equals the timestamp of the reward transaction that ends it"
+        },
+        {
+          "name": "weight_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the stake of the cycle: the staked outputs for cycle 1, then the previous weight plus both restaked amounts"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "protocol.start_stake or auto_renew_next_cycle on the replayed supply counter at the cycle's start"
+        },
+        {
+          "name": "auto_compound_shares",
+          "type": "integer",
+          "unit": "millionths",
+          "derivation": "the share of rewards restaked, from the transaction or a later SetAutoRenewedValidatorConfigTx"
+        },
+        {
+          "name": "next_period_seconds",
+          "type": "integer",
+          "unit": "seconds",
+          "derivation": "the period in effect at the cycle's end, 0 for a graceful exit; null while running"
+        },
+        {
+          "name": "reward_transaction_hash",
+          "type": "string",
+          "unit": "base58 hash",
+          "derivation": "the RewardAutoRenewedValidatorTx that ended the cycle; null while running"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "true after a commit, false after an abort; null while running"
+        },
+        {
+          "name": "delegatee_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the fee shares of delegations to the validator committed during the cycle"
+        },
+        {
+          "name": "restaked_validation_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the part of the cycle's reward added to the next cycle's weight"
+        },
+        {
+          "name": "restaked_delegatee_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the part of the delegation fees added to the next cycle's weight"
+        },
+        {
+          "name": "withdrawn_validation_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the part of the cycle's reward paid out"
+        },
+        {
+          "name": "withdrawn_delegatee_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the part of the delegation fees paid out"
+        }
+      ]
+    },
+    {
       "id": "derived.c-chain-evm-burn-daily",
       "name": "C-Chain EVM burn per UTC day from the Data API's block list",
       "source_id": "derived",

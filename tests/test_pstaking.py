@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
+import pandas as pd
 import pytest
 from test_pblocks import FakeNode, blocks
 from test_pstakers import data_api, node
@@ -35,6 +36,11 @@ def chain() -> dict[int, dict]:
     time = made[100]["time"]
     made[100]["txs"][0]["unsignedTx"]["validator"] = {"nodeID": "NodeID-A", "start": str(time - 30), "end": str(time + 14 * 86400), "weight": "25000000000"}
     made[104]["tx"]["unsignedTx"]["txID"] = "OLD"
+    # The auto-renewed validator of block 103 ends its first 14-day cycle and renews, restaking everything.
+    end = made[103]["time"] + 1_209_600
+    made[106] = {"id": "B106", "parentID": "B105", "height": 106, "time": made[105]["time"] + 1, "txs": [],
+                 "tx": {"id": "RA106", "unsignedTx": {"txID": "T103", "timestamp": str(end)}, "credentials": []}}
+    made[107] = {"id": "B107", "parentID": "B106", "height": 107, "time": made[105]["time"] + 2}
     return made
 
 
@@ -124,3 +130,13 @@ def test_a_walk_without_the_node_anchor_is_refused(root, tmp_path):
 
 def test_the_replay_needs_records_only_for_older_stakes_that_end_unrewarded(root):
     assert pstakers.staking_hashes("walk", root, "unrewarded-before-walk")[1] == ["OLD"]
+
+
+def test_an_auto_renewed_cycle_restakes_and_starts_the_next(root):
+    output = pstaking_run(root, pstaking.CYCLES_ID)
+    first, second = rows(output)
+    assert (first["cycle"], first["rewarded"], first["reward_transaction_hash"], first["withdrawn_validation_navax"]) == (1, True, "RA106", 0)
+    assert first["restaked_validation_navax"] == first["potential_reward_navax"] > 0
+    assert (second["cycle"], second["start_time"]) == (2, first["end_time"]) and second["rewarded"] is pd.NA
+    assert second["weight_navax"] == first["weight_navax"] + first["restaked_validation_navax"]
+    assert pstaking.check(output / "capture", output / "dataset", root=root)["status"] == "pass"

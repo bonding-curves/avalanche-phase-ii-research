@@ -9,6 +9,9 @@ Each table has the columns of the Snowflake dataset it backs up, so a derived ta
 | ``derived.p-chain-staking-rewards`` | ``snowflake.primary-staking-rewards`` |
 | ``derived.p-chain-staking-supply`` | ``snowflake.primary-staking-supply`` |
 
+A fifth table, ``derived.p-chain-staking-cycles``, has no share counterpart: one row per cycle of each ACP-236 auto-renewed
+validator, the grain at which such a validator's periods, rewards, and restaking happen from Helicon on.
+
 The supply counter is replayed block by block with the protocol kernel. A new stake adds its potential reward, computed
 from the supply before it (``protocol.start_stake``), and a stake that ends unrewarded, an abort, removes its potential
 reward (``protocol.supply_after_stake_end``). The counter at the walk's first block is not read from any provider: it is
@@ -57,7 +60,15 @@ VALIDATORS_ID = "derived.p-chain-validator-stakes"
 DELEGATORS_ID = "derived.p-chain-delegator-stakes"
 REWARDS_ID = "derived.p-chain-staking-rewards"
 SUPPLY_ID = "derived.p-chain-staking-supply"
-DATASET_IDS = (VALIDATORS_ID, DELEGATORS_ID, REWARDS_ID, SUPPLY_ID)
+CYCLES_ID = "derived.p-chain-staking-cycles"
+DATASET_IDS = (VALIDATORS_ID, DELEGATORS_ID, REWARDS_ID, SUPPLY_ID, CYCLES_ID)
+CYCLE_COLUMNS = {
+    "validator_transaction_hash": "VARCHAR", "node_id": "VARCHAR", "cycle": "INTEGER", "start_time": "TIMESTAMP", "end_time": "TIMESTAMP",
+    "weight_navax": "BIGINT", "potential_reward_navax": "BIGINT", "auto_compound_shares": "INTEGER", "next_period_seconds": "BIGINT",
+    "reward_transaction_hash": "VARCHAR", "rewarded": "BOOLEAN", "delegatee_reward_navax": "BIGINT",
+    "restaked_validation_navax": "BIGINT", "restaked_delegatee_navax": "BIGINT",
+    "withdrawn_validation_navax": "BIGINT", "withdrawn_delegatee_navax": "BIGINT",
+}
 DATASET_ID = VALIDATORS_ID
 SOURCE_ID = "derived"
 INPUTS = {
@@ -71,6 +82,7 @@ SPECS = {
     DELEGATORS_ID: ("p-chain-delegator-stakes", DELEGATOR_STAKES.table_columns),
     REWARDS_ID: ("p-chain-staking-rewards", STAKING_REWARDS.table_columns),
     SUPPLY_ID: ("p-chain-staking-supply", STAKING_SUPPLY.table_columns),
+    CYCLES_ID: ("p-chain-staking-cycles", CYCLE_COLUMNS),
 }
 PRIMARY_SUBNET = "11111111111111111111111111111111LpoYY"
 VALIDATOR_TYPES = ("AddValidatorTx", "AddPermissionlessValidatorTx", "AddAutoRenewedValidatorTx")
@@ -256,36 +268,59 @@ def replay(loaded: dict[str, Any], start_supply: int) -> dict[str, Any]:
                 renewing[tx_hash] = {"node_id": stake["node_id"], "weight": stake["stake_navax"], "potential": reward, "delegatee": 0,
                                      "end": stake["end_time"].replace(tzinfo=UTC), "delegation_shares": stake["shares"],
                                      "auto_compound_shares": stake["auto_compound_shares"], "period": stake["period"]}
+                renewing[tx_hash]["row"] = _cycle_row(tx_hash, renewing[tx_hash], 1, block_time.replace(tzinfo=UTC))
+                cycles.append(renewing[tx_hash]["row"])
         if position + 1 == len(walk) or walk[position + 1][0] != height:
             after_block[height] = supply
     return {"supply": supply, "stakes": stakes, "closed": closed, "after_block": after_block, "block_deltas": block_deltas, "cycles": cycles}
 
 
+def _cycle_row(tx_hash: str, validator: dict[str, Any], index: int, start: datetime) -> dict[str, Any]:
+    """A running cycle: its outcome columns stay null until its reward transaction and the commit or abort after it."""
+    return {"validator_transaction_hash": tx_hash, "node_id": validator["node_id"], "cycle": index, "start_time": start.replace(tzinfo=None),
+            "end_time": validator["end"].replace(tzinfo=None), "weight_navax": validator["weight"], "potential_reward_navax": validator["potential"],
+            "auto_compound_shares": validator["auto_compound_shares"], "next_period_seconds": None, "reward_transaction_hash": None,
+            "rewarded": None, "delegatee_reward_navax": None, "restaked_validation_navax": None, "restaked_delegatee_navax": None,
+            "withdrawn_validation_navax": None, "withdrawn_delegatee_navax": None}
+
+
 def _end_cycle(renewing: dict[str, dict[str, Any]], cycles: list[dict[str, Any]], reward: dict[str, Any], reward_row: tuple[Any, ...],
                rewarded: bool, supply: int, block_deltas: dict[int, list[tuple[int | None, str | None, int]]], height: int) -> int:
-    """The counter after an auto-renewed validator's cycle ends with a commit or an abort."""
+    """The counter after an auto-renewed validator's cycle ends with a commit or an abort, and the cycle's outcome.
+
+    On an abort the cycle's reward is forfeited and the delegation fees are paid out (mintRewardOnAbort). On a commit
+    with a next period the auto-compound share of both is restaked and the rest paid; on a commit without one, the
+    validator leaves and all is paid."""
     validator = renewing.get(reward["txID"])
     if validator is None:
         raise DataError(f"block {reward_row[0]} ends a cycle of auto-renewed validator {reward['txID']}, which the walk did not see start")
     if int(reward["timestamp"]) != int(validator["end"].timestamp()):
         raise DataError(f"the cycle of {reward['txID']} ends at {reward['timestamp']}, not at the replayed end {validator['end']}")
-    cycle = {"validator": reward["txID"], "reward_transaction_hash": reward_row[4], "cycle_end": validator["end"], "rewarded": rewarded,
-             "potential_reward_navax": validator["potential"], "weight_navax": validator["weight"]}
+    row = validator["row"]
+    row.update(reward_transaction_hash=reward_row[4], rewarded=rewarded, delegatee_reward_navax=validator["delegatee"],
+               next_period_seconds=validator["period"], auto_compound_shares=validator["auto_compound_shares"])
     if not rewarded:
         supply = protocol.supply_after_stake_end(supply, validator["potential"], False)
         block_deltas.setdefault(reward_row[0], []).append((reward_row[3], reward_row[4], -validator["potential"]))
+        row.update(restaked_validation_navax=0, restaked_delegatee_navax=0, withdrawn_validation_navax=0, withdrawn_delegatee_navax=validator["delegatee"])
         del renewing[reward["txID"]]
     elif validator["period"] > 0:
-        restaked, delegatee, _, _ = protocol.auto_renew_restake(validator["potential"], validator["delegatee"], validator["auto_compound_shares"], validator["weight"])
+        restaked, delegatee, paid, paid_delegatee = protocol.auto_renew_restake(
+            validator["potential"], validator["delegatee"], validator["auto_compound_shares"], validator["weight"])
         weight = validator["weight"] + restaked + delegatee
+        start = validator["end"]
         end, potential, supply_after = protocol.auto_renew_next_cycle(validator["end"], validator["period"], weight, supply)
         block_deltas.setdefault(height, []).append((None, None, supply_after - supply))
+        row.update(restaked_validation_navax=restaked, restaked_delegatee_navax=delegatee, withdrawn_validation_navax=paid,
+                   withdrawn_delegatee_navax=paid_delegatee)
         validator.update(weight=weight, end=end, potential=potential, delegatee=0)
-        cycle.update(next_weight_navax=weight, next_potential_reward_navax=potential)
+        validator["row"] = _cycle_row(reward["txID"], validator, row["cycle"] + 1, start)
+        cycles.append(validator["row"])
         supply = supply_after
     else:
+        row.update(restaked_validation_navax=0, restaked_delegatee_navax=0, withdrawn_validation_navax=validator["potential"],
+                   withdrawn_delegatee_navax=validator["delegatee"])
         del renewing[reward["txID"]]
-    cycles.append(cycle)
     return supply
 
 
@@ -393,6 +428,7 @@ def tables(loaded: dict[str, Any], result: dict[str, Any]) -> dict[str, list[tup
         DELEGATORS_ID: sorted(delegators, key=lambda row: (row[1], row[0])),
         REWARDS_ID: sorted(rewards, key=lambda row: (row[1], row[0])),
         SUPPLY_ID: sorted(supply_rows, key=lambda row: (row[1], row[0])),
+        CYCLES_ID: sorted((tuple(cycle[name] for name in CYCLE_COLUMNS) for cycle in result["cycles"]), key=lambda row: (row[0], row[2])),
     }
 
 
@@ -410,6 +446,8 @@ def compute(inputs: list[dict[str, Any]]) -> tuple[dict[str, list[tuple[Any, ...
         "stakes_started": len(result["stakes"]),
         "stakes_closed": len(result["closed"]),
         "stakes_closed_unrewarded": sum(not item["rewarded"] for item in result["closed"].values()),
+        "auto_renewed_cycles": len(result["cycles"]),
+        "auto_renewed_cycles_ended": sum(cycle["rewarded"] is not None for cycle in result["cycles"]),
         "closed_stakes_without_record": len(missing),
         "delegations_without_validator": sum(row[5] is None for row in rows[DELEGATORS_ID]),
         "rows": {dataset_id: len(value) for dataset_id, value in rows.items()},
@@ -520,6 +558,8 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
             rows, _ = compute(inputs)
             if sorted(map(repr, actual)) != sorted(map(repr, rows[dataset_id])):
                 findings.append("a rebuild from the recorded inputs differs")
+    if against is not None and dataset_id not in OVERLAP:
+        raise DataError(f"{dataset_id} backs up no share dataset, so it takes no --against directory")
     if against is not None:
         checked.append("overlap equality with the backed-up Snowflake dataset")
         overlap = compare(dataset_dir / f"{table}.parquet", against, dataset_id)
