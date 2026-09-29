@@ -16,8 +16,13 @@ from different sides. It is the earliest of: the first row in the share's last d
 block supply, and the share's last row. Share rows before it are kept; backup rows from it on are added. The daily
 seams are dates: the share's last date, which is partial when the share stops mid-day, comes from the backup.
 
+A backup reward row whose stake started before the walk carries no period or potential reward, since the walk never
+saw the stake start. The seamed reward table takes them from the share's row for that stake, as the share's own reward
+table joins them, and computes the fee transfer from them. Every such stake started before the seam, so the share has it.
+
 A backup is used only after it has matched the share. Every row both hold before the seam is compared column by column,
-and a single difference stops the derive. So is a backup that starts after the seam.
+and a single difference stops the derive. A share day that declares itself incomplete, with absent or short blocks or
+unresolved burns, is kept as it is and counted, not compared. So is a backup that starts after the seam.
 
 The staking log, the node table, the validator weeks, and the ledger read a seamed table in place of its share dataset
 whenever one is built and neither is pinned (``resolve``), and their receipts name the one they read. The receipt's
@@ -58,6 +63,12 @@ P_TABLES = {
 DAILY_TABLES = {
     "derived.seamed-burn-daily": ("snowflake.primary-burn-daily", "derived.primary-burn-daily", ("date_utc", "chain")),
     "derived.seamed-c-chain-evm-burn-daily": ("snowflake.c-chain-evm-burn-daily", "derived.c-chain-evm-burn-daily", ("date_utc",)),
+}
+# A share day that declares itself incomplete is kept, and repaired downstream as before, but not compared: the backup
+# holds the blocks or burns the share lacks, so it differs from the share there by design.
+SHARE_COMPLETE = {
+    "derived.seamed-burn-daily": "s.unresolved_transactions = 0",
+    "derived.seamed-c-chain-evm-burn-daily": "s.absent_blocks = 0 AND s.short_blocks = 0",
 }
 DATASET_IDS = (*P_TABLES, *DAILY_TABLES)
 DATASET_ID = DATASET_IDS[0]
@@ -187,14 +198,17 @@ def compute(dataset_id: str, connection: Any) -> dict[str, Any]:
         raise DataError(f"the backup of {dataset_id} starts at {first_backup}, after the seam {seam_text}")
     joined = " AND ".join(f"b.{name} = s.{name}" for name in key)
     conditions = _conditions(names, key)
-    both = connection.execute(f"SELECT count(*) FROM backup b JOIN {share} s ON {joined} WHERE s.{before}", parameters).fetchone()[0]
-    differing = {name: connection.execute(f"SELECT count(*) FROM backup b JOIN {share} s ON {joined} WHERE s.{before} AND {condition}",
+    complete = SHARE_COMPLETE.get(dataset_id, "TRUE")
+    both = connection.execute(f"SELECT count(*) FROM backup b JOIN {share} s ON {joined} WHERE s.{before} AND {complete}", parameters).fetchone()[0]
+    skipped = connection.execute(f"SELECT count(*) FROM backup b JOIN {share} s ON {joined} WHERE s.{before} AND NOT ({complete})", parameters).fetchone()[0]
+    differing = {name: connection.execute(f"SELECT count(*) FROM backup b JOIN {share} s ON {joined} WHERE s.{before} AND {complete} AND {condition}",
                                           parameters).fetchone()[0] for name, condition in conditions}
     differing = {name: count for name, count in differing.items() if count}
     missing = connection.execute(
         f"SELECT count(*) FROM {share} s WHERE s.{before} AND s.{clock} >= (SELECT min({clock}) FROM backup)"
         f" AND NOT EXISTS (SELECT 1 FROM backup b WHERE {joined})", parameters).fetchone()[0]
-    overlap = {"seam": seam_text, "rows_compared": both, "differing_by_column": differing, "share_rows_missing_in_backup": missing}
+    overlap = {"seam": seam_text, "rows_compared": both, "share_rows_incomplete_not_compared": skipped, "differing_by_column": differing,
+               "share_rows_missing_in_backup": missing}
     if differing or missing:
         raise DataError(f"the backup of {dataset_id} differs from the share before the seam {seam_text}: {json.dumps(overlap)}")
     if both == 0:
@@ -202,7 +216,23 @@ def compute(dataset_id: str, connection: Any) -> dict[str, Any]:
     connection.execute(
         f"CREATE OR REPLACE TABLE seamed AS SELECT {listed}, 'snowflake' AS source FROM {share} WHERE {before}"
         f" UNION ALL SELECT {listed}, 'backup' AS source FROM backup WHERE {after}", [*parameters, *parameters])
+    if dataset_id == "derived.seamed-staking-rewards":
+        overlap["backup_rows_described_by_share_stakes"] = _describe_rewards(connection)
     return overlap
+
+
+def _describe_rewards(connection: Any) -> int:
+    """Fill the stake columns of backup reward rows the walk could not describe from the share's stake rows."""
+    stakes = ('SELECT transaction_hash, tx_type, node_id, start_time, end_time, potential_reward_navax FROM "primary-validator-stakes"'
+              ' UNION ALL SELECT transaction_hash, tx_type, node_id, start_time, end_time, potential_reward_navax FROM "primary-delegator-stakes"')
+    connection.execute(f"""
+        UPDATE seamed SET staking_tx_type = p.tx_type, node_id = p.node_id, period_start_time = p.start_time, period_end_time = p.end_time,
+               potential_reward_navax = p.potential_reward_navax, potential_reward_avax = p.potential_reward_navax / 1e9,
+               fee_transfer_navax = seamed.realized_reward_navax - p.potential_reward_navax,
+               fee_transfer_avax = (seamed.realized_reward_navax - p.potential_reward_navax) / 1e9
+        FROM ({stakes}) p
+        WHERE seamed.source = 'backup' AND seamed.staking_tx_type IS NULL AND p.transaction_hash = seamed.staking_transaction_hash""")
+    return connection.execute("SELECT count(*) FROM seamed WHERE source = 'backup' AND staking_tx_type IS NOT NULL").fetchone()[0]
 
 
 def _window(dataset_id: str, connection: Any, inputs: list[dict[str, Any]]) -> dict[str, str]:
