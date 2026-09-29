@@ -1505,6 +1505,11 @@
           "id": "avalanche-fees-daily",
           "dataset_id": "defillama.avalanche-fees-daily",
           "role": "DefiLlama's Avalanche fees and revenue, daily"
+        },
+        {
+          "id": "seamed-staking-rewards",
+          "dataset_id": "derived.seamed-staking-rewards",
+          "role": "staking rewards, the share before the seam and the P-Chain walk from it"
         }
       ]
     },
@@ -5975,6 +5980,129 @@
           "type": "boolean",
           "unit": "flag",
           "derivation": "every coverage is complete or repaired"
+        }
+      ]
+    },
+    {
+      "id": "derived.monetary-periods",
+      "name": "The monetary ledger by network upgrade period",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?",
+        "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics",
+        "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
+      ],
+      "description": "One row per network upgrade period from genesis to the ledger's last day, each from one activation instant to the next: the mean and median of the daily active-stake-to-supply ratios, validators alone and with delegators, the mean daily total supply, issuance split exactly at each activation instant from the reward transactions the ledger read, and burns by chain. Close-of-day observations and a day's burns belong to the period in force at the day's close; the burns of each activation day are reported apart. The periods sum to the ledger's issuance and burns.",
+      "input_ids": [
+        "monetary-daily",
+        "seamed-staking-rewards"
+      ],
+      "fields": [
+        {
+          "name": "regime",
+          "type": "string",
+          "unit": "upgrade",
+          "derivation": "the upgrade in force, or genesis"
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the activation instant"
+        },
+        {
+          "name": "ends_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the next activation, or the ledger's last day's close"
+        },
+        {
+          "name": "days_observed",
+          "type": "integer",
+          "unit": "days",
+          "derivation": "ledger days whose close falls in the period"
+        },
+        {
+          "name": "days_in_period",
+          "type": "integer",
+          "unit": "days",
+          "derivation": "UTC midnights in the period; equal to days_observed when no day is missing"
+        },
+        {
+          "name": "mean_validator_ratio",
+          "type": "number",
+          "unit": "ratio",
+          "derivation": "mean over the period's days of active validator stake over total supply at the close"
+        },
+        {
+          "name": "median_validator_ratio",
+          "type": "number",
+          "unit": "ratio",
+          "derivation": "the median of the same"
+        },
+        {
+          "name": "mean_combined_ratio",
+          "type": "number",
+          "unit": "ratio",
+          "derivation": "mean of validator plus delegated stake over supply"
+        },
+        {
+          "name": "median_combined_ratio",
+          "type": "number",
+          "unit": "ratio",
+          "derivation": "the median of the same"
+        },
+        {
+          "name": "mean_total_supply_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "mean close-of-day total supply"
+        },
+        {
+          "name": "issued_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "realized rewards whose reward transaction falls in the period"
+        },
+        {
+          "name": "burned_p_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "P-Chain burns of the period's days"
+        },
+        {
+          "name": "burned_x_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "X-Chain burns of the period's days"
+        },
+        {
+          "name": "burned_c_evm_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "C-Chain EVM burns, with gap repairs, of the period's days"
+        },
+        {
+          "name": "burned_c_atomic_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "C-Chain atomic burns of the period's days"
+        },
+        {
+          "name": "burned_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "all burns of the period's days"
+        },
+        {
+          "name": "activation_day_burned_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "the burns of the activation day, whole, when the activation is not at midnight"
         }
       ]
     },

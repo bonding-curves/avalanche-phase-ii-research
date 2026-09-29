@@ -29,6 +29,7 @@ from . import gci
 from . import helicon
 from . import metrics
 from . import monetary
+from . import monetary_periods
 from . import nodes
 from . import operators
 from . import pblocks
@@ -80,6 +81,7 @@ MODULES = {
     operators.DATASET_ID: operators,
     attributions.DATASET_ID: attributions,
     monetary.DATASET_ID: monetary,
+    monetary_periods.DATASET_ID: monetary_periods,
     **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
     **{dataset_id: validators_api for dataset_id in validators_api.DATASET_IDS},
