@@ -67,7 +67,7 @@ def make_capture(tmp_path: Path) -> tuple[Path, dict]:
 
 def test_catalog_schema_and_references_are_valid():
     catalog = snowpeer.load_catalog()
-    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "binance-public-data", "defillama", "avalanche-metrics-api", "avalanche-data-api", "us-treasury", "avalanche-p-chain-rpc", "avalanche-c-chain-rpc", "tenderly-c-chain-rpc", "avalanche-snowflake", "avalanche-builder-hub", "derived", "etf-issuers"]
+    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "binance-public-data", "defillama", "avalanche-metrics-api", "avalanche-data-api", "us-treasury", "avalanche-p-chain-rpc", "avalanche-x-chain-rpc", "avalanche-c-chain-rpc", "tenderly-c-chain-rpc", "avalanche-snowflake", "avalanche-builder-hub", "derived", "etf-issuers"]
     assert [item["id"] for item in catalog["datasets"]] == [
         "snowpeer.network-summary",
         "snowflake.primary-validator-stakes",
@@ -86,6 +86,7 @@ def test_catalog_schema_and_references_are_valid():
         "p-chain-rpc.current-validators",
         "p-chain-rpc.transactions",
         "p-chain-rpc.blocks",
+        "x-chain-rpc.blocks",
         "data-api.p-chain-staking-transactions",
         "p-chain-rpc.reward-utxos",
         "data-api.c-chain-block-list",

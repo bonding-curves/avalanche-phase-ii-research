@@ -13,6 +13,9 @@ progress on disk, retries a refused request, keeps its lines on failure, and con
 ``extend=<earlier capture directory>`` starts from an earlier walk's lines, checked against its receipt, and reads only
 the heights after it, so a daily run costs one day of blocks. A walk to the head ends at the height for which the node
 reports its supply counter (``platform.getCurrentSupply``), and the receipt keeps both as ``node_supply``.
+
+``x-chain-rpc.blocks`` walks the X-Chain the same way with ``avm.getBlockByHeight``. Its blocks are linearized standard
+blocks, and its five transaction types are read from their fields the same way.
 """
 
 from __future__ import annotations
@@ -45,6 +48,8 @@ from .catalog import (
 from .rest import _request
 
 DATASET_ID = "p-chain-rpc.blocks"
+X_DATASET_ID = "x-chain-rpc.blocks"
+DATASET_IDS = (DATASET_ID, X_DATASET_ID)
 SOURCE_ID = "avalanche-p-chain-rpc"
 ENDPOINT_ID = "get-block-by-height"
 HEIGHT_ENDPOINT_ID = "get-height"
@@ -92,6 +97,17 @@ TX_TYPES = {
 # Transactions that do not embed a BaseTx and so carry only their own fields.
 BARE_TYPES = frozenset({"RewardValidatorTx", "RewardAutoRenewedValidatorTx", "AdvanceTimeTx"})
 HEX_BLOCK_TYPES = {30: "abort", 31: "commit", 32: "standard"}
+X_TX_TYPES = {
+    frozenset(): "BaseTx",
+    frozenset({"sourceChain", "importedInputs"}): "ImportTx",
+    frozenset({"destinationChain", "exportedOutputs"}): "ExportTx",
+    frozenset({"name", "symbol", "denomination", "initialStates"}): "CreateAssetTx",
+    frozenset({"operations"}): "OperationTx",
+}
+CHAINS = {
+    DATASET_ID: {"source_id": SOURCE_ID, "prefix": "platform", "table": TABLE, "schema": SCHEMA, "supply": True},
+    X_DATASET_ID: {"source_id": "avalanche-x-chain-rpc", "prefix": "avm", "table": "x-chain-blocks", "schema": "x-chain-rpc-blocks-capture/v1", "supply": False},
+}
 COLUMNS = {
     "block_height": "BIGINT",
     "block_id": "VARCHAR",
@@ -128,13 +144,19 @@ def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
             **{key: values[key] for key in ("resume", "extend") if values.get(key)}}
 
 
-def _endpoint(catalog: dict[str, Any], endpoint_id: str = ENDPOINT_ID) -> str:
-    provider = source(catalog, SOURCE_ID)
+def _chain(dataset_id: str) -> dict[str, Any]:
+    if dataset_id not in CHAINS:
+        raise DataError(f"unknown dataset: {dataset_id}")
+    return CHAINS[dataset_id]
+
+
+def _endpoint(catalog: dict[str, Any], endpoint_id: str = ENDPOINT_ID, dataset_id: str = DATASET_ID) -> str:
+    provider = source(catalog, _chain(dataset_id)["source_id"])
     return next(item["url"] for item in provider["endpoints"] if item["id"] == endpoint_id)
 
 
-def _payload(height: int, encoding: str, request_id: int) -> dict[str, Any]:
-    return {"jsonrpc": "2.0", "method": "platform.getBlockByHeight", "params": {"height": str(height), "encoding": encoding}, "id": request_id}
+def _payload(height: int, encoding: str, request_id: int, prefix: str = "platform") -> dict[str, Any]:
+    return {"jsonrpc": "2.0", "method": f"{prefix}.getBlockByHeight", "params": {"height": str(height), "encoding": encoding}, "id": request_id}
 
 
 def _read_receipt(capture_dir: Path) -> dict[str, Any]:
@@ -142,14 +164,14 @@ def _read_receipt(capture_dir: Path) -> dict[str, Any]:
         receipt = json.loads((capture_dir / "capture.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise DataError(f"invalid P-Chain block capture receipt: {error}") from error
-    if receipt.get("schema_version") != SCHEMA or receipt.get("dataset_id") != DATASET_ID:
-        raise DataError("unsupported P-Chain block capture receipt")
+    dataset_id = receipt.get("dataset_id")
+    if dataset_id not in CHAINS or receipt.get("schema_version") != CHAINS[dataset_id]["schema"]:
+        raise DataError("unsupported block capture receipt")
     return receipt
 
 
 def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None) -> dict[str, Any]:
-    if dataset_id != DATASET_ID:
-        raise DataError(f"unknown dataset: {dataset_id}")
+    chain = _chain(dataset_id)
     values = _parameters(parameters)
     if "extend" in values:
         earlier = _read_receipt(Path(values["extend"]))
@@ -158,18 +180,18 @@ def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | 
         values["from_height"] = earlier["from_height"]
     catalog = load_catalog()
     return {
-        "dataset_id": DATASET_ID,
-        "source_id": SOURCE_ID,
+        "dataset_id": dataset_id,
+        "source_id": chain["source_id"],
         "output": str(output),
-        "endpoint": _endpoint(catalog),
+        "endpoint": _endpoint(catalog, ENDPOINT_ID, dataset_id),
         **values,
         "writes": [RAW, "capture.json"],
         "overwrite": False,
     }
 
 
-def _head(endpoint: str, timeout: float, request: Callable[..., tuple[bytes, dict[str, Any]]]) -> int:
-    body, _ = request(endpoint, timeout, body_json={"jsonrpc": "2.0", "method": "platform.getHeight", "params": {}, "id": 1})
+def _head(endpoint: str, timeout: float, request: Callable[..., tuple[bytes, dict[str, Any]]], prefix: str = "platform") -> int:
+    body, _ = request(endpoint, timeout, body_json={"jsonrpc": "2.0", "method": f"{prefix}.getHeight", "params": {}, "id": 1})
     try:
         return int(json.loads(body)["result"]["height"])
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
@@ -222,8 +244,10 @@ def capture(
     catalog = load_catalog()
     endpoint = preview["endpoint"]
     # Walked to the head, the walk ends at the height the node's supply counter holds for, so the counter anchors it.
-    anchor = _current_supply(_endpoint(catalog, SUPPLY_ENDPOINT_ID), timeout, request) if preview["to_height"] == "head" else None
-    head = anchor["height"] if anchor else _head(_endpoint(catalog, HEIGHT_ENDPOINT_ID), timeout, request)
+    chain = _chain(dataset_id)
+    anchor = (_current_supply(_endpoint(catalog, SUPPLY_ENDPOINT_ID, dataset_id), timeout, request)
+              if chain["supply"] and preview["to_height"] == "head" else None)
+    head = anchor["height"] if anchor else _head(_endpoint(catalog, HEIGHT_ENDPOINT_ID, dataset_id), timeout, request, chain["prefix"])
     to_height = head if preview["to_height"] == "head" else preview["to_height"]
     if to_height > head or to_height < preview["from_height"]:
         raise DataError(f"to_height must be between from_height and the node's height {head}")
@@ -270,11 +294,11 @@ def capture(
         raise AssertionError("unreachable")
 
     def fetch(height: int) -> tuple[int, bytes, int]:
-        body, retried = call(_payload(height, "json", 1))
+        body, retried = call(_payload(height, "json", 1, chain["prefix"]))
         answers = [json.loads(body)]
         block = _result_block(answers[0], height)
-        if not _transactions(block):
-            hex_body, hex_retried = call(_payload(height, "hex", 2))
+        if not _transactions(block) and chain["supply"]:
+            hex_body, hex_retried = call(_payload(height, "hex", 2, chain["prefix"]))
             answers.append(json.loads(hex_body))
             retried += hex_retried
         return height, json.dumps(answers, separators=(",", ":"), sort_keys=True).encode(), retried
@@ -298,7 +322,7 @@ def capture(
                         raise DataError(f"{error}; {len(records)} blocks kept at {temporary}") from error
                     retries += retried
                     try:
-                        _rows(json.loads(line), height)
+                        _rows(json.loads(line), height, dataset_id)
                     except DataError as error:
                         raise DataError(f"{error}; {len(records)} blocks kept at {temporary}") from error
                     raw.write(line + b"\n")
@@ -313,12 +337,12 @@ def capture(
         body_all = (temporary / RAW).read_bytes()
         identity = sha256(canonical_bytes({"completed_at": completed_at, "sha256": sha256(body_all)}))
         receipt = {
-            "schema_version": SCHEMA,
-            "capture_id": f"capture:{SOURCE_ID}:{completed_at}:{identity[:12]}",
-            "dataset_id": DATASET_ID,
-            "source_id": SOURCE_ID,
+            "schema_version": chain["schema"],
+            "capture_id": f"capture:{chain['source_id']}:{completed_at}:{identity[:12]}",
+            "dataset_id": dataset_id,
+            "source_id": chain["source_id"],
             "completed_at": completed_at,
-            "contract_sha256": contract_hash(catalog, DATASET_ID),
+            "contract_sha256": contract_hash(catalog, dataset_id),
             "tool": f"avalanche-research@{__version__}",
             "endpoint": endpoint,
             "from_height": preview["from_height"],
@@ -389,7 +413,16 @@ def _avax(unsigned: dict[str, Any], keys: tuple[str, ...], tx_hash: str) -> int:
     return total
 
 
-def _rows(answers: Any, height: int) -> list[tuple[Any, ...]]:
+def x_tx_type(unsigned: dict[str, Any]) -> str:
+    """The X-Chain transaction type named by the fields the node's JSON carries; an unknown set of fields is an error."""
+    fields = frozenset(unsigned)
+    kind = X_TX_TYPES.get(fields - BASE_FIELDS)
+    if kind is None or not BASE_FIELDS <= fields:
+        raise DataError(f"an X-Chain transaction carries fields no known type declares: {sorted(fields)}")
+    return kind
+
+
+def _rows(answers: Any, height: int, dataset_id: str = DATASET_ID) -> list[tuple[Any, ...]]:
     """One row per transaction of one captured block, or one row without a transaction for a block that has none."""
     if not isinstance(answers, list) or len(answers) not in (1, 2):
         raise DataError(f"block {height} is not one or two node answers")
@@ -399,6 +432,14 @@ def _rows(answers: Any, height: int) -> list[tuple[Any, ...]]:
     block_time = datetime.fromtimestamp(block["time"], UTC).replace(tzinfo=None)
     head = (height, block["id"], block["parentID"], block_time)
     transactions = _transactions(block)
+    if dataset_id == X_DATASET_ID:
+        if not transactions or len(answers) != 1:
+            raise DataError(f"X-Chain block {height} has no transactions")
+        return [(*head, "standard", index, transaction["id"], x_tx_type(transaction["unsignedTx"]),
+                 _avax(transaction["unsignedTx"], ("inputs", "importedInputs"), transaction["id"]),
+                 _avax(transaction["unsignedTx"], ("outputs", "exportedOutputs"), transaction["id"]), 0,
+                 json.dumps(transaction["unsignedTx"], separators=(",", ":"), sort_keys=True))
+                for index, transaction in enumerate(transactions)]
     if not transactions:
         if len(answers) != 2 or not isinstance(answers[1], dict) or answers[1].get("error"):
             raise DataError(f"block {height} has no transactions and no hex answer")
@@ -426,8 +467,8 @@ def _rows(answers: Any, height: int) -> list[tuple[Any, ...]]:
 
 def read_rows(capture_dir: Path) -> tuple[dict[str, Any], list[tuple[Any, ...]]]:
     receipt = _read_receipt(capture_dir)
-    if receipt.get("contract_sha256") != contract_hash(load_catalog(), DATASET_ID):
-        raise DataError("P-Chain block capture contract hash differs")
+    if receipt.get("contract_sha256") != contract_hash(load_catalog(), receipt["dataset_id"]):
+        raise DataError("block capture contract hash differs")
     summary = receipt["responses"][0]
     try:
         body = (capture_dir / summary["path"]).read_bytes()
@@ -445,7 +486,7 @@ def read_rows(capture_dir: Path) -> tuple[dict[str, Any], list[tuple[Any, ...]]]
     for line, record in zip(lines, records):
         if sha256(line) != record["sha256"] or len(line) != record["bytes"]:
             raise DataError(f"block line {record['block_height']} differs from its record")
-        rows.extend(_rows(json.loads(line), record["block_height"]))
+        rows.extend(_rows(json.loads(line), record["block_height"], receipt["dataset_id"]))
     return receipt, rows
 
 
@@ -485,9 +526,7 @@ def _chain_findings(rows: list[tuple[Any, ...]]) -> list[str]:
 
 
 def build_preview(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
-    if dataset_id != DATASET_ID:
-        raise DataError(f"unknown dataset: {dataset_id}")
-    return {"dataset_id": dataset_id, "capture": str(capture_dir), "output": str(output), "writes": [f"{TABLE}.parquet", "build.json"], "overwrite": False}
+    return {"dataset_id": dataset_id, "capture": str(capture_dir), "output": str(output), "writes": [f"{_chain(dataset_id)['table']}.parquet", "build.json"], "overwrite": False}
 
 
 def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
@@ -495,13 +534,15 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     if output.exists():
         raise DataError(f"output already exists: {output}")
     receipt, rows = read_rows(capture_dir)
+    if receipt["dataset_id"] != dataset_id:
+        raise DataError(f"the capture is of {receipt['dataset_id']}, not {dataset_id}")
     findings = _chain_findings(rows)
     if findings:
         raise DataError("; ".join(findings))
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:
-        parquet = temporary / f"{TABLE}.parquet"
+        parquet = temporary / f"{_chain(dataset_id)['table']}.parquet"
         connection = duckdb.connect()
         try:
             connection.execute(f"CREATE TABLE rows({', '.join(f'{name} {kind}' for name, kind in COLUMNS.items())})")
@@ -511,8 +552,8 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
             connection.close()
         result = {
             "schema_version": "p-chain-rpc-blocks-build/v1",
-            "dataset_id": DATASET_ID,
-            "dataset_schema": dataset(load_catalog(), DATASET_ID)["fields"],
+            "dataset_id": dataset_id,
+            "dataset_schema": dataset(load_catalog(), dataset_id)["fields"],
             "source_capture_id": receipt["capture_id"],
             "completed_at": now(),
             "tool": f"avalanche-research@{__version__}",
@@ -537,7 +578,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
         checked.extend(["build hashes", "Parquet rows"])
         try:
             built = json.loads((dataset_dir / "build.json").read_text(encoding="utf-8"))
-            parquet = dataset_dir / f"{TABLE}.parquet"
+            parquet = dataset_dir / f"{_chain(receipt['dataset_id'])['table']}.parquet"
             data = parquet.read_bytes()
             if built["source_capture_id"] != receipt["capture_id"] or len(data) != built["outputs"][0]["bytes"] or sha256(data) != built["outputs"][0]["sha256"]:
                 findings.append("build receipt or Parquet hash differs")
@@ -550,5 +591,5 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                 findings.append("Parquet rows differ from the captured blocks")
         except (OSError, KeyError, ValueError, json.JSONDecodeError, duckdb.Error) as error:
             findings.append(f"invalid P-Chain block dataset output: {error}")
-    return {"dataset_id": DATASET_ID, "capture_id": receipt["capture_id"], "status": "pass" if not findings else "attention",
+    return {"dataset_id": receipt["dataset_id"], "capture_id": receipt["capture_id"], "status": "pass" if not findings else "attention",
             "checked": checked, "summary": {**_summary(receipt, rows), "retries": receipt.get("retries", 0)}, "findings": findings}

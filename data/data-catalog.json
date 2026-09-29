@@ -704,6 +704,47 @@
       ]
     },
     {
+      "id": "avalanche-x-chain-rpc",
+      "name": "Avalanche X-Chain public RPC",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Direct response of a public Avalanche node about accepted X-Chain blocks by height, which carry every transaction with its inputs and outputs. A source of X-Chain burns independent of the Snowflake share.",
+      "documentation_url": "https://build.avax.network/docs/rpcs/x-chain",
+      "authentication": "none; the public endpoint at api.avax.network answers JSON-RPC POST requests",
+      "reuse_status": "Public access observed; node operators may rate-limit.",
+      "endpoints": [
+        {
+          "id": "get-block-by-height",
+          "url": "https://api.avax.network/ext/bc/X",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "avm.getBlockByHeight",
+            "params": {
+              "height": "<decimal height>",
+              "encoding": "json"
+            },
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "get-height",
+          "url": "https://api.avax.network/ext/bc/X",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "avm.getHeight",
+            "params": {},
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        }
+      ]
+    },
+    {
       "id": "avalanche-c-chain-rpc",
       "name": "Avalanche C-Chain public JSON-RPC",
       "source_type": "rest_api",
@@ -2898,6 +2939,97 @@
           "type": "string",
           "unit": "JSON",
           "derivation": "the node's unsigned transaction object as compact JSON with sorted keys, for the datasets built from the walk"
+        }
+      ]
+    },
+    {
+      "id": "x-chain-rpc.blocks",
+      "name": "X-Chain blocks by height from a public node",
+      "source_id": "avalanche-x-chain-rpc",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per transaction of every X-Chain block in a height range, read from the node's own linearized blocks. The independent source of X-Chain burns behind the burn backup. The transaction type is read from the fields the node's JSON carries. The raw avm.getBlockByHeight responses stay hashed in the capture.",
+      "endpoint_ids": [
+        "get-block-by-height",
+        "get-height"
+      ],
+      "fields": [
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "height",
+          "derivation": "the block's height; every height from the capture's from_height to its to_height appears"
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "unit": "base58 id",
+          "derivation": "the block's id as the node reports it"
+        },
+        {
+          "name": "parent_id",
+          "type": "string",
+          "unit": "base58 id",
+          "derivation": "the id of the block one height below, checked against it"
+        },
+        {
+          "name": "block_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the block's timestamp"
+        },
+        {
+          "name": "block_type",
+          "type": "string",
+          "unit": "kind",
+          "derivation": "'standard': every linearized X-Chain block is a standard block"
+        },
+        {
+          "name": "tx_index",
+          "type": "integer",
+          "unit": "position",
+          "derivation": "the transaction's position in the block from 0"
+        },
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "base58 hash",
+          "derivation": "the transaction id"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "type",
+          "derivation": "BaseTx, ImportTx, ExportTx, CreateAssetTx, or OperationTx, by the JSON fields the transaction carries"
+        },
+        {
+          "name": "input_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum of AVAX amounts over inputs and importedInputs"
+        },
+        {
+          "name": "output_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum of AVAX amounts over outputs and exportedOutputs"
+        },
+        {
+          "name": "staked_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "0: the X-Chain has no staking"
+        },
+        {
+          "name": "unsigned_tx",
+          "type": "string",
+          "unit": "JSON",
+          "derivation": "the node's unsigned transaction object as compact JSON with sorted keys"
         }
       ]
     },

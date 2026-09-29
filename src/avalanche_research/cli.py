@@ -59,7 +59,7 @@ MODULES = {
     defillama.DATASET_ID: defillama,
     pchain.DATASET_ID: pchain,
     ptx.DATASET_ID: ptx,
-    pblocks.DATASET_ID: pblocks,
+    **{dataset_id: pblocks for dataset_id in pblocks.DATASET_IDS},
     **{dataset_id: pstakers for dataset_id in pstakers.DATASET_IDS},
     **{dataset_id: pstaking for dataset_id in pstaking.DATASET_IDS},
     **{dataset_id: clist for dataset_id in clist.DATASET_IDS},

@@ -53,7 +53,7 @@ class FakeNode:
 
     def __call__(self, url, timeout, body_json=None, content="json"):
         method, params = body_json["method"], body_json["params"]
-        if method == "platform.getHeight":
+        if method in ("platform.getHeight", "avm.getHeight"):
             return json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"height": str(self.head)}}).encode(), {}
         if method == "platform.getCurrentSupply":
             return json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"supply": "474000000000000000", "height": str(self.head)}}).encode(), {}
@@ -142,3 +142,19 @@ def test_bare_and_based_types_are_told_apart():
     assert pblocks.tx_type({**BASE, "inputs": [], "outputs": []}) == "BaseTx"
     with pytest.raises(DataError):
         pblocks.tx_type({**BASE, "inputs": [], "outputs": [], "txID": "x"})
+
+
+def test_an_x_chain_walk_reads_standard_blocks_and_x_types(tmp_path):
+    chain = {height: {"id": f"X{height}", "parentID": f"X{height - 1}", "height": height, "time": 1_790_000_000 + height,
+                      "txs": [{"id": f"XT{height}", "credentials": [],
+                               "unsignedTx": {**BASE, "inputs": [utxo(1_001_000, "input")], "outputs": [utxo(1_000_000)],
+                                              **({"destinationChain": "P", "exportedOutputs": []} if height == 11 else {})}}]}
+             for height in range(10, 13)}
+    node = FakeNode(chain)
+    receipt = pblocks.capture(pblocks.X_DATASET_ID, tmp_path / "capture", parameters={"from_height": "10"}, request=node)
+    assert "node_supply" not in receipt and all(encoding == "json" for _, encoding in node.calls)
+    pblocks.build(pblocks.X_DATASET_ID, tmp_path / "capture", tmp_path / "dataset")
+    built = duckdb.connect().execute("SELECT block_type, tx_type, input_navax - output_navax FROM read_parquet(?) ORDER BY block_height",
+                                     [str(tmp_path / "dataset" / "x-chain-blocks.parquet")]).fetchall()
+    assert built == [("standard", "BaseTx", 1000), ("standard", "ExportTx", 1000), ("standard", "BaseTx", 1000)]
+    assert pblocks.check(tmp_path / "capture", tmp_path / "dataset")["status"] == "pass"
