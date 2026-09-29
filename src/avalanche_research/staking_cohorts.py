@@ -349,20 +349,8 @@ def for_population(table: pd.DataFrame, population: str) -> pd.DataFrame:
 
 
 def selected_columns(table: pd.DataFrame, metrics: list[str], views: list[str], period: str) -> pd.DataFrame:
-    """Keep cohort context and show only the selected metric and view intersections."""
+    """Keep context, then group selected quantities by denominator."""
     columns = list(table.columns[:table.columns.get_loc("Total Nodes")])
-    if "Nodes" in metrics:
-        if "Total" in views:
-            columns.append("Total Nodes")
-        if "Per Address" in views:
-            columns.append("Nodes per Address")
-    if "Addresses" in metrics:
-        if "Total" in views:
-            columns.extend(column for column in ("Total Addresses", *IDENTITY_COLUMNS[1:]) if column in table.columns)
-        if "Per Node" in views:
-            columns.append("Addresses per Node")
-    if "Total" in views and "Commitments" in metrics:
-        columns.append("Total Commitments")
     commitment_views = {
         "Per Calendar Unit": f"Commitments / {period}",
         "Per Node": "Commitments / Node",
@@ -370,13 +358,38 @@ def selected_columns(table: pd.DataFrame, metrics: list[str], views: list[str], 
         "Per Address": "Commitments / Address",
         "Per Address per Calendar Unit": f"Commitments / Address / {period}",
     }
-    if "Commitments" in metrics:
-        columns.extend(commitment_views[view] for view in VIEWS if view in views and view in commitment_views)
-    columns.extend(_metric_column(metric, view, period)
-                   for metric in METRIC_SOURCES if metric in metrics for view in VIEWS if view in views)
+    for view in VIEWS:
+        if view not in views:
+            continue
+        for metric in QUANTITIES:
+            if metric not in metrics:
+                continue
+            if metric == "Nodes":
+                if view == "Total":
+                    columns.append("Total Nodes")
+                elif view == "Per Address":
+                    columns.append("Nodes per Address")
+            elif metric == "Addresses":
+                if view == "Total":
+                    columns.extend(column for column in ("Total Addresses", *IDENTITY_COLUMNS[1:])
+                                   if column in table.columns)
+                elif view == "Per Node":
+                    columns.append("Addresses per Node")
+            elif metric == "Commitments":
+                if view == "Total":
+                    columns.append("Total Commitments")
+                elif view in commitment_views:
+                    columns.append(commitment_views[view])
+            else:
+                columns.append(_metric_column(metric, view, period))
     if "Rewards" in metrics:
         columns.append("Reward Outcomes")
     return table[columns]
+
+
+def display_columns(table: pd.DataFrame) -> pd.DataFrame:
+    """Use readable headings without changing measure keys or units."""
+    return table.rename(columns=lambda column: column.replace(" / ", " per ").replace("/", " per "))
 
 
 class StakingCohorts(pm.Parameterized):
@@ -410,21 +423,23 @@ class StakingCohorts(pm.Parameterized):
         table = for_population(self._tables[self.time_grain], self.population)
         table = selected_columns(rates_per(table, self.periodic_denominator), self.metrics, self.views,
                                  self.periodic_denominator)
-        return table.round(2)
+        return display_columns(table).round(2)
 
     def view(self):
         return pn.widgets.Tabulator(self._frame(), show_index=False, disabled=True,
                                     pagination="remote", page_size=20, sizing_mode="stretch_width")
 
     def panel(self):
+        if getattr(self, "_panel", None) is not None:
+            return self._panel
         cutoffs = ", ".join(f"{role} extract captured {time:%Y-%m-%d %H:%M} UTC"
                             for role, time in self._cutoffs.items())
         note = (f"Pinned run `{self.run}`. {cutoffs}. Reward records through "
                 f"{self._reward_cutoff:%Y-%m-%d %H:%M} UTC. "
                 "Rewards include known outcomes only. `Reward Outcomes` is n known outcomes / m total commitments; "
-                "Rewards / Commitment divides by n, not all m commitments. "
-                "Rewards / Node divides known rewards by all cohort nodes. "
-                "Rewards / Address divides known rewards by all cohort addresses. "
+                "Rewards per Commitment divides by n, not all m commitments. "
+                "Rewards per Node divides known rewards by all cohort nodes. "
+                "Rewards per Address divides known rewards by all cohort addresses. "
                 "Nodes are distinct validator NodeIDs receiving these commitments. Validator reward addresses count "
                 "all reward-owner addresses; delegator funding addresses count the largest funder per delegation, "
                 "not unique people. "
@@ -459,5 +474,5 @@ class StakingCohorts(pm.Parameterized):
             pn.Spacer(width=16),
             pn.Column(pn.pane.Markdown("Denominators", margin=(0, 0, 4, 0)), denominators, width=220),
         )
-        return pn.Column(controls,
-                         table, pn.pane.Markdown(note), sizing_mode="stretch_width")
+        self._panel = pn.Column(controls, table, pn.pane.Markdown(note), sizing_mode="stretch_width")
+        return self._panel
