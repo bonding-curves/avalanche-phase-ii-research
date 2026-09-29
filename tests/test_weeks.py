@@ -152,15 +152,18 @@ def test_rows_features_and_outcomes(runs):
     assert later["days_staked_weeks"] == pytest.approx(4 + (4 * 24 - 1) / 168), "four weeks of P1 and the part of P2 before the cutoff, the gap excluded"
 
 
-def test_capacity_uses_the_3m_cap_and_scheduled_starts(runs):
+def test_capacity_uses_the_factor_before_apricot_3_and_the_3m_cap_after(runs):
     rows = built(runs, weeks.WEEKS_ID)["rows"]
     entry = row(rows, "B", "2020-09-28")
     assert entry["active_at_week_start"] is False and entry["delegations_all"] == 2, "D3 and D4 are both accepted in the week of 09-28"
+    # Before Apricot Phase 3 (2021-08-24) AvalancheGo checked only five times the stake: B's 1M AVAX allowed 5M.
     week = row(rows, "B", "2020-10-05")
-    assert week["max_weight_avax"] == 3_000_000
+    assert week["max_weight_avax"] == 5_000_000
     assert week["delegated_avax_at_week_start"] == 1_999_000 and week["max_delegated_avax_14d"] == 1_999_990
-    assert week["capacity_left_avax"] == 1_000 and week["capacity_left_avax_14d"] == pytest.approx(10)
-    assert week["offered_at_week_start"] is False, "10 AVAX left in the next fourteen days is below the 25 AVAX minimum"
+    assert week["capacity_left_avax"] == 2_001_000 and week["capacity_left_avax_14d"] == pytest.approx(2_000_010)
+    assert week["offered_at_week_start"] is True
+    # From Apricot Phase 3 the 3M AVAX cap applies again.
+    assert row(rows, "B", "2021-08-30")["max_weight_avax"] == 3_000_000
 
 
 def test_quotes_are_the_kernel_at_the_cutoff_supply(runs):

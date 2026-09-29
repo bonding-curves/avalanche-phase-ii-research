@@ -84,6 +84,13 @@ NAVAX_PER_AVAX = 10**9
 # restored min(5x, MaxValidatorStake) from Apricot Phase 3 (add_delegator_tx.go isAP3), which also fixed the heap used for
 # the peak (fixedMaxStakeAmount). Delegations accepted before this instant are judged against both limits separately.
 AP3_ACTIVATION = MAINNET_UPGRADES.time("apricot_phase_3").strftime("%Y-%m-%d %H:%M:%S")
+
+
+def max_weight_sql(week: str, stake: str) -> str:
+    """A validator's weight limit at a week start: five times its stake, and from Apricot Phase 3 at most 3M AVAX.
+    AvalancheGo v1.4.5 checked only the factor until Apricot Phase 3 restored the cap (observed-delegations record RR2)."""
+    return (f"CASE WHEN {week} < TIMESTAMP '{AP3_ACTIVATION}' THEN {WEIGHT_FACTOR} * {stake}"
+            f" ELSE least({WEIGHT_FACTOR} * {stake}, {MAX_WEIGHT_AVAX * NAVAX_PER_AVAX}) END")
 # Reason codes. A delegation not offered at its week's cutoff gets exactly one NOT_OFFERED code; a delegation the
 # event-time reconstruction finds ineligible gets exactly one INELIGIBLE code. Both are null otherwise.
 NOT_OFFERED_REASONS = ("no_node_week_row", "validator_not_active_at_cutoff", "other_period_than_cutoff", "period_ends_within_14d",
@@ -202,7 +209,7 @@ GROUP BY 1, 2, 3;
 -- Room is computed in integer nAVAX and converted once: subtracting AVAX doubles left full validators at -1e-10.
 CREATE OR REPLACE TABLE capacity AS
 SELECT c.week_start_utc, c.node_id, c.delegated_navax_at_week_start, c.max_delegated_navax_14d,
-       least({WEIGHT_FACTOR} * a.stake_navax, {MAX_WEIGHT_AVAX * NAVAX_PER_AVAX}) AS max_weight_navax,
+       {max_weight_sql("c.week_start_utc", "a.stake_navax")} AS max_weight_navax,
        max_weight_navax - a.stake_navax - c.delegated_navax_at_week_start AS capacity_left_navax,
        max_weight_navax - a.stake_navax - c.max_delegated_navax_14d AS capacity_left_navax_14d
 FROM (SELECT week_start_utc, node_id, max(delegated_navax) FILTER (WHERE point = week_start_utc) AS delegated_navax_at_week_start,
@@ -234,7 +241,7 @@ SELECT k.node_id, k.week_start_utc, k.active_at_week_start,
        h.first_start_known, epoch(k.week_start_utc - h.first_start_known) / {SECONDS_PER_WEEK} AS node_age_weeks, s.days_staked_weeks,
        h.completed_periods, h.started_periods, h.reward_address_asof,
        c.delegated_navax_at_week_start / 1e9 AS delegated_avax_at_week_start, c.max_delegated_navax_14d / 1e9 AS max_delegated_avax_14d,
-       least({WEIGHT_FACTOR} * a.stake_navax, {MAX_WEIGHT_AVAX * NAVAX_PER_AVAX}) / 1e9 AS max_weight_avax,
+       ({max_weight_sql("k.week_start_utc", "a.stake_navax")}) / 1e9 AS max_weight_avax,
        c.capacity_left_navax / 1e9 AS capacity_left_avax, c.capacity_left_navax_14d / 1e9 AS capacity_left_avax_14d,
        o.delegations_all, o.delegated_avax_all, o.delegations_excl_concentrated, o.delegated_avax_excl_concentrated,
        q.supply_navax / 1e9 AS supply_counter_avax, q.supply_read_at,
