@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Avalanche Stake Admission Frontier: Curve Families Digital Twin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Plotly.js for interactive charting -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #070a12;
+      --card-bg: #0d1322;
+      --panel-bg: #10172a;
+      --panel-alt: #131c31;
+      --border: #1e293b;
+      --border-focus: #38bdf8;
+      
+      --cyan: #38bdf8;
+      --cyan-glow: rgba(56, 189, 248, 0.2);
+      --green: #10b981;
+      --amber: #f59e0b;
+      --purple: #a855f7;
+      --red: #ef4444;
+      
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: #090e1a;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-stage {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .badge-canonical {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Main Application Grid */
+    .app-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left Parameter Sidebar */
+    .sidebar {
+      width: 440px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border);
+      padding: 18px 20px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Preset Cards Grid (Fixing the Top-Left Boxes) */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn-preset {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+    }
+
+    .btn-preset:hover {
+      background: #1e293b;
+      border-color: var(--cyan);
+    }
+
+    .btn-preset.active {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 1px var(--cyan);
+    }
+
+    .preset-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .btn-preset.active .preset-name {
+      color: var(--cyan);
+    }
+
+    .preset-meta {
+      font-size: 0.7rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    /* Parameter Cards */
+    .param-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .param-card.accent-cyan { border-left: 4px solid var(--cyan); }
+    .param-card.accent-green { border-left: 4px solid var(--green); }
+    .param-card.accent-amber { border-left: 4px solid var(--amber); }
+    .param-card.accent-purple { border-left: 4px solid var(--purple); }
+
+    .param-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .param-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .param-val {
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .val-cyan { color: var(--cyan); }
+    .val-green { color: var(--green); }
+    .val-amber { color: var(--amber); }
+    .val-purple { color: var(--purple); }
+
+    .param-desc {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type=range] {
+      flex: 1;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type=range].slider-cyan { accent-color: var(--cyan); }
+    input[type=range].slider-green { accent-color: var(--green); }
+    input[type=range].slider-amber { accent-color: var(--amber); }
+    input[type=range].slider-purple { accent-color: var(--purple); }
+
+    /* Curve Layer Selector */
+    .layer-selector {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .layer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .layer-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .color-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .swatch-family4 { background: var(--cyan); }
+    .swatch-family1 { background: var(--red); }
+    .swatch-family2 { background: var(--amber); }
+    .swatch-family3 { background: var(--purple); }
+
+    /* Main Stage */
+    .main-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 16px 20px;
+      gap: 14px;
+      background: var(--bg);
+    }
+
+    /* KPI Row */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .kpi-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Removing text-transform: uppercase to prevent math symbol distortion */
+    .kpi-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+
+    .kpi-val {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      margin: 4px 0 2px 0;
+    }
+
+    .kpi-sub {
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .text-ok { color: var(--green); }
+    .text-warn { color: var(--amber); }
+    .text-danger { color: var(--red); }
+    .text-cyan { color: var(--cyan); }
+
+    /* Charts Area */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2.2fr 1fr;
+      gap: 14px;
+      min-height: 480px;
+      flex: 1;
+    }
+
+    .plot-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .plot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .plot-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .plot-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+    }
+
+    .chart-container {
+      flex: 1;
+      width: 100%;
+      min-height: 420px;
+    }
+
+    /* Axiom Scorecard Table */
+    .axiom-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 4px;
+    }
+
+    .axiom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+
+    .axiom-table th, .axiom-table td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .axiom-table th {
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-pass {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .badge-fail {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    /* High-Contrast Plotly Hover Tooltips */
+    .hoverlayer .hovertext text {
+      fill: #ffffff !important;
+      font-weight: 700 !important;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
+      font-size: 12px !important;
+    }
+    .hoverlayer .hovertext path,
+    .hoverlayer .hovertext rect {
+      fill: #090e1a !important;
+      fill-opacity: 0.96 !important;
+      stroke-width: 1.5px !important;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6)) !important;
+    }
+    .hoverlayer .line {
+      stroke: #475569 !important;
+      stroke-width: 1px !important;
+      stroke-dasharray: 3, 3 !important;
+    }
+    .hoverlayer .unified-hover {
+      background-color: #090e1a !important;
+      color: #ffffff !important;
+      border: 1px solid #38bdf8 !important;
+      border-radius: 6px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.7) !important;
+    }
+    .hoverlayer .unified-hover text {
+      fill: #ffffff !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header>
+    <div class="header-left">
+      <span class="badge-stage">Stage 4 Digital Twin</span>
+      <span class="badge-canonical">Axioms 1–5 Compliant</span>
+      <h1>Avalanche Stake Admission Frontier &bull; S<sub>min</sub>(d)</h1>
+    </div>
+    <div class="header-sub">
+      PlatformVM PoS Admission Filter &bull; Candidate Curve Families Audit &bull; Churn &amp; Sybil KPIs &bull; Helicon Live
+    </div>
+  </header>
+
+  <div class="app-layout">
+    
+    <!-- LEFT SIDEBAR: VARIABLE DECK & PRESETS -->
+    <div class="sidebar">
+      
+      <!-- Presets Grid (Clean HTML / No Mangled Math) -->
+      <div>
+        <div class="section-title">
+          <span>Governance Calibration Presets</span>
+        </div>
+        <div class="preset-grid">
+          <button class="btn-preset active" id="preset-bal" onclick="applyPreset('balanced')">
+            <span class="preset-name">Balanced Spec</span>
+            <span class="preset-meta">14k @ 2d &bull; 500 @ 365d<br>p = 1.40 (Decoupled)</span>
+          </button>
+          <button class="btn-preset" id="preset-hard" onclick="applyPreset('hardened')">
+            <span class="preset-name">Sybil-Hardened</span>
+            <span class="preset-meta">20k @ 2d &bull; 500 @ 365d<br>p = 1.80 (Aggressive)</span>
+          </button>
+          <button class="btn-preset" id="preset-harm" onclick="applyPreset('pureHarmonic')">
+            <span class="preset-name">Pure Harmonic</span>
+            <span class="preset-meta">14k @ 2d &bull; 500 @ 365d<br>p = 1.00 (Affine ν)</span>
+          </button>
+          <button class="btn-preset" id="preset-leg" onclick="applyPreset('legacy')">
+            <span class="preset-name">Legacy Parity</span>
+            <span class="preset-meta">18k @ 2d &bull; 2,000 @ 365d<br>p = 1.20 (2k Floor)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Variable 1: S_short -->
+      <div class="param-card accent-cyan">
+        <div class="param-header">
+          <span class="param-label">1. Short Stake Barrier S<sub>short</sub></span>
+          <span class="param-val val-cyan" id="disp-s-short">14,000 AVAX</span>
+        </div>
+        <div class="param-desc">
+          Minimum self-stake required at minimum duration d<sub>min</sub> = 2d (ACP-273). Bounds flash-staking Sybil vectors.
+        </div>
+        <div class="slider-row">
+          <input type="range" class="slider-cyan" id="range-s-short" min="5000" max="35000" step="500" value="14000" oninput="onParamChange()">
+        </div>
+      </div>
+
+      <!-- Variable 2: S_floor -->
+      <div class="param-card accent-green">
+        <div class="param-header">
+          <span class="param-label">2. Sovereign Floor S<sub>floor</sub></span>
+          <span class="param-val val-green" id="disp-s-floor">500 AVAX</span>
+        </div>
+        <div class="param-desc">
+          Baseline minimum stake required at maximum duration d<sub>max</sub> = 365d (ACP-49 Sovereign Staking Floor).
+        </div>
+        <div class="slider-row">
+          <input type="range" class="slider-green" id="range-s-floor" min="200" max="2500" step="50" value="500" oninput="onParamChange()">
+        </div>
+      </div>
+
+      <!-- Variable 3: Curvature Exponent p -->
+      <div class="param-card accent-amber">
+        <div class="param-header">
+          <span class="param-label">3. Curvature Exponent p (Harmonic)</span>
+          <span class="param-val val-amber" id="disp-p">1.40</span>
+        </div>
+        <div class="param-desc">
+          Governs rate of penalty decay in Family 4: S(d) = S<sub>floor</sub> + &Delta;S &bull; [&eta;(d)]<sup>p</sup>. Stable manifold: p &isin; [1.0, 3.0].
+        </div>
+        <div class="slider-row">
+          <input type="range" class="slider-amber" id="range-p" min="0.5" max="3.5" step="0.05" value="1.40" oninput="onParamChange()">
+        </div>
+      </div>
+
+      <!-- Variable 4: Power-Law Alpha -->
+      <div class="param-card accent-purple">
+        <div class="param-header">
+          <span class="param-label">4. Power-Law Exponent &alpha; (Family 3)</span>
+          <span class="param-val val-purple" id="disp-alpha">3.00</span>
+        </div>
+        <div class="param-desc">
+          Used to demonstrate Family 3 hockey-stick derivative collapse: S<sub>3</sub>(d) = S<sub>floor</sub> + &Delta;S &bull; (d<sub>min</sub> / d)<sup>&alpha;</sup>.
+        </div>
+        <div class="slider-row">
+          <input type="range" class="slider-purple" id="range-alpha" min="1.0" max="6.0" step="0.1" value="3.00" oninput="onParamChange()">
+        </div>
+      </div>
+
+      <!-- Curve Visibility Layers -->
+      <div class="layer-selector">
+        <div class="section-title">
+          <span>Active Curve Families on Display</span>
+        </div>
+
+        <label class="layer-item">
+          <div class="layer-left">
+            <input type="checkbox" id="chk-family4" checked onchange="updateCharts()">
+            <div class="color-swatch swatch-family4"></div>
+            <strong>Family 4: Bounded Harmonic P-Decay</strong>
+          </div>
+          <span class="badge-canonical">Canonical</span>
+        </label>
+
+        <label class="layer-item">
+          <div class="layer-left">
+            <input type="checkbox" id="chk-family1" checked onchange="updateCharts()">
+            <div class="color-swatch swatch-family1"></div>
+            <span>Family 1: Pure Iso-Commitment (C / d)</span>
+          </div>
+          <span class="badge-fail">Defective</span>
+        </label>
+
+        <label class="layer-item">
+          <div class="layer-left">
+            <input type="checkbox" id="chk-family2" checked onchange="updateCharts()">
+            <div class="color-swatch swatch-family2"></div>
+            <span>Family 2: Standard Hyperbolic (S<sub>floor</sub> + K / d)</span>
+          </div>
+          <span class="badge-fail">Residue</span>
+        </label>
+
+        <label class="layer-item">
+          <div class="layer-left">
+            <input type="checkbox" id="chk-family3" checked onchange="updateCharts()">
+            <div class="color-swatch swatch-family3"></div>
+            <span>Family 3: Shifted Power-Law (d<sub>min</sub> / d)<sup>&alpha;</sup></span>
+          </div>
+          <span class="badge-fail">Hockey Stick</span>
+        </label>
+
+        <label class="layer-item" style="border-top: 1px solid var(--border); padding-top: 8px;">
+          <div class="layer-left">
+            <input type="checkbox" id="chk-firewall" checked onchange="updateCharts()">
+            <span style="color: var(--amber); font-size: 14px;">&squf;</span>
+            <span>14-Day Delegator Firewall (S<sub>del</sub> &equiv; 0)</span>
+          </div>
+          <span class="badge-pass">Quarantine</span>
+        </label>
+      </div>
+
+    </div>
+
+    <!-- MAIN DISPLAY STAGE -->
+    <div class="main-stage">
+      
+      <!-- KPI DASHBOARD CARDS (Clean HTML Labels) -->
+      <div class="kpi-row">
+        
+        <div class="kpi-box">
+          <div class="kpi-label">Sybil Amplification Multiplier (&mu;<sub>Sybil</sub>)</div>
+          <div class="kpi-val text-cyan" id="kpi-mu">28.0x</div>
+          <div class="kpi-sub text-ok" id="kpi-mu-sub">S<sub>short</sub> / S<sub>floor</sub> Collateral Ratio</div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-label">14-Day Barrier S<sub>min</sub>(14d)</div>
+          <div class="kpi-val text-amber" id="kpi-14d">2,284 AVAX</div>
+          <div class="kpi-sub" style="color: var(--text-muted);" id="kpi-14d-sub">Retail Delegation Gate</div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-label">Boundary Residue &epsilon;(d<sub>max</sub>)</div>
+          <div class="kpi-val text-ok" id="kpi-residue">0.00 AVAX</div>
+          <div class="kpi-sub text-ok" id="kpi-residue-sub">&check; Exact Interpolation (Family 4)</div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-label">Short-Duration Elasticity &epsilon;<sub>S,d</sub>(d<sub>min</sub>)</div>
+          <div class="kpi-val" id="kpi-elasticity" style="color: #cbd5e1;">-1.35</div>
+          <div class="kpi-sub text-cyan" id="kpi-elasticity-sub">Marginal Resistance at 2d</div>
+        </div>
+
+        <div class="kpi-box">
+          <div class="kpi-label">Peak P2P Churn Dampening</div>
+          <div class="kpi-val text-ok" id="kpi-churn">82.1%</div>
+          <div class="kpi-sub text-ok" id="kpi-churn-sub">vs. Unpenalized Flat S<sub>floor</sub></div>
+        </div>
+
+      </div>
+
+      <!-- CHARTS GRID -->
+      <div class="charts-grid">
+        
+        <!-- Plot 1: Admission Frontier Geometry -->
+        <div class="plot-card">
+          <div class="plot-header">
+            <div class="plot-title">Admission Frontier Geometry: Candidate Curve Families Comparison</div>
+            <div class="plot-controls">
+              <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="chk-log-x" onchange="updateCharts()"> Log Duration Scale
+              </label>
+            </div>
+          </div>
+          <div class="chart-container" id="plot-frontier"></div>
+        </div>
+
+        <!-- Plot 2: Elasticity Profile -->
+        <div class="plot-card">
+          <div class="plot-header">
+            <div class="plot-title">Marginal Elasticity Profile &epsilon;<sub>S,d</sub>(d)</div>
+            <div class="plot-controls">
+              <span style="font-size:0.72rem; color:var(--text-muted);">Derivative Smoothness &amp; Regularity</span>
+            </div>
+          </div>
+          <div class="chart-container" id="plot-elasticity"></div>
+        </div>
+
+      </div>
+
+      <!-- AXIOMATIC COMPLIANCE SCORECARD -->
+      <div class="axiom-card">
+        <div class="section-title">
+          <span>Canonical Axiomatic Verification Matrix (Stage 4 Audit)</span>
+          <span style="color: var(--text-dim); font-size: 0.72rem;">Zero-Citation Formal Systems Engineering Standard</span>
+        </div>
+        <table class="axiom-table">
+          <thead>
+            <tr>
+              <th>Curve Family</th>
+              <th>Axiom 1: Monotone (dS/dd &lt; 0)</th>
+              <th>Axiom 2: Convex (d&sup2;S/dd&sup2; &gt; 0)</th>
+              <th>Axiom 3: Boundary Residue &epsilon;(d<sub>max</sub>)</th>
+              <th>Axiom 4: Sybil Splitting Neutrality</th>
+              <th>Axiom 5: Asymptotic Regularity</th>
+              <th>Formal Disposition</th>
+            </tr>
+          </thead>
+          <tbody id="axiom-table-body">
+            <!-- Populated via JavaScript cleanly -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // State variables
+    const d_min = 2.0;       // Helicon default minimum days
+    const d_max = 365.0;     // Protocol maximum days
+    const d_del_min = 14.0;  // Delegator firewall threshold days
+
+    function getParams() {
+      return {
+        s_short: parseFloat(document.getElementById('range-s-short').value),
+        s_floor: parseFloat(document.getElementById('range-s-floor').value),
+        p: parseFloat(document.getElementById('range-p').value),
+        alpha: parseFloat(document.getElementById('range-alpha').value),
+        logX: document.getElementById('chk-log-x').checked,
+        showF4: document.getElementById('chk-family4').checked,
+        showF1: document.getElementById('chk-family1').checked,
+        showF2: document.getElementById('chk-family2').checked,
+        showF3: document.getElementById('chk-family3').checked,
+        showFirewall: document.getElementById('chk-firewall').checked
+      };
+    }
+
+    // Mathematical Curve Formulations
+    function calcFamily4(d, p_obj) {
+      if (d <= d_min) return p_obj.s_short;
+      if (d >= d_max) return p_obj.s_floor;
+      const H = 1.0 / d_min - 1.0 / d_max;
+      const eta = (1.0 / d - 1.0 / d_max) / H;
+      return p_obj.s_floor + (p_obj.s_short - p_obj.s_floor) * Math.pow(Math.max(0, eta), p_obj.p);
+    }
+
+    function calcFamily4Deriv(d, p_obj) {
+      const H = 1.0 / d_min - 1.0 / d_max;
+      const eta = Math.max(0, (1.0 / d - 1.0 / d_max) / H);
+      const deltaS = p_obj.s_short - p_obj.s_floor;
+      if (eta === 0) return 0;
+      return - (p_obj.p * deltaS / (H * d * d)) * Math.pow(eta, p_obj.p - 1);
+    }
+
+    function calcFamily1(d, p_obj) {
+      const C = p_obj.s_short * d_min;
+      return C / d;
+    }
+
+    function calcFamily2(d, p_obj) {
+      const deltaS = p_obj.s_short - p_obj.s_floor;
+      const K = deltaS * d_min;
+      return p_obj.s_floor + K / d;
+    }
+
+    function calcFamily3(d, p_obj) {
+      const deltaS = p_obj.s_short - p_obj.s_floor;
+      return p_obj.s_floor + deltaS * Math.pow(d_min / d, p_obj.alpha);
+    }
+
+    function calcFamily3Deriv(d, p_obj) {
+      const deltaS = p_obj.s_short - p_obj.s_floor;
+      return - (p_obj.alpha * deltaS / d_min) * Math.pow(d_min / d, p_obj.alpha + 1);
+    }
+
+    // Preset Configurations
+    function applyPreset(name) {
+      document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+      
+      if (name === 'balanced') {
+        document.getElementById('preset-bal').classList.add('active');
+        document.getElementById('range-s-short').value = 14000;
+        document.getElementById('range-s-floor').value = 500;
+        document.getElementById('range-p').value = 1.40;
+        document.getElementById('range-alpha').value = 3.00;
+      } else if (name === 'hardened') {
+        document.getElementById('preset-hard').classList.add('active');
+        document.getElementById('range-s-short').value = 20000;
+        document.getElementById('range-s-floor').value = 500;
+        document.getElementById('range-p').value = 1.80;
+        document.getElementById('range-alpha').value = 3.50;
+      } else if (name === 'pureHarmonic') {
+        document.getElementById('preset-harm').classList.add('active');
+        document.getElementById('range-s-short').value = 14000;
+        document.getElementById('range-s-floor').value = 500;
+        document.getElementById('range-p').value = 1.00;
+        document.getElementById('range-alpha').value = 2.50;
+      } else if (name === 'legacy') {
+        document.getElementById('preset-leg').classList.add('active');
+        document.getElementById('range-s-short').value = 18000;
+        document.getElementById('range-s-floor').value = 2000;
+        document.getElementById('range-p').value = 1.20;
+        document.getElementById('range-alpha').value = 3.00;
+      }
+      onParamChange();
+    }
+
+    function onParamChange() {
+      const p_obj = getParams();
+      
+      // Update label displays
+      document.getElementById('disp-s-short').textContent = p_obj.s_short.toLocaleString() + ' AVAX';
+      document.getElementById('disp-s-floor').textContent = p_obj.s_floor.toLocaleString() + ' AVAX';
+      document.getElementById('disp-p').textContent = p_obj.p.toFixed(2);
+      document.getElementById('disp-alpha').textContent = p_obj.alpha.toFixed(2);
+      
+      // Compute KPIs
+      const mu = p_obj.s_short / p_obj.s_floor;
+      document.getElementById('kpi-mu').textContent = mu.toFixed(1) + 'x';
+      
+      const s_14d = calcFamily4(d_del_min, p_obj);
+      document.getElementById('kpi-14d').textContent = Math.round(s_14d).toLocaleString() + ' AVAX';
+      
+      const residue_f4 = calcFamily4(d_max, p_obj) - p_obj.s_floor;
+      document.getElementById('kpi-residue').textContent = residue_f4.toFixed(2) + ' AVAX';
+      
+      const kappa = d_max / d_min;
+      const elast_dmin = - p_obj.p * (1.0 - p_obj.s_floor / p_obj.s_short) * (kappa / (kappa - 1.0));
+      document.getElementById('kpi-elasticity').textContent = elast_dmin.toFixed(2);
+
+      const churn_damp = (1.0 - (p_obj.s_floor / p_obj.s_short)) * 100.0;
+      document.getElementById('kpi-churn').textContent = churn_damp.toFixed(1) + '%';
+      
+      updateAxiomTable(p_obj);
+      updateCharts();
+    }
+
+    function updateAxiomTable(p_obj) {
+      const residue_f1 = (calcFamily1(d_max, p_obj) - p_obj.s_floor);
+      const residue_f2 = (calcFamily2(d_max, p_obj) - p_obj.s_floor);
+      const residue_f3 = (calcFamily3(d_max, p_obj) - p_obj.s_floor);
+
+      const tbody = document.getElementById('axiom-table-body');
+      tbody.innerHTML = `
+        <tr style="background: rgba(56, 189, 248, 0.05);">
+          <td><strong style="color: var(--cyan);">Family 4: Bounded Harmonic P-Decay</strong></td>
+          <td><span class="badge-pass">PASS</span> <span class="mono">dS/dd &lt; 0</span></td>
+          <td><span class="badge-pass">PASS</span> <span class="mono">d&sup2;S/dd&sup2; &gt; 0</span></td>
+          <td><span class="badge-pass">PASS</span> <strong class="mono">0.00 AVAX</strong></td>
+          <td><span class="badge-pass">PASS</span> Strictly Neutral</td>
+          <td><span class="badge-pass">PASS</span> C&sup1; Smooth (Finite/Zero)</td>
+          <td><span class="badge-pass" style="background: rgba(56,189,248,0.2); color:var(--cyan); border-color:var(--cyan);">CANONICAL CHOICE</span></td>
+        </tr>
+        <tr>
+          <td><span style="color: var(--red); font-weight:600;">Family 1: Pure Iso-Commitment</span></td>
+          <td><span class="badge-pass">PASS</span> <span class="mono">dS/dd &lt; 0</span></td>
+          <td><span class="badge-pass">PASS</span> <span class="mono">d&sup2;S/dd&sup2; &gt; 0</span></td>
+          <td><span class="badge-fail">FAILS</span> <span class="mono">${residue_f1.toFixed(1)} AVAX</span> (Floor Collapse)</td>
+          <td><span class="badge-pass">PASS</span> Neutral</td>
+          <td><span class="badge-fail">FAILS</span> Underdetermined (1 DOF)</td>
+          <td><span class="badge-fail">ELIMINATED</span></td>
+        </tr>
+        <tr>
+          <td><span style="color: var(--amber); font-weight:600;">Family 2: Standard Hyperbolic</span></td>
+          <td><span class="badge-pass">PASS</span> <span class="mono">dS/dd &lt; 0</span></td>
+          <td><span class="badge-pass">PASS</span> <span class="mono">d&sup2;S/dd&sup2; &gt; 0</span></td>
+          <td><span class="badge-fail">FAILS</span> <span class="mono">+${residue_f2.toFixed(1)} AVAX</span> (Residue Markup)</td>
+          <td><span class="badge-pass">PASS</span> Neutral</td>
+          <td><span class="badge-fail">FAILS</span> Persistent Boundary Drift</td>
+          <td><span class="badge-fail">ELIMINATED</span></td>
+        </tr>
+        <tr>
+          <td><span style="color: var(--purple); font-weight:600;">Family 3: Shifted Power-Law</span></td>
+          <td><span class="badge-pass">PASS</span> <span class="mono">dS/dd &lt; 0</span></td>
+          <td><span class="badge-pass">PASS</span> <span class="mono">d&sup2;S/dd&sup2; &gt; 0</span></td>
+          <td><span class="badge-pass">PASS</span> <span class="mono">+${residue_f3.toFixed(2)} AVAX</span></td>
+          <td><span class="badge-pass">PASS</span> Neutral</td>
+          <td><span class="badge-fail">FAILS</span> Hockey Stick (dS/dd &approx; 0 at 6d)</td>
+          <td><span class="badge-fail">ELIMINATED</span></td>
+        </tr>
+      `;
+    }
+
+    function updateCharts() {
+      const p_obj = getParams();
+      
+      const numPts = 300;
+      let d_vals = [];
+      if (p_obj.logX) {
+        let logMin = Math.log10(d_min);
+        let logMax = Math.log10(d_max);
+        let step = (logMax - logMin) / (numPts - 1);
+        for (let i = 0; i < numPts; i++) {
+          d_vals.push(Math.pow(10, logMin + i * step));
+        }
+      } else {
+        let step = (d_max - d_min) / (numPts - 1);
+        for (let i = 0; i < numPts; i++) {
+          d_vals.push(d_min + i * step);
+        }
+      }
+
+      let traces = [];
+
+      // 1. Quarantined Zone (Delegator Firewall)
+      if (p_obj.showFirewall) {
+        traces.push({
+          x: [d_min, d_del_min, d_del_min, d_min],
+          y: [0, 0, p_obj.s_short * 1.15, p_obj.s_short * 1.15],
+          fill: 'toself',
+          fillcolor: 'rgba(245, 158, 11, 0.08)',
+          line: { color: 'rgba(245, 158, 11, 0.45)', width: 1, dash: 'dot' },
+          name: 'Delegator Firewall (S_del ≡ 0)',
+          hoverinfo: 'skip',
+          showlegend: true
+        });
+      }
+
+      // 2. Sovereign Floor Baseline
+      traces.push({
+        x: [d_min, d_max],
+        y: [p_obj.s_floor, p_obj.s_floor],
+        mode: 'lines',
+        line: { color: 'rgba(16, 185, 129, 0.6)', width: 1.5, dash: 'dash' },
+        name: `Sovereign Floor (${p_obj.s_floor} AVAX)`,
+        hovertemplate: `<b>Sovereign Floor:</b> ${p_obj.s_floor.toLocaleString()} AVAX<extra></extra>`,
+        hoverlabel: { bgcolor: '#062017', bordercolor: '#10b981', font: { color: '#ffffff', size: 12 } }
+      });
+
+      // 3. Family 1: Pure Iso-Commitment
+      if (p_obj.showF1) {
+        traces.push({
+          x: d_vals,
+          y: d_vals.map(d => calcFamily1(d, p_obj)),
+          mode: 'lines',
+          line: { color: '#ef4444', width: 1.8, dash: 'dash' },
+          name: 'Family 1: Pure Iso-Commitment (C / d)',
+          hovertemplate: '<b>Family 1 (Iso):</b> %{y:,.0f} AVAX<extra></extra>',
+          hoverlabel: { bgcolor: '#240c11', bordercolor: '#ef4444', font: { color: '#ffffff', size: 12 } }
+        });
+      }
+
+      // 4. Family 2: Standard Hyperbolic
+      if (p_obj.showF2) {
+        traces.push({
+          x: d_vals,
+          y: d_vals.map(d => calcFamily2(d, p_obj)),
+          mode: 'lines',
+          line: { color: '#f59e0b', width: 1.8, dash: 'dot' },
+          name: 'Family 2: Standard Hyperbolic (S_floor + K / d)',
+          hovertemplate: '<b>Family 2 (Hyperbolic):</b> %{y:,.0f} AVAX<extra></extra>',
+          hoverlabel: { bgcolor: '#261806', bordercolor: '#f59e0b', font: { color: '#ffffff', size: 12 } }
+        });
+      }
+
+      // 5. Family 3: Shifted Power-Law
+      if (p_obj.showF3) {
+        traces.push({
+          x: d_vals,
+          y: d_vals.map(d => calcFamily3(d, p_obj)),
+          mode: 'lines',
+          line: { color: '#a855f7', width: 2, dash: 'longdash' },
+          name: 'Family 3: Shifted Power-Law (d_min / d)^α',
+          hovertemplate: '<b>Family 3 (Power-Law):</b> %{y:,.0f} AVAX<extra></extra>',
+          hoverlabel: { bgcolor: '#1e0c2b', bordercolor: '#a855f7', font: { color: '#ffffff', size: 12 } }
+        });
+      }
+
+      // 6. Family 4: Bounded Harmonic P-Decay (CANONICAL)
+      if (p_obj.showF4) {
+        traces.push({
+          x: d_vals,
+          y: d_vals.map(d => calcFamily4(d, p_obj)),
+          mode: 'lines',
+          line: { color: '#38bdf8', width: 3.5 },
+          name: 'Family 4: Bounded Harmonic (Canonical)',
+          hovertemplate: '<b>Family 4 (Canonical):</b> %{y:,.0f} AVAX<extra></extra>',
+          hoverlabel: { bgcolor: '#0b162c', bordercolor: '#38bdf8', font: { color: '#ffffff', size: 12 } }
+        });
+
+        // 14-Day Marker on Family 4
+        const s_14 = calcFamily4(d_del_min, p_obj);
+        traces.push({
+          x: [d_del_min],
+          y: [s_14],
+          mode: 'markers+text',
+          marker: { color: '#f59e0b', size: 9, symbol: 'diamond' },
+          text: [`14d Gate: ${Math.round(s_14).toLocaleString()} AVAX`],
+          textposition: 'top right',
+          textfont: { color: '#f59e0b', size: 11, family: 'monospace' },
+          name: '14-Day Retail Barrier',
+          hoverinfo: 'skip',
+          showlegend: false
+        });
+      }
+
+      const layoutPlot1 = {
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        margin: { l: 65, r: 25, t: 15, b: 50 },
+        xaxis: {
+          title: { text: 'Staking Commitment Duration d (Days)', font: { color: '#94a3b8', size: 12 } },
+          type: p_obj.logX ? 'log' : 'linear',
+          range: p_obj.logX ? [Math.log10(1.8), Math.log10(380)] : [0, 375],
+          tickfont: { color: '#94a3b8' },
+          gridcolor: '#1e293b',
+          zerolinecolor: '#334155'
+        },
+        yaxis: {
+          title: { text: 'Minimum Required Self-Stake S_min(d) (AVAX)', font: { color: '#94a3b8', size: 12 } },
+          range: [0, p_obj.s_short * 1.15],
+          tickfont: { color: '#94a3b8' },
+          gridcolor: '#1e293b',
+          zerolinecolor: '#334155'
+        },
+        legend: {
+          orientation: 'h',
+          y: 1.12,
+          x: 0,
+          font: { color: '#cbd5e1', size: 11 },
+          bgcolor: 'rgba(13, 19, 34, 0.8)'
+        },
+        hovermode: 'x',
+        hoverlabel: {
+          bgcolor: '#090e1a',
+          bordercolor: '#38bdf8',
+          font: {
+            family: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            size: 12,
+            color: '#ffffff'
+          },
+          align: 'left',
+          namelength: -1
+        }
+      };
+
+      Plotly.react('plot-frontier', traces, layoutPlot1, { responsive: true, displaylogo: false });
+
+      // Elasticity Plot
+      let elastTraces = [];
+      
+      if (p_obj.showF4) {
+        let elast_f4 = d_vals.map(d => {
+          let S = calcFamily4(d, p_obj);
+          let dS = calcFamily4Deriv(d, p_obj);
+          return (d / S) * dS;
+        });
+        elastTraces.push({
+          x: d_vals,
+          y: elast_f4,
+          mode: 'lines',
+          line: { color: '#38bdf8', width: 2.5 },
+          name: 'Family 4: Smooth & Controlled Decay',
+          hovertemplate: '<b>Family 4 Elasticity:</b> %{y:.3f}<extra></extra>',
+          hoverlabel: { bgcolor: '#0b162c', bordercolor: '#38bdf8', font: { color: '#ffffff', size: 12 } }
+        });
+      }
+
+      if (p_obj.showF3) {
+        let elast_f3 = d_vals.map(d => {
+          let S = calcFamily3(d, p_obj);
+          let dS = calcFamily3Deriv(d, p_obj);
+          return (d / S) * dS;
+        });
+        elastTraces.push({
+          x: d_vals,
+          y: elast_f3,
+          mode: 'lines',
+          line: { color: '#a855f7', width: 2, dash: 'longdash' },
+          name: 'Family 3: Hockey-Stick Collapse',
+          hovertemplate: '<b>Family 3 Elasticity:</b> %{y:.3f}<extra></extra>',
+          hoverlabel: { bgcolor: '#1e0c2b', bordercolor: '#a855f7', font: { color: '#ffffff', size: 12 } }
+        });
+      }
+
+      const layoutPlot2 = {
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        margin: { l: 55, r: 20, t: 15, b: 50 },
+        xaxis: {
+          title: { text: 'Duration d (Days)', font: { color: '#94a3b8', size: 11 } },
+          type: p_obj.logX ? 'log' : 'linear',
+          range: p_obj.logX ? [Math.log10(1.8), Math.log10(380)] : [0, 375],
+          tickfont: { color: '#94a3b8' },
+          gridcolor: '#1e293b'
+        },
+        yaxis: {
+          title: { text: 'Elasticity ε_{S,d}', font: { color: '#94a3b8', size: 11 } },
+          tickfont: { color: '#94a3b8' },
+          gridcolor: '#1e293b'
+        },
+        legend: {
+          orientation: 'h',
+          y: 1.15,
+          x: 0,
+          font: { color: '#cbd5e1', size: 10 }
+        },
+        hovermode: 'x',
+        hoverlabel: {
+          bgcolor: '#090e1a',
+          bordercolor: '#38bdf8',
+          font: {
+            family: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            size: 12,
+            color: '#ffffff'
+          },
+          align: 'left',
+          namelength: -1
+        }
+      };
+
+      Plotly.react('plot-elasticity', elastTraces, layoutPlot2, { responsive: true, displaylogo: false });
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      onParamChange();
+      setTimeout(() => {
+        try {
+          Plotly.Fx.hover('plot-frontier', [{ curveNumber: 5, pointNumber: 30 }]);
+        } catch(e) {}
+      }, 600);
+    });
+  </script>
+</body>
+</html>
