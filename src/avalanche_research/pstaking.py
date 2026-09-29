@@ -382,8 +382,10 @@ def tables(loaded: dict[str, Any], result: dict[str, Any]) -> dict[str, list[tup
         else:
             period = (None, None, None, None)
         potential = closed["potential"] if period[0] is not None else None
+        # The outcome is the walk's own; only a stake the Data API names as outside the Primary Network has none, as in the share.
+        outcome = None if record is not None and record[1] not in PRIMARY_STAKE_TYPES and stake is None else closed["rewarded"]
         count, realized = (loaded["paid"][staking_hash][1:3] if staking_hash in loaded["paid"] else (0, 0))
-        rewards.append((reward_row[4], reward_row[1], reward_row[0], staking_hash, *period, closed["rewarded"] if period[0] else None,
+        rewards.append((reward_row[4], reward_row[1], reward_row[0], staking_hash, *period, outcome,
                         potential, avax(potential), realized, avax(realized),
                         None if potential is None else realized - potential, None if potential is None else avax(realized - potential), count))
     return {

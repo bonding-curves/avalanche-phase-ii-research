@@ -35,6 +35,7 @@ from . import pchain
 from . import pstakers
 from . import pstaking
 from . import ptx
+from . import seam
 from . import snowflake
 from . import snowpeer
 from . import subnets
@@ -65,6 +66,7 @@ MODULES = {
     **{dataset_id: pstaking for dataset_id in pstaking.DATASET_IDS},
     **{dataset_id: clist for dataset_id in clist.DATASET_IDS},
     pburns.DATASET_ID: pburns,
+    **{dataset_id: seam for dataset_id in seam.DATASET_IDS},
     catx.DATASET_ID: catx,
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,

@@ -1332,6 +1332,36 @@
           "id": "p-block-list",
           "dataset_id": "data-api.p-chain-block-list",
           "role": "every P-Chain block from a date with the supply and ACP-77 counters, from the Data API's block list"
+        },
+        {
+          "id": "p-validator-stakes-backup",
+          "dataset_id": "derived.p-chain-validator-stakes",
+          "role": "validator stakes rebuilt from a P-Chain walk"
+        },
+        {
+          "id": "p-delegator-stakes-backup",
+          "dataset_id": "derived.p-chain-delegator-stakes",
+          "role": "delegator stakes rebuilt from a P-Chain walk"
+        },
+        {
+          "id": "p-staking-rewards-backup",
+          "dataset_id": "derived.p-chain-staking-rewards",
+          "role": "staking rewards rebuilt from a P-Chain walk"
+        },
+        {
+          "id": "p-staking-supply-backup",
+          "dataset_id": "derived.p-chain-staking-supply",
+          "role": "the supply counter at each stake, rebuilt from a P-Chain walk"
+        },
+        {
+          "id": "burn-daily-backup",
+          "dataset_id": "derived.primary-burn-daily",
+          "role": "P- and X-Chain burns per day from the nodes' blocks"
+        },
+        {
+          "id": "c-evm-daily-backup",
+          "dataset_id": "derived.c-chain-evm-burn-daily",
+          "role": "C-Chain EVM burn per day from the Data API's block list"
         }
       ]
     },
@@ -6910,6 +6940,723 @@
           "type": "integer",
           "unit": "nAVAX",
           "derivation": "P-Chain: the earlier active L1 validator count times the rise in accrued fees between consecutive blocks of the Data API's block list, dated by the later block; X-Chain: 0"
+        }
+      ]
+    },
+    {
+      "id": "derived.seamed-validator-stakes",
+      "name": "Validator stakes: the share before the seam, the P-Chain walk from it",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "The columns of snowflake.primary-validator-stakes and a source column: share rows before the seam, derived.p-chain-validator-stakes rows from it. The seam is one instant for all four P-Chain staking tables: the first row in the share's last day that lacks its staked outputs or block supply, or the share's last row. The derive stops unless every row both hold before the seam is equal, so a backup is used only after it matched the share. The receipt records the seam and both runs.",
+      "input_ids": [
+        "validator-stakes",
+        "delegator-stakes",
+        "staking-rewards",
+        "staking-supply",
+        "p-validator-stakes-backup"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height; -1 for genesis validators",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "AddValidatorTx or AddPermissionlessValidatorTx",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "validator NodeID",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "delegation_fee_shares",
+          "type": "integer",
+          "unit": "millionths",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction of delegation rewards",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when absent",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX; null when absent",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "null while the staking period is in progress",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "reward_addresses",
+          "type": "string",
+          "unit": "JSON array of P-Chain addresses",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "reward_address",
+          "type": "string",
+          "unit": "P-Chain address",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "reward_address_count",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "staked_utxo_count",
+          "type": "integer",
+          "unit": "distinct staked UTXOs",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "utxo_stake_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when no staked UTXO row exists",
+          "derivation": "from snowflake.primary-validator-stakes before the seam, from derived.p-chain-validator-stakes from it"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "source",
+          "derivation": "'snowflake' for a share row, 'backup' for a backup row"
+        }
+      ]
+    },
+    {
+      "id": "derived.seamed-delegator-stakes",
+      "name": "Delegator stakes: the share before the seam, the P-Chain walk from it",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "delegator flows",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "The columns of snowflake.primary-delegator-stakes and a source column: share rows before the seam, derived.p-chain-delegator-stakes rows from it. The seam is one instant for all four P-Chain staking tables: the first row in the share's last day that lacks its staked outputs or block supply, or the share's last row. The derive stops unless every row both hold before the seam is equal, so a backup is used only after it matched the share. The receipt records the seam and both runs.",
+      "input_ids": [
+        "validator-stakes",
+        "delegator-stakes",
+        "staking-rewards",
+        "staking-supply",
+        "p-delegator-stakes-backup"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "AddDelegatorTx or AddPermissionlessDelegatorTx",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "target validator NodeID",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "validator_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID; null when no validator period contains the delegation",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "delegator_address",
+          "type": "string",
+          "unit": "P-Chain address; null when no staked UTXO row exists",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "delegator_address_count",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when absent",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX; null when absent",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "null while the delegation period is in progress",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "staked_utxo_count",
+          "type": "integer",
+          "unit": "distinct staked UTXOs",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "utxo_stake_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when no staked UTXO row exists",
+          "derivation": "from snowflake.primary-delegator-stakes before the seam, from derived.p-chain-delegator-stakes from it"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "source",
+          "derivation": "'snowflake' for a share row, 'backup' for a backup row"
+        }
+      ]
+    },
+    {
+      "id": "derived.seamed-staking-rewards",
+      "name": "Staking rewards: the share before the seam, the P-Chain walk from it",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "rewards"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "The columns of snowflake.primary-staking-rewards and a source column: share rows before the seam, derived.p-chain-staking-rewards rows from it. The seam is one instant for all four P-Chain staking tables: the first row in the share's last day that lacks its staked outputs or block supply, or the share's last row. The derive stops unless every row both hold before the seam is equal, so a backup is used only after it matched the share. The receipt records the seam and both runs.",
+      "input_ids": [
+        "validator-stakes",
+        "delegator-stakes",
+        "staking-rewards",
+        "staking-supply",
+        "p-staking-rewards-backup"
+      ],
+      "fields": [
+        {
+          "name": "reward_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "rewarded_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "staking_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "staking_tx_type",
+          "type": "string",
+          "unit": "one of the four staking types; null when no Primary Network staking period matches",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "validator NodeID",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "period_start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "period_end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "protocol reward decision",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "realized_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX; 0 when no reward UTXO exists",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "realized_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "fee_transfer_navax",
+          "type": "integer",
+          "unit": "nAVAX; positive is delegation fee income to a validator, negative is fee paid by a delegator",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "fee_transfer_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "reward_utxo_count",
+          "type": "integer",
+          "unit": "distinct reward UTXOs",
+          "derivation": "from snowflake.primary-staking-rewards before the seam, from derived.p-chain-staking-rewards from it"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "source",
+          "derivation": "'snowflake' for a share row, 'backup' for a backup row"
+        }
+      ]
+    },
+    {
+      "id": "derived.seamed-staking-supply",
+      "name": "Supply counter at each stake: the share before the seam, the P-Chain walk from it",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "rewards",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "The columns of snowflake.primary-staking-supply and a source column: share rows before the seam, derived.p-chain-staking-supply rows from it. The seam is one instant for all four P-Chain staking tables: the first row in the share's last day that lacks its staked outputs or block supply, or the share's last row. The derive stops unless every row both hold before the seam is equal, so a backup is used only after it matched the share. The receipt records the seam and both runs.",
+      "input_ids": [
+        "validator-stakes",
+        "delegator-stakes",
+        "staking-rewards",
+        "staking-supply",
+        "p-staking-supply-backup"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "one of the four staking types",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height; -1 for genesis validators",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "tx_block_position",
+          "type": "integer",
+          "unit": "position within the block",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "previous_block_supply_navax",
+          "type": "integer",
+          "unit": "nAVAX; null for genesis",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "block_supply_navax",
+          "type": "integer",
+          "unit": "nAVAX; null for genesis",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "in_block_prior_delta_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "in_block_total_delta_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "supply_before_navax",
+          "type": "integer",
+          "unit": "nAVAX; null for genesis",
+          "derivation": "from snowflake.primary-staking-supply before the seam, from derived.p-chain-staking-supply from it"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "source",
+          "derivation": "'snowflake' for a share row, 'backup' for a backup row"
+        }
+      ]
+    },
+    {
+      "id": "derived.seamed-burn-daily",
+      "name": "P- and X-Chain burns per day: the share before the seam date, the nodes' blocks from it",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "The columns of snowflake.primary-burn-daily and a source column: share rows before the seam, derived.primary-burn-daily rows from it. The seam is the share's last date, partial when the share stops mid-day, which comes from the backup. The derive stops unless every row both hold before the seam is equal, so a backup is used only after it matched the share. The receipt records the seam and both runs.",
+      "input_ids": [
+        "burn-daily",
+        "burn-daily-backup"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "chain letter",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "burned_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "recorded_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "system_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "genesis_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "utxo_derived_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "unresolved_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "unresolved_hashes",
+          "type": "string",
+          "unit": "comma-separated transaction hashes",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "l1_balance_deposited_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "l1_validator_fees_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "from snowflake.primary-burn-daily before the seam, from derived.primary-burn-daily from it"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "source",
+          "derivation": "'snowflake' for a share row, 'backup' for a backup row"
+        }
+      ]
+    },
+    {
+      "id": "derived.seamed-c-chain-evm-burn-daily",
+      "name": "C-Chain EVM burn per day: the share before the seam date, the Data API's block list from it",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "The columns of snowflake.c-chain-evm-burn-daily and a source column: share rows before the seam, derived.c-chain-evm-burn-daily rows from it. The seam is the share's last date, partial when the share stops mid-day, which comes from the backup. The derive stops unless every row both hold before the seam is equal, so a backup is used only after it matched the share. The receipt records the seam and both runs.",
+      "input_ids": [
+        "c-evm-daily",
+        "c-evm-daily-backup"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "burned_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "block_count",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "first_block",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "last_block",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "absent_blocks",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "short_blocks",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "short_block_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "previous_last_block",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "next_first_block",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "expected_receipts",
+          "type": "integer",
+          "unit": "receipts",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "receipt_rows",
+          "type": "integer",
+          "unit": "rows",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "distinct_receipts",
+          "type": "integer",
+          "unit": "receipts",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "missing_fee_inputs",
+          "type": "integer",
+          "unit": "receipts",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "first_epoch",
+          "type": "integer",
+          "unit": "seconds since epoch",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "last_epoch",
+          "type": "integer",
+          "unit": "seconds since epoch",
+          "derivation": "from snowflake.c-chain-evm-burn-daily before the seam, from derived.c-chain-evm-burn-daily from it"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "source",
+          "derivation": "'snowflake' for a share row, 'backup' for a backup row"
         }
       ]
     }
