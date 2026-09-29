@@ -1,9 +1,17 @@
 ---
 title: "ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment"
-description: "The ACP-285 community call presents the lower minimum consumption rate, separates its mechanical effect on issuance from the behavioral response, and records community questions on security, concentration, and delegation."
+description: "At the ACP-285 community call, Eric Lu presents the lower minimum consumption rate as a response to shorter and auto-renewed commitments, separates its mechanical effect from the behavioral response, and hears concerns on security, concentration, and delegation."
 ---
 
-Read the [source](/Phase-II/Wiki/Collections/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/Source-Video).
+At the ACP-285 community call, Eric Lu presents the lower minimum consumption rate as a response to shorter and auto-renewed commitments, separates its mechanical effect on issuance from the behavioral response, and hears community concerns about security, concentration, and delegation.
+
+Avalanche held the call on June 29, 2026, while ACP-285 was in community discussion, and published the recording on July 7, 2026. It runs 1:13:03. Eric Lu, one of the proposal's four authors, presents, and an open discussion follows. ACP-285 lowers the **minimum consumption rate**, the reward-formula parameter that sets the reward for the shortest commitments, from 10% to 7.5%. The call explains the reasoning and records what community members asked. Timestamps below point into the recording.
+
+The presentation starts from three observations, at 0:43. Realized inflation remains material, even though it declines as the remaining supply falls. The reward difference between short and long commitments has narrowed over time. **Auto-renewal** under ACP-236 and the shorter minimum of ACP-273 make short commitments relatively more attractive. Shorter commitments keep liquidity and the option to change position, so the question is what reward compensates a staker for giving up that flexibility. The proposal serves three goals, at 9:15: reduce net AVAX inflation, conserve the finite **security budget** that issuance funds, and restore a stronger relative reward for longer commitments. The presentation calls these intended outcomes, not guarantees.
+
+The reward formula, at 13:00, multiplies a linear interpolation between the minimum and maximum consumption rates by a **remaining-supply factor**. Lowering the minimum changes only the short end of the curve. The realized reward changes less than the parameter because the factor is below one. The presentation then separates two effects. The **mechanical effect**, at 15:25, compares reward and inflation paths under the old and new rate with staking choices held fixed. The **behavioral response**, at 22:00, comes from a structural model of validator and delegator preferences estimated from historical choices. The rate moves over a **ninety-day ramp**, at 23:35, so that two similar positions do not lock in very different rates because they start just before or just after one instant. The ramp also gives dependent applications time to adjust.
+
+The summary of the recording records no projected numbers. The proposal's own figures are on the [ACP-285 page](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-285-Minimum-Consumption-Rate/): inflation about 0.5 point lower with behavior fixed, 0.5 to 1 point lower once durations respond, and a stake-weighted average duration about two months longer. The discussion adds five points. Validator count is not stake-weighted security, at 26:25, because one large exit changes secured stake more than many small ones. Observed durations cluster, and the expected shift is at the margin, at 32:00, so the effect on concentration of delegated stake remains a hypothesis to test. Delegation changes were kept out of ACP-285 on purpose, at 37:00, to keep the duration incentive easy to understand. Community members described moving from validation to delegation, at 40:40, and participants acknowledged that structural models may omit such operational constraints. Finally, security funding must move from issuance toward value captured from activity, at 47:10, and who receives that value is unresolved.
 
 ```mermaid
 flowchart LR
@@ -16,37 +24,22 @@ flowchart LR
   C --> Q["Open: validator exits, stake concentration, delegation income"]
 ```
 
-*The argument of the presentation and the questions it raised. The recording has no figure in this collection, so this diagram is drawn from the reading view.*
+*The argument of the presentation and the questions it raised. Read it left to right: the two companion proposals make short commitments more attractive, and ACP-285 responds through a mechanical path and a behavioral path. The last box holds what the discussion left open. The recording has no figure in this collection, so this diagram is drawn from the summary of the recording.*
 
-## Question
+## How it relates to our research
 
-The call was held on June 29, 2026 and published on July 7, 2026, running 1:13:03. Eric Lu presents ACP-285 and the community questions it. The call asks what lowering the minimum consumption rate does to issuance and to staking choices, given that ACP-236 and ACP-273 have made short commitments cheaper to hold.
+**Two layers in the staking model.** The split between mechanical and behavioral effects sets the structure of the [1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/). The mechanical layer reproduces rewards and issuance under a parameter path with choices held fixed. The behavioral layer lets choices respond. Each result can then report how much of an effect comes from each layer, as the proposal does when it gives 0.5 point with behavior fixed and 0.5 to 1 point with it.
 
-## Argument
+**The ramp is a protocol rule the model must track.** Each stake locks in the rate at its start and keeps it for its whole duration. The model therefore tracks the start time of every commitment. The released ramp runs from 2026-09-22 15:00 UTC to 2026-12-21 15:00 UTC, and the ACP-285 page tabulates the rate a stake locks in on selected days. Starting one day earlier during the ramp locks in about 0.028 percentage points more for the full term.
 
-The presentation starts from three observations, at 0:43. Realized inflation remains material even as it declines with remaining supply. The reward difference between short and long commitments has narrowed. Auto-renewal and a shorter minimum make short-duration staking relatively more attractive. Shorter commitments keep liquidity and the option to change position, so the question is what reward compensates for giving up that flexibility.
+**Security and concentration become separate outputs.** The KPIs of [2.3 KPI Computation](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/) include validator count and decentralization. The call supports reporting validator count, stake-weighted measures, and the concentration of delegated stake as separate outputs. The clustering the call describes is visible in the record. Of the 401 validator periods started in the 30 days before Helicon, 304 ran 14 to 30 days, as the [ACP-273 page](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-273-Minimum-Validator-Duration/) shows.
 
-The proposal serves three goals, at 9:15: reduce net AVAX inflation, conserve the finite issuance-funded security budget, and restore a stronger relative reward for longer commitments. The presentation calls these intended outcomes, not guarantees.
+**Delegation is its own mechanism.** Delegation changes such as the multipliers of [ACP-247](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-247-Delegation-Multiplier/) were excluded from ACP-285. In [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) they should be evaluated on their own, with the ACP-285 curve held fixed. The boundary matters because validator choices respond to expected delegation fee income, which is how the [validator rewards article](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/) models validators.
 
-The reward formula, at 13:00, scales a linear interpolation between minimum and maximum consumption rates by a remaining-supply factor. Lowering the minimum changes only the short end. The change in realized annualized reward is smaller than the change in the parameter because the remaining-supply factor is below one. The presentation then separates the mechanical effect on inflation and supply, at 15:25, from the behavioral response, which comes from a structural model of validator and delegator preferences, at 22:00. The rate moves over a ninety-day ramp, at 23:35, so that two similar positions do not lock in different rates because they start on either side of one instant.
+**Questions for the first workshop.** The concerns raised about small validators, the move from validation to delegation, and operational constraints are the ones a model walkthrough in [2.7 Workshop 1](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/) should answer with results. The closing discussion of security funding connects to [Why Avalanche Validator Economics Need a Redesign](/Phase-II/Wiki/Collections/Essential-Readings/Why-Avalanche-Validator-Economics-Need-a-Redesign/) and to the [Gross Chain Income article](/Phase-II/Wiki/Collections/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/), which measures how little value AVAX captures from activity today.
 
-## Main results
+**Open question for the Foundation.** The structural model's counterfactuals were shown but are not in the summary of the recording. Can the Foundation share the presentation materials, so the projected inflation and duration changes can serve as targets to reproduce?
 
-The reading view records no projected numbers. Quantitative outputs shown in the presentation remain attributed to the presenter until its materials are recovered. The discussion adds four points for the research.
+## Source
 
-1. Validator count is not stake-weighted security, at 26:25. One large exit changes secured stake more than many small ones.
-2. Observed durations cluster, and the expected shift is at the margin, at 32:00. The effect on concentration of delegated stake is stated as a hypothesis to test.
-3. Delegation changes were kept out of ACP-285 on purpose, at 37:00, although validator choices respond to expected delegation fee income.
-4. Security funding must move from issuance toward value captured from activity, at 47:10. Who receives that value and how it reaches validators is unresolved.
-
-## What it gives this research
-
-1. A two-layer structure for deliverable [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/). The mechanical layer reproduces rewards and issuance under a parameter path with choices held fixed. The behavioral layer lets choices respond. Each result can then report how much of an effect comes from each layer.
-2. The ramp as a protocol rule. The rate is fixed at each stake's start and moves over the ramp, so the model has to track the start time of every commitment.
-3. KPIs for deliverable [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/). The call supports reporting both validator count and stake-weighted measures, and the concentration of delegated stake, as separate outputs.
-4. A separate mechanism for deliverable [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/). Delegation changes such as the multipliers of ACP-247 were excluded from ACP-285 and should be evaluated as their own mechanism, holding the ACP-285 curve fixed.
-5. Questions for deliverable [2.7](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/). The concerns raised on small validators, moving from validation to delegation, and operational constraints omitted by structural models are the ones a model walkthrough should answer with results.
-
-## Limits and open questions
-
-The reading view is an analytical summary located with automatic captions that were not verified word for word. Protocol rules come from the versioned ACP files, not from the call. The structural model's counterfactuals were shown but are not in the reading view. Recovering the presentation materials would give the projected inflation and duration changes as targets to reproduce.
+Avalanche. 2026. ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment. YouTube video, held June 29, 2026, published July 7, 2026, 1:13:03. <https://www.youtube.com/watch?v=sx4-AW7HcSU>. The collection holds a [timestamped summary of the recording](/Phase-II/Wiki/Collections/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/Source-Video) rather than a transcript. Automatic captions were used to locate its sections and were not verified word for word. Protocol rules on this page come from the ACP text, not from the call.

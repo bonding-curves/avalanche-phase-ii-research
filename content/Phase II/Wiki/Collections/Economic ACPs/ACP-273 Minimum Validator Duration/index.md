@@ -29,7 +29,7 @@ The proposal's abstract describes the 14-day minimum as applying to validators a
 | Mainnet activation | 2026-09-22 15:00 UTC, with Helicon in AvalancheGo v1.15.0 |
 | Applies to | Validators added at or after activation, judged by chain time when the transaction is verified |
 
-The discussion began with a 24-hour minimum. The proposal specifies 48 hours for Mainnet, and the release ships 48 hours. The Foundation article on validator rewards links this proposal under the name ACP-275. The repository has no ACP-275, and the link points to this proposal's discussion.
+The discussion began with a 24-hour minimum. The proposal specifies 48 hours for Mainnet, and the release ships 48 hours. The Foundation article on validator rewards links this proposal under the name ACP-275. No merged proposal is numbered ACP-275, and the link points to this proposal's discussion.
 
 ## How it enters the staking model
 

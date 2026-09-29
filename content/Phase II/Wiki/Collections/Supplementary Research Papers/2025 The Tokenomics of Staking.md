@@ -1,68 +1,51 @@
 ---
 title: "The Tokenomics of Staking"
-description: "Cong, He, and Tang solve the staking ratio, the reward rate, and the token price as one equilibrium and measure how the staking ratio and the reward rate move together across 66 tokens."
+description: "Cong, He, and Tang show that the staking ratio and the reward rate are set together in one equilibrium, rising together across tokens but moving in opposite directions over time within a token, and test this on 66 proof-of-stake tokens."
 ---
 
-The staking model has to say how holders split AVAX between staking and other uses, and how that split feeds back into the reward rate and the price. Cong, He, and Tang give an equilibrium model in which the **[staking ratio](/Phase-II/Wiki/Reference/Glossary-and-Notation)** and the reward rate are solved together. They test its predictions on 66 proof-of-stake tokens.
+Lin William Cong, Zhiheng He, and Ke Tang show that a token's staking ratio and its reward rate are set together in one equilibrium, so the two rise together across tokens but move in opposite directions over time within a token, and they test this on 66 proof-of-stake tokens.
 
-## Citation
+Cong, of Cornell University, and He and Tang, of Tsinghua University, released the paper as NBER Working Paper 33640 in April 2025. NBER working papers are not peer-reviewed, and the paper says so. Its starting point is that a platform token is both money and an investment. Held liquid, it pays in **transaction convenience**, the ease of trading and using the platform. Staked, it earns rewards but gives that convenience up. The paper prices both roles in one model.
 
-Lin William Cong, Zhiheng He, and Ke Tang. 2025. The Tokenomics of Staking. NBER Working Paper 33640, National Bureau of Economic Research, April 2025. <https://www.nber.org/papers/w33640>, DOI [10.3386/w33640](https://doi.org/10.3386/w33640).
+Three quantities carry the paper. The **staking ratio** $\Theta$ is staked tokens over total supply. The **reward ratio** $\rho$ is rewards paid, from issuance and fees, per unit of total supply. The **reward rate** $r$ is what one staked token earns. Because all stakers share one reward pool, the reward rate is $r = \rho/\Theta$. The more tokens are staked, the thinner a given reward is spread.
 
-## Question and method
-
-The paper asks how staking shapes reward rates and token prices when the same token is used both to transact and to stake. Agents are risk-neutral and act in continuous time. Each agent chooses how much wealth to hold on the platform and what share $\theta$ of it to stake. A staked token earns rewards but gives up transaction convenience. The paper models the lost convenience as a cost that is convex in the staked share, with curvature $\beta > 1$. Platform productivity grows with the aggregate staking ratio $\Theta$.
-
-Rewards per unit of supply $\rho$ come from issuance and fees. They are shared across staked tokens, so the reward per staked token is
-
-$$r_t = \frac{\rho_t}{\Theta_t}.$$
-
-Each agent's optimal staked share gives the aggregate staking ratio in closed form. Here $c$ is the per-token cost of slashing risk and $u$ scales the convenience of unstaked tokens:
+The model is set in continuous time. Each agent chooses how much wealth to hold on the platform and what share $\theta$ of it to stake. Staking has a **convenience loss** that is convex in the staked amount, with curvature $\beta > 1$. A **staking preference** $u$ lowers that loss, and $c$ is the per-token cost of slashing risk. With identical agents, the equilibrium staking ratio has a closed form:
 
 $$\Theta^* = \frac{\left(\frac{r^* - c}{\beta}\right)^{1/(\beta-1)} u}{1 + \left(\frac{r^* - c}{\beta}\right)^{1/(\beta-1)} u}.$$
 
-Combining the two gives the fixed point that pins the equilibrium:
+Substituting $r = \rho/\Theta$ turns this into a fixed point with one solution. Proposition 2 shows that a higher reward ratio raises both the equilibrium staking ratio and the equilibrium reward rate. Platform **productivity** $A$ grows faster when more is staked, and the market-clearing token price rises with $(1-\Theta)A$, the productivity of the tokens left unstaked. It also rises with an external demand shock and falls as token supply grows. Issuance acts as an **inflation tax**. It pays stakers and dilutes the tokens that are not staked. When agents differ in staking preference, wealthier agents specialize in staking and retail users mainly transact.
 
-$$\rho_t = \Theta^*_t \left[\beta \left(\frac{\Theta^*_t}{(1-\Theta^*_t)\,u}\right)^{\beta-1} + c_t\right].$$
-
-A higher $\rho$ raises both the equilibrium staking ratio and the equilibrium reward rate. The token price rises with the productivity of the tokens left unstaked, $(1-\Theta)A$.
+The data are daily observations from StakingRewards for 66 tokens, Avalanche among them, from July 2018 to November 2022. The reward data mostly describe delegation. In panel regressions, a reward ratio 10 percentage points higher goes with a staking ratio 7.79 points higher, with a standard error of 1.90. With platform and investment controls, the estimate falls to about 3.7 points and stays significant. A reward rate 1 point higher raises next week's staking ratio by 0.026 points, with a standard error of 0.015, significant only at the 10% level. A staking ratio 1 point higher predicts 6.6 basis points of price appreciation the next week. **Uncovered interest parity**, the rule that reward spreads should not predict excess returns, fails, with coefficients from −1.02 to −1.25. A weekly carry trade that buys tokens with high reward rates and sells those with low ones earns an annual Sharpe ratio of 1.60. The abstract summarizes the sign pattern: the correlation between staking ratio and reward rate "is cross-sectionally positive, but time-series-wise negative."
 
 ```mermaid
 flowchart LR
-  I["Issuance and fees per unit of supply, ρ"] --> R["Reward per staked token, r = ρ / Θ"]
-  R --> C["Each holder's staked share θ*"]
-  K["Convex convenience cost, β and u"] --> C
-  C --> T["Aggregate staking ratio Θ"]
-  T --> R
-  T --> A["Platform productivity A"]
-  T --> L["Unstaked share 1 − Θ"]
-  A --> P["Token price"]
-  L --> P
+  P["Rewards per token of supply, ρ<br/>(issuance plus fees)"] --> R["Reward per staked token<br/>r = ρ / Θ"]
+  R --> H["Holders stake more<br/>when r − c rises"]
+  K["Convenience lost<br/>by locking tokens"] --> H
+  H --> T["Staking ratio Θ"]
+  T -->|"more stake dilutes r"| R
+  T --> A["Faster growth in<br/>platform productivity A"]
+  T --> L["Fewer tokens left<br/>for transactions"]
+  A --> PR["Token price"]
+  L --> PR
 ```
 
-## Main result
+*The paper's equilibrium as one loop. A larger reward pool draws more stake, and more stake dilutes the reward per staked token. Notice the arrow from the staking ratio back to the reward rate. It is why the two rise together across tokens with different reward pools but move in opposite directions over time within one token. This diagram is drawn from the paper's text.*
 
-The empirical sample is 66 tokens from StakingRewards, weekly from July 2018 to November 2022. The results below are the paper's and have not been reproduced for Avalanche.
+## How it relates to our research
 
-| Finding | Estimate |
-| --- | --- |
-| Across tokens, staking ratio against aggregate reward ratio | 10 percentage points more reward ratio goes with 7.79 points more staking ratio, standard error 1.90. With controls the association falls to about 3.7 points |
-| Over time within a token, staking ratio against reward rate | Negative. The abstract states that the correlation "is cross-sectionally positive, but time-series-wise negative" |
-| Reward rate to next week's staking ratio | 1 percentage point more reward rate raises next week's staking ratio by 0.026 points, standard error 0.015 |
-| Staking ratio to next week's price | 1 percentage point more staking ratio predicts 6.6 basis points of price appreciation |
-| Uncovered interest parity | Violated. Test coefficients range from −1.02 to −1.25 across base currencies |
+**It is the Foundation's reference model.** The [value accrual article](/Phase-II/Wiki/Collections/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/) adopts this model by name, so its stake-or-hold choice frames the stake decision in deliverable [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/). The curvature $\beta$ and the staking preference $u$ are the two behavioral parameters to fit in deliverable [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), with the level of Avalanche's staking ratio and its changes across upgrade periods as the moments. The price equation in the [January staking and price model](/Phase-II/Wiki/Collections/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/) has the same form as this paper's market-clearing price. The paper defines the symbols that page lists as missing: $S_t$ is an external demand shock, $Q_t$ is total token supply, $A_t$ is platform productivity, $r^f$ is the risk-free rate, and $\alpha$ sets the curvature of transaction convenience. The paper has no $Q_t^*$.
 
-The weekly response of the staking ratio to the reward rate is weak. Its t-statistic is about 1.7, so the paper's evidence on speed of adjustment is suggestive rather than precise. In the theory, higher issuance raises the staking ratio and lowers price appreciation, which the authors describe as an inflation tax on holders who do not stake.
+**What changes for Avalanche.** The identity $r = \rho/\Theta$ assumes one reward pool shared by all stakers. Avalanche fixes each commitment's potential reward at its start from the supply remaining to the 720,000,000 AVAX cap, the stake, the duration, and the consumption rate, as the [reward formula](/Phase-II/Wiki/Reference/Glossary-and-Notation) shows. The rate per staked AVAX does not fall when more stake joins, except through the supply counter, so the fixed point must be rewritten with that formula before its comparative statics apply. Avalanche burns fees, so the fee part of $\rho$ is zero for stakers. The paper's slashing cost $c$ has no direct counterpart, since Avalanche does not slash stake. The closest term is the expected loss of the whole reward when a validator misses the [uptime requirement](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-267-Uptime-Requirement/). The model also has one kind of stake with no duration and no split between validators and delegators. Since [ACP-273](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-273-Minimum-Validator-Duration/), validators choose durations from 48 hours to one year, the consumption rate rises with duration, and the [validator rewards article](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/) finds that duration is where validators respond.
 
-## What it gives this research
+**A pattern we can test without fitting to it.** The paper defines the staking ratio as our [glossary](/Phase-II/Wiki/Reference/Glossary-and-Notation) does, stake over total supply. The P-Chain record from deliverable [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) gives a weekly Avalanche series for both the staking ratio and rewards per unit of supply. The paper's sign pattern, positive across chains and negative over time, is a check for deliverable [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) that the Avalanche series can pass or fail. The paper's coefficients pool chains with different reward rules, end in November 2022, and give an imprecise weekly response, so Avalanche's own speed of adjustment has to be estimated.
 
-1. A model form for the staking model in deliverable [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/): a holder's stake-or-hold choice with a convex convenience cost, and a closed-form staking ratio as a function of the net reward rate. This is a portfolio choice between staked tokens, liquid tokens, and money off the platform, the framing the Foundation's [value accrual article](/Phase-II/Wiki/Collections/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/) uses.
-2. Two parameters to calibrate in deliverable [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/): the curvature $\beta$ and the convenience scale $u$. The level of Avalanche's staking ratio and its change across upgrade periods are the moments that can pin them.
-3. An untargeted pattern for validation in deliverable [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/). The paper's sign pattern, positive across chains and negative over time, is a check the Avalanche series can pass or fail without being fitted to it.
-4. A cost measure for deliverable [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/). The inflation-tax result states what issuance costs holders who do not stake, which a comparison of reward mechanisms has to report.
+**Issuance has a cost to report.** The inflation-tax result states what issuance costs holders who do not stake. A comparison of reward mechanisms in deliverable [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) should report that cost beside the staking ratio it buys. In the paper's terms, [ACP-285](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-285-Minimum-Consumption-Rate/) lowers the reward ratio, which Proposition 2 links to a lower staking ratio and a smaller inflation tax. Because Avalanche fixes rewards per commitment, the model has to test how much of that holds.
 
-## Limits for Avalanche
+**Liquid staking and concentration.** The model covers **liquid staking** if staked tokens carry a smaller convenience loss. [BENQI told us](/Phase-II/Interviews/BENQI-2026-08-31/) that it holds 10% to 12% of all stake, so a lower convenience loss for its stake is a concrete adaptation. [Why Stake When You Can Borrow?](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2020-Why-Stake-When-You-Can-Borrow) models these liquid claims directly. The result that wealthier holders specialize in staking matches the typed stakers in [the Ethereum staking market framework](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2025-Ethereum-Staking-Market-Framework). [Competitive Equilibria Between Staking and On-Chain Lending](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2020-Staking-and-Lending-Equilibria/) adds on-chain lending as a competing use of the same tokens.
 
-The identity $r = \rho/\Theta$ assumes one reward pool shared by all stakers. Avalanche does not work that way. Each commitment's potential reward is fixed at its start from the remaining supply to the 720,000,000 AVAX cap, the stake, the duration, and the consumption rate. The rate per staked AVAX therefore does not fall when more stake joins, except through the supply counter. The fixed point has to be rewritten with the [Avalanche reward formula](/Phase-II/Wiki/Reference/Glossary-and-Notation) before its comparative statics apply.
+**Open question for the Foundation.** Should AVAX price stay an external input to the model, or be solved from the paper's market-clearing condition? Solving it needs a measure of platform productivity. The paper uses average on-chain transactions per second, and the value accrual article ranks the missing micro-foundation for productivity as the most important problem to overcome.
 
-The model has one kind of stake with no duration. Avalanche validators choose a duration from 48 hours, since Helicon, to one year, and the consumption rate rises with duration. Agents are identical in the baseline, and there is no split between validators and delegators. The slashing cost $c$ has no direct counterpart, since Avalanche does not slash stake. The closest term is the expected loss of the reward when a validator misses the uptime requirement. The coefficients pool chains with different reward rules and end in November 2022, so Avalanche's own responses have to be estimated.
+## Source
+
+Lin William Cong, Zhiheng He, and Ke Tang. 2025. The Tokenomics of Staking. NBER Working Paper 33640, National Bureau of Economic Research, April 2025. <https://www.nber.org/papers/w33640>. DOI [10.3386/w33640](https://doi.org/10.3386/w33640).
