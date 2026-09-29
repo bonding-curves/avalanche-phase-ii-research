@@ -55,6 +55,8 @@ class FakeNode:
         method, params = body_json["method"], body_json["params"]
         if method == "platform.getHeight":
             return json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"height": str(self.head)}}).encode(), {}
+        if method == "platform.getCurrentSupply":
+            return json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"supply": "474000000000000000", "height": str(self.head)}}).encode(), {}
         height = int(params["height"])
         self.calls.append((height, params["encoding"]))
         if params["encoding"] == "hex":
@@ -79,6 +81,7 @@ def test_walk_builds_one_row_per_transaction_and_per_commit(tmp_path):
     node = FakeNode(blocks(6))
     receipt = pblocks.capture(pblocks.DATASET_ID, tmp_path / "capture", parameters={"from_height": "100"}, request=node)
     assert (receipt["from_height"], receipt["to_height"]) == (100, 105)
+    assert receipt["node_supply"] == {"height": 105, "supply_navax": 474_000_000_000_000_000}
     # Only the transaction-less blocks are read again in hex.
     assert [height for height, encoding in node.calls if encoding == "hex"] == [102, 105]
     pblocks.build(pblocks.DATASET_ID, tmp_path / "capture", tmp_path / "dataset")

@@ -11,7 +11,8 @@ commit, and 32 a standard block.
 One height is one JSON line, the node's responses in request order, written as it arrives, so a walk shows its
 progress on disk, retries a refused request, keeps its lines on failure, and continues with ``resume=<kept directory>``.
 ``extend=<earlier capture directory>`` starts from an earlier walk's lines, checked against its receipt, and reads only
-the heights after it, so a daily run costs one day of blocks.
+the heights after it, so a daily run costs one day of blocks. A walk to the head ends at the height for which the node
+reports its supply counter (``platform.getCurrentSupply``), and the receipt keeps both as ``node_supply``.
 """
 
 from __future__ import annotations
@@ -47,6 +48,7 @@ DATASET_ID = "p-chain-rpc.blocks"
 SOURCE_ID = "avalanche-p-chain-rpc"
 ENDPOINT_ID = "get-block-by-height"
 HEIGHT_ENDPOINT_ID = "get-height"
+SUPPLY_ENDPOINT_ID = "get-current-supply"
 TABLE = "p-chain-blocks"
 SCHEMA = "p-chain-rpc-blocks-capture/v1"
 PROGRESS = "progress.jsonl"
@@ -174,6 +176,16 @@ def _head(endpoint: str, timeout: float, request: Callable[..., tuple[bytes, dic
         raise DataError("the node did not report its height") from error
 
 
+def _current_supply(endpoint: str, timeout: float, request: Callable[..., tuple[bytes, dict[str, Any]]]) -> dict[str, int]:
+    """The node's Primary Network supply counter and the height it holds for, the anchor of the supply reconstruction."""
+    body, _ = request(endpoint, timeout, body_json={"jsonrpc": "2.0", "method": "platform.getCurrentSupply", "params": {}, "id": 1})
+    try:
+        result = json.loads(body)["result"]
+        return {"height": int(result["height"]), "supply_navax": int(result["supply"])}
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise DataError("the node did not report its current supply and height") from error
+
+
 def _kept(directory: Path, receipt_records: list[dict[str, Any]] | None = None) -> tuple[list[dict[str, Any]], list[bytes]]:
     """The records and lines of a kept or earlier walk, cut back to the longest prefix where each line matches its record."""
     if receipt_records is None:
@@ -209,7 +221,9 @@ def capture(
         raise DataError(f"output already exists: {output}")
     catalog = load_catalog()
     endpoint = preview["endpoint"]
-    head = _head(_endpoint(catalog, HEIGHT_ENDPOINT_ID), timeout, request)
+    # Walked to the head, the walk ends at the height the node's supply counter holds for, so the counter anchors it.
+    anchor = _current_supply(_endpoint(catalog, SUPPLY_ENDPOINT_ID), timeout, request) if preview["to_height"] == "head" else None
+    head = anchor["height"] if anchor else _head(_endpoint(catalog, HEIGHT_ENDPOINT_ID), timeout, request)
     to_height = head if preview["to_height"] == "head" else preview["to_height"]
     if to_height > head or to_height < preview["from_height"]:
         raise DataError(f"to_height must be between from_height and the node's height {head}")
@@ -310,6 +324,7 @@ def capture(
             "from_height": preview["from_height"],
             "to_height": to_height,
             "node_height": head,
+            **({"node_supply": anchor} if anchor else {}),
             **({"extends_capture_id": _read_receipt(Path(preview["extend"]))["capture_id"]} if "extend" in preview else {}),
             "retries": retries,
             "responses": [{"endpoint_id": ENDPOINT_ID, "path": RAW, "blocks": len(records), "bytes": len(body_all), "sha256": sha256(body_all)}],

@@ -640,6 +640,19 @@
           "response_fields": [
             "result"
           ]
+        },
+        {
+          "id": "get-current-supply",
+          "url": "https://api.avax.network/ext/bc/P",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "platform.getCurrentSupply",
+            "params": {},
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
         }
       ]
     },
@@ -2740,10 +2753,11 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One row per transaction of every P-Chain block in a height range, and one row without a transaction for each block that has none: a commit, an abort, or an empty standard block, read from the node's own blocks. The independent source behind the P-Chain backup datasets: stakes, rewards, the supply counter, and burns. The transaction type is read from the fields the node's JSON carries, and a commit is told from an abort by the block's codec type ID. The raw platform.getBlockByHeight responses stay hashed in the capture.",
+      "description": "One row per transaction of every P-Chain block in a height range, and one row without a transaction for each block that has none: a commit, an abort, or an empty standard block, read from the node's own blocks. The independent source behind the P-Chain backup datasets: stakes, rewards, the supply counter, and burns. The transaction type is read from the fields the node's JSON carries, and a commit is told from an abort by the block's codec type ID. A walk to the head ends at the height for which the node reports its supply counter, which the receipt keeps as the anchor of the supply reconstruction. The raw platform.getBlockByHeight responses stay hashed in the capture.",
       "endpoint_ids": [
         "get-block-by-height",
-        "get-height"
+        "get-height",
+        "get-current-supply"
       ],
       "fields": [
         {
