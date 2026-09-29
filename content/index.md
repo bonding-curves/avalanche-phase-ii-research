@@ -33,4 +33,4 @@ This site, the notebooks, the code, and the data all come from one repository. `
 
 ## Earlier work
 
-[Phase I](/Phase-I/) is the 2025 research, as delivered. The [Essential Readings](/Phase-II/Wiki/Collections/Essential-Readings/) are the nine Foundation articles and sources the Phase II research builds on.
+[Phase I](/Phase-I/) is the 2025 research, as delivered. The [Essential Readings](/Phase-II/Wiki/Collections/Essential-Readings/) are the ten Foundation articles and sources the Phase II research builds on.

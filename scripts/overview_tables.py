@@ -56,8 +56,8 @@ TOPICS = {
 }
 # Authors are written on each page as the source prints them. The index groups variants under one canonical name.
 AUTHOR_ALIASES = {"Eric Lu": "Siyu (Eric) Lu", "Siyu (Eric) Lu, PhD": "Siyu (Eric) Lu", "Matias A.": "Matias Antonio"}
-ORGANIZATIONS = {"Avalanche", "Avalanche Foundation", "BENQI"}
-HANDLES = {"CaptainDoubleBlade": "GitHub handle"}
+ORGANIZATIONS = {"Avalanche", "Avalanche Foundation", "Avalanche Team1", "BENQI"}
+HANDLES = {"CaptainDoubleBlade": "GitHub handle", "BKL1023": "Team1 byline"}
 AUTHORS_PAGE = ROOT / "content" / "Phase II" / "Wiki" / "Collections" / "Authors.md"
 
 RETIRED: dict[str, str] = {}  # retired slug -> the topic that replaced it

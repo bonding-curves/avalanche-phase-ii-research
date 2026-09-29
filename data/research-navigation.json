@@ -63,6 +63,13 @@
       "source_type": "article",
       "canonical_url": "https://www.linkedin.com/pulse/from-static-constants-dynamic-variables-where-avalanches-matias-a-xh02e",
       "local_page": "content/Phase II/Wiki/Collections/Essential Readings/From Static Constants to Dynamic Variables Where Avalanches Economics Are Headed/Source Article.md"
+    },
+    {
+      "id": "lit:team1-eric-interview",
+      "title": "Growing the Avalanche Economy: A Conversation with Eric Lu",
+      "source_type": "article",
+      "canonical_url": "https://www.team1.blog/p/growing-the-avalanche-economy-a-conversation",
+      "local_page": "content/Phase II/Wiki/Collections/Essential Readings/Growing the Avalanche Economy A Conversation with Eric Lu/Source Article.md"
     }
   ],
   "collections": [
@@ -80,7 +87,8 @@
         "evidence:eric-january-images",
         "lit:eric-validator-rewards",
         "lit:foundation-static-constants",
-        "lit:acp-285-community-call"
+        "lit:acp-285-community-call",
+        "lit:team1-eric-interview"
       ],
       "index": "content/Phase II/Wiki/Collections/Essential Readings/index.md"
     }

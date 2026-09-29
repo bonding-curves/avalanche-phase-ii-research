@@ -12,3 +12,4 @@ description: The Foundation articles and sources the Phase II research reproduce
 - [How Do Avalanche Validators Actually Think About Staking Rewards?](/Phase-II/Wiki/Collections/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/) · Article
 - [From Static Constants to Dynamic Variables: Where Avalanche's Economics Are Headed](/Phase-II/Wiki/Collections/Essential%20Readings/From%20Static%20Constants%20to%20Dynamic%20Variables%20Where%20Avalanches%20Economics%20Are%20Headed/) · Article
 - [ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment](/Phase-II/Wiki/Collections/Essential%20Readings/ACP%20285%20Avalanche%20Community%20Call%20Staking%20Reward%20Curve%20Adjustment/) · Video
+- [Growing the Avalanche Economy: A Conversation with Eric Lu](/Phase-II/Wiki/Collections/Essential%20Readings/Growing%20the%20Avalanche%20Economy%20A%20Conversation%20with%20Eric%20Lu/) · Article

@@ -5,7 +5,7 @@ description: "What pays for security, and the outside options that compete with 
 
 What pays for security, and the outside options that compete with staking. For one operator's costs and income, see validator economics.
 
-5 pages are filed under this topic. See [all topics](/tags/).
+6 pages are filed under this topic. See [all topics](/tags/).
 
 ## Essential Readings
 
@@ -14,6 +14,7 @@ What pays for security, and the outside options that compete with staking. For o
 | [Why Avalanche Validator Economics Need a Redesign](/Phase-II/Wiki/Collections/Essential-Readings/Why-Avalanche-Validator-Economics-Need-a-Redesign/) | Matias Antonio | April 2, 2026 | Matias Antonio argues that Avalanche validator economics, funded almost entirely by issuance, will not keep the network secure as it matures, and proposes fee revenue and rewards for performance and tenure as directions to research. |
 | [The Avalanche Foundation Unveils its Economic Research Agenda](/Phase-II/Wiki/Collections/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/) | Avalanche Foundation | July 30, 2026 | The Foundation's research agenda names the link between ecosystem output and AVAX value as its central problem, orders the work as measure, capture, and distribute, and gives the funding of validator security as issuance declines its own research stream. |
 | [From Gross Chain Product to Gross Chain Income: Where the Value Goes](/Phase-II/Wiki/Collections/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/) | Siyu (Eric) Lu | August 12, 2026 | Eric Lu extends gross chain product to gross chain income in three nested levels and shows that AVAX captures only the C-Chain fee burn, a small share of the most cyclical level, while the largest and steadiest level is not captured at all. |
+| [Growing the Avalanche Economy: A Conversation with Eric Lu](/Phase-II/Wiki/Collections/Essential-Readings/Growing-the-Avalanche-Economy-A-Conversation-with-Eric-Lu/) | Siyu (Eric) Lu, Avalanche Team1, BKL1023 | August 17, 2026 | Eric Lu explains the Foundation's research agenda in his own words: measure the value the ecosystem creates, capture part of it voluntarily, and distribute it so that protocol revenue, not issuance, comes to pay validators. |
 
 ## Research papers
 
