@@ -22,6 +22,7 @@ class CurveFamily(str, Enum):
     HYPERBOLIC = "hyperbolic"
     ISO_COMMITMENT = "iso_commitment"
     POWER_LAW = "power_law"
+    BOUNDED_HARMONIC = "bounded_harmonic"
 
 
 @dataclass(frozen=True)
@@ -80,10 +81,28 @@ def s_min_power_law(d: np.ndarray, config: AdmissionConfig) -> np.ndarray:
     return config.s_floor + (config.s_short - config.s_floor) * (norm_dist ** config.power_p)
 
 
+def s_min_bounded_harmonic(d: np.ndarray, config: AdmissionConfig) -> np.ndarray:
+    r"""Compute minimum stake requirement using canonical Bounded Harmonic P-Decay:
+    
+    $$S_{\min}(d) = S_{\text{floor}} + (S_{\text{short}} - S_{\text{floor}}) \cdot \left[ \frac{\frac{1}{d} - \frac{1}{d_{\max}}}{\frac{1}{d_{\min}} - \frac{1}{d_{\max}}} \right]^p$$
+    
+    Guarantees:
+    - S_min(d_min) == S_short exactly.
+    - S_min(d_max) == S_floor exactly at d_max with zero boundary residue (Axiom 3).
+    - Strictly monotonic (dS/dd < 0) and strictly convex (d^2S/dd^2 > 0) for all p >= 1.
+    - Asymptotically smooth C^1 continuity at d_max.
+    """
+    d_clamped = np.clip(d, config.d_min, config.d_max)
+    denom = (1.0 / config.d_min) - (1.0 / config.d_max)
+    numer = (1.0 / d_clamped) - (1.0 / config.d_max)
+    ratio = np.maximum(0.0, numer / denom)
+    return config.s_floor + (config.s_short - config.s_floor) * (ratio ** config.power_p)
+
+
 def evaluate_admission_frontier(
     durations: np.ndarray,
     config: AdmissionConfig,
-    family: CurveFamily = CurveFamily.HYPERBOLIC,
+    family: CurveFamily = CurveFamily.BOUNDED_HARMONIC,
 ) -> pd.DataFrame:
     """Generate comprehensive evaluation metrics for a duration-dependent admission schedule."""
     d = np.asarray(durations, dtype=float)
@@ -94,6 +113,8 @@ def evaluate_admission_frontier(
         s_min = s_min_iso_commitment(d, config)
     elif family == CurveFamily.POWER_LAW:
         s_min = s_min_power_law(d, config)
+    elif family == CurveFamily.BOUNDED_HARMONIC:
+        s_min = s_min_bounded_harmonic(d, config)
     else:
         raise ValueError(f"Unknown curve family: {family}")
         
@@ -124,7 +145,7 @@ def evaluate_admission_frontier(
 def evaluate_historical_eligibility(
     df_bonds: pd.DataFrame,
     config: AdmissionConfig,
-    family: CurveFamily = CurveFamily.HYPERBOLIC,
+    family: CurveFamily = CurveFamily.BOUNDED_HARMONIC,
 ) -> Dict[str, float]:
     """Calculate the share of historical validator self-bonds that would qualify under S_min(d).
     
@@ -139,6 +160,8 @@ def evaluate_historical_eligibility(
         s_req = s_min_iso_commitment(durations, config)
     elif family == CurveFamily.POWER_LAW:
         s_req = s_min_power_law(durations, config)
+    elif family == CurveFamily.BOUNDED_HARMONIC:
+        s_req = s_min_bounded_harmonic(durations, config)
     else:
         raise ValueError(f"Unknown curve family: {family}")
         
