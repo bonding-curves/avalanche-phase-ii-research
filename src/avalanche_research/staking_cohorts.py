@@ -97,7 +97,7 @@ buckets AS (
     SELECT role, node_id, identity, accepted_at::DATE AS day_bucket,
            date_trunc('week', accepted_at)::DATE AS week_bucket,
            date_trunc('year', accepted_at)::DATE AS year_bucket,
-           CASE WHEN starts_with(era, 'apricot_') THEN 'apricot' ELSE era END AS era_bucket
+           {era_bucket} AS era_bucket
     FROM events
 )
 SELECT role,
@@ -109,6 +109,7 @@ SELECT role,
             WHEN grouping(week_bucket) = 0 THEN week_bucket::VARCHAR
             WHEN grouping(year_bucket) = 0 THEN year_bucket::VARCHAR
             WHEN grouping(era_bucket) = 0 THEN era_bucket ELSE 'All' END AS bucket,
+       count(DISTINCT node_id) AS nodes,
        count(DISTINCT identity) AS identities,
        count(DISTINCT (node_id, identity)) FILTER (WHERE node_id IS NOT NULL AND identity IS NOT NULL) AS links,
        count(DISTINCT node_id) FILTER (WHERE identity IS NOT NULL) AS linked_nodes
@@ -116,24 +117,42 @@ FROM buckets
 GROUP BY GROUPING SETS ((role, day_bucket), (role, week_bucket), (role, year_bucket),
                         (role, era_bucket), (role))
 """
-
-_NODE_EVENTS = """
-SELECT role, accepted_at, regime AS era, node_id, node_id AS identity FROM read_parquet(?)
+_IDENTITY_GRAIN_SQL = """
+WITH events AS (SELECT * FROM ({events}) WHERE accepted_at >= ? AND accepted_at < ?),
+buckets AS (SELECT role, node_id, identity, {bucket} AS bucket FROM events)
+SELECT role, '{grain}' AS grain, bucket,
+       count(DISTINCT node_id) AS nodes,
+       count(DISTINCT identity) AS identities,
+       count(DISTINCT (node_id, identity)) FILTER (WHERE node_id IS NOT NULL AND identity IS NOT NULL) AS links,
+       count(DISTINCT node_id) FILTER (WHERE identity IS NOT NULL) AS linked_nodes
+FROM buckets GROUP BY role, bucket
 """
+def _era_bucket_sql() -> str:
+    changes = []
+    for upgrade in MAINNET_UPGRADES.upgrades:
+        era = "apricot" if upgrade.name.startswith("apricot_") else upgrade.name
+        if not changes or era != changes[-1][0]:
+            changes.append((era, upgrade.activated_at.astimezone(timezone.utc)))
+    clauses = [f"WHEN accepted_at >= TIMESTAMP '{instant:%Y-%m-%d %H:%M:%S}' THEN '{era}'"
+               for era, instant in reversed(changes)]
+    return "CASE " + " ".join(clauses) + " ELSE 'genesis' END"
+
+
+IDENTITY_BUCKETS = {
+    "Day": "accepted_at::DATE::VARCHAR",
+    "Week": "date_trunc('week', accepted_at)::DATE::VARCHAR",
+    "Year": "date_trunc('year', accepted_at)::DATE::VARCHAR",
+    "Era": _era_bucket_sql(),
+    "All": "'All'",
+}
+
 _REWARD_ADDRESS_EVENTS = """
-SELECT 'validator' AS role, source.accepted_at, coalesce(upgrades.regime, 'genesis') AS era,
-       source.node_id, source.identity
-FROM (
-    SELECT validator.accepted_at, validator.node_id, json_extract_string(address.value, '$') AS identity
-    FROM read_parquet(?) validator, json_each(validator.reward_addresses) address
-) source
-ASOF LEFT JOIN upgrades ON source.accepted_at >= upgrades.activated_at
+SELECT 'validator' AS role, validator.accepted_at, validator.node_id,
+       json_extract_string(address.value, '$') AS identity
+FROM read_parquet(?) validator LEFT JOIN LATERAL json_each(validator.reward_addresses) address ON TRUE
 """
 _DELEGATOR_ADDRESS_EVENTS = """
-SELECT 'delegator' AS role, source.accepted_at, coalesce(upgrades.regime, 'genesis') AS era,
-       source.node_id, source.delegator_address AS identity
-FROM read_parquet(?) source
-ASOF LEFT JOIN upgrades ON source.accepted_at >= upgrades.activated_at
+SELECT 'delegator' AS role, accepted_at, node_id, delegator_address AS identity FROM read_parquet(?)
 """
 
 
@@ -165,34 +184,32 @@ def accepted_commitments(parquet: str) -> pd.DataFrame:
         ).df()
 
 
-def distinct_identities(periods: str, validators: str, delegators: str,
+def distinct_identities(validators: str, delegators: str,
                         start: pd.Timestamp | None = None,
-                        end: pd.Timestamp | None = None) -> pd.DataFrame:
+                        end: pd.Timestamp | None = None,
+                        grain: str | None = None) -> pd.DataFrame:
     """Count nodes, addresses, and distinct observed node-address links by interval."""
-    sources = (
-        ("Total Nodes", None, None, _NODE_EVENTS, periods),
+    sources = [
         ("Total Validator Reward Addresses", ADDRESS_LINK_COLUMNS[0], LINKED_NODE_COLUMNS[0],
          _REWARD_ADDRESS_EVENTS, validators),
         ("Total Delegator Funding Addresses", ADDRESS_LINK_COLUMNS[1], LINKED_NODE_COLUMNS[1],
          _DELEGATOR_ADDRESS_EVENTS, delegators),
-    )
+    ]
     with duckdb.connect() as db:
-        db.execute("CREATE TEMP TABLE upgrades(regime VARCHAR, activated_at TIMESTAMP)")
-        db.executemany("INSERT INTO upgrades VALUES (?, ?)",
-                       [(item.name, item.activated_at.replace(tzinfo=None))
-                        for item in MAINNET_UPGRADES.upgrades])
-        counts = None
+        parts = []
         for column, links, linked_nodes, events, parquet in sources:
-            window = "WHERE accepted_at >= ? AND accepted_at < ?" if start is not None else ""
-            args = [parquet, start, end] if start is not None else [parquet]
-            part = db.execute(_IDENTITY_COUNTS_SQL.format(events=events, window=window), args).df()
-            part = part.rename(columns={"identities": column})
-            if links is None:
-                part = part.drop(columns=["links", "linked_nodes"])
+            if grain is None:
+                window = "WHERE accepted_at >= ? AND accepted_at < ?" if start is not None else ""
+                sql = _IDENTITY_COUNTS_SQL.format(events=events, window=window,
+                                                  era_bucket=IDENTITY_BUCKETS["Era"])
             else:
-                part = part.rename(columns={"links": links, "linked_nodes": linked_nodes})
-            counts = part if counts is None else counts.merge(part, on=["role", "grain", "bucket"], how="outer")
-    return counts
+                sql = _IDENTITY_GRAIN_SQL.format(events=events, grain=grain,
+                                                  bucket=IDENTITY_BUCKETS[grain])
+            part = db.execute(sql, [parquet, start, end] if start is not None else [parquet]).df()
+            part = part.rename(columns={"identities": column, "nodes": "Total Nodes"})
+            part = part.rename(columns={"links": links, "linked_nodes": linked_nodes})
+            parts.append(part)
+    return pd.concat(parts, ignore_index=True)
 
 
 def _source_cutoffs(capture: Mapping) -> dict[str, pd.Timestamp]:
@@ -443,22 +460,21 @@ def _cohort_data(run: str):
              for name, item in inputs.items() if name in {"validator-stakes", "delegator-stakes"}}
     periods = str(datasets.parquet_path("derived.staking-periods", run))
     daily = accepted_commitments(periods)
-    identities = distinct_identities(periods, paths["validator-stakes"], paths["delegator-stakes"])
+    identities = distinct_identities(paths["validator-stakes"], paths["delegator-stakes"])
     tables = {grain: cohort_table(daily, cutoffs, grain, identities)
               for grain in StakingCohorts.param.time_grain.objects}
     reward_cutoff = pd.Timestamp(next(item["captured_at"] for item in receipt["capture"]["inputs"]
                                       if item["input_id"] == "staking-rewards"))
-    return tables, cutoffs, reward_cutoff, daily, (periods, paths["validator-stakes"], paths["delegator-stakes"])
+    return tables, cutoffs, reward_cutoff, daily, (paths["validator-stakes"], paths["delegator-stakes"])
 
 
 @cache
-def _selected_tables(run: str, start: date, end: date):
+def _window_table(run: str, start: date, end: date, grain: str):
     """Recompute exact acceptance cohorts for inclusive UTC calendar dates."""
     _, cutoffs, _, daily, sources = _cohort_data(run)
     window = (pd.Timestamp(start), pd.Timestamp(end) + DAY)
-    identities = distinct_identities(*sources, *window)
-    return {grain: cohort_table(daily, cutoffs, grain, identities, window)
-            for grain in StakingCohorts.param.time_grain.objects}
+    identities = distinct_identities(*sources, *window, grain)
+    return cohort_table(daily, cutoffs, grain, identities, window)
 
 
 class StakingCohorts(pm.Parameterized):
@@ -486,8 +502,9 @@ class StakingCohorts(pm.Parameterized):
 
     def _selected_table(self):
         full_range = self.param.date_range.bounds
-        tables = self._tables if self.date_range == full_range else _selected_tables(self.run, *self.date_range)
-        return tables[self.time_grain]
+        if self.date_range == full_range:
+            return self._tables[self.time_grain]
+        return _window_table(self.run, *self.date_range, self.time_grain)
 
     def _frame(self):
         table = for_population(self._selected_table(), self.population)
@@ -562,7 +579,9 @@ class StakingCohorts(pm.Parameterized):
             title="New staking commitments over time", xlabel="Calendar time",
             ylabel=("Value (original units)" if self.normalization == "None"
                     else f"Relative to {self.normalization.lower()}"), responsive=True, height=600,
-            xlim=(frame["Start (UTC)"].min(), frame["End (UTC)"].max()),
+            xlim=((frame["Date"].min(), frame["Date"].max()) if frame["Date"].nunique() > 1
+                  else (frame["Start (UTC)"].min(), frame["End (UTC)"].max())),
+            padding=0,
             legend_position="top_right", hooks=[_upgrade_axis, _legend_interaction],
         )
 
@@ -593,8 +612,7 @@ class StakingCohorts(pm.Parameterized):
                                for parameter in parameters), width=220)
         dates = pn.widgets.DateRangeSlider.from_param(
             self.param.date_range, start=self.param.date_range.bounds[0],
-            end=self.param.date_range.bounds[1], step=1, format="%Y-%m-%d",
-            throttled=True, width=660,
+            end=self.param.date_range.bounds[1], step=1, format="%Y-%m-%d", width=660,
         )
         quantities = pn.widgets.CheckButtonGroup.from_param(
             self.param.metrics, orientation="vertical", variant="outline", color="primary", width=190,

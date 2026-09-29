@@ -162,7 +162,7 @@ def test_identity_counts_deduplicate_within_each_interval(tmp_path):
             paths[name] = tmp_path / f"{name}.parquet"
             db.execute(f"COPY rows TO '{paths[name]}' (FORMAT PARQUET)")
             db.unregister("rows")
-    counts = distinct_identities(*(str(paths[name]) for name in records))
+    counts = distinct_identities(str(paths["validators"]), str(paths["delegators"]))
     all_rows = counts[counts.grain.eq("All")].set_index("role")
     assert all_rows.loc["validator", "Total Nodes"] == 3
     assert all_rows.loc["validator", "Total Validator Reward Addresses"] == 3
@@ -175,12 +175,19 @@ def test_identity_counts_deduplicate_within_each_interval(tmp_path):
     assert day.loc["2026-09-21", "Total Validator Reward Addresses"] == 2
     assert day.loc["2026-09-21", "Validator Node-address Pairs"] == 3
     assert day.loc["2026-09-23", "Total Nodes"] == 1
-    selected = distinct_identities(*(str(paths[name]) for name in records),
+    selected = distinct_identities(str(paths["validators"]), str(paths["delegators"]),
                                    pd.Timestamp("2026-09-23"), pd.Timestamp("2026-09-24"))
     only = selected[selected.grain.eq("All")].set_index("role")
     assert only.loc["validator", "Total Nodes"] == 1
     assert only.loc["validator", "Total Validator Reward Addresses"] == 1
     assert only.loc["delegator", "Total Delegator Funding Addresses"] == 1
+    for grain in ("Day", "Week", "Year", "Era", "All"):
+        one_grain = distinct_identities(str(paths["validators"]), str(paths["delegators"]),
+                                        pd.Timestamp("2026-09-23"), pd.Timestamp("2026-09-24"), grain)
+        pd.testing.assert_frame_equal(
+            one_grain.sort_values("role").reset_index(drop=True),
+            selected[selected.grain.eq(grain)].sort_values("role").reset_index(drop=True),
+        )
 
 
 def test_address_links_do_not_treat_missing_addresses_as_zero(cohorts):
@@ -306,6 +313,8 @@ def test_chart_uses_table_controls_and_only_per_measures(cohorts, monkeypatch):
     assert "Stake per Commitment (AVAX)" in explorer._frame()
     assert "Total Stake (AVAX)" in explorer._frame()
     figure = hv.render(explorer.plot())
+    assert figure.x_range.start == frame["Date"].min()
+    assert figure.x_range.end == frame["Date"].max()
     assert figure.above[0].major_label_overrides
     curves = [renderer.glyph for renderer in figure.renderers
               if isinstance(getattr(renderer, "glyph", None), Line)]
@@ -320,12 +329,9 @@ def test_chart_uses_table_controls_and_only_per_measures(cohorts, monkeypatch):
     window = (pd.Timestamp("2026-09-23"), pd.Timestamp("2026-09-24"))
     filtered = {grain: cohort_table(daily, cutoffs, grain, window=window)
                 for grain in StakingCohorts.param.time_grain.objects}
-    monkeypatch.setattr(staking_cohorts, "_selected_tables", lambda run, start, end: filtered)
+    monkeypatch.setattr(staking_cohorts, "_window_table", lambda run, start, end, grain: filtered[grain])
     slider = chart[0][1]
     slider.value = (window[0].date(), window[0].date())
-    assert explorer.date_range != slider.value
-    with pm.edit_constant(slider):
-        slider.value_throttled = slider.value
     assert explorer.date_range == (window[0].date(), window[0].date())
     assert explorer.panel()[0][1].value == explorer.date_range
     assert explorer._selected_table()["Total Commitments"].sum() == 1
