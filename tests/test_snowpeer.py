@@ -88,6 +88,7 @@ def test_catalog_schema_and_references_are_valid():
         "p-chain-rpc.blocks",
         "data-api.p-chain-staking-transactions",
         "p-chain-rpc.reward-utxos",
+        "data-api.c-chain-block-list",
         "c-chain-rpc.atomic-transactions",
         "defillama.pool-yields",
         "us-treasury.par-yield-daily",
@@ -117,6 +118,7 @@ def test_catalog_schema_and_references_are_valid():
         "derived.p-chain-delegator-stakes",
         "derived.p-chain-staking-rewards",
         "derived.p-chain-staking-supply",
+        "derived.c-chain-evm-burn-daily",
     ]
 
 

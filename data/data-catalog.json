@@ -517,6 +517,14 @@
             "estimatedReward",
             "rewardTxHash"
           ]
+        },
+        {
+          "id": "c-chain-block-list",
+          "url": "https://glacier-api.avax.network/v1/chains/43114/blocks",
+          "response_fields": [
+            "blocks",
+            "nextPageToken"
+          ]
         }
       ]
     },
@@ -1244,6 +1252,11 @@
           "id": "reward-utxos",
           "dataset_id": "p-chain-rpc.reward-utxos",
           "role": "the reward outputs a node paid for each stake a walk sees end"
+        },
+        {
+          "id": "c-block-list",
+          "dataset_id": "data-api.c-chain-block-list",
+          "role": "every C-Chain block from a date to the capture, with its fees, from the Data API's block list"
         }
       ]
     },
@@ -2986,6 +2999,72 @@
           "type": "integer",
           "unit": "nAVAX",
           "derivation": "sum of the AVAX amounts of those outputs, each a TransferOutput or a StakeableLockOut around one"
+        }
+      ]
+    },
+    {
+      "id": "data-api.c-chain-block-list",
+      "name": "Every C-Chain block from a UTC date, from the Data API's block list",
+      "source_id": "avalanche-data-api",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per C-Chain block from the start of a UTC date to the capture, read from the Data API's block list newest first, 100 blocks a page, following each page's token. feesSpent is the sum of gas used times effective gas price over the block's receipts. The second source for the C-Chain EVM burn after the Snowflake share stopped loading. The raw pages stay hashed in the capture.",
+      "endpoint_ids": [
+        "c-chain-block-list"
+      ],
+      "fields": [
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "height",
+          "derivation": "blockNumber"
+        },
+        {
+          "name": "block_hash",
+          "type": "string",
+          "unit": "hex hash",
+          "derivation": "blockHash"
+        },
+        {
+          "name": "block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "blockTimestamp"
+        },
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC date",
+          "derivation": "the UTC date of block_timestamp"
+        },
+        {
+          "name": "transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "txCount"
+        },
+        {
+          "name": "gas_used",
+          "type": "integer",
+          "unit": "gas",
+          "derivation": "gasUsed"
+        },
+        {
+          "name": "base_fee_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "baseFee"
+        },
+        {
+          "name": "fees_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "feesSpent: sum of gas used times effective gas price over the block's receipts"
         }
       ]
     },
@@ -6386,6 +6465,120 @@
           "type": "integer",
           "unit": "nAVAX; null for genesis",
           "derivation": "previous_block_supply_navax plus in_block_prior_delta_navax"
+        }
+      ]
+    },
+    {
+      "id": "derived.c-chain-evm-burn-daily",
+      "name": "C-Chain EVM burn per UTC day from the Data API's block list",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per complete UTC day with the columns of snowflake.c-chain-evm-burn-daily, summed from data-api.c-chain-block-list. The second source for that dataset. The first and last listed days are partial and left out.",
+      "input_ids": [
+        "c-block-list"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "a complete UTC day of the block list, between its first and last listed day"
+        },
+        {
+          "name": "burned_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "sum of the day's feesSpent"
+        },
+        {
+          "name": "block_count",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "blocks listed on the day"
+        },
+        {
+          "name": "first_block",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "the day's first height"
+        },
+        {
+          "name": "last_block",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "the day's last height"
+        },
+        {
+          "name": "absent_blocks",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "heights between the first and last not listed, 0 when the list is whole"
+        },
+        {
+          "name": "short_blocks",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "0: every listed block carries its fees"
+        },
+        {
+          "name": "short_block_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "0"
+        },
+        {
+          "name": "previous_last_block",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "the last height of the day before"
+        },
+        {
+          "name": "next_first_block",
+          "type": "integer",
+          "unit": "block height",
+          "derivation": "the first height of the day after"
+        },
+        {
+          "name": "expected_receipts",
+          "type": "integer",
+          "unit": "receipts",
+          "derivation": "sum of txCount"
+        },
+        {
+          "name": "receipt_rows",
+          "type": "integer",
+          "unit": "rows",
+          "derivation": "sum of txCount"
+        },
+        {
+          "name": "distinct_receipts",
+          "type": "integer",
+          "unit": "receipts",
+          "derivation": "sum of txCount"
+        },
+        {
+          "name": "missing_fee_inputs",
+          "type": "integer",
+          "unit": "receipts",
+          "derivation": "0"
+        },
+        {
+          "name": "first_epoch",
+          "type": "integer",
+          "unit": "seconds since epoch",
+          "derivation": "the day's first block timestamp in Unix seconds"
+        },
+        {
+          "name": "last_epoch",
+          "type": "integer",
+          "unit": "seconds since epoch",
+          "derivation": "the day's last block timestamp in Unix seconds"
         }
       ]
     }

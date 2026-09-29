@@ -16,6 +16,7 @@ from . import catx
 from . import builderhub
 from . import cblocks
 from . import cchain_rpc
+from . import clist
 from . import coingecko
 from . import dataapi
 from . import datasets
@@ -61,6 +62,7 @@ MODULES = {
     pblocks.DATASET_ID: pblocks,
     **{dataset_id: pstakers for dataset_id in pstakers.DATASET_IDS},
     **{dataset_id: pstaking for dataset_id in pstaking.DATASET_IDS},
+    **{dataset_id: clist for dataset_id in clist.DATASET_IDS},
     catx.DATASET_ID: catx,
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,
