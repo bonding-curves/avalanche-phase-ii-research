@@ -3,6 +3,8 @@ title: "How Much Should You Pay for Restaking Security?"
 description: "Chitra and Pai derive how much services secured by shared stake must pay operators so that an attacker cannot profit from a cascade of slashing, and when rewards alone keep the network secure."
 ---
 
+Read the [full paper](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2024-Restaking-Security-Pricing/Source-Paper).
+
 A reward mechanism buys security. Deliverable 2.8 compares reward mechanisms, and each one should say how much it pays and what that payment protects against. Chitra and Pai give one way to price it. A service pays operators enough that attacking it costs more stake than the attack would earn.
 
 ## Citation

@@ -5,6 +5,8 @@ description: "ACP-285 lowers the Primary Network minimum consumption rate from 1
 
 ACP-285 is the first change to a Primary Network reward parameter since genesis. It sets the yield a validator earns at each commitment duration, which is one of the governance parameters the staking model varies, and it is the proposal whose behavioral effect the Foundation estimated before activation. The question it raises for the research is how far validators move toward longer commitments when the reward for short commitments falls and the reward for a 365-day commitment does not.
 
+The full text of the ACP-285 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-285-Minimum-Consumption-Rate/Source-Proposal) page.
+
 ## What it changes
 
 The reward formula interpolates linearly between a minimum and a maximum **consumption rate** as commitment duration rises from zero to the 365-day minting period, then multiplies by the remaining-supply factor, the unminted part of the 720,000,000 AVAX supply cap divided by current supply. ACP-285 lowers the minimum rate and leaves everything else unchanged.
@@ -67,7 +69,7 @@ The proposal's behavioral claims are attributed and not reproduced by us. It pro
 The staking record holds each commitment's start time, duration, stake, recorded potential reward, and the supply counter at its start. Three measures follow.
 
 1. Ramp reproduction. Comparing each recorded potential reward with the kernel's value tests the ramp commitment by commitment. The latest staking capture, taken 2026-09-22 16:20 UTC, holds transactions accepted up to 08:30 UTC that day, before activation, so no commitment under the ramp has been checked yet.
-2. Duration response. The derived dataset `derived.helicon-commitments` records every validation cycle started after activation, from daily P-Chain snapshots. The first six days are summarized on the [ACP-273 page](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-273-Minimum-Validator-Duration). Those days mix ACP-285 with the shorter minimum and auto-renewal, so they do not isolate this proposal.
+2. Duration response. The derived dataset `derived.helicon-commitments` records every validation cycle started after activation, from daily P-Chain snapshots. The first six days are summarized on the [ACP-273 page](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-273-Minimum-Validator-Duration/). Those days mix ACP-285 with the shorter minimum and auto-renewal, so they do not isolate this proposal.
 3. Issuance. `derived.avax-monetary-daily` replays the realized total supply from rewards paid and AVAX burned, which is the series against which the proposal's inflation projection can be tested.
 
 ## Open questions

@@ -5,6 +5,8 @@ description: "ACP-247 proposes raising the most delegated stake a validator can 
 
 ACP-247 is a proposal from outside the Foundation, by Giacomo Barbieri and BENQI, to raise validator income by allowing more delegation per unit of self-stake. It did not ship with Helicon. It matters to the research because it is the kind of alternative mechanism [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) exists to evaluate, and because its effect depends on one measurable fact: whether the current **delegation capacity** limits delegation at all.
 
+The full text of the ACP-247 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-247-Delegation-Multiplier/Source-Proposal) page.
+
 ## What it changes
 
 The proposal changes one parameter. The most delegated stake a validator can accept becomes the lesser of 24 times its self-stake and the room left under the 3,000,000 AVAX maximum validator weight.

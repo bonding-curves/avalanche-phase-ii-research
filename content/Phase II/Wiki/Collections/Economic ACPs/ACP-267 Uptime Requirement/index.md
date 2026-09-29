@@ -5,6 +5,8 @@ description: "ACP-267 raises the uptime a Primary Network validator needs for an
 
 ACP-267 changes which commitments are paid. Avalanche has no slashing: a validator that misses the **uptime requirement** keeps its stake and loses the whole reward of the period, and its delegators lose theirs. Raising the threshold therefore moves the realized reward of every validator whose uptime falls between 80% and 90%. The question for the research is how many validators and how much stake sit in that band, and whether they improve their operations, accept the lost reward, or leave.
 
+The full text of the ACP-267 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-267-Uptime-Requirement/Source-Proposal) page.
+
 ## What it changes
 
 | Parameter | Before Helicon | After Helicon |

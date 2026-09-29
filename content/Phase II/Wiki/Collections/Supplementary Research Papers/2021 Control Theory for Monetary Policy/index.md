@@ -3,6 +3,8 @@ title: "Summoning the Money God: Applying Control Theory to Cryptocurrency Monet
 description: "Zargham, Bernardineli, Clark, Shorish, and Emmett tune a feedback controller for the RAI stablecoin by simulation and test it against attacks and shocks, a template for a reward rate that responds to network state."
 ---
 
+Read the [full paper](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2021-Control-Theory-for-Monetary-Policy/Source-Paper).
+
 The Foundation's article [From Static Constants to Dynamic Variables](/Phase-II/Wiki/Collections/Essential-Readings/From-Static-Constants-to-Dynamic-Variables-Where-Avalanches-Economics-Are-Headed/) points toward protocol parameters that respond to the state of the network. A reward rate that moves with the staking ratio is a feedback controller. This paper is a worked case of choosing such a controller's form and gains by simulation before launch, for the RAI stablecoin.
 
 ## Citation

@@ -5,6 +5,8 @@ description: "A lower minimum validator self-stake of 500 AVAX has been suggeste
 
 Our [brief of 2026-09-25](/Phase-II/Wiki/Briefs/2026-09-25-sprint-8/) described a 500 AVAX minimum stake as ACP-49 and discussed how it would combine with ACP-273's 48-hour minimum. That label is wrong. No ACP-49 exists, and no ACP proposes a 500 AVAX minimum. This page records what does exist, because the minimum self-stake is still a parameter the Foundation may want evaluated under [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/).
 
+Discussion 56 is replicated in full on the [Source Discussion](/Phase-II/Wiki/Collections/Economic-ACPs/Minimum-Validator-Stake-500-AVAX/Source-Discussion) page.
+
 ## What the record shows
 
 | Item | Value |

@@ -5,6 +5,8 @@ description: "ACP-194 separates C-Chain consensus from execution, so blocks are 
 
 ACP-194 changes how the C-Chain executes transactions, not how staking is rewarded. It is in this collection because it activated with Helicon at the same instant as the four staking changes. Any comparison of the network before and after 2026-09-22 15:00 UTC mixes its effects on C-Chain throughput and fees with the staking effects, and the research has to keep the two apart.
 
+The full text of the ACP-194 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-194-Continuous-Execution/Source-Proposal) page.
+
 ## What it changes
 
 Before Helicon a C-Chain block was executed before consensus accepted it, so acceptance also settled its results. After Helicon consensus accepts a block once every transaction in it can pay for its gas, a queue executes accepted blocks, and a later block records the results and settles them.

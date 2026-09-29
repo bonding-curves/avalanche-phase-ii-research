@@ -5,6 +5,8 @@ description: "ACP-273 lowers the Mainnet minimum validator duration from 14 days
 
 ACP-273 widens the range of commitment lengths a validator can choose, which is the first governance parameter the staking model names. Before Helicon no validator could commit for less than 14 days. The question for the research is how many validators move to shorter commitments, what that does to delegation and to how fast stake can turn over, and whether ACP-285's steeper reward curve offsets the pull toward liquidity.
 
+The full text of the ACP-273 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-273-Minimum-Validator-Duration/Source-Proposal) page.
+
 ## What it changes
 
 | Parameter | Before Helicon | After Helicon |

@@ -5,6 +5,8 @@ description: "ACP-236 lets a Primary Network validator stake in repeated cycles 
 
 ACP-236 removes the manual step between one validator commitment and the next. Before Helicon a validator restaked by issuing a new transaction after its period ended, and its stake sat idle in between. The restake rate is one of the three behavioral state variables the staking model must carry, and this proposal changes how restaking happens. The question for the research is whether lower renewal friction moves validators toward short, repeated cycles, and what that does to delegation and to the reward they earn.
 
+The full text of the ACP-236 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-236-Auto-Renewed-Staking/Source-Proposal) page.
+
 ## What it changes
 
 | Item | Before Helicon | After Helicon |

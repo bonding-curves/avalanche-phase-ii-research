@@ -3,6 +3,8 @@ title: "Competitive Equilibria Between Staking and On-Chain Lending"
 description: "Chitra models token holders as mean-variance investors choosing between staking and lending, and shows that stake leaves validation when block rewards fall below lending yields."
 ---
 
+Read the [full paper](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2020-Staking-and-Lending-Equilibria/Source-Paper).
+
 A validator's outside option is what the same AVAX would earn elsewhere. The Foundation has asked that the model treat that option as a portfolio of alternative uses of capital, not lending alone. This paper is the first formal treatment of staking as one asset in such a portfolio. It shows how a lending market can draw stake away from validation.
 
 ## Citation

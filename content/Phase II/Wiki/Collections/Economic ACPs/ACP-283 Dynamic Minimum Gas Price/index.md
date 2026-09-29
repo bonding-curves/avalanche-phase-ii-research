@@ -5,6 +5,8 @@ description: "ACP-283 replaces the C-Chain's fixed 1 wei minimum gas price with 
 
 ACP-283 is the second C-Chain change in Helicon. It gives validators a new economic control, the C-Chain price floor, and it changes how much AVAX is burned when the chain is quiet. It is in this collection because it activated at the same instant as the staking changes and because burns enter the net issuance measures the research reports. It does not change any staking parameter.
 
+The full text of the ACP-283 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-283-Dynamic-Minimum-Gas-Price/Source-Proposal) page.
+
 ## What it changes
 
 | Parameter | Before Helicon | After Helicon |
