@@ -88,6 +88,22 @@ def test_periodic_denominator_changes_rates_not_totals(cohorts):
     assert weekly["Total Rewards (AVAX)"].equals(daily["Total Rewards (AVAX)"])
 
 
+def test_stake_duration_units_follow_rate_unit(cohorts):
+    daily = cohort_table(*cohorts, "All").set_index("Role")
+    weekly = rates_per(daily, "Week")
+    yearly = rates_per(daily, "Year")
+    assert weekly.loc["Validator", "Total Stake-duration (AVAX-weeks)"] == pytest.approx(1900 / 7)
+    assert yearly.loc["Validator", "Total Stake-duration (AVAX-years)"] == pytest.approx(1900 / 365.2425)
+    assert weekly.loc["Validator", "Stake-duration / Commitment (AVAX-weeks)"] == pytest.approx(1900 / 3 / 7)
+    assert weekly.loc["Validator", "Stake-duration / Week (AVAX-weeks/week)"] == pytest.approx(
+        daily.loc["Validator", "Stake-duration / Day (AVAX-days/day)"],
+    )
+    visible = selected_columns(weekly, ["Stake-duration"], ["Total", "Per Calendar Unit"], "Week")
+    assert visible.columns[-2:].tolist() == [
+        "Total Stake-duration (AVAX-weeks)", "Stake-duration / Week (AVAX-weeks/week)",
+    ]
+
+
 def test_identity_counts_deduplicate_within_each_interval(tmp_path):
     records = {
         "periods": [
@@ -201,6 +217,12 @@ def test_count_quantities_control_existing_columns(cohorts):
     ]
     assert "Total Nodes" not in selected_columns(table, ["Commitments"], [], "Week")
     assert "Total Commitments" not in selected_columns(table, ["Nodes"], [], "Week")
+    without_totals = selected_columns(table, ["Nodes", "Addresses", "Commitments", "Stake"],
+                                      ["Per Calendar Unit"], "Week")
+    assert {"Total Nodes", "Total Validator Reward Addresses", "Total Commitments",
+            "Total Stake (AVAX)"}.isdisjoint(without_totals.columns)
+    assert "Commitments / Week" in without_totals
+    assert "Stake / Week (AVAX)" in without_totals
 
 
 def test_address_denominators_follow_population_and_rate_unit(cohorts):

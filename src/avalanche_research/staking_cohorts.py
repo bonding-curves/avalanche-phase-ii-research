@@ -65,13 +65,13 @@ METRIC_COLUMNS = {
         "Per Address per Calendar Unit": "Committed Duration / Address / {period} (commitment-days/address/{period_unit})",
     },
     "Stake-duration": {
-        "Total": "Total Stake-duration (AVAX-days)",
-        "Per Calendar Unit": "Stake-duration / {period} (AVAX-days)",
-        "Per Commitment": "Stake-duration / Commitment (AVAX-days)",
-        "Per Node": "Stake-duration / Node (AVAX-days)",
-        "Per Node per Calendar Unit": "Stake-duration / Node / {period} (AVAX-days)",
-        "Per Address": "Stake-duration / Address (AVAX-days)",
-        "Per Address per Calendar Unit": "Stake-duration / Address / {period} (AVAX-days)",
+        "Total": "Total Stake-duration ({stake_time_unit})",
+        "Per Calendar Unit": "Stake-duration / {period} ({stake_time_unit}/{period_unit})",
+        "Per Commitment": "Stake-duration / Commitment ({stake_time_unit})",
+        "Per Node": "Stake-duration / Node ({stake_time_unit})",
+        "Per Node per Calendar Unit": "Stake-duration / Node / {period} ({stake_time_unit}/{period_unit})",
+        "Per Address": "Stake-duration / Address ({stake_time_unit})",
+        "Per Address per Calendar Unit": "Stake-duration / Address / {period} ({stake_time_unit}/{period_unit})",
     },
     "Rewards": {
         "Total": "Total Rewards (AVAX)",
@@ -129,7 +129,9 @@ ASOF LEFT JOIN upgrades ON source.accepted_at >= upgrades.activated_at
 
 
 def _metric_column(metric: str, view: str, period: str = "Day") -> str:
-    return METRIC_COLUMNS[metric][view].format(period=period, period_unit=period.lower())
+    return METRIC_COLUMNS[metric][view].format(
+        period=period, period_unit=period.lower(), stake_time_unit=f"AVAX-{period.lower()}s",
+    )
 
 
 def accepted_commitments(parquet: str) -> pd.DataFrame:
@@ -289,6 +291,8 @@ def rates_per(table: pd.DataFrame, denominator: str) -> pd.DataFrame:
     factor = DAYS_PER_RATE_PERIOD[denominator]
     result = table.copy()
     result["Total Days"] = result["Total Days"] / factor
+    stake_duration_columns = [_metric_column("Stake-duration", view) for view in VIEWS]
+    result[stake_duration_columns] = result[stake_duration_columns] / factor
     rate_columns = ["Commitments / Day", "Commitments / Node / Day", "Commitments / Address / Day"]
     rate_columns.extend(_metric_column(metric, view) for metric in METRIC_SOURCES
                         for view in ("Per Calendar Unit", "Per Node per Calendar Unit",
@@ -299,7 +303,8 @@ def rates_per(table: pd.DataFrame, denominator: str) -> pd.DataFrame:
              "Commitments / Node / Day": f"Commitments / Node / {denominator}",
              "Commitments / Address / Day": f"Commitments / Address / {denominator}"}
     names.update({_metric_column(metric, view): _metric_column(metric, view, denominator)
-                  for metric in METRIC_SOURCES for view in ("Per Calendar Unit", "Per Node per Calendar Unit",
+                  for metric in METRIC_SOURCES for view in VIEWS
+                  if metric == "Stake-duration" or view in ("Per Calendar Unit", "Per Node per Calendar Unit",
                                                             "Per Address per Calendar Unit")})
     return result.rename(columns=names)
 
@@ -320,11 +325,11 @@ def for_population(table: pd.DataFrame, population: str) -> pd.DataFrame:
 def selected_columns(table: pd.DataFrame, metrics: list[str], views: list[str], period: str) -> pd.DataFrame:
     """Keep cohort context and show only the selected metric and view intersections."""
     columns = list(table.columns[:table.columns.get_loc("Total Nodes")])
-    if "Nodes" in metrics:
+    if "Total" in views and "Nodes" in metrics:
         columns.append("Total Nodes")
-    if "Addresses" in metrics:
+    if "Total" in views and "Addresses" in metrics:
         columns.extend(column for column in ("Total Addresses", *IDENTITY_COLUMNS[1:]) if column in table.columns)
-    if "Commitments" in metrics:
+    if "Total" in views and "Commitments" in metrics:
         columns.append("Total Commitments")
     commitment_views = {
         "Per Calendar Unit": f"Commitments / {period}",
