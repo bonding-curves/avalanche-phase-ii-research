@@ -169,3 +169,48 @@ def test_backtest_reports_matches_and_regime_mismatches(tmp_path):
     ]
     assert list(result["regimes"]) == ["genesis", "fortuna"]
     assert result["regimes"]["genesis"]["pending_mismatched"] == 1
+
+
+# KG1 current-supply counter
+GENESISTEST_SUPPLY = 360 * MEGA  # genesis/genesistest/genesis.go InitialSupply
+PRE_HELICON = protocol.MAINNET_UPGRADES.time("helicon") - timedelta(days=30)
+
+
+def test_supply_counter_preserves_reward_order():
+    # state_changes_test.go TestAdvanceTimeTo_PromotePendingDelegatorAndValidator_PreservesRewardOrder: the delegator
+    # is promoted first, so the validator's reward reads the supply that already includes the delegator's reward.
+    duration = 14 * DAY
+    delegator, validator = KILO, 2 * MEGA
+    want_delegator = protocol.potential_reward(delegator, duration, GENESISTEST_SUPPLY)
+    want_validator = protocol.potential_reward(validator, duration, GENESISTEST_SUPPLY + want_delegator)
+    rewards, supply = protocol.start_stakes_in_order(
+        [(PRE_HELICON, duration, delegator), (PRE_HELICON, duration, validator)], GENESISTEST_SUPPLY)
+    assert rewards == (want_delegator, want_validator)
+    assert supply == GENESISTEST_SUPPLY + want_delegator + want_validator
+    reversed_rewards, reversed_supply = protocol.start_stakes_in_order(
+        [(PRE_HELICON, duration, validator), (PRE_HELICON, duration, delegator)], GENESISTEST_SUPPLY)
+    assert reversed_rewards[1] != want_delegator
+    assert reversed_supply != supply
+
+
+def test_supply_counter_undoes_forfeited_rewards():
+    reward, supply = protocol.start_stake(PRE_HELICON, 14 * DAY, 2 * KILO, GENESISTEST_SUPPLY)
+    assert supply == GENESISTEST_SUPPLY + reward
+    # reward_validator_test.go TestRewardDelegatorTxExecuteOnAbort and assertRewardAutoRenewedValidator:
+    # abort removes the potential reward, commit keeps the counter.
+    assert protocol.supply_after_stake_end(supply, reward, rewarded=False) == GENESISTEST_SUPPLY
+    assert protocol.supply_after_stake_end(supply, reward, rewarded=True) == supply
+    assert protocol.supply_after_stake_end(supply, 0, rewarded=False) == supply
+
+
+def test_supply_counter_stops_at_the_cap():
+    small = RewardConfig(1_000_000, 1_000_000, 365 * DAY, 1_000 * protocol.NAVAX_PER_AVAX)
+    remaining = 900 * protocol.NAVAX_PER_AVAX
+    reward, supply = protocol.start_stake(PRE_HELICON, 365 * DAY, 10_000 * protocol.NAVAX_PER_AVAX, 100 * protocol.NAVAX_PER_AVAX, small)
+    assert (reward, supply) == (remaining, small.supply_cap_navax)
+    cap = protocol.MAINNET_REWARD.supply_cap_navax
+    assert protocol.start_stake(PRE_HELICON, 365 * DAY, 3 * MEGA, cap) == (0, cap)
+    with pytest.raises(ModelError):
+        protocol.supply_after_stake_start(cap, 1)
+    with pytest.raises(ModelError):
+        protocol.supply_after_stake_end(10, 11, rewarded=False)

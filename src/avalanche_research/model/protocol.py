@@ -8,6 +8,7 @@ not floating-point approximations.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -193,6 +194,79 @@ def split_reward(total_navax: int, shares: int) -> tuple[int, int]:
     if optimistic < 2**64:
         remainder = optimistic // PERCENT_DENOMINATOR
     return total_navax - remainder, remainder
+
+
+def supply_after_stake_start(
+    current_supply_navax: int,
+    potential_reward_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+) -> int:
+    """Current supply after a stake starts: the potential reward is added before it is earned.
+
+    AvalancheGo 70bd6d0 adds it at every Primary Network stake start: vms/platformvm/txs/executor/
+    standard_tx_executor.go L1533 (putStaker, from Durango) and L1382-L1409 (AddAutoRenewedValidatorTx),
+    state_changes.go L196 (pending staker promotion before Durango), and proposal_tx_executor.go L915-L920 (each
+    ACP-236 renewal). Calculate caps the reward at the remaining supply, so the counter never passes the cap.
+    """
+    if current_supply_navax <= 0 or potential_reward_navax < 0:
+        raise ModelError("current supply must be positive and the potential reward non-negative")
+    supply = current_supply_navax + potential_reward_navax
+    if supply > config.supply_cap_navax:
+        raise ModelError("current supply would exceed the supply cap")
+    return supply
+
+
+def supply_after_stake_end(current_supply_navax: int, potential_reward_navax: int, rewarded: bool) -> int:
+    """Current supply after a stake ends: unchanged when rewarded, minus the potential reward when not.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L505-L520 undoSupplyMintOnAbort, called
+    for validators and delegators (L394) and for auto-renewed cycles (L454). The commit branch keeps the reward
+    minted at the start. No other path lowers the counter: burned fees never reach it.
+    """
+    if current_supply_navax <= 0 or potential_reward_navax < 0:
+        raise ModelError("current supply must be positive and the potential reward non-negative")
+    if rewarded:
+        return current_supply_navax
+    if potential_reward_navax > current_supply_navax:
+        raise ModelError("potential reward exceeds the current supply")
+    return current_supply_navax - potential_reward_navax
+
+
+def start_stake(
+    stake_start: datetime,
+    duration_seconds: int,
+    stake_navax: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[int, int]:
+    """(potential reward, current supply after the start) for one Primary Network stake.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/standard_tx_executor.go L1508-L1533 putStaker: the reward is
+    computed from the supply before the start and then added to it.
+    """
+    reward = primary_network_reward(stake_start, duration_seconds, stake_navax, current_supply_navax, config, upgrades)
+    return reward, supply_after_stake_start(current_supply_navax, reward, config)
+
+
+def start_stakes_in_order(
+    stakes: Iterable[tuple[datetime, int, int]],
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[tuple[int, ...], int]:
+    """Potential rewards and the final current supply for stakes (start, duration seconds, amount) in event order.
+
+    Each start reads the supply left by the previous one, so order changes every reward after the first
+    (AvalancheGo 70bd6d0 vms/platformvm/txs/executor/state_changes_test.go L453-L530
+    TestAdvanceTimeTo_PromotePendingDelegatorAndValidator_PreservesRewardOrder). The caller supplies the order.
+    """
+    rewards = []
+    supply = current_supply_navax
+    for stake_start, duration_seconds, stake_navax in stakes:
+        reward, supply = start_stake(stake_start, duration_seconds, stake_navax, supply, config, upgrades)
+        rewards.append(reward)
+    return tuple(rewards), supply
 
 
 def min_stake_duration_seconds(
