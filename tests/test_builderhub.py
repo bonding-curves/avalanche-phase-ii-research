@@ -140,3 +140,16 @@ def test_import_wraps_the_preservation_copy(tmp_path):
     assert receipt["completed_at"] == "2026-09-24T08:11:47+00:00" and receipt["import"]["imported_from"] == str(source)
     builderhub.build(builderhub.DATASET_ID, output, tmp_path / "imported" / "dataset")
     assert builderhub.check(output, tmp_path / "imported" / "dataset")["status"] == "pass"
+
+
+def test_one_check_runs_continuity_and_the_node_set(tmp_path):
+    run(tmp_path, "day1", FakeHub(["NodeID-a", "NodeID-b"], END))
+    day2 = run(tmp_path, "day2", FakeHub(["NodeID-a", "NodeID-b"], END + timedelta(hours=24)))
+    rpc = tmp_path / "rpc" / "dataset"
+    rpc.mkdir(parents=True)
+    duckdb.sql(f"COPY (SELECT * FROM (VALUES ('NodeID-a'), ('NodeID-z')) t(node_id)) TO '{rpc / 'current-validators.parquet'}' (FORMAT PARQUET)")
+    (rpc / "build.json").write_text(json.dumps({"dataset_id": "p-chain-rpc.current-validators", "outputs": [{"path": "current-validators.parquet"}]}))
+    result = builderhub.check(day2 / "capture", day2 / "dataset", [tmp_path / "day1" / "dataset", rpc])
+    assert {"BC6 agreement", "BC7 node set"} <= set(result["checked"])
+    assert [finding[:3] for finding in result["findings"]] == ["BC7"]
+    assert (result["summary"]["only_rpc"], result["summary"]["only_builder_hub"]) == (1, 1)

@@ -242,7 +242,7 @@ def derive(dataset_id: str, output: Path, inputs: tuple[str, ...], as_json: bool
 def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, against: tuple[Path, ...], as_json: bool) -> None:
     """Check capture integrity, optional built output, and an optional reference cross-check."""
     module = module_for(dataset_id)
-    if module is metrics:
+    if module is metrics or module is builderhub and dataset_id == builderhub.DATASET_ID:
         reference: Any = against or None
     elif len(against) > 1:
         raise DataError(f"{dataset_id} takes at most one --against directory")

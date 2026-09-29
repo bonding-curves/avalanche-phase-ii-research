@@ -411,11 +411,11 @@ def _verify_outputs(dataset_dir: Path, receipt: dict[str, Any], findings: list[s
     return built
 
 
-def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | None = None) -> dict[str, Any]:
+def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | list[Path] | tuple[Path, ...] | None = None) -> dict[str, Any]:
     """Finding codes: ``BC1`` completeness, ``BC2`` identity, ``BC3`` series shape, ``BC4`` fallback answers, and with
-    ``--against`` a previous capture's dataset ``BC5`` continuity and ``BC6`` agreement, or a same-day
-    ``p-chain-rpc.current-validators`` dataset ``BC7`` node set. A finding under BC1, BC2, BC3, or BC5 means the day's
-    history is incomplete. The runner treats those as failure and the others as attention."""
+    ``--against`` a previous capture's dataset ``BC5`` continuity and ``BC6`` agreement, and a same-day
+    ``p-chain-rpc.current-validators`` dataset ``BC7`` node set. ``--against`` repeats, so one check runs all three. A
+    finding under BC1, BC2, BC3, or BC5 means the day's history is incomplete. The runner treats those as failure and the others as attention."""
     if (capture_dir / "capture.json").exists() and json.loads((capture_dir / "capture.json").read_text(encoding="utf-8")).get("dataset_id") == DERIVED_ID:
         return check_derived(capture_dir, dataset_dir)
     receipt, listing, lines = read_capture(capture_dir)
@@ -447,8 +447,9 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
     if dataset_dir is not None:
         checked.append("build hashes")
         _verify_outputs(dataset_dir, receipt, findings)
-    if against is not None:
-        reference = json.loads((against / "build.json").read_text(encoding="utf-8"))
+    references = [] if against is None else [against] if isinstance(against, Path) else list(against)
+    for reference_dir in references:
+        reference = json.loads((reference_dir / "build.json").read_text(encoding="utf-8"))
         connection = duckdb.connect()
         try:
             if reference["dataset_id"] == DATASET_ID:
@@ -456,7 +457,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                 new = str(dataset_dir / "uptime-hourly.parquet") if dataset_dir is not None else None
                 if new is None:
                     raise DataError("the check against a previous capture needs --dataset")
-                old = str(against / "uptime-hourly.parquet")
+                old = str(reference_dir / "uptime-hourly.parquet")
                 oldest_new, newest_old = connection.execute(
                     "SELECT (SELECT min(bucket_utc) FROM read_parquet(?)), (SELECT max(bucket_utc) FROM read_parquet(?))", [new, old]).fetchone()
                 summary.update({"oldest_hour_new": str(oldest_new), "newest_hour_previous": str(newest_old)})
@@ -473,7 +474,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
             elif reference["dataset_id"] == "p-chain-rpc.current-validators":
                 checked.append("BC7 node set")
                 parquet = next(item["path"] for item in reference["outputs"] if item["path"].endswith(".parquet"))
-                rpc = {row[0] for row in connection.execute("SELECT DISTINCT node_id FROM read_parquet(?)", [str(against / parquet)]).fetchall()}
+                rpc = {row[0] for row in connection.execute("SELECT DISTINCT node_id FROM read_parquet(?)", [str(reference_dir / parquet)]).fetchall()}
                 listed = {item["node_id"] for item in listing}
                 summary.update({"rpc_nodes": len(rpc), "only_rpc": len(rpc - listed), "only_builder_hub": len(listed - rpc)})
                 if len(rpc ^ listed) > 0.02 * max(len(rpc), 1):
