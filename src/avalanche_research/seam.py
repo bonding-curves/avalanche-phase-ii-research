@@ -18,6 +18,10 @@ seams are dates: the share's last date, which is partial when the share stops mi
 
 A backup is used only after it has matched the share. Every row both hold before the seam is compared column by column,
 and a single difference stops the derive. So is a backup that starts after the seam.
+
+The staking log, the node table, the validator weeks, and the ledger read a seamed table in place of its share dataset
+whenever one is built and neither is pinned (``resolve``), and their receipts name the one they read. The receipt's
+``window`` gives the ledger the dates the table is complete for, as a share capture's query bounds do.
 """
 
 from __future__ import annotations
@@ -57,6 +61,7 @@ DAILY_TABLES = {
 }
 DATASET_IDS = (*P_TABLES, *DAILY_TABLES)
 DATASET_ID = DATASET_IDS[0]
+SEAMED = {share: seamed for seamed, (share, *_) in {**P_TABLES, **DAILY_TABLES}.items()}
 # Columns the share leaves null because its load stopped before the stake settled: compared only where the share has them.
 SETTLED_LATER = {"rewarded"}
 # Share columns a backup cannot know for a stake that started before its walk: compared only where the backup has them.
@@ -71,6 +76,17 @@ def table_name(dataset_id: str) -> str:
 def columns(dataset_id: str) -> dict[str, str]:
     share_id = (P_TABLES.get(dataset_id) or DAILY_TABLES[dataset_id])[0]
     return {**SHARE_SPECS[share_id].table_columns, "source": "VARCHAR"}
+
+
+def resolve(dataset_id: str, pinned: dict[str, str] | None, root: Path | None) -> tuple[str, str | None]:
+    """The dataset and run to read for an input: its seamed table when one is built and neither is pinned."""
+    pinned = pinned or {}
+    seamed = SEAMED.get(dataset_id)
+    if seamed is None or dataset_id in pinned:
+        return dataset_id, pinned.get(dataset_id)
+    if seamed in pinned:
+        return seamed, pinned[seamed]
+    return (seamed, None) if datasets.runs(seamed, root) else (dataset_id, None)
 
 
 def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None) -> dict[str, Any]:
@@ -189,6 +205,20 @@ def compute(dataset_id: str, connection: Any) -> dict[str, Any]:
     return overlap
 
 
+def _window(dataset_id: str, connection: Any, inputs: list[dict[str, Any]]) -> dict[str, str]:
+    """[start, end) UTC dates the table is complete for: from the share query's start to the backup's last whole day."""
+    share_id = (P_TABLES.get(dataset_id) or DAILY_TABLES[dataset_id])[0]
+    share = next(item for item in inputs if item["dataset_id"] == share_id)
+    capture = datasets.receipt(share_id, share["run"], share["path"].parents[2])["capture"]
+    start = capture["queries"][0]["parameters"]["start"] if capture.get("queries") else None
+    if dataset_id in P_TABLES:
+        last = connection.execute(f"SELECT max({P_TABLES[dataset_id][3]}) FROM backup").fetchone()[0]
+        end = last.date()
+    else:
+        end = connection.execute("SELECT max(date_utc) FROM backup").fetchone()[0] + timedelta(days=1)
+    return {"start": start, "end": end.isoformat()}
+
+
 def _load(connection: Any, inputs: list[dict[str, Any]]) -> None:
     for item in inputs:
         name = "backup" if item["input_id"] == "backup" else "share" if item["input_id"] == "share" else table_name(item["dataset_id"])
@@ -208,13 +238,14 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
     try:
         _load(connection, inputs)
         overlap = compute(dataset_id, connection)
+        window = _window(dataset_id, connection, inputs)
         completed_at = now()
         records = [{key: value for key, value in item.items() if key != "path"} for item in inputs]
         identity = sha256(canonical_bytes({"completed_at": completed_at, "inputs": records}))
         capture_receipt = {
             "schema_version": "derived-capture/v1", "capture_id": f"capture:{SOURCE_ID}:{completed_at}:{identity[:12]}",
             "dataset_id": dataset_id, "source_id": SOURCE_ID, "completed_at": completed_at, "contract_sha256": contract_hash(catalog, dataset_id),
-            "tool": f"avalanche-research@{__version__}", "inputs": records, "seam": overlap["seam"],
+            "tool": f"avalanche-research@{__version__}", "inputs": records, "seam": overlap["seam"], "window": window,
             "parameters": {"rule": "share rows before the seam, backup rows from it, after the backup matched every share row before it"},
         }
         (temporary / "capture").mkdir()

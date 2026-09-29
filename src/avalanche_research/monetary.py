@@ -19,7 +19,7 @@ from typing import Any
 
 import duckdb
 
-from . import __version__, datasets
+from . import __version__, datasets, seam
 from .catalog import DataError, canonical_bytes, contract_hash, dataset, load_catalog, now, sha256
 
 DATASET_ID = "derived.avax-monetary-daily"
@@ -126,10 +126,10 @@ def _describe(input_id: str, dataset_id: str, run: str, root: Path | None) -> di
 def select_inputs(pinned: dict[str, str] | None, root: Path | None, catalog: dict[str, Any]) -> list[dict[str, Any]]:
     """The input runs: one per single input, every current run per many-input."""
     pinned = pinned or {}
-    unknown = sorted(set(pinned) - set(SINGLE_INPUTS.values()))
+    unknown = sorted(set(pinned) - set(SINGLE_INPUTS.values()) - set(seam.SEAMED.values()))
     if unknown:
         raise DataError(f"not a pinnable input of {DATASET_ID}: {', '.join(unknown)}")
-    selected = [_describe(input_id, dataset_id, pinned.get(dataset_id), root) for input_id, dataset_id in SINGLE_INPUTS.items()]
+    selected = [_describe(input_id, *seam.resolve(dataset_id, pinned, root), root) for input_id, dataset_id in SINGLE_INPUTS.items()]
     for input_id, dataset_id in MANY_INPUTS.items():
         current = contract_hash(catalog, dataset_id)
         runs = [item for item in datasets.runs(dataset_id, root)]
@@ -140,12 +140,19 @@ def select_inputs(pinned: dict[str, str] | None, root: Path | None, catalog: dic
                 described.append(record)
         if not described and input_id in REQUIRED_MANY:
             raise DataError(f"no built run of {dataset_id} carries the current contract")
-        selected.extend(sorted(described, key=lambda item: (item["captured_at"] or "", item["run"])))
+        described.sort(key=lambda item: (item["captured_at"] or "", item["run"]))
+        seamed = seam.SEAMED.get(dataset_id)
+        if seamed and datasets.runs(seamed, root):
+            # The seamed table ranks last, so its share-then-backup days win wherever it covers.
+            described.append(_describe(input_id, seamed, datasets.runs(seamed, root)[0]["run"], root))
+        selected.extend(described)
     return selected
 
 
 def _window(capture: dict[str, Any]) -> tuple[str, str]:
-    """The [start, end) UTC dates a Snowflake capture's query was bound with."""
+    """The [start, end) UTC dates a Snowflake capture's query was bound with, or a seamed table is complete for."""
+    if "window" in capture:
+        return capture["window"]["start"], capture["window"]["end"]
     parameters = capture["queries"][0]["parameters"]
     return parameters["start"], parameters["end"]
 

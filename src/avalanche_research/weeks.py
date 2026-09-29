@@ -34,7 +34,7 @@ from typing import Any
 
 import duckdb
 
-from . import __version__, datasets
+from . import __version__, datasets, seam
 from .catalog import (
     DataError,
     canonical_bytes,
@@ -431,12 +431,12 @@ def inputs_of(dataset_id: str) -> dict[str, str]:
 def select_inputs(dataset_id: str, pinned: dict[str, str] | None, root: Path | None) -> list[dict[str, Any]]:
     pinned = pinned or {}
     wanted = inputs_of(dataset_id)
-    unknown = sorted(set(pinned) - set(wanted.values()))
+    unknown = sorted(set(pinned) - set(wanted.values()) - set(seam.SEAMED.values()))
     if unknown:
         raise DataError(f"not an input of {dataset_id}: {', '.join(unknown)}")
     selected = []
-    for input_id, input_dataset in wanted.items():
-        run = pinned.get(input_dataset)
+    for input_id, share_id in wanted.items():
+        input_dataset, run = seam.resolve(share_id, pinned, root)
         record = datasets.receipt(input_dataset, run, root)
         parquet = datasets.parquet_path(input_dataset, run, root)
         body = parquet.read_bytes()

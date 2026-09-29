@@ -95,3 +95,11 @@ def test_the_share_last_date_comes_from_the_backup(tmp_path):
     rows = duckdb.connect().execute("SELECT date_utc::VARCHAR, burned_wei::BIGINT, source FROM read_parquet(?) ORDER BY 1",
                                     [str(output / "dataset" / "seamed-c-chain-evm-burn-daily.parquet")]).fetchall()
     assert rows == [("2026-09-19", 5, "snowflake"), ("2026-09-20", 6, "backup"), ("2026-09-21", 7, "backup")]
+
+
+def test_downstream_reads_the_seamed_table_unless_the_share_is_pinned(root):
+    share = "snowflake.primary-validator-stakes"
+    assert seam.resolve(share, None, root) == (share, None)
+    seam.derive("derived.seamed-validator-stakes", root / "seamed", root=root)
+    assert seam.resolve(share, None, root) == ("derived.seamed-validator-stakes", None)
+    assert seam.resolve(share, {share: "share-validators"}, root) == (share, "share-validators")

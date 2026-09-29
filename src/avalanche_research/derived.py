@@ -19,7 +19,7 @@ from typing import Any
 import duckdb
 import pandas as pd
 
-from . import __version__, datasets
+from . import __version__, datasets, seam
 from .catalog import DataError, canonical_bytes, contract_hash, dataset, load_catalog, now, sha256
 from .model.protocol import MAINNET_UPGRADES, primary_network_reward
 from .model.types import ModelError
@@ -143,12 +143,12 @@ def upgrade_schedule() -> list[dict[str, str]]:
 def select_inputs(pinned: dict[str, str] | None, root: Path | None) -> list[dict[str, Any]]:
     """The input runs: pinned by ``dataset_id=run`` or the newest built run of each input."""
     pinned = pinned or {}
-    unknown = sorted(set(pinned) - set(INPUTS.values()))
+    unknown = sorted(set(pinned) - set(INPUTS.values()) - set(seam.SEAMED.values()))
     if unknown:
         raise DataError(f"not an input of {DATASET_ID}: {', '.join(unknown)}")
     selected = []
-    for input_id, dataset_id in INPUTS.items():
-        run = pinned.get(dataset_id)
+    for input_id, share_id in INPUTS.items():
+        dataset_id, run = seam.resolve(share_id, pinned, root)
         record = datasets.receipt(dataset_id, run, root)
         parquet = datasets.parquet_path(dataset_id, run, root)
         body = parquet.read_bytes()
