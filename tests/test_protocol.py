@@ -763,3 +763,24 @@ def test_describe_lists_every_catalogued_mechanism_with_pinned_sources():
     for item in mechanisms:
         assert item["upgrade"] is None or item["upgrade"] in upgrades
         assert all(source.startswith((protocol.AVALANCHEGO, protocol.ACPS)) for source in item["sources"])
+
+
+# KG12 ACP-247 as a scenario lever
+def test_acp247_is_a_scenario_upgrade_keyed_to_delegation_verification():
+    activation = HELICON_MAINNET + timedelta(days=100)
+    scenario = protocol.with_scenario_upgrade(protocol.MAINNET_UPGRADES, protocol.ACP247_SCENARIO_UPGRADE, activation)
+    second = timedelta(seconds=1)
+    assert protocol.delegation_multiplier(activation) == 4  # the observed schedule never activates it
+    assert protocol.delegation_multiplier(activation - second, scenario) == 4
+    assert protocol.delegation_multiplier(activation, scenario) == 24
+    # 2,000 AVAX self-stake: 10,000 AVAX total weight today, 50,000 AVAX under ACP-247 (factor 25)
+    for at, expected in ((activation - second, 10 * KILO), (activation, 50 * KILO)):
+        multiplier = protocol.delegation_multiplier(at, scenario)
+        assert protocol.delegation_weight_limit_navax(2 * KILO, at, multiplier, upgrades=scenario) == expected
+    # the 3,000,000 AVAX cap is kept
+    assert protocol.delegation_weight_limit_navax(200 * KILO, activation, 24, upgrades=scenario) == 3 * MEGA
+    # the other rules still read the observed activations
+    assert protocol.min_stake_duration_seconds(activation, upgrades=scenario) == 48 * 3_600
+    assert [item.name for item in scenario.upgrades][-2:] == ["helicon", "acp247"]
+    with pytest.raises(ModelError):
+        protocol.with_scenario_upgrade(scenario, protocol.ACP247_SCENARIO_UPGRADE, activation)

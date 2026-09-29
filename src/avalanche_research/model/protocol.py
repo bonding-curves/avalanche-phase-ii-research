@@ -110,7 +110,8 @@ MECHANISMS = (
          f"{AVALANCHEGO}/vms/platformvm/block/executor/options.go"),
     ),
     Mechanism(
-        "ACP-247", "Delegation multiplier 4 to 24", None, "not scheduled; proposal text only",
+        "ACP-247", "Delegation multiplier 4 to 24", None,
+        "not scheduled; a scenario upgrade named acp247, read at the chain time of delegation verification",
         (f"{ACPS}/247-delegation-multiplier-increase/README.md",),
     ),
     Mechanism(
@@ -653,6 +654,36 @@ def max_validator_weight_navax(
     if self_stake_navax < 0 or delegation_multiplier < 0:
         raise ModelError("self stake and multiplier must be non-negative")
     return min(self_stake_navax * (1 + delegation_multiplier), config.max_validator_stake_navax)
+
+
+ACP247_SCENARIO_UPGRADE = "acp247"
+
+
+def with_scenario_upgrade(upgrades: UpgradeSchedule, name: str, activated_at: datetime) -> UpgradeSchedule:
+    """The schedule with one hypothetical upgrade added in time order, for policy scenarios such as ACP-247.
+
+    Not an AvalancheGo rule: MAINNET_UPGRADES stays the observed schedule.
+    """
+    if any(item.name == name for item in upgrades.upgrades):
+        raise ModelError(f"upgrade {name} is already scheduled")
+    added = Upgrade(name, as_utc(activated_at))
+    ordered = sorted((*upgrades.upgrades, added), key=lambda item: item.activated_at)
+    return UpgradeSchedule(tuple(ordered))
+
+
+def delegation_multiplier(chain_time: datetime, upgrades: UpgradeSchedule = MAINNET_UPGRADES) -> int:
+    """Delegation allowed per unit of self-stake at the chain time a delegation is verified: 4, or 24 once a
+    scenario schedule has activated ACP-247.
+
+    AvalancheGo 70bd6d0 reads the factor only when a delegation is verified: MaxValidatorWeightFactor 5
+    (proposal_tx_executor.go L32, used at staker_tx_verification.go L727-L734). ACP-247 (README L93-L108) proposes
+    24 times the self-stake with the 3,000,000 AVAX cap kept. It has no activation in v1.15.0, so keying the change
+    to verification time is this kernel's assumption.
+    """
+    scheduled = any(item.name == ACP247_SCENARIO_UPGRADE for item in upgrades.upgrades)
+    if scheduled and upgrades.activated(ACP247_SCENARIO_UPGRADE, chain_time):
+        return ACP247_PROPOSED_DELEGATION_MULTIPLIER
+    return ACP247_CURRENT_DELEGATION_MULTIPLIER
 
 
 def delegation_weight_limit_navax(
