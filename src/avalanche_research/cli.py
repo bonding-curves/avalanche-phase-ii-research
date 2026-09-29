@@ -30,6 +30,7 @@ from . import monetary
 from . import nodes
 from . import operators
 from . import pblocks
+from . import pburns
 from . import pchain
 from . import pstakers
 from . import pstaking
@@ -63,6 +64,7 @@ MODULES = {
     **{dataset_id: pstakers for dataset_id in pstakers.DATASET_IDS},
     **{dataset_id: pstaking for dataset_id in pstaking.DATASET_IDS},
     **{dataset_id: clist for dataset_id in clist.DATASET_IDS},
+    pburns.DATASET_ID: pburns,
     catx.DATASET_ID: catx,
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,

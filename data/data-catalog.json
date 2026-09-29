@@ -1306,6 +1306,16 @@
           "id": "c-block-list",
           "dataset_id": "data-api.c-chain-block-list",
           "role": "every C-Chain block from a date to the capture, with its fees, from the Data API's block list"
+        },
+        {
+          "id": "x-chain-blocks",
+          "dataset_id": "x-chain-rpc.blocks",
+          "role": "every X-Chain block and transaction in a height range, from a public node"
+        },
+        {
+          "id": "p-block-list",
+          "dataset_id": "data-api.p-chain-block-list",
+          "role": "every P-Chain block from a date with the supply and ACP-77 counters, from the Data API's block list"
         }
       ]
     },
@@ -6791,6 +6801,98 @@
           "type": "integer",
           "unit": "seconds since epoch",
           "derivation": "the day's last block timestamp in Unix seconds"
+        }
+      ]
+    },
+    {
+      "id": "derived.primary-burn-daily",
+      "name": "P- and X-Chain burns per UTC day from the nodes' own blocks",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC day and chain with the columns of snowflake.primary-burn-daily, from the P- and X-Chain block walks and the Data API's P-Chain block list. The second source for that dataset.",
+      "input_ids": [
+        "p-chain-blocks",
+        "x-chain-blocks",
+        "p-block-list"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "a UTC day both walks and the block list cover whole"
+        },
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "chain letter",
+          "derivation": "P or X"
+        },
+        {
+          "name": "transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "the chain's transactions accepted on the day, in the node's blocks"
+        },
+        {
+          "name": "burned_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum over the day's transactions of inputs and imported inputs less outputs, exported outputs, staked outputs, and L1 balance deposits"
+        },
+        {
+          "name": "recorded_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "transactions settled by the node's own record of their inputs and outputs"
+        },
+        {
+          "name": "system_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "RewardValidatorTx, RewardAutoRenewedValidatorTx, and AdvanceTimeTx, which consume nothing"
+        },
+        {
+          "name": "genesis_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "0"
+        },
+        {
+          "name": "utxo_derived_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "0"
+        },
+        {
+          "name": "unresolved_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "0: every transaction is in the node's blocks"
+        },
+        {
+          "name": "unresolved_hashes",
+          "type": "string",
+          "unit": "comma-separated transaction hashes",
+          "derivation": "null"
+        },
+        {
+          "name": "l1_balance_deposited_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "balance of RegisterL1ValidatorTx and IncreaseL1ValidatorBalanceTx, and the validators' balances of ConvertSubnetToL1Tx"
+        },
+        {
+          "name": "l1_validator_fees_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "P-Chain: the earlier active L1 validator count times the rise in accrued fees between consecutive blocks of the Data API's block list, dated by the later block; X-Chain: 0"
         }
       ]
     }
