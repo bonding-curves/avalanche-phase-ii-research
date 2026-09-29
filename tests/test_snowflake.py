@@ -481,7 +481,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "etf-issuers.avax-fund-snapshot",
         "etf-issuers.avax-fund-history",
         "derived.subnet-validation",
-        "derived.operators",
+        "derived.operators", "derived.p-chain-validator-stakes", "derived.p-chain-delegator-stakes", "derived.p-chain-staking-rewards", "derived.p-chain-staking-supply",
     ]
 
 

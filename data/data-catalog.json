@@ -1229,6 +1229,21 @@
           "id": "node-table",
           "dataset_id": "derived.node-table",
           "role": "one row per validator node, with its latest reward address and period span"
+        },
+        {
+          "id": "p-chain-blocks",
+          "dataset_id": "p-chain-rpc.blocks",
+          "role": "every P-Chain block and transaction in a height range, from a public node, with the node's supply counter at the last height"
+        },
+        {
+          "id": "p-chain-staking-transactions",
+          "dataset_id": "data-api.p-chain-staking-transactions",
+          "role": "the Data API record of each stake a walk sees end"
+        },
+        {
+          "id": "reward-utxos",
+          "dataset_id": "p-chain-rpc.reward-utxos",
+          "role": "the reward outputs a node paid for each stake a walk sees end"
         }
       ]
     },
@@ -5900,6 +5915,477 @@
           "type": "string",
           "unit": "source",
           "derivation": "where the label comes from, public source or inference"
+        }
+      ]
+    },
+    {
+      "id": "derived.p-chain-validator-stakes",
+      "name": "Validator stakes rebuilt from a P-Chain block walk",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per Primary Network validator staking transaction in a p-chain-rpc.blocks walk, with the columns of snowflake.primary-validator-stakes. The second source for that dataset. Potential rewards come from the protocol kernel on the replayed supply counter.",
+      "input_ids": [
+        "p-chain-blocks",
+        "p-chain-staking-transactions",
+        "reward-utxos",
+        "current-validators"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "the staking transaction's id in the P-Chain block walk"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the accepting block's time in the P-Chain block walk"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height; -1 for genesis validators",
+          "derivation": "the accepting block's height"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "AddValidatorTx or AddPermissionlessValidatorTx",
+          "derivation": "the type read from the transaction's JSON fields; AddAutoRenewedValidatorTx is a validator stake from Helicon"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "validator NodeID",
+          "derivation": "validator.nodeID, or nodeID for an auto-renewed validator"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the accepting block's time, as the share records it"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "validator.end, or the block time plus period for an auto-renewed validator"
+        },
+        {
+          "name": "duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "end minus start in days"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "validator.weight, or the staked outputs for an auto-renewed validator"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "stake_navax / 1e9"
+        },
+        {
+          "name": "delegation_fee_shares",
+          "type": "integer",
+          "unit": "millionths",
+          "derivation": "shares, or delegationShares for an auto-renewed validator"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction of delegation rewards",
+          "derivation": "delegation_fee_shares / 1e6"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when absent",
+          "derivation": "protocol.start_stake on the replayed supply counter before the transaction"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX; null when absent",
+          "derivation": "potential_reward_navax / 1e9"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "null while the staking period is in progress",
+          "derivation": "true after a commit, false after an abort of the reward transaction the walk holds, null while the stake runs"
+        },
+        {
+          "name": "reward_addresses",
+          "type": "string",
+          "unit": "JSON array of P-Chain addresses",
+          "derivation": "the validation rewards owner's addresses without the P- prefix, as a compact JSON array"
+        },
+        {
+          "name": "reward_address",
+          "type": "string",
+          "unit": "P-Chain address",
+          "derivation": "the first of reward_addresses"
+        },
+        {
+          "name": "reward_address_count",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "the length of reward_addresses"
+        },
+        {
+          "name": "staked_utxo_count",
+          "type": "integer",
+          "unit": "distinct staked UTXOs",
+          "derivation": "the number of stake outputs"
+        },
+        {
+          "name": "utxo_stake_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when no staked UTXO row exists",
+          "derivation": "the AVAX sum of the stake outputs, null without one"
+        }
+      ]
+    },
+    {
+      "id": "derived.p-chain-delegator-stakes",
+      "name": "Delegator stakes rebuilt from a P-Chain block walk",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "delegator flows",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per Primary Network delegation transaction in a p-chain-rpc.blocks walk, with the columns of snowflake.primary-delegator-stakes. The second source for that dataset.",
+      "input_ids": [
+        "p-chain-blocks",
+        "p-chain-staking-transactions",
+        "reward-utxos",
+        "current-validators"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "the staking transaction's id in the P-Chain block walk"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the accepting block's time in the P-Chain block walk"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height",
+          "derivation": "the accepting block's height"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "AddDelegatorTx or AddPermissionlessDelegatorTx",
+          "derivation": "the type read from the transaction's JSON fields; AddAutoRenewedValidatorTx is a validator stake from Helicon"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "target validator NodeID",
+          "derivation": "validator.nodeID, or nodeID for an auto-renewed validator"
+        },
+        {
+          "name": "validator_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID; null when no validator period contains the delegation",
+          "derivation": "the latest-starting validator period on the node that contains the delegation, among the walk's validators, the Data API records of closed stakes, and the node's current validators"
+        },
+        {
+          "name": "delegator_address",
+          "type": "string",
+          "unit": "P-Chain address; null when no staked UTXO row exists",
+          "derivation": "the address owning the largest AVAX amount of the stake outputs, ties to the lowest address"
+        },
+        {
+          "name": "delegator_address_count",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "the number of distinct addresses owning the stake outputs"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the accepting block's time, as the share records it"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "validator.end, or the block time plus period for an auto-renewed validator"
+        },
+        {
+          "name": "duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "end minus start in days"
+        },
+        {
+          "name": "stake_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "validator.weight, or the staked outputs for an auto-renewed validator"
+        },
+        {
+          "name": "stake_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "stake_navax / 1e9"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when absent",
+          "derivation": "protocol.start_stake on the replayed supply counter before the transaction"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX; null when absent",
+          "derivation": "potential_reward_navax / 1e9"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "null while the delegation period is in progress",
+          "derivation": "true after a commit, false after an abort of the reward transaction the walk holds, null while the stake runs"
+        },
+        {
+          "name": "staked_utxo_count",
+          "type": "integer",
+          "unit": "distinct staked UTXOs",
+          "derivation": "the number of stake outputs"
+        },
+        {
+          "name": "utxo_stake_navax",
+          "type": "integer",
+          "unit": "nAVAX; null when no staked UTXO row exists",
+          "derivation": "the AVAX sum of the stake outputs, null without one"
+        }
+      ]
+    },
+    {
+      "id": "derived.p-chain-staking-rewards",
+      "name": "Staking rewards rebuilt from a P-Chain block walk",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "rewards"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per RewardValidatorTx in a p-chain-rpc.blocks walk whose commit or abort the walk holds, with the columns of snowflake.primary-staking-rewards. The second source for that dataset. Stakes that started before the walk are described by the Data API record; the realized reward is the node's reward outputs.",
+      "input_ids": [
+        "p-chain-blocks",
+        "p-chain-staking-transactions",
+        "reward-utxos",
+        "current-validators"
+      ],
+      "fields": [
+        {
+          "name": "reward_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "the RewardValidatorTx id in the P-Chain block walk"
+        },
+        {
+          "name": "rewarded_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the reward transaction's block time"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height",
+          "derivation": "the accepting block's height"
+        },
+        {
+          "name": "staking_transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "the txID the reward transaction names"
+        },
+        {
+          "name": "staking_tx_type",
+          "type": "string",
+          "unit": "one of the four staking types; null when no Primary Network staking period matches",
+          "derivation": "the staking transaction's type from the walk, or from the Data API record for a stake that started before the walk; null outside the Primary Network"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "validator NodeID",
+          "derivation": "validator.nodeID, or nodeID for an auto-renewed validator"
+        },
+        {
+          "name": "period_start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the stake's start from the walk or the Data API record"
+        },
+        {
+          "name": "period_end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the stake's end from the walk or the Data API record"
+        },
+        {
+          "name": "rewarded",
+          "type": "boolean",
+          "unit": "protocol reward decision",
+          "derivation": "true after a commit, false after an abort of the reward transaction the walk holds, null while the stake runs"
+        },
+        {
+          "name": "potential_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "protocol.start_stake on the replayed supply counter before the transaction"
+        },
+        {
+          "name": "potential_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "potential_reward_navax / 1e9"
+        },
+        {
+          "name": "realized_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX; 0 when no reward UTXO exists",
+          "derivation": "the AVAX sum of the node's reward outputs for the staking transaction, 0 without one"
+        },
+        {
+          "name": "realized_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "realized_reward_navax / 1e9"
+        },
+        {
+          "name": "fee_transfer_navax",
+          "type": "integer",
+          "unit": "nAVAX; positive is delegation fee income to a validator, negative is fee paid by a delegator",
+          "derivation": "realized_reward_navax minus potential_reward_navax"
+        },
+        {
+          "name": "fee_transfer_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "fee_transfer_navax / 1e9"
+        },
+        {
+          "name": "reward_utxo_count",
+          "type": "integer",
+          "unit": "distinct reward UTXOs",
+          "derivation": "the number of the node's reward outputs"
+        }
+      ]
+    },
+    {
+      "id": "derived.p-chain-staking-supply",
+      "name": "Supply counter at each stake, rebuilt from a P-Chain block walk",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "rewards",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per Primary Network staking transaction in a p-chain-rpc.blocks walk with the supply counter around it, with the columns of snowflake.primary-staking-supply. The second source for that dataset. The counter is replayed with the protocol kernel from the one starting value that ends on the node's own counter at the walk's last height.",
+      "input_ids": [
+        "p-chain-blocks",
+        "p-chain-staking-transactions",
+        "reward-utxos",
+        "current-validators"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "the staking transaction's id in the P-Chain block walk"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the accepting block's time in the P-Chain block walk"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "one of the four staking types",
+          "derivation": "the type read from the transaction's JSON fields; AddAutoRenewedValidatorTx is a validator stake from Helicon"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height; -1 for genesis validators",
+          "derivation": "the accepting block's height"
+        },
+        {
+          "name": "tx_block_position",
+          "type": "integer",
+          "unit": "position within the block",
+          "derivation": "the transaction's position in its block from 0"
+        },
+        {
+          "name": "previous_block_supply_navax",
+          "type": "integer",
+          "unit": "nAVAX; null for genesis",
+          "derivation": "the replayed supply counter after the block below"
+        },
+        {
+          "name": "block_supply_navax",
+          "type": "integer",
+          "unit": "nAVAX; null for genesis",
+          "derivation": "the replayed supply counter after the transaction's block"
+        },
+        {
+          "name": "in_block_prior_delta_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the counter changes of earlier transactions in the same block"
+        },
+        {
+          "name": "in_block_total_delta_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "all counter changes in the block"
+        },
+        {
+          "name": "supply_before_navax",
+          "type": "integer",
+          "unit": "nAVAX; null for genesis",
+          "derivation": "previous_block_supply_navax plus in_block_prior_delta_navax"
         }
       ]
     }

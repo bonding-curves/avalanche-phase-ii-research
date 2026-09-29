@@ -1,0 +1,511 @@
+"""Stakes, rewards, and the supply counter rebuilt from a P-Chain block walk: a second source for four Snowflake datasets.
+
+Each table has the columns of the Snowflake dataset it backs up, so a derived table reads either without change:
+
+| Dataset | Backs up |
+| --- | --- |
+| ``derived.p-chain-validator-stakes`` | ``snowflake.primary-validator-stakes`` |
+| ``derived.p-chain-delegator-stakes`` | ``snowflake.primary-delegator-stakes`` |
+| ``derived.p-chain-staking-rewards`` | ``snowflake.primary-staking-rewards`` |
+| ``derived.p-chain-staking-supply`` | ``snowflake.primary-staking-supply`` |
+
+The supply counter is replayed block by block with the protocol kernel. A new stake adds its potential reward, computed
+from the supply before it (``protocol.start_stake``), and a stake that ends unrewarded, an abort, removes its potential
+reward (``protocol.supply_after_stake_end``). The counter at the walk's first block is not read from any provider: it is
+the one value whose replay ends exactly on the node's own counter at the walk's last height, ``node_supply`` in the walk's
+receipt, found by bisection because the replay never decreases as the starting value rises. A stake that started before
+the walk and ends unrewarded removes the potential reward the Data API records for it, since the walk never saw it start.
+
+A stake's acceptance and start are its block's time and its end the transaction's declared end, as in the share. Its
+rewarded flag is known once the walk holds the commit or abort after its reward transaction, and null before. Reward
+rows of stakes that started before the walk take the stake's type, node, times, and potential reward from the Data API
+record, and every reward row takes the realized reward from the node's reward outputs.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+import duckdb
+
+from . import __version__, datasets
+from .catalog import (
+    DataError,
+    canonical_bytes,
+    contract_hash,
+    dataset,
+    load_catalog,
+    now,
+    sha256,
+)
+from .model import protocol
+from .model.types import ModelError
+from .snowflake import (
+    DELEGATOR_STAKES,
+    STAKING_REWARDS,
+    STAKING_SUPPLY,
+    VALIDATOR_STAKES,
+)
+
+VALIDATORS_ID = "derived.p-chain-validator-stakes"
+DELEGATORS_ID = "derived.p-chain-delegator-stakes"
+REWARDS_ID = "derived.p-chain-staking-rewards"
+SUPPLY_ID = "derived.p-chain-staking-supply"
+DATASET_IDS = (VALIDATORS_ID, DELEGATORS_ID, REWARDS_ID, SUPPLY_ID)
+DATASET_ID = VALIDATORS_ID
+SOURCE_ID = "derived"
+INPUTS = {
+    "blocks": "p-chain-rpc.blocks",
+    "staking-records": "data-api.p-chain-staking-transactions",
+    "reward-utxos": "p-chain-rpc.reward-utxos",
+    "current-validators": "p-chain-rpc.current-validators",
+}
+SPECS = {
+    VALIDATORS_ID: ("p-chain-validator-stakes", VALIDATOR_STAKES.table_columns),
+    DELEGATORS_ID: ("p-chain-delegator-stakes", DELEGATOR_STAKES.table_columns),
+    REWARDS_ID: ("p-chain-staking-rewards", STAKING_REWARDS.table_columns),
+    SUPPLY_ID: ("p-chain-staking-supply", STAKING_SUPPLY.table_columns),
+}
+PRIMARY_SUBNET = "11111111111111111111111111111111LpoYY"
+VALIDATOR_TYPES = ("AddValidatorTx", "AddPermissionlessValidatorTx", "AddAutoRenewedValidatorTx")
+DELEGATOR_TYPES = ("AddDelegatorTx", "AddPermissionlessDelegatorTx")
+PRIMARY_STAKE_TYPES = ("AddValidatorTx", "AddPermissionlessValidatorTx", "AddDelegatorTx", "AddPermissionlessDelegatorTx")
+LOWEST_SUPPLY = 360_000_000 * 10**9
+
+
+def _spec(dataset_id: str) -> tuple[str, dict[str, str]]:
+    if dataset_id not in SPECS:
+        raise DataError(f"unknown dataset: {dataset_id}")
+    return SPECS[dataset_id]
+
+
+def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None) -> dict[str, Any]:
+    raise DataError(f"{dataset_id} is derived; use `avalanche data derive`")
+
+
+capture = build_preview = build = capture_preview
+
+
+def _describe(input_id: str, dataset_id: str, run: str | None, root: Path | None) -> dict[str, Any]:
+    record = datasets.receipt(dataset_id, run, root)
+    parquet = datasets.parquet_path(dataset_id, record["run"], root)
+    body = parquet.read_bytes()
+    return {
+        "input_id": input_id, "dataset_id": dataset_id, "run": record["run"],
+        "capture_id": record["capture"]["capture_id"], "contract_sha256": record["capture"].get("contract_sha256"),
+        "captured_at": record["capture"].get("completed_at"), "rows": record["build"].get("summary", {}).get("rows"),
+        "parquet": parquet.name, "bytes": len(body), "sha256": sha256(body), "path": parquet,
+        **({"node_supply": record["capture"].get("node_supply"), "to_height": record["capture"].get("to_height")} if input_id == "blocks" else {}),
+    }
+
+
+def select_inputs(pinned: dict[str, str] | None, root: Path | None) -> list[dict[str, Any]]:
+    """Each input pinned by ``dataset_id=run``, or its newest run. The staker captures must read the chosen walk."""
+    pinned = pinned or {}
+    unknown = sorted(set(pinned) - set(INPUTS.values()))
+    if unknown:
+        raise DataError(f"not an input of the P-Chain backup tables: {', '.join(unknown)}")
+    inputs = [_describe(input_id, dataset_id, pinned.get(dataset_id), root) for input_id, dataset_id in INPUTS.items()]
+    walk = inputs[0]
+    for item in inputs[1:3]:
+        blocks_capture = datasets.receipt(item["dataset_id"], item["run"], root)["capture"].get("blocks_capture_id")
+        if blocks_capture != walk["capture_id"]:
+            raise DataError(f"{item['dataset_id']} run {item['run']} reads another walk than {walk['run']}")
+    if not walk.get("node_supply") or walk["node_supply"]["height"] != walk["to_height"]:
+        raise DataError(f"walk {walk['run']} has no node supply counter at its last height; walk to the head")
+    return inputs
+
+
+def _utc(seconds: int) -> datetime:
+    return datetime.fromtimestamp(seconds, UTC).replace(tzinfo=None)
+
+
+def _addresses(owner: Any) -> list[str]:
+    addresses = (owner or {}).get("addresses") or []
+    return [address.removeprefix("P-") for address in addresses]
+
+
+def _load(inputs: list[dict[str, Any]]) -> dict[str, Any]:
+    paths = {item["input_id"]: str(item["path"]) for item in inputs}
+    connection = duckdb.connect()
+    try:
+        walk = connection.execute(
+            "SELECT block_height, block_time, block_type, tx_index, transaction_hash, tx_type, staked_navax, unsigned_tx"
+            " FROM read_parquet(?) ORDER BY block_height, tx_index NULLS FIRST", [paths["blocks"]]).fetchall()
+        records = {row[0]: row for row in connection.execute("SELECT * FROM read_parquet(?)", [paths["staking-records"]]).fetchall()}
+        paid = {row[0]: row for row in connection.execute("SELECT * FROM read_parquet(?)", [paths["reward-utxos"]]).fetchall()}
+        current = connection.execute(
+            "SELECT transaction_hash, node_id, start_time, end_time FROM read_parquet(?)", [paths["current-validators"]]).fetchall()
+    finally:
+        connection.close()
+    parsed = [_stake(row) for row in walk]
+    reward_of = [json.loads(row[7])["txID"] if row[5] == "RewardValidatorTx" else None for row in walk]
+    return {"walk": walk, "parsed": parsed, "reward_of": reward_of, "records": records, "paid": paid, "current": current}
+
+
+def _stake(row: tuple[Any, ...]) -> dict[str, Any] | None:
+    """A Primary Network stake started by one walk transaction: its fields, or None for any other transaction."""
+    height, block_time, _, index, tx_hash, tx_type, staked_navax, unsigned_json = row
+    if tx_type not in (*VALIDATOR_TYPES, *DELEGATOR_TYPES):
+        return None
+    unsigned = json.loads(unsigned_json)
+    if tx_type == "AddAutoRenewedValidatorTx":
+        node_id, weight, end = unsigned["nodeID"], staked_navax, int(block_time.replace(tzinfo=UTC).timestamp()) + int(unsigned["period"])
+        shares, owner = unsigned["delegationShares"], unsigned["validationRewardsOwner"]
+    else:
+        if unsigned.get("subnetID", PRIMARY_SUBNET) != PRIMARY_SUBNET:
+            return None
+        validator = unsigned["validator"]
+        node_id, weight, end = validator["nodeID"], int(validator["weight"]), int(validator["end"])
+        shares = unsigned.get("shares")
+        owner = unsigned.get("validationRewardsOwner", unsigned.get("rewardsOwner")) if tx_type in VALIDATOR_TYPES else None
+    stake_outputs = unsigned.get("stake") or []
+    funding: dict[str, int] = {}
+    for item in stake_outputs:
+        output = item.get("output") or {}
+        while "amount" not in output and isinstance(output.get("output"), dict):
+            output = output["output"]
+        for address in _addresses(output):
+            funding[address] = funding.get(address, 0) + int(output["amount"])
+    start = block_time
+    return {
+        "transaction_hash": tx_hash, "accepted_at": block_time, "block_height": height, "tx_index": index, "tx_type": tx_type,
+        "node_id": node_id, "start_time": start, "end_time": _utc(end), "duration_seconds": end - int(start.replace(tzinfo=UTC).timestamp()),
+        "stake_navax": weight, "shares": shares, "reward_addresses": _addresses(owner) if owner is not None else None,
+        "staked_utxo_count": len(stake_outputs), "utxo_stake_navax": staked_navax if stake_outputs else None,
+        "delegator_address": min(funding, key=lambda address: (-funding[address], address)) if funding else None,
+        "delegator_address_count": len(funding),
+    }
+
+
+def replay(loaded: dict[str, Any], start_supply: int) -> dict[str, Any]:
+    """The walk replayed from one starting counter: every stake with its potential reward, every closed stake with
+    its outcome, the counter after each block, and each staking transaction's place in its block's supply changes."""
+    supply = start_supply
+    stakes: dict[str, dict[str, Any]] = {}
+    closed: dict[str, dict[str, Any]] = {}
+    walk = loaded["walk"]
+    # The starting counter is the counter after the block below the walk.
+    after_block: dict[int, int] = {walk[0][0] - 1: start_supply} if walk else {}
+    block_deltas: dict[int, list[tuple[int | None, str | None, int]]] = {}
+    pending: tuple[tuple[Any, ...], str] | None = None
+    for position, row in enumerate(walk):
+        height, block_time, block_type, index, tx_hash, tx_type, _, _ = row
+        if pending is not None and block_type in ("commit", "abort"):
+            reward_row, staking_hash = pending
+            rewarded = block_type == "commit"
+            if staking_hash in stakes:
+                potential = stakes[staking_hash]["potential_reward_navax"]
+            else:
+                record = loaded["records"].get(staking_hash)
+                potential = record[7] if record is not None and record[1] in PRIMARY_STAKE_TYPES else 0
+                if potential is None:
+                    raise DataError(f"stake {staking_hash} ended unrewarded and has no potential reward in the Data API record")
+            if not rewarded and potential:
+                supply = protocol.supply_after_stake_end(supply, potential, False)
+                block_deltas.setdefault(reward_row[0], []).append((reward_row[3], reward_row[4], -potential))
+            closed[staking_hash] = {"reward_row": reward_row, "rewarded": rewarded, "potential": potential}
+            pending = None
+        elif pending is not None:
+            raise DataError(f"the reward proposal before block {height} is followed by neither a commit nor an abort")
+        if tx_type == "RewardValidatorTx":
+            pending = (row, loaded["reward_of"][position])
+        elif tx_type == "RewardAutoRenewedValidatorTx":
+            raise DataError(f"block {height} ends an auto-renewed cycle, which the replay does not model yet")
+        stake = loaded["parsed"][position]
+        if stake is not None:
+            try:
+                reward, supply = protocol.start_stake(block_time.replace(tzinfo=UTC), stake["duration_seconds"], stake["stake_navax"], supply)
+            except ModelError as error:
+                raise DataError(f"stake {tx_hash} cannot start from counter {supply}: {error}") from error
+            stakes[tx_hash] = {**stake, "potential_reward_navax": reward}
+            block_deltas.setdefault(height, []).append((index, tx_hash, reward))
+        if position + 1 == len(walk) or walk[position + 1][0] != height:
+            after_block[height] = supply
+    return {"supply": supply, "stakes": stakes, "closed": closed, "after_block": after_block, "block_deltas": block_deltas}
+
+
+def solve_start(loaded: dict[str, Any], anchor: int) -> tuple[int, int, dict[str, Any]]:
+    """The lowest and highest starting counters whose replay ends on the anchor, and the lowest one's replay."""
+    def reach(start: int) -> int:
+        try:
+            return replay(loaded, start)["supply"]
+        except DataError:
+            return anchor + 1
+
+    # The replay adds nearly the same amount from any nearby start, so the start is close to the anchor minus what a
+    # replay from the anchor adds. Bisect within a trillion nAVAX of that, or over the whole range if it is not there.
+    estimate = 2 * anchor - reach(anchor)
+    bracket = (estimate - 10**12, estimate + 10**12)
+    if not reach(bracket[0]) < anchor <= reach(bracket[1]):
+        bracket = (LOWEST_SUPPLY, anchor)
+
+    def first_at_least(target: int) -> int:
+        low, high = bracket
+        while low < high:
+            middle = (low + high) // 2
+            if reach(middle) >= target:
+                high = middle
+            else:
+                low = middle + 1
+        return low
+
+    lowest = first_at_least(anchor)
+    result = replay(loaded, lowest)
+    if result["supply"] != anchor:
+        raise DataError(f"no starting counter replays to the node's counter {anchor}; the nearest reaches {result['supply']}")
+    highest = first_at_least(anchor + 1) - 1
+    return lowest, highest, result
+
+
+def _validators(loaded: dict[str, Any], result: dict[str, Any]) -> list[tuple[Any, ...]]:
+    """Validator periods a delegation can fall in: the walk's, the Data API's closed ones, and the node's current ones."""
+    periods = {tx_hash: (stake["node_id"], stake["start_time"], stake["end_time"])
+               for tx_hash, stake in result["stakes"].items() if stake["tx_type"] in VALIDATOR_TYPES}
+    for tx_hash, record in loaded["records"].items():
+        if record[1] in ("AddValidatorTx", "AddPermissionlessValidatorTx", "AddAutoRenewedValidatorTx"):
+            periods.setdefault(tx_hash, (record[2], record[5], record[6]))
+    for tx_hash, node_id, start, end in loaded["current"]:
+        periods.setdefault(tx_hash, (node_id, start, end))
+    return [(tx_hash, *period) for tx_hash, period in periods.items()]
+
+
+def tables(loaded: dict[str, Any], result: dict[str, Any]) -> dict[str, list[tuple[Any, ...]]]:
+    """The four tables' rows, in their Snowflake column order."""
+    def avax(value: int | None) -> float | None:
+        return None if value is None else value / 1e9
+
+    def outcome(tx_hash: str) -> bool | None:
+        return result["closed"][tx_hash]["rewarded"] if tx_hash in result["closed"] else None
+
+    by_node: dict[str, list[tuple[Any, ...]]] = {}
+    for period in _validators(loaded, result):
+        by_node.setdefault(period[1], []).append(period)
+    validators, delegators, supply_rows = [], [], []
+    for tx_hash, stake in result["stakes"].items():
+        days = stake["duration_seconds"] / 86400
+        common = (tx_hash, stake["accepted_at"], stake["block_height"], stake["tx_type"], stake["node_id"])
+        potential = stake["potential_reward_navax"]
+        if stake["tx_type"] in VALIDATOR_TYPES:
+            addresses = stake["reward_addresses"] or []
+            validators.append((*common, stake["start_time"], stake["end_time"], days, stake["stake_navax"], avax(stake["stake_navax"]),
+                               stake["shares"], None if stake["shares"] is None else stake["shares"] / 1e6, potential, avax(potential),
+                               outcome(tx_hash), json.dumps(addresses, separators=(",", ":")), addresses[0] if addresses else None,
+                               len(addresses), stake["staked_utxo_count"], stake["utxo_stake_navax"]))
+        else:
+            containing = [period for period in by_node.get(stake["node_id"], []) if period[2] <= stake["start_time"] and period[3] >= stake["end_time"]]
+            containing.sort(key=lambda period: (-period[2].timestamp(), period[0]))
+            delegators.append((*common, containing[0][0] if containing else None, stake["delegator_address"], stake["delegator_address_count"],
+                               stake["start_time"], stake["end_time"], days, stake["stake_navax"], avax(stake["stake_navax"]),
+                               potential, avax(potential), outcome(tx_hash), stake["staked_utxo_count"], stake["utxo_stake_navax"]))
+        if stake["tx_type"] in PRIMARY_STAKE_TYPES:
+            height = stake["block_height"]
+            deltas = result["block_deltas"][height]
+            prior = sum(delta for index, _, delta in deltas if index is not None and index < stake["tx_index"])
+            previous = result["after_block"].get(height - 1)
+            supply_rows.append((tx_hash, stake["accepted_at"], stake["tx_type"], height, stake["tx_index"], previous,
+                                result["after_block"][height], prior, sum(delta for _, _, delta in deltas),
+                                None if previous is None else previous + prior))
+    rewards = []
+    for staking_hash, closed in result["closed"].items():
+        reward_row = closed["reward_row"]
+        stake = result["stakes"].get(staking_hash)
+        record = loaded["records"].get(staking_hash)
+        if stake is not None:
+            period = (stake["tx_type"], stake["node_id"], stake["start_time"], stake["end_time"])
+        elif record is not None and record[1] in PRIMARY_STAKE_TYPES:
+            period = (record[1], record[2], record[5], record[6])
+        else:
+            period = (None, None, None, None)
+        potential = closed["potential"] if period[0] is not None else None
+        count, realized = (loaded["paid"][staking_hash][1:3] if staking_hash in loaded["paid"] else (0, 0))
+        rewards.append((reward_row[4], reward_row[1], reward_row[0], staking_hash, *period, closed["rewarded"] if period[0] else None,
+                        potential, avax(potential), realized, avax(realized),
+                        None if potential is None else realized - potential, None if potential is None else avax(realized - potential), count))
+    return {
+        VALIDATORS_ID: sorted(validators, key=lambda row: (row[1], row[0])),
+        DELEGATORS_ID: sorted(delegators, key=lambda row: (row[1], row[0])),
+        REWARDS_ID: sorted(rewards, key=lambda row: (row[1], row[0])),
+        SUPPLY_ID: sorted(supply_rows, key=lambda row: (row[1], row[0])),
+    }
+
+
+def compute(inputs: list[dict[str, Any]]) -> tuple[dict[str, list[tuple[Any, ...]]], dict[str, Any]]:
+    loaded = _load(inputs)
+    walk = inputs[0]
+    lowest, highest, result = solve_start(loaded, walk["node_supply"]["supply_navax"])
+    rows = tables(loaded, result)
+    missing = [staking_hash for staking_hash in result["closed"] if staking_hash not in result["stakes"] and staking_hash not in loaded["records"]]
+    summary = {
+        "start_supply_navax": lowest,
+        "start_supply_solutions": highest - lowest + 1,
+        "end_supply_navax": result["supply"],
+        "end_height": walk["to_height"],
+        "stakes_started": len(result["stakes"]),
+        "stakes_closed": len(result["closed"]),
+        "stakes_closed_unrewarded": sum(not item["rewarded"] for item in result["closed"].values()),
+        "closed_stakes_without_record": len(missing),
+        "delegations_without_validator": sum(row[5] is None for row in rows[DELEGATORS_ID]),
+        "rows": {dataset_id: len(value) for dataset_id, value in rows.items()},
+    }
+    return rows, summary
+
+
+def parameters() -> dict[str, Any]:
+    return {
+        "supply_rule": "the walk's first counter is the one whose replay with protocol.start_stake and protocol.supply_after_stake_end ends on the node's counter at the walk's last height",
+        "start_rule": "a stake's acceptance and start are its block's time, and its end is the transaction's declared end",
+        "earlier_stakes": "a stake that started before the walk takes its potential reward from the Data API record",
+        "kernel": "avalanche_research.model.protocol at AvalancheGo 70bd6d0",
+    }
+
+
+def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, root: Path | None = None) -> dict[str, Any]:
+    """Build one of the four tables into a new run directory holding ``capture/`` and ``dataset/``."""
+    table, columns = _spec(dataset_id)
+    if output.exists():
+        raise DataError(f"output already exists: {output}")
+    catalog = load_catalog()
+    definition = dataset(catalog, dataset_id)
+    inputs = select_inputs(pinned, root)
+    rows, summary = compute(inputs)
+    completed_at = now()
+    records = [{key: value for key, value in item.items() if key != "path"} for item in inputs]
+    identity = sha256(canonical_bytes({"completed_at": completed_at, "inputs": records}))
+    capture_receipt = {
+        "schema_version": "derived-capture/v1", "capture_id": f"capture:{SOURCE_ID}:{completed_at}:{identity[:12]}",
+        "dataset_id": dataset_id, "source_id": SOURCE_ID, "completed_at": completed_at,
+        "contract_sha256": contract_hash(catalog, dataset_id), "tool": f"avalanche-research@{__version__}",
+        "inputs": records, "parameters": parameters(),
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
+    try:
+        (temporary / "capture").mkdir()
+        (temporary / "dataset").mkdir()
+        (temporary / "capture" / "capture.json").write_bytes(canonical_bytes(capture_receipt))
+        parquet = temporary / "dataset" / f"{table}.parquet"
+        _write(parquet, columns, rows[dataset_id])
+        build_receipt = {
+            "schema_version": "derived-build/v1", "dataset_id": dataset_id, "dataset_schema": definition["fields"],
+            "source_capture_id": capture_receipt["capture_id"], "completed_at": now(), "tool": f"avalanche-research@{__version__}",
+            "summary": {**summary, "rows": len(rows[dataset_id])},
+            "outputs": [{"path": parquet.name, "bytes": parquet.stat().st_size, "sha256": sha256(parquet.read_bytes())}],
+        }
+        (temporary / "dataset" / "build.json").write_bytes(canonical_bytes(build_receipt))
+        os.replace(temporary, output)
+    except Exception:
+        shutil.rmtree(temporary, ignore_errors=True)
+        raise
+    return {"capture": capture_receipt, "build": build_receipt}
+
+
+def _write(parquet: Path, columns: dict[str, str], rows: list[tuple[Any, ...]]) -> None:
+    connection = duckdb.connect()
+    try:
+        connection.execute(f"CREATE TABLE rows({', '.join(f'{name} {kind}' for name, kind in columns.items())})")
+        if rows:
+            connection.executemany(f"INSERT INTO rows VALUES ({', '.join('?' for _ in columns)})", rows)
+        connection.execute("COPY rows TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(parquet)])
+    finally:
+        connection.close()
+
+
+def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | None = None, root: Path | None = None) -> dict[str, Any]:
+    """Inputs unchanged, contract unchanged, and a rebuild from the recorded inputs gives the same rows. With ``--against``
+    the built Snowflake dataset this table backs up: every row both hold, over the hours both cover, is equal."""
+    try:
+        receipt = json.loads((capture_dir / "capture.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise DataError(f"unreadable capture receipt: {error}") from error
+    dataset_id = receipt.get("dataset_id")
+    if receipt.get("schema_version") != "derived-capture/v1" or dataset_id not in SPECS:
+        raise DataError(f"not a P-Chain backup table capture: {capture_dir}")
+    table, columns = SPECS[dataset_id]
+    catalog = load_catalog()
+    findings: list[str] = []
+    checked = ["input run hashes", "catalog contract"]
+    if receipt.get("contract_sha256") != contract_hash(catalog, dataset_id):
+        findings.append("catalog contract changed since the capture")
+    root_dir = datasets.RUNS if root is None else root
+    inputs = []
+    for item in receipt.get("inputs", []):
+        parquet = root_dir / item["run"] / "dataset" / item["parquet"]
+        if not parquet.is_file() or sha256(parquet.read_bytes()) != item["sha256"]:
+            findings.append(f"input run missing or changed: {item['run']}")
+        inputs.append({**item, "path": parquet})
+    summary: dict[str, Any] = {}
+    if dataset_dir is not None:
+        checked.extend(["build hashes", "columns", "rebuild from inputs"])
+        built = json.loads((dataset_dir / "build.json").read_text(encoding="utf-8"))
+        parquet = dataset_dir / f"{table}.parquet"
+        if built.get("source_capture_id") != receipt["capture_id"] or sha256(parquet.read_bytes()) != built["outputs"][0]["sha256"]:
+            findings.append("build does not belong to this capture or its Parquet hash differs")
+        connection = duckdb.connect()
+        try:
+            actual = connection.execute("SELECT * FROM read_parquet(?)", [str(parquet)]).fetchall()
+            names = [row[0] for row in connection.execute("DESCRIBE SELECT * FROM read_parquet(?)", [str(parquet)]).fetchall()]
+        finally:
+            connection.close()
+        if names != list(columns) or names != [field["name"] for field in dataset(catalog, dataset_id)["fields"]]:
+            findings.append("columns differ from the backed-up contract or the catalog")
+        summary.update(built.get("summary", {}))
+        if not findings:
+            rows, _ = compute(inputs)
+            if sorted(map(repr, actual)) != sorted(map(repr, rows[dataset_id])):
+                findings.append("a rebuild from the recorded inputs differs")
+    if against is not None:
+        checked.append("overlap equality with the backed-up Snowflake dataset")
+        overlap = compare(dataset_dir / f"{table}.parquet", against, dataset_id)
+        summary["overlap"] = overlap
+        if overlap["differing_rows"] or overlap["missing_in_backup"] or overlap["missing_in_share"]:
+            findings.append(f"the overlap with the share differs: {overlap['differing_rows']} rows differ, "
+                            f"{overlap['missing_in_backup']} are missing here, {overlap['missing_in_share']} are missing in the share")
+    return {"dataset_id": dataset_id, "capture_id": receipt["capture_id"], "status": "pass" if not findings else "attention",
+            "checked": checked, "summary": summary, "findings": findings}
+
+
+# The key, the time column, and the columns the share cannot know after it stopped: a flag or amount settled later.
+OVERLAP = {
+    VALIDATORS_ID: ("transaction_hash", "accepted_at", ("rewarded",)),
+    DELEGATORS_ID: ("transaction_hash", "accepted_at", ("rewarded",)),
+    REWARDS_ID: ("reward_transaction_hash", "rewarded_at", ()),
+    SUPPLY_ID: ("transaction_hash", "accepted_at", ()),
+}
+
+
+def compare(backup: Path, share_dir: Path, dataset_id: str) -> dict[str, Any]:
+    """Row-for-row equality over the hours both tables cover: from the later first time to the earlier last time. A
+    column the share leaves null because its load stopped (``rewarded``) is compared only where the share has it."""
+    key, clock, settled = OVERLAP[dataset_id]
+    share = next(share_dir.glob("*.parquet"), None)
+    if share is None:
+        raise DataError(f"no Parquet in {share_dir}")
+    columns = list(SPECS[dataset_id][1])
+    connection = duckdb.connect()
+    try:
+        connection.execute(f"CREATE VIEW b AS SELECT * FROM read_parquet('{str(backup).replace(chr(39), chr(39) * 2)}')")
+        connection.execute(f"CREATE VIEW s AS SELECT * FROM read_parquet('{str(share).replace(chr(39), chr(39) * 2)}')")
+        low, high = connection.execute(f"SELECT greatest((SELECT min({clock}) FROM b), (SELECT min({clock}) FROM s)),"
+                                       f" least((SELECT max({clock}) FROM b), (SELECT max({clock}) FROM s))").fetchone()
+        window = f"{clock} BETWEEN ? AND ?"
+        both = connection.execute(f"SELECT count(*) FROM b JOIN s USING ({key}) WHERE b.{clock} BETWEEN ? AND ?", [low, high]).fetchone()[0]
+        missing_backup = connection.execute(f"SELECT count(*) FROM s WHERE {window} AND {key} NOT IN (SELECT {key} FROM b)", [low, high]).fetchone()[0]
+        missing_share = connection.execute(f"SELECT count(*) FROM b WHERE {window} AND {key} NOT IN (SELECT {key} FROM s)", [low, high]).fetchone()[0]
+        conditions = [f"b.{name} IS DISTINCT FROM s.{name}" if name not in settled else f"(s.{name} IS NOT NULL AND b.{name} IS DISTINCT FROM s.{name})"
+                      for name in columns if name != key]
+        per_column = {name: connection.execute(f"SELECT count(*) FROM b JOIN s USING ({key}) WHERE b.{clock} BETWEEN ? AND ? AND {condition}",
+                                               [low, high]).fetchone()[0]
+                      for name, condition in zip([name for name in columns if name != key], conditions)}
+        differing = connection.execute(f"SELECT count(*) FROM b JOIN s USING ({key}) WHERE b.{clock} BETWEEN ? AND ? AND ({' OR '.join(conditions)})",
+                                       [low, high]).fetchone()[0]
+    finally:
+        connection.close()
+    return {"from": str(low), "to": str(high), "rows_in_both": both, "missing_in_backup": missing_backup, "missing_in_share": missing_share,
+            "differing_rows": differing, "differing_by_column": {name: count for name, count in per_column.items() if count}}

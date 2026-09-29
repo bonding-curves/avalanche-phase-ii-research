@@ -31,6 +31,7 @@ from . import operators
 from . import pblocks
 from . import pchain
 from . import pstakers
+from . import pstaking
 from . import ptx
 from . import snowflake
 from . import snowpeer
@@ -59,6 +60,7 @@ MODULES = {
     ptx.DATASET_ID: ptx,
     pblocks.DATASET_ID: pblocks,
     **{dataset_id: pstakers for dataset_id in pstakers.DATASET_IDS},
+    **{dataset_id: pstaking for dataset_id in pstaking.DATASET_IDS},
     catx.DATASET_ID: catx,
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,
