@@ -702,3 +702,51 @@ def test_subnet_validator_rules_around_acp77():
     assert protocol.subnet_validator_admission_error(start, end, short_primary, False) == protocol.ERR_PERIOD_MISMATCH
     # the 48-hour ACP-273 minimum is for Primary Network validators only
     assert protocol.subnet_validator_admission_error(start, start + timedelta(hours=48), primary, False) == protocol.ERR_STAKE_TOO_SHORT
+
+
+# KG10 P-Chain transaction fee
+TEST_WEIGHTS = (1, 2_000, 20_000, 10)  # txs/fee/calculator_test.go testDynamicWeights, price 1 nAVAX
+
+
+@pytest.mark.parametrize("complexity, expected", [
+    # calculator_test.go txTests: AddPermissionlessValidatorTx and AddPermissionlessDelegatorTx for the primary network
+    (protocol.ADD_PERMISSIONLESS_VALIDATOR_TX_COMPLEXITY, 137_191),
+    (protocol.ADD_PERMISSIONLESS_DELEGATOR_TX_COMPLEXITY, 106_499),
+])
+def test_p_chain_fee_matches_reference_transactions(complexity, expected):
+    config = replace(protocol.MAINNET_P_CHAIN_FEE, weights=TEST_WEIGHTS)
+    etna = protocol.MAINNET_UPGRADES.time("etna")
+    assert protocol.p_chain_tx_fee_navax(complexity, 0, etna, config) == expected
+    assert protocol.p_chain_tx_fee_navax(complexity, 0, etna - timedelta(seconds=1), config) == 0
+
+
+def test_p_chain_fee_on_mainnet_parameters():
+    etna = protocol.MAINNET_UPGRADES.time("etna")
+    gas = 691 + 2 * 1_000 + 6 * 1_000 + 1_250 * 4
+    assert protocol.p_chain_tx_fee_navax(protocol.ADD_PERMISSIONLESS_VALIDATOR_TX_COMPLEXITY, 0, etna) == gas
+    # at the 1 nAVAX minimum the integer price stays 1 until excess passes K ln 2, then floor(e) = 2 at excess K
+    assert protocol.p_chain_tx_fee_navax(protocol.ADD_PERMISSIONLESS_VALIDATOR_TX_COMPLEXITY, 1_500_000, etna) == gas
+    assert protocol.p_chain_tx_fee_navax(protocol.ADD_PERMISSIONLESS_VALIDATOR_TX_COMPLEXITY, 2_164_043, etna) == 2 * gas
+    with pytest.raises(ModelError):
+        protocol.p_chain_gas((MAX64, 0, 0, 0), (2, 0, 0, 0))
+
+
+@pytest.mark.parametrize("capacity, excess, max_capacity, rate, target, seconds, expected", [
+    # vms/components/gas/state_test.go Test_State_AdvanceTime
+    (10, 0, 20, 10, 0, 2, (20, 0)),  # cap capacity
+    (10, 0, 30, 10, 0, 1, (20, 0)),  # increase capacity
+    (10, 10, 20, 10, 10, 2, (20, 0)),  # avoid excess underflow
+    (10, 10, 20, 10, 5, 1, (20, 5)),  # reduce excess
+])
+def test_p_chain_fee_state_matches_avalanchego(capacity, excess, max_capacity, rate, target, seconds, expected):
+    config = replace(protocol.MAINNET_P_CHAIN_FEE, max_capacity=max_capacity, max_per_second=rate, target_per_second=target)
+    assert protocol.p_chain_fee_state_after(capacity, excess, seconds, config) == expected
+
+
+def test_p_chain_gas_consumption_matches_avalanchego():
+    # vms/components/gas/state_test.go Test_State_ConsumeGas
+    assert protocol.p_chain_consume_gas(10, 10, 5) == (5, 15)
+    assert protocol.p_chain_consume_gas(10, 10, 10) == (0, 20)
+    assert protocol.p_chain_consume_gas(10, MAX64, 1) == (9, MAX64)
+    with pytest.raises(ModelError):
+        protocol.p_chain_consume_gas(10, 10, 11)

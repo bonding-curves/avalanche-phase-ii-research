@@ -14,7 +14,7 @@ from typing import Any
 
 from .types import (
     NANOSECONDS_PER_SECOND, NAVAX_PER_AVAX, PERCENT_DENOMINATOR, SECONDS_PER_DAY, Mechanism, ModelError,
-    RewardConfig, StakingConfig, Upgrade, UpgradeSchedule, ValidatorFeeConfig, as_utc,
+    DynamicFeeConfig, RewardConfig, StakingConfig, Upgrade, UpgradeSchedule, ValidatorFeeConfig, as_utc,
 )
 
 
@@ -48,6 +48,19 @@ MAINNET_L1_VALIDATOR_FEE = ValidatorFeeConfig(
     excess_conversion_constant=1_246_488_515,
 )
 MAX_UINT64 = 2**64 - 1
+# genesis/genesis_mainnet.go MainnetParams.DynamicFeeConfig: price doubles every 30 seconds of excess
+MAINNET_P_CHAIN_FEE = DynamicFeeConfig(
+    weights=(1, 1_000, 1_000, 4),
+    max_capacity=1_000_000,
+    max_per_second=100_000,
+    target_per_second=50_000,
+    min_price_navax=1,
+    excess_conversion_constant=2_164_043,
+)
+# vms/platformvm/txs/fee/calculator_test.go reference Primary Network transactions (one input, one signature):
+# (bandwidth bytes, database reads, database writes, compute) from their intrinsic complexities in complexity.go.
+ADD_PERMISSIONLESS_VALIDATOR_TX_COMPLEXITY = (691, 2, 6, 1_250)
+ADD_PERMISSIONLESS_DELEGATOR_TX_COMPLEXITY = (499, 2, 5, 200)
 
 # upgrade/upgrade.go Mainnet
 MAINNET_UPGRADES = UpgradeSchedule((
@@ -861,6 +874,69 @@ def l1_validator_seconds_remaining(
             return elapsed
         balance_navax -= price
     return max_seconds
+
+
+def p_chain_gas(complexity: tuple[int, int, int, int], weights: tuple[int, int, int, int]) -> int:
+    """Gas of a transaction: its complexity dimensions weighted and summed.
+
+    AvalancheGo 70bd6d0 vms/components/gas/dimensions.go L57-L70 ToGas, which rejects a uint64 overflow.
+    """
+    if len(complexity) != 4 or len(weights) != 4 or min(*complexity, *weights) < 0:
+        raise ModelError("complexity and weights need four non-negative dimensions")
+    gas = sum(value * weight for value, weight in zip(complexity, weights, strict=True))
+    if gas > MAX_UINT64:
+        raise ModelError("gas overflows uint64")
+    return gas
+
+
+def p_chain_fee_state_after(
+    capacity: int,
+    excess: int,
+    seconds: int,
+    config: DynamicFeeConfig = MAINNET_P_CHAIN_FEE,
+) -> tuple[int, int]:
+    """(capacity, excess) after ``seconds`` without transactions: capacity refills at MaxPerSecond up to
+    MaxCapacity and excess drains at TargetPerSecond to 0. AvalancheGo 70bd6d0 vms/components/gas/state.go L29-L42
+    AdvanceTime, applied each block at vms/platformvm/txs/executor/state_changes.go L325-L338."""
+    if min(capacity, excess, seconds) < 0:
+        raise ModelError("fee state values must be non-negative")
+    refilled = min(capacity + config.max_per_second * seconds, MAX_UINT64, config.max_capacity)
+    return refilled, max(excess - config.target_per_second * seconds, 0)
+
+
+def p_chain_consume_gas(capacity: int, excess: int, gas: int) -> tuple[int, int]:
+    """(capacity, excess) after a block consumes ``gas``: capacity falls and excess rises, capped at MaxUint64.
+
+    AvalancheGo 70bd6d0 vms/components/gas/state.go L44-L67 ConsumeGas. A block above capacity is invalid.
+    """
+    if min(capacity, excess, gas) < 0:
+        raise ModelError("fee state values must be non-negative")
+    if gas > capacity:
+        raise ModelError("insufficient capacity")
+    return capacity - gas, min(excess + gas, MAX_UINT64)
+
+
+def p_chain_tx_fee_navax(
+    complexity: tuple[int, int, int, int],
+    excess: int,
+    chain_time: datetime,
+    config: DynamicFeeConfig = MAINNET_P_CHAIN_FEE,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> int:
+    """Fee burned by one P-Chain transaction, such as a stake or an ACP-236 config change.
+
+    AvalancheGo 70bd6d0 vms/platformvm/state/chain_time_helpers.go L141-L157 PickFeeCalculator: before Etna the
+    Primary Network staking transactions paid no fee (simple calculator with fee 0). From Etna (ACP-103) the fee is
+    gas times the price at the current excess (vms/platformvm/txs/fee/dynamic_calculator.go L37-L63). The burn does
+    not lower the current supply.
+    """
+    if not upgrades.activated("etna", chain_time):
+        return 0
+    gas = p_chain_gas(complexity, config.weights)
+    fee = gas * gas_price(config.min_price_navax, excess, config.excess_conversion_constant)
+    if fee > MAX_UINT64:
+        raise ModelError("fee overflows uint64")
+    return fee
 
 
 ERR_NOT_VALIDATOR = "ErrNotValidator"

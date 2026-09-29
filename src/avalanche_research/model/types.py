@@ -71,6 +71,26 @@ class ValidatorFeeConfig:
 
 
 @dataclass(frozen=True)
+class DynamicFeeConfig:
+    """Mirror of vms/components/gas/config.go Config: the ACP-103 P-Chain gas fee.
+
+    Weights order the four complexity dimensions as bandwidth, database reads, database writes, compute.
+    """
+
+    weights: tuple[int, int, int, int]
+    max_capacity: int
+    max_per_second: int
+    target_per_second: int
+    min_price_navax: int
+    excess_conversion_constant: int
+
+    def __post_init__(self) -> None:
+        values = (*self.weights, self.max_capacity, self.max_per_second, self.target_per_second, self.min_price_navax)
+        if len(self.weights) != 4 or min(values) < 0 or self.excess_conversion_constant <= 0:
+            raise ModelError("fee parameters must be non-negative, four weights, and a positive conversion constant")
+
+
+@dataclass(frozen=True)
 class Upgrade:
     name: str
     activated_at: datetime
