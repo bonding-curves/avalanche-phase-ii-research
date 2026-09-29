@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -214,3 +215,68 @@ def test_supply_counter_stops_at_the_cap():
         protocol.supply_after_stake_start(cap, 1)
     with pytest.raises(ModelError):
         protocol.supply_after_stake_end(10, 11, rewarded=False)
+
+
+# KG4 delegator minimum duration and delegation containment
+HELICON_MAINNET = protocol.MAINNET_UPGRADES.time("helicon")
+
+
+@pytest.mark.parametrize("fork_offset, role, expected", [
+    # staker_tx_verification_test.go TestGetValidatorRules and TestGetDelegatorRules: MinStakeDuration 2s,
+    # HeliconMinStakeDuration 1s, before (Granite) and after Helicon.
+    (-1, "validator", 2), (0, "validator", 1), (-1, "delegator", 2), (0, "delegator", 2),
+])
+def test_min_stake_duration_by_role_matches_avalanchego_rules(fork_offset, role, expected):
+    config = replace(protocol.MAINNET, min_stake_duration_seconds=2, helicon_min_stake_duration_seconds=1)
+    at = HELICON_MAINNET + timedelta(seconds=fork_offset)
+    assert protocol.min_stake_duration_seconds(at, config, role=role) == expected
+
+
+def test_mainnet_delegators_keep_fourteen_days_after_helicon():
+    assert protocol.min_stake_duration_seconds(HELICON_MAINNET, role="delegator") == 14 * DAY
+    assert protocol.min_stake_duration_seconds(HELICON_MAINNET, role="validator") == 48 * 3_600
+    assert protocol.min_stake_duration_seconds(HELICON_MAINNET) == 48 * 3_600
+    with pytest.raises(ModelError):
+        protocol.min_stake_duration_seconds(HELICON_MAINNET, role="subnet")
+
+
+def at_second(value: int) -> datetime:
+    return EPOCH + timedelta(seconds=value)
+
+
+@pytest.mark.parametrize("a, b, a_in_b, b_in_a", [
+    # txs/validator_test.go TestBoundedBy, cases 1 to 6 and the equal-interval case
+    ((0, 1), (2, 3), False, False),
+    ((0, 2), (1, 3), False, False),
+    ((0, 3), (1, 2), False, True),
+    ((1, 2), (0, 3), True, False),
+    ((2, 3), (0, 1), False, False),
+    ((1, 3), (0, 2), False, False),
+    ((0, 1), (0, 1), True, True),
+])
+def test_delegation_containment_matches_bounded_by(a, b, a_in_b, b_in_a):
+    a_start, a_end, b_start, b_end = (at_second(value) for value in (*a, *b))
+    assert protocol.delegation_within_validator_period(a_start, a_end, b_start, b_end) is a_in_b
+    assert protocol.delegation_within_validator_period(b_start, b_end, a_start, a_end) is b_in_a
+
+
+def test_delegation_containment_matches_add_delegator_cases():
+    # standard_tx_executor_test.go TestStandardTxExecutorAddDelegator: validator period [start, end]
+    start, end = at_second(5), at_second(360 * DAY - 5)
+    second = timedelta(seconds=1)
+    assert not protocol.delegation_within_validator_period(start - second, end, start, end)  # starts before validator
+    assert not protocol.delegation_within_validator_period(start, end + second, start, end)  # stops after validator
+    assert protocol.delegation_within_validator_period(start, end, start, end)  # valid
+
+
+def test_delegation_window_closes_fourteen_days_before_validator_end():
+    start = HELICON_MAINNET + timedelta(days=1)
+    end = start + timedelta(days=30)
+    last = end - timedelta(days=14)
+    assert protocol.delegation_window_open(last, start, end)
+    assert not protocol.delegation_window_open(last + timedelta(seconds=1), start, end)
+    assert not protocol.delegation_window_open(start - timedelta(seconds=1), start, end)
+    # a 48-hour validator and a 13-day cycle can never hold a delegation
+    assert not protocol.delegation_window_open(start, start, start + timedelta(hours=48))
+    assert not protocol.delegation_window_open(start, start, start + timedelta(days=13))
+    assert protocol.delegation_window_open(start, start, start + timedelta(days=14))

@@ -9,7 +9,7 @@ not floating-point approximations.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .types import (
@@ -269,15 +269,61 @@ def start_stakes_in_order(
     return tuple(rewards), supply
 
 
+STAKER_ROLES = ("validator", "delegator")
+
+
 def min_stake_duration_seconds(
     at: datetime,
     config: StakingConfig = MAINNET,
     upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+    role: str = "validator",
 ) -> int:
-    """ACP-273: the Helicon minimum applies to Primary Network validators added at or after activation."""
-    if upgrades.activated("helicon", at):
+    """Minimum Primary Network stake duration for a stake verified at chain time ``at``, by role.
+
+    Validators follow ACP-273: 48 hours from Helicon, AvalancheGo 70bd6d0 vms/platformvm/txs/executor/
+    staker_tx_verification_helpers.go L27-L32 primaryNetworkValidatorMinStakeDuration, also used for every
+    ACP-236 period (staker_tx_verification.go L918-L920 and L1011). Delegators keep MinStakeDuration, 14 days,
+    after Helicon: getDelegatorRules L79-L87.
+    """
+    if role not in STAKER_ROLES:
+        raise ModelError(f"role must be one of {STAKER_ROLES}")
+    if role == "validator" and upgrades.activated("helicon", at):
         return config.helicon_min_stake_duration_seconds
     return config.min_stake_duration_seconds
+
+
+def delegation_within_validator_period(
+    delegation_start: datetime,
+    delegation_end: datetime,
+    validator_start: datetime,
+    validator_end: datetime,
+) -> bool:
+    """A delegation must lie inside its validator's current period, bounds included.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/validator.go L60-L62 BoundedBy, applied at staker_tx_verification.go
+    L736-L743 (AddPermissionlessDelegatorTx) and L470-L477 (AddDelegatorTx). For an ACP-236 validator the period is
+    the current cycle, so a delegation cannot span a renewal.
+    """
+    start, end = as_utc(delegation_start), as_utc(delegation_end)
+    return start >= as_utc(validator_start) and end <= as_utc(validator_end) and end >= start
+
+
+def delegation_window_open(
+    delegation_start: datetime,
+    validator_start: datetime,
+    validator_end: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> bool:
+    """Whether a delegation of the minimum delegator duration starting at ``delegation_start`` fits the validator.
+
+    Combines the delegator minimum (min_stake_duration_seconds, role ``delegator``) with BoundedBy. A validator
+    with less than 14 days left, and any period or ACP-236 cycle shorter than 14 days, cannot take a new delegation.
+    From Durango the delegation starts at the chain time of verification (staker_tx_verification.go L675-L681).
+    """
+    minimum = min_stake_duration_seconds(delegation_start, config, upgrades, role="delegator")
+    earliest_end = as_utc(delegation_start) + timedelta(seconds=minimum)
+    return delegation_within_validator_period(delegation_start, earliest_end, validator_start, validator_end)
 
 
 def uptime_requirement(
