@@ -22,6 +22,7 @@ from . import datasets
 from . import defillama
 from . import derived
 from . import etf
+from . import freshness
 from . import helicon
 from . import metrics
 from . import monetary
@@ -245,6 +246,20 @@ def check_data(dataset_id: str, capture_dir: Path, dataset_dir: Path | None, aga
         validation=value, findings=value["findings"],
     )
     finish(result, as_json)
+
+
+@data.command("freshness")
+@click.option("--timeout", type=click.FloatRange(min=1, max=600), default=60, show_default=True, help="Request and statement timeout in seconds.")
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def data_freshness(timeout: float, as_json: bool) -> None:
+    """Read the newest record of each source live; any older than 36 hours, or unreadable, is a finding."""
+    value = freshness.measure(freshness.probes(timeout))
+    items = [f"{row['status']} | {row['source']} | newest {row['newest'] or '-'} | {row['age_hours'] if row['age_hours'] is not None else '-'} h"
+             + (f" | {row['error']}" if row.get("error") else "") for row in value["sources"]]
+    findings = [f"{row['source']} is {row['status']}" for row in value["sources"] if row["status"] != "fresh"]
+    fresh = sum(row["status"] == "fresh" for row in value["sources"])
+    finish(envelope("data freshness", value["status"], {"text": f"{fresh} of {len(value['sources'])} sources fresh"},
+                    items=items, findings=findings, freshness=value), as_json)
 
 
 @data.command("runs")
