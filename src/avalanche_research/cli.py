@@ -11,6 +11,7 @@ import click
 
 from . import __version__
 from . import atomic
+from . import attributions
 from . import binance
 from . import catx
 from . import builderhub
@@ -75,6 +76,7 @@ MODULES = {
     helicon.DATASET_ID: helicon,
     subnets.DATASET_ID: subnets,
     operators.DATASET_ID: operators,
+    attributions.DATASET_ID: attributions,
     monetary.DATASET_ID: monetary,
     **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},

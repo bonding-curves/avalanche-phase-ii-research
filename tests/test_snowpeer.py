@@ -116,6 +116,7 @@ def test_catalog_schema_and_references_are_valid():
         "etf-issuers.avax-fund-history",
         "derived.subnet-validation",
         "derived.operators",
+        "derived.operator-attributions",
         "derived.p-chain-validator-stakes",
         "derived.p-chain-delegator-stakes",
         "derived.p-chain-staking-rewards",

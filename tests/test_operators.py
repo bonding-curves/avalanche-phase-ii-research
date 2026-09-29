@@ -66,14 +66,14 @@ def test_every_node_once_with_operator_fleet_and_named_agent(root):
     table = rows(output)
     assert set(table) == {"NodeID-G1", "NodeID-G2", "NodeID-X", "NodeID-Y"}
     g1, x, y = table["NodeID-G1"], table["NodeID-X"], table["NodeID-Y"]
-    assert g1["operator_id"] == GOGOPOOL and g1["operator_nodes"] == 2 and g1["named_agent"] == "GoGoPool"
+    assert g1["operator_id"] == GOGOPOOL and g1["operator_nodes"] == 2 and g1["named_agent"] == "GoGoPool (Hypha)"
     # G1, G2, and X entered in the week of 2025-01-06, left in the week of 2025-08-11, at a 2% fee: one fleet, two operators.
     assert g1["fleet_id"] == table["NodeID-G2"]["fleet_id"] == x["fleet_id"]
     assert g1["fleet_nodes"] == 3 and g1["fleet_operators"] == 2
     assert y["fleet_nodes"] == 1 and y["named_agent"] is None
     summary = result["build"]["summary"]
     assert (summary["nodes"], summary["operators"], summary["fleets"], summary["fleets_spanning_operators"]) == (4, 2, 2, 1)
-    assert summary["named_agents"] == {"GoGoPool avax10f83": {"nodes": 2, "active": 0}}
+    assert summary["named_agents"] == {"GoGoPool (Hypha) avax10f83": {"nodes": 2, "active": 0}}
     checked = operators.check(output / "capture", output / "dataset", root=root)
     assert checked["status"] == "pass", checked["findings"]
 

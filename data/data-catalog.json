@@ -1438,6 +1438,11 @@
           "id": "p-staking-cycles",
           "dataset_id": "derived.p-chain-staking-cycles",
           "role": "one row per cycle of each ACP-236 auto-renewed validator, from a P-Chain walk"
+        },
+        {
+          "id": "operators",
+          "dataset_id": "derived.operators",
+          "role": "one row per validator node with its operator and fleet"
         }
       ]
     },
@@ -6350,13 +6355,140 @@
           "name": "named_agent",
           "type": "string",
           "unit": "label",
-          "derivation": "public or catalog label of the operator address"
+          "derivation": "the name the attribution file (data/operator-attributions.json) gives the operator's reward address, or 'unnamed operator' when it leaves the name open"
         },
         {
           "name": "named_agent_evidence",
           "type": "string",
           "unit": "source",
-          "derivation": "where the label comes from, public source or inference"
+          "derivation": "the attribution's ID, evidence tier, class, and public source"
+        }
+      ]
+    },
+    {
+      "id": "derived.operator-attributions",
+      "name": "Classed attributions of operators and funding addresses",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per name or role BCRG attaches to a validator reward address, a funding address, or a node, curated in data/operator-attributions.json with its evidence tier (AS1 a protocol or contract registry, AS2 a signed self-claim, AS3 an organization's own disclosure, AS4 a third-party label without a stated method, AS5 our own clustering), its class (EVIDENCE, INFERENCE, NOT DETERMINED), and its public source. A correction is a new row that names the row it replaces. Joined to derived.operators, so each attributed reward address shows its nodes and fleets. No row is EVIDENCE on an AS4 label or AS5 clustering alone. A shared reward address links nodes; it never proves one decision maker.",
+      "input_ids": [
+        "operators"
+      ],
+      "fields": [
+        {
+          "name": "attribution_id",
+          "type": "string",
+          "unit": "ID",
+          "derivation": "the row's stable ID, OA and a number"
+        },
+        {
+          "name": "subject_kind",
+          "type": "string",
+          "unit": "kind",
+          "derivation": "reward-address, funding-address, or node"
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "unit": "address or node ID",
+          "derivation": "what the attribution is about"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "unit": "name",
+          "derivation": "the name or role attributed; null when the row records that it is not determined"
+        },
+        {
+          "name": "statement",
+          "type": "string",
+          "unit": "text",
+          "derivation": "what the source shows, in one or two sentences"
+        },
+        {
+          "name": "tier",
+          "type": "string",
+          "unit": "tier",
+          "derivation": "AS1 to AS5, the strongest source's tier"
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "unit": "class",
+          "derivation": "EVIDENCE, INFERENCE, or NOT DETERMINED"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "URL",
+          "derivation": "the strongest public source"
+        },
+        {
+          "name": "supporting_sources",
+          "type": "string",
+          "unit": "JSON",
+          "derivation": "further public sources as a JSON array"
+        },
+        {
+          "name": "captured_on",
+          "type": "string",
+          "unit": "UTC date",
+          "derivation": "when the source was read"
+        },
+        {
+          "name": "data_run",
+          "type": "string",
+          "unit": "run",
+          "derivation": "the data run a number in the statement comes from, if any"
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "unit": "role",
+          "derivation": "the agent that made the attribution"
+        },
+        {
+          "name": "replaces",
+          "type": "string",
+          "unit": "ID",
+          "derivation": "the row this one corrects, if any"
+        },
+        {
+          "name": "operator_id",
+          "type": "string",
+          "unit": "reward address",
+          "derivation": "the operator of derived.operators the subject is, for a reward address"
+        },
+        {
+          "name": "operator_nodes",
+          "type": "integer",
+          "unit": "nodes",
+          "derivation": "that operator's nodes"
+        },
+        {
+          "name": "active_nodes",
+          "type": "integer",
+          "unit": "nodes",
+          "derivation": "that operator's active nodes"
+        },
+        {
+          "name": "fleets",
+          "type": "integer",
+          "unit": "fleets",
+          "derivation": "the distinct fleets its nodes fall in"
+        },
+        {
+          "name": "fleets_shared_with_other_operators",
+          "type": "integer",
+          "unit": "fleets",
+          "derivation": "those fleets that also hold another operator's nodes"
         }
       ]
     },

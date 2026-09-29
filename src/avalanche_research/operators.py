@@ -20,6 +20,7 @@ from typing import Any
 import duckdb
 
 from . import __version__, datasets
+from .attributions import named_agents
 from .catalog import (
     DataError,
     canonical_bytes,
@@ -37,14 +38,10 @@ TABLE = "operators"
 INPUTS = {"node-table": "derived.node-table"}
 OPTIONAL_INPUTS: dict[str, str] = {}
 
-# Named agents, by the reward address of their nodes, with the evidence for each label. A label is evidence only when a
-# public source names the address. The catalog addresses are named by behaviour, which is inference.
-NAMED_AGENTS = {
-    "avax10f8305248c0wsfsdempdtpx7lpkc30vwzl9y9q": ("GoGoPool", "Snowpeer liquid staking provider list, https://api.snowpeer.io/v1/lsps, captured 2026-09-28"),
-    "avax19zfygxaf59stehzedhxjesads0p5jdvfeedal0": ("BENQI", "Snowpeer liquid staking provider list, https://api.snowpeer.io/v1/lsps, captured 2026-09-28"),
-    "avax1dwkwval9epuwxpy0g2m6xg2l00fx4yxtzah80t": ("unnamed August 2025 exit address", "protocol mechanism catalog finding F6: reward address of nodes that left in August 2025, no public label"),
-    "avax134sylz25j3ga2grckw9kgyd2gscqplfmww6zqp": ("unnamed August 2025 exit address", "protocol mechanism catalog finding F6: reward address of nodes that left in August 2025, no public label"),
-}
+# Named agents, by the reward address of their nodes, from the classed attribution file (derived.operator-attributions).
+# The evidence string gives the attribution's ID, tier, class, and source. A shared reward address links nodes; it does
+# not prove one decision maker.
+NAMED_AGENTS = named_agents()
 FLEET_WEEKS = 1
 ALTERNATE_FLEET_WEEKS = 2
 
@@ -57,7 +54,10 @@ TABLE_COLUMNS = {
 
 
 def _agents_values() -> str:
-    rows = ", ".join(f"('{address}', '{name}', '{evidence}')" for address, (name, evidence) in NAMED_AGENTS.items())
+    def quoted(text: str) -> str:
+        return text.replace("'", "''")
+
+    rows = ", ".join(f"('{quoted(address)}', '{quoted(name)}', '{quoted(evidence)}')" for address, (name, evidence) in NAMED_AGENTS.items())
     return f"(VALUES {rows}) AS a(address, name, evidence)"
 
 
