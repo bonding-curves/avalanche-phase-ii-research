@@ -114,8 +114,11 @@ def test_extend_reads_only_the_new_heights(tmp_path):
     chain = blocks(9)
     pblocks.capture(pblocks.DATASET_ID, tmp_path / "first", parameters={"from_height": "100"}, request=FakeNode(chain, head=104))
     node = FakeNode(chain)
-    receipt = pblocks.capture(pblocks.DATASET_ID, tmp_path / "second", parameters={"extend": str(tmp_path / "first")}, request=node)
+    receipt = pblocks.capture(pblocks.DATASET_ID, tmp_path / "second", parameters={"extend": str(tmp_path / "first"), "node": "publicnode"},
+                              request=node)
     assert (receipt["from_height"], receipt["to_height"]) == (100, 108)
+    assert [(item["endpoint"].split("//")[1].split("/")[0], item["from_height"], item["to_height"]) for item in receipt["node_ranges"]] == [
+        ("api.avax.network", 100, 104), ("avalanche-p-chain-rpc.publicnode.com", 105, 108)]
     assert {height for height, _ in node.calls} == set(range(105, 109))
     assert pblocks.check(tmp_path / "second")["status"] == "pass"
 

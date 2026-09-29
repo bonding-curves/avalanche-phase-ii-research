@@ -12,7 +12,8 @@ One height is one JSON line, the node's responses in request order, written as i
 progress on disk, retries a refused request, keeps its lines on failure, and continues with ``resume=<kept directory>``.
 ``extend=<earlier capture directory>`` starts from an earlier walk's lines, checked against its receipt, and reads only
 the heights after it, so a daily run costs one day of blocks. A walk to the head ends at the height for which the node
-reports its supply counter (``platform.getCurrentSupply``), and the receipt keeps both as ``node_supply``.
+reports its supply counter (``platform.getCurrentSupply``), and the receipt keeps both as ``node_supply``. ``node=publicnode``
+reads PublicNode's public node instead of Avalanche's, and ``node_ranges`` records which node answered which heights.
 
 ``x-chain-rpc.blocks`` walks the X-Chain the same way with ``avm.getBlockByHeight``. Its blocks are linearized standard
 blocks, and its five transaction types are read from their fields the same way.
@@ -97,6 +98,8 @@ TX_TYPES = {
 # Transactions that do not embed a BaseTx and so carry only their own fields.
 BARE_TYPES = frozenset({"RewardValidatorTx", "RewardAutoRenewedValidatorTx", "AdvanceTimeTx"})
 HEX_BLOCK_TYPES = {30: "abort", 31: "commit", 32: "standard"}
+# The public node each walk may read, by the suffix of its endpoint IDs. A walk records the endpoint of every run it extends.
+NODES = {"avalanche": "", "publicnode": "-publicnode"}
 X_TX_TYPES = {
     frozenset(): "BaseTx",
     frozenset({"sourceChain", "importedInputs"}): "ImportTx",
@@ -126,7 +129,7 @@ COLUMNS = {
 
 def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
     values = dict(parameters or {})
-    unknown = set(values) - {"from_height", "to_height", "workers", "resume", "extend"}
+    unknown = set(values) - {"from_height", "to_height", "workers", "resume", "extend", "node"}
     if unknown:
         raise DataError(f"unknown parameters: {', '.join(sorted(unknown))}")
     if "from_height" not in values and "extend" not in values:
@@ -141,7 +144,7 @@ def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
     if not 1 <= workers <= MAX_WORKERS or (from_height is not None and from_height < 0):
         raise DataError(f"workers must be between 1 and {MAX_WORKERS}, and from_height at least 0")
     return {"from_height": from_height, "to_height": to_height, "workers": workers,
-            **{key: values[key] for key in ("resume", "extend") if values.get(key)}}
+            "node": _node(values.get("node", "avalanche")), **{key: values[key] for key in ("resume", "extend") if values.get(key)}}
 
 
 def _chain(dataset_id: str) -> dict[str, Any]:
@@ -150,7 +153,14 @@ def _chain(dataset_id: str) -> dict[str, Any]:
     return CHAINS[dataset_id]
 
 
-def _endpoint(catalog: dict[str, Any], endpoint_id: str = ENDPOINT_ID, dataset_id: str = DATASET_ID) -> str:
+def _node(node: str) -> str:
+    if node not in NODES:
+        raise DataError(f"node is one of {', '.join(NODES)}")
+    return node
+
+
+def _endpoint(catalog: dict[str, Any], endpoint_id: str = ENDPOINT_ID, dataset_id: str = DATASET_ID, node: str = "avalanche") -> str:
+    endpoint_id += NODES[node]
     provider = source(catalog, _chain(dataset_id)["source_id"])
     return next(item["url"] for item in provider["endpoints"] if item["id"] == endpoint_id)
 
@@ -183,7 +193,7 @@ def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | 
         "dataset_id": dataset_id,
         "source_id": chain["source_id"],
         "output": str(output),
-        "endpoint": _endpoint(catalog, ENDPOINT_ID, dataset_id),
+        "endpoint": _endpoint(catalog, ENDPOINT_ID, dataset_id, values["node"]),
         **values,
         "writes": [RAW, "capture.json"],
         "overwrite": False,
@@ -259,9 +269,9 @@ def capture(
     endpoint = preview["endpoint"]
     # Walked to the head, the walk ends at the height the node's supply counter holds for, so the counter anchors it.
     chain = _chain(dataset_id)
-    anchor = (_current_supply(_endpoint(catalog, SUPPLY_ENDPOINT_ID, dataset_id), timeout, request)
+    anchor = (_current_supply(_endpoint(catalog, SUPPLY_ENDPOINT_ID, dataset_id, preview["node"]), timeout, request)
               if chain["supply"] and preview["to_height"] == "head" else None)
-    head = anchor["height"] if anchor else _head(_endpoint(catalog, HEIGHT_ENDPOINT_ID, dataset_id), timeout, request, chain["prefix"])
+    head = anchor["height"] if anchor else _head(_endpoint(catalog, HEIGHT_ENDPOINT_ID, dataset_id, preview["node"]), timeout, request, chain["prefix"])
     to_height = head if preview["to_height"] == "head" else preview["to_height"]
     if to_height > head or to_height < preview["from_height"]:
         raise DataError(f"to_height must be between from_height and the node's height {head}")
@@ -283,9 +293,6 @@ def capture(
         if "extend" in preview:
             earlier_dir = Path(preview["extend"])
             earlier = _read_receipt(earlier_dir)
-            if earlier["endpoint"] != endpoint:
-                shutil.rmtree(temporary, ignore_errors=True)
-                raise DataError("cannot extend a walk of a different endpoint")
             records, lines = _kept(earlier_dir, earlier["blocks"])
     (temporary / RAW).write_bytes(b"".join(line + b"\n" for line in lines))
     (temporary / PROGRESS).write_text("".join(json.dumps(item, sort_keys=True) + "\n" for item in [header, *records]), encoding="utf-8")
@@ -355,6 +362,8 @@ def capture(
             "node_height": head,
             **({"node_supply": anchor} if anchor else {}),
             **({"extends_capture_id": _read_receipt(Path(preview["extend"]))["capture_id"]} if "extend" in preview else {}),
+            "node_ranges": [*(_node_ranges(Path(preview["extend"])) if "extend" in preview else []),
+                            *([{"endpoint": endpoint, "from_height": start, "to_height": to_height}] if todo else [])],
             "retries": retries,
             "responses": [{"endpoint_id": ENDPOINT_ID, "path": RAW, "blocks": len(records), "bytes": len(body_all), "sha256": sha256(body_all)}],
             "blocks": records,
@@ -367,6 +376,12 @@ def capture(
         if not (temporary / RAW).exists() or (temporary / RAW).stat().st_size == 0:
             shutil.rmtree(temporary, ignore_errors=True)
         raise
+
+
+def _node_ranges(earlier_dir: Path) -> list[dict[str, Any]]:
+    """The heights each node answered in the walk this one extends."""
+    earlier = _read_receipt(earlier_dir)
+    return earlier.get("node_ranges") or [{"endpoint": earlier["endpoint"], "from_height": earlier["from_height"], "to_height": earlier["to_height"]}]
 
 
 def _result_block(answer: Any, height: int) -> dict[str, Any]:

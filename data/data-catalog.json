@@ -716,6 +716,48 @@
           "response_fields": [
             "result"
           ]
+        },
+        {
+          "id": "get-block-by-height-publicnode",
+          "url": "https://avalanche-p-chain-rpc.publicnode.com",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "platform.getBlockByHeight",
+            "params": {
+              "height": "<decimal height>",
+              "encoding": "json"
+            },
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "get-height-publicnode",
+          "url": "https://avalanche-p-chain-rpc.publicnode.com",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "platform.getHeight",
+            "params": {},
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "get-current-supply-publicnode",
+          "url": "https://avalanche-p-chain-rpc.publicnode.com",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "platform.getCurrentSupply",
+            "params": {},
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
         }
       ]
     },
@@ -748,6 +790,35 @@
         {
           "id": "get-height",
           "url": "https://api.avax.network/ext/bc/X",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "avm.getHeight",
+            "params": {},
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "get-block-by-height-publicnode",
+          "url": "https://avalanche-x-chain-rpc.publicnode.com",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "avm.getBlockByHeight",
+            "params": {
+              "height": "<decimal height>",
+              "encoding": "json"
+            },
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "get-height-publicnode",
+          "url": "https://avalanche-x-chain-rpc.publicnode.com",
           "request_json": {
             "jsonrpc": "2.0",
             "method": "avm.getHeight",
@@ -2917,11 +2988,14 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One row per transaction of every P-Chain block in a height range, and one row without a transaction for each block that has none: a commit, an abort, or an empty standard block, read from the node's own blocks. The independent source behind the P-Chain backup datasets: stakes, rewards, the supply counter, and burns. The transaction type is read from the fields the node's JSON carries, and a commit is told from an abort by the block's codec type ID. A walk to the head ends at the height for which the node reports its supply counter, which the receipt keeps as the anchor of the supply reconstruction. The raw platform.getBlockByHeight responses stay hashed in the capture.",
+      "description": "One row per transaction of every P-Chain block in a height range, and one row without a transaction for each block that has none: a commit, an abort, or an empty standard block, read from the node's own blocks. The independent source behind the P-Chain backup datasets: stakes, rewards, the supply counter, and burns. The transaction type is read from the fields the node's JSON carries, and a commit is told from an abort by the block's codec type ID. A walk to the head ends at the height for which the node reports its supply counter, which the receipt keeps as the anchor of the supply reconstruction. The raw platform.getBlockByHeight responses stay hashed in the capture. A walk reads the Avalanche public node or PublicNode's, and its receipt records which node answered which heights.",
       "endpoint_ids": [
         "get-block-by-height",
         "get-height",
-        "get-current-supply"
+        "get-current-supply",
+        "get-block-by-height-publicnode",
+        "get-height-publicnode",
+        "get-current-supply-publicnode"
       ],
       "fields": [
         {
@@ -3009,10 +3083,12 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One row per transaction of every X-Chain block in a height range, read from the node's own linearized blocks. The independent source of X-Chain burns behind the burn backup. The transaction type is read from the fields the node's JSON carries. The raw avm.getBlockByHeight responses stay hashed in the capture.",
+      "description": "One row per transaction of every X-Chain block in a height range, read from the node's own linearized blocks. The independent source of X-Chain burns behind the burn backup. The transaction type is read from the fields the node's JSON carries. The raw avm.getBlockByHeight responses stay hashed in the capture. A walk reads the Avalanche public node or PublicNode's, and its receipt records which node answered which heights.",
       "endpoint_ids": [
         "get-block-by-height",
-        "get-height"
+        "get-height",
+        "get-block-by-height-publicnode",
+        "get-height-publicnode"
       ],
       "fields": [
         {
