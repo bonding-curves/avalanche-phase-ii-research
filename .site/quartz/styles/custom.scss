@@ -38,6 +38,10 @@ article img { max-width: 100%; height: auto; border-radius: 4px; }
 article blockquote { border-left: 2px solid var(--avalanche-red); padding-left: 20px; margin-inline: 0; }
 .callout { border-radius: 4px; background: var(--surface); border-color: var(--lightgray); }
 article table { font-size: 13px; margin: 20px 0; width: 100%; }
+// Quartz's container gives tables a side margin, which pushed full-width tables into a horizontal scroll.
+.table-container > table { margin: 20px 0; }
+// A facts table has no header row. Its empty header is hidden.
+article thead:has(th:first-child:empty + th:last-child:empty) { display: none; }
 article th { text-transform: uppercase; font-size: 11px; color: var(--gray); font-weight: 600; background: var(--surface); }
 article th, article td { padding: 14px 12px; border-bottom: 1px solid var(--lightgray); line-height: 1.6; }
 article tr:hover td { background: var(--highlight); }

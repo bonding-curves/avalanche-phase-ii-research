@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build and validate collection navigation from one normalized registry."""
+"""Build the collection index from one normalized registry, and check each source package.
+
+Each source package's index.md is its authored overview. The check requires it to carry the source title and to link
+the source page and any study components.
+"""
 
 from __future__ import annotations
 
@@ -89,6 +93,13 @@ def _route(root: Path, page: Path) -> str:
     return route + "/" if trailing else route
 
 
+def _slug_route(root: Path, page: Path) -> str:
+    """The route Quartz publishes for a page: spaces become hyphens, as the overviews link it."""
+    parts = list(page.relative_to(root / "content").parts)
+    parts[-1] = Path(parts[-1]).stem
+    return "/" + "/".join(part.replace(" ", "-") for part in parts)
+
+
 def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
     if registry.get("schema_version") != "research-navigation/v3":
         raise RegistryError("unsupported schema_version")
@@ -115,6 +126,13 @@ def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
                 raise RegistryError(f"{source['id']}: missing local page")
             if _title(page) != SOURCE_PAGE_TITLES[source_type]:
                 raise RegistryError(f"{source['id']}: source page title drift")
+            overview = page.parent / "index.md"
+            if not overview.is_file():
+                raise RegistryError(f"{source['id']}: missing package overview")
+            if _title(overview) != source["title"]:
+                raise RegistryError(f"{source['id']}: package overview title drift")
+            if _slug_route(root, page) not in overview.read_text(encoding="utf-8"):
+                raise RegistryError(f"{source['id']}: package overview does not link its source page")
 
     for collection in collections.values():
         if not isinstance(collection.get("title"), str) or not collection["title"].strip():
@@ -140,12 +158,12 @@ def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
         source_page = _page(root, sources[source_id]["local_page"], f"{source_id}.local_page")
         if page != source_page.parent / "index.md":
             raise RegistryError(f"{study['id']}: study page must be the source package index")
-        if page.is_file() and _title(page) != sources[source_id]["title"]:
-            raise RegistryError(f"{study['id']}: study page title drift")
         for component in _records(study.get("components"), f"{study['id']}.components"):
             component_page = _page(root, component.get("page"), f"{study['id']}.component.page")
             if not component_page.is_file() or _title(component_page) != component.get("title"):
                 raise RegistryError(f"{study['id']}: missing component or title drift")
+            if _slug_route(root, component_page) not in page.read_text(encoding="utf-8"):
+                raise RegistryError(f"{study['id']}: package overview does not link {component['title']}")
 
     return {"sources": sources, "collections": collections, "studies": studies}
 
@@ -153,8 +171,6 @@ def validate(registry: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
 def render(registry: dict[str, Any], root: Path = ROOT) -> dict[Path, str]:
     resolved = validate(registry, root)
     sources = resolved["sources"]
-    studies = resolved["studies"]
-    studies_by_source = {study["source_id"]: study for study in studies.values()}
     outputs: dict[Path, str] = {}
     for collection in resolved["collections"].values():
         collection_index = _page(root, collection["index"], "index")
@@ -167,36 +183,11 @@ def render(registry: dict[str, Any], root: Path = ROOT) -> dict[Path, str]:
             collection_items.append(
                 f"- [{source['title']}]({_route(root, package_index)}) · {source_type}"
             )
-            study = studies_by_source.get(source_id)
-            component_items = [
-                f"- [{SOURCE_PAGE_TITLES[source['source_type']]}]({_route(root, source_page)})"
-            ]
-            if study:
-                component_items.extend(
-                    f"- [{component['title']}]({_route(root, _page(root, component['page'], 'component.page'))})"
-                    for component in study["components"]
-                )
-                description = "Source material and reviewed research components for this study."
-            else:
-                description = "Source material admitted to the Essential Readings collection."
-            outputs[package_index] = (
-                "---\n"
-                f"title: \"{source['title']}\"\n"
-                f"description: \"{description}\"\n"
-                f"source_id: \"{source_id}\"\n"
-                "---\n\n"
-                f"# {source['title']}\n\n"
-                f"{description}\n\n"
-                "## Contents\n\n"
-                + "\n".join(component_items)
-                + "\n"
-            )
         outputs[collection_index] = (
             "---\n"
             f"title: {collection['title']}\n"
-            "description: Primary sources and their reviewed research components.\n"
+            "description: The Foundation articles and sources the Phase II research reproduces and builds on.\n"
             "---\n\n"
-            f"# {collection['title']}\n\n"
             + "\n".join(collection_items)
             + "\n"
         )
