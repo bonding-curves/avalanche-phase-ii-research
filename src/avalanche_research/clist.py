@@ -7,7 +7,8 @@ reaches before ``from_date``. One page is one JSON line with the token that fetc
 capture continues from its last page with ``resume=<kept directory>``.
 
 ``derived.c-chain-evm-burn-daily`` sums the blocks of each complete UTC day into the columns of
-``snowflake.c-chain-evm-burn-daily``. The Data API lists every block, so a day has no absent or short block.
+``snowflake.c-chain-evm-burn-daily``. The Data API lists every block, so a day has no absent or short block. It reads
+every built block list run together, a block once, so a daily capture need only page back two days.
 
 ``data-api.p-chain-block-list`` pages the P-Chain list the same way. Each P-Chain block carries the supply counter and the
 ACP-77 counters: the active L1 validator count and the fee each has accrued since Etna. The continuous L1 validator fee
@@ -328,8 +329,23 @@ def daily_rows(rows: list[tuple[Any, ...]]) -> list[tuple[Any, ...]]:
     return result
 
 
+def union_blocks(paths: list[Path]) -> list[tuple[Any, ...]]:
+    """Every block of the given block list runs once, by height. A block two runs list differently is an error."""
+    blocks: dict[int, tuple[Any, ...]] = {}
+    connection = duckdb.connect()
+    try:
+        for path in paths:
+            for row in connection.execute("SELECT * FROM read_parquet(?)", [str(path)]).fetchall():
+                row = (*row[:6], int(row[6]), int(row[7]))
+                if blocks.setdefault(row[0], row) != row:
+                    raise DataError(f"block {row[0]} differs between block list runs")
+    finally:
+        connection.close()
+    return [blocks[height] for height in sorted(blocks)]
+
+
 def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, root: Path | None = None) -> dict[str, Any]:
-    """The daily table from the newest (or pinned) block list run."""
+    """The daily table from every built block list run, or the one pinned."""
     if dataset_id != DAILY_ID:
         raise DataError(f"{dataset_id} is captured; use `avalanche data fetch` and `build`")
     if output.exists():
@@ -338,17 +354,19 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
     if set(pinned) - {DATASET_ID}:
         raise DataError(f"the only input of {DAILY_ID} is {DATASET_ID}")
     catalog = load_catalog()
-    record = datasets.receipt(DATASET_ID, pinned.get(DATASET_ID), root)
-    parquet_in = datasets.parquet_path(DATASET_ID, record["run"], root)
-    connection = duckdb.connect()
-    try:
-        blocks = connection.execute("SELECT * FROM read_parquet(?) ORDER BY block_height", [str(parquet_in)]).fetchall()
-    finally:
-        connection.close()
-    rows = daily_rows([(*row[:6], int(row[6]), int(row[7])) for row in blocks])
-    body = parquet_in.read_bytes()
-    inputs = [{"input_id": "c-block-list", "dataset_id": DATASET_ID, "run": record["run"], "capture_id": record["capture"]["capture_id"],
-               "parquet": parquet_in.name, "bytes": len(body), "sha256": sha256(body)}]
+    runs = [pinned[DATASET_ID]] if DATASET_ID in pinned else [item["run"] for item in datasets.runs(DATASET_ID, root)]
+    if not runs:
+        raise DataError(f"no built run of {DATASET_ID}")
+    inputs = []
+    for run in runs:
+        record = datasets.receipt(DATASET_ID, run, root)
+        parquet_in = datasets.parquet_path(DATASET_ID, run, root)
+        body = parquet_in.read_bytes()
+        inputs.append({"input_id": "c-block-list", "dataset_id": DATASET_ID, "run": record["run"], "capture_id": record["capture"]["capture_id"],
+                       "parquet": parquet_in.name, "bytes": len(body), "sha256": sha256(body), "path": parquet_in})
+    blocks = union_blocks([item["path"] for item in inputs])
+    rows = daily_rows(blocks)
+    inputs = [{key: value for key, value in item.items() if key != "path"} for item in inputs]
     completed_at = now()
     identity = sha256(canonical_bytes({"completed_at": completed_at, "inputs": inputs}))
     capture_receipt = {
@@ -369,6 +387,7 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
             "schema_version": "derived-build/v1", "dataset_id": DAILY_ID, "dataset_schema": dataset(catalog, DAILY_ID)["fields"],
             "source_capture_id": capture_receipt["capture_id"], "completed_at": now(), "tool": f"avalanche-research@{__version__}",
             "summary": {"rows": len(rows), "first_date": str(rows[0][0]) if rows else None, "last_date": str(rows[-1][0]) if rows else None,
+                        "block_list_runs": len(inputs), "missing_heights": _gaps(blocks),
                         "absent_blocks": sum(row[5] for row in rows), "burned_wei": str(sum(row[1] for row in rows))},
             "outputs": [{"path": parquet.name, "bytes": parquet.stat().st_size, "sha256": sha256(parquet.read_bytes())}],
         }
@@ -396,19 +415,20 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                 "checked": ["capture hashes", "page token chain", "every block once", "no missing height"], "summary": summary, "findings": findings}
     if receipt.get("dataset_id") != DAILY_ID:
         raise DataError(f"not a {DAILY_ID} or {DATASET_ID} capture: {capture_dir}")
-    item = receipt["inputs"][0]
     root_dir = datasets.RUNS if root is None else root
-    parquet_in = root_dir / item["run"] / "dataset" / item["parquet"]
-    if not parquet_in.is_file() or sha256(parquet_in.read_bytes()) != item["sha256"]:
-        findings.append(f"input run missing or changed: {item['run']}")
+    paths = []
+    for item in receipt["inputs"]:
+        parquet_in = root_dir / item["run"] / "dataset" / item["parquet"]
+        if not parquet_in.is_file() or sha256(parquet_in.read_bytes()) != item["sha256"]:
+            findings.append(f"input run missing or changed: {item['run']}")
+        paths.append(parquet_in)
     summary = {}
     if dataset_dir is not None:
         connection = duckdb.connect()
         try:
             built = connection.execute("SELECT * FROM read_parquet(?) ORDER BY date_utc", [str(dataset_dir / f"{DAILY_TABLE}.parquet")]).fetchall()
             if not findings:
-                blocks = connection.execute("SELECT * FROM read_parquet(?) ORDER BY block_height", [str(parquet_in)]).fetchall()
-                rebuilt = daily_rows([(*row[:6], int(row[6]), int(row[7])) for row in blocks])
+                rebuilt = daily_rows(union_blocks(paths))
                 if [tuple(map(str, row)) for row in built] != [tuple(map(str, row)) for row in rebuilt]:
                     findings.append("a rebuild from the recorded input differs")
             if against is not None:

@@ -13,7 +13,9 @@ paid, decoded from their codec bytes. A staker that ended unrewarded has none.
 One hash is one JSON line, written as it arrives, and a stopped capture continues with ``resume=<kept directory>``.
 ``which=unrewarded-before-walk`` reads only the stakes the supply replay needs from the Data API: those that started
 before the walk and ended unrewarded. ``node=publicnode`` reads the reward outputs from PublicNode's public P-Chain node,
-the second node the redundancy plan keeps for when the Avalanche node refuses a long walk.
+the second node the redundancy plan keeps for when the Avalanche node refuses a long walk. ``extend=<earlier capture
+directory>`` keeps the earlier capture's records for the stakes both name, checked against its receipt, and reads only
+the rest, so a daily run reads one day of stakes.
 """
 
 from __future__ import annotations
@@ -99,7 +101,7 @@ def _endpoint(catalog: dict[str, Any], dataset_id: str, node: str = "avalanche")
 
 def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
     values = dict(parameters or {})
-    unknown = set(values) - {"blocks", "workers", "resume", "which", "node"}
+    unknown = set(values) - {"blocks", "workers", "resume", "which", "node", "extend"}
     if unknown:
         raise DataError(f"unknown parameters: {', '.join(sorted(unknown))}")
     if not values.get("blocks"):
@@ -113,7 +115,8 @@ def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
     which, node = values.get("which", "all"), values.get("node", "avalanche")
     if which not in WHICH or node not in NODES:
         raise DataError(f"which is one of {', '.join(WHICH)}, and node one of {', '.join(NODES)}")
-    return {"blocks": values["blocks"], "workers": workers, "which": which, "node": node, **({"resume": values["resume"]} if values.get("resume") else {})}
+    return {"blocks": values["blocks"], "workers": workers, "which": which, "node": node,
+            **{key: values[key] for key in ("resume", "extend") if values.get(key)}}
 
 
 def staking_hashes(run: str, root: Path | None = None, which: str = "all") -> tuple[dict[str, Any], list[str]]:
@@ -143,7 +146,7 @@ def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | 
     return {
         "dataset_id": dataset_id, "source_id": spec["source_id"], "output": str(output), "endpoint": _endpoint(load_catalog(), dataset_id, values["node"]),
         "blocks_run": values["blocks"], "blocks_capture_id": record["capture"]["capture_id"], "stakes": len(hashes), "which": values["which"],
-        "workers": values["workers"], **({"resume": values["resume"]} if "resume" in values else {}),
+        "workers": values["workers"], **{key: values[key] for key in ("resume", "extend") if key in values},
         "writes": [RAW, "capture.json"], "overwrite": False,
     }
 
@@ -191,9 +194,9 @@ def capture(
     else:
         temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
         (temporary / "raw").mkdir()
-        (temporary / RAW).write_bytes(b"")
-        (temporary / PROGRESS).write_text(json.dumps(header, sort_keys=True) + "\n", encoding="utf-8")
-        records = []
+        records, bodies = _earlier(Path(preview["extend"]), dataset_id, set(hashes)) if "extend" in preview else ([], [])
+        (temporary / RAW).write_bytes(b"".join(body + b"\n" for body in bodies))
+        (temporary / PROGRESS).write_text("".join(json.dumps(item, sort_keys=True) + "\n" for item in [header, *records]), encoding="utf-8")
     done = {record["staking_transaction_hash"] for record in records}
     todo = [tx_hash for tx_hash in hashes if tx_hash not in done]
     retries = 0
@@ -262,6 +265,16 @@ def capture(
         if not (temporary / RAW).exists() or (temporary / RAW).stat().st_size == 0:
             shutil.rmtree(temporary, ignore_errors=True)
         raise
+
+
+def _earlier(capture_dir: Path, dataset_id: str, wanted: set[str]) -> tuple[list[dict[str, Any]], list[bytes]]:
+    """An earlier capture's records and lines for the wanted stakes, each checked against the earlier receipt."""
+    receipt, _ = read_rows(capture_dir)
+    if receipt["dataset_id"] != dataset_id:
+        raise DataError(f"cannot extend a capture of {receipt['dataset_id']}")
+    lines = (capture_dir / receipt["responses"][0]["path"]).read_bytes().splitlines()
+    kept = [(record, line) for record, line in zip(receipt["records"], lines) if record["staking_transaction_hash"] in wanted]
+    return [record for record, _ in kept], [line for _, line in kept]
 
 
 def _utc(seconds: Any, label: str, tx_hash: str) -> datetime:

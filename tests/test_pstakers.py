@@ -62,3 +62,18 @@ def test_a_reward_output_of_another_asset_is_refused():
     other = REAL_UTXO[:78] + "00" + REAL_UTXO[80:]
     with pytest.raises(DataError, match="not AVAX"):
         pstakers.reward_outputs([other], "x")
+
+
+def test_extend_reads_only_stakes_the_earlier_capture_lacks(root):
+    first = root / "first"
+    pstakers.capture(pstakers.REWARDS_ID, first / "capture", parameters={"blocks": "walk"}, request=node, root=root)
+    asked = []
+
+    def counting(url, timeout, body_json=None):
+        asked.append(body_json["params"]["txID"])
+        return node(url, timeout, body_json)
+
+    pstakers.capture(pstakers.REWARDS_ID, root / "second" / "capture", parameters={"blocks": "walk", "extend": str(first / "capture")},
+                     request=counting, root=root)
+    assert asked == []
+    assert pstakers.read_rows(root / "second" / "capture")[1] == pstakers.read_rows(first / "capture")[1]

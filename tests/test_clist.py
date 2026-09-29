@@ -98,3 +98,14 @@ def test_the_p_chain_list_keeps_the_supply_and_l1_counters(tmp_path):
     rows = duckdb.connect().execute("SELECT block_height, current_supply_navax, active_l1_validators FROM read_parquet(?) ORDER BY 1",
                                     [str(tmp_path / "dataset" / "p-chain-block-list.parquet")]).fetchall()
     assert rows[0] == (1010, 474 * 10**15 + 1010, 583) and len(rows) == 10
+
+
+def test_the_daily_table_reads_every_block_list_run_once(tmp_path):
+    runs = tmp_path / "runs"
+    for name, first in (("early", "2026-09-14"), ("late", "2026-09-16")):
+        clist.capture(clist.DATASET_ID, runs / name / "capture", parameters={"from_date": first}, request=fake)
+        clist.build(clist.DATASET_ID, runs / name / "capture", runs / name / "dataset")
+    result = clist.derive(clist.DAILY_ID, runs / "daily", root=runs)
+    assert result["build"]["summary"]["block_list_runs"] == 2 and result["build"]["summary"]["missing_heights"] == 0
+    assert result["build"]["summary"]["first_date"] == "2026-09-15" and result["build"]["summary"]["last_date"] == "2026-09-16"
+    assert clist.check(runs / "daily" / "capture", runs / "daily" / "dataset", root=runs)["status"] == "pass"
