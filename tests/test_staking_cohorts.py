@@ -3,7 +3,10 @@
 import pandas as pd
 import pytest
 import duckdb
+import holoviews as hv
+import panel as pn
 import param as pm
+from bokeh.models import BoxAnnotation, HoverTool, Line
 
 import avalanche_research.staking_cohorts as staking_cohorts
 from avalanche_research.staking_cohorts import (
@@ -76,6 +79,23 @@ def test_each_grain_preserves_population(cohorts):
     for grain in ("Day", "Week", "Year", "Era", "All"):
         table = cohort_table(*cohorts, grain)
         assert table.groupby("Role")["Total Commitments"].sum().to_dict() == {"Delegator": 1, "Validator": 3}
+
+
+def test_date_window_recomputes_partial_intervals_and_keeps_empty_roles(cohorts):
+    daily, cutoffs = cohorts
+    cutoffs = {**cutoffs, "delegator": pd.Timestamp("2026-09-24")}
+    window = (pd.Timestamp("2026-09-22"), pd.Timestamp("2026-09-24"))
+    all_rows = cohort_table(daily, cutoffs, "All", window=window).set_index("Role")
+    assert all_rows.loc["Validator", "Total Commitments"] == 1
+    assert all_rows.loc["Validator", "Total Stake (AVAX)"] == 500
+    assert all_rows.loc["Validator", "Start (UTC)"] == window[0]
+    assert all_rows.loc["Validator", "End (UTC)"] == window[1]
+    assert all_rows.loc["Validator", "Commitments / Day"] == pytest.approx(0.5)
+    assert all_rows.loc["Delegator", "Total Commitments"] == 0
+    eras = cohort_table(daily, cutoffs, "Era", window=window)
+    validator_eras = eras[eras["Role"].eq("Validator")].set_index("Reporting Interval")
+    assert validator_eras.loc["Helicon", "Total Commitments"] == 1
+    assert validator_eras.loc["Granite", "Total Commitments"] == 0
 
 
 def test_periodic_denominator_changes_rates_not_totals(cohorts):
@@ -155,6 +175,12 @@ def test_identity_counts_deduplicate_within_each_interval(tmp_path):
     assert day.loc["2026-09-21", "Total Validator Reward Addresses"] == 2
     assert day.loc["2026-09-21", "Validator Node-address Pairs"] == 3
     assert day.loc["2026-09-23", "Total Nodes"] == 1
+    selected = distinct_identities(*(str(paths[name]) for name in records),
+                                   pd.Timestamp("2026-09-23"), pd.Timestamp("2026-09-24"))
+    only = selected[selected.grain.eq("All")].set_index("role")
+    assert only.loc["validator", "Total Nodes"] == 1
+    assert only.loc["validator", "Total Validator Reward Addresses"] == 1
+    assert only.loc["delegator", "Total Delegator Funding Addresses"] == 1
 
 
 def test_address_links_do_not_treat_missing_addresses_as_zero(cohorts):
@@ -253,6 +279,71 @@ def test_count_quantities_control_existing_columns(cohorts):
     assert "Stake / Week (AVAX)" in without_totals
 
 
+def test_chart_uses_table_controls_and_only_per_measures(cohorts, monkeypatch):
+    daily, cutoffs = cohorts
+    tables = {grain: cohort_table(daily, cutoffs, grain)
+              for grain in StakingCohorts.param.time_grain.objects}
+    monkeypatch.setattr(staking_cohorts, "_cohort_data",
+                        lambda run: (tables, cutoffs, pd.Timestamp("2026-09-24"), daily, ()))
+    pn.extension()
+    explorer = StakingCohorts("fixture", time_grain="Day", metrics=["Stake"],
+                              views=["Total", "Per Commitment"], normalization="Mean")
+    chart = explorer.chart()
+    assert chart is explorer.chart()
+    group_by_widget = explorer.panel()[0][0][0]
+    group_by_widget.value = "Week"
+    assert explorer.time_grain == "Week"
+    chart_group_by_widget = chart[0][0][0]
+    assert chart_group_by_widget.value == "Week"
+    chart_group_by_widget.value = "Day"
+    assert group_by_widget.value == "Day"
+    assert explorer.date_range == (pd.Timestamp("2026-09-21").date(), pd.Timestamp("2026-09-24").date())
+    assert chart[0][0][-1].value == explorer.panel()[0][0][-1].value
+    frame = explorer._plot_frame()
+    assert frame["Measure"].unique().tolist() == ["Stake per Commitment (AVAX)"]
+    assert frame["Index"].mean() == pytest.approx(1)
+    assert "Stake per Commitment (AVAX)" in explorer._frame()
+    assert "Total Stake (AVAX)" in explorer._frame()
+    figure = hv.render(explorer.plot())
+    assert figure.above[0].major_label_overrides
+    curves = [renderer.glyph for renderer in figure.renderers
+              if isinstance(getattr(renderer, "glyph", None), Line)]
+    assert curves and all(curve.line_width == 4 and curve.line_alpha == 0.75 for curve in curves)
+    assert figure.legend[0].location == "top_right"
+    assert figure.legend[0].click_policy == "mute"
+    hover = next(tool for tool in figure.tools if isinstance(tool, HoverTool))
+    assert hover.tooltips[0] == ("Measure", "@{Title}")
+    assert hover.tooltips[2] == ("Value", "@{DisplayValue}")
+    assert hover.formatters["@Date"] == "datetime"
+
+    window = (pd.Timestamp("2026-09-23"), pd.Timestamp("2026-09-24"))
+    filtered = {grain: cohort_table(daily, cutoffs, grain, window=window)
+                for grain in StakingCohorts.param.time_grain.objects}
+    monkeypatch.setattr(staking_cohorts, "_selected_tables", lambda run, start, end: filtered)
+    chart[0][0][-1].value = (window[0].date(), window[0].date())
+    assert explorer.date_range == (window[0].date(), window[0].date())
+    assert explorer.panel()[0][0][-1].value == explorer.date_range
+    assert explorer._selected_table()["Total Commitments"].sum() == 1
+    assert explorer.panel()[1].value["Total Stake (AVAX)"].tolist() == [500]
+    assert len(explorer._plot_frame()) == 1
+    explorer.date_range = explorer.param.date_range.bounds
+
+    explorer.population = "Delegators"
+    assert explorer._plot_frame()["Role"].unique().tolist() == ["Delegator"]
+    explorer.views = ["Total"]
+    assert explorer._plot_frame().empty
+    assert isinstance(explorer.plot(), pn.pane.Markdown)
+    explorer.views = ["Per Commitment"]
+    explorer.time_grain = "All"
+    assert len(explorer._plot_frame()) == 1
+    assert isinstance(explorer.plot(), hv.Overlay)
+    explorer.normalization = "None"
+    raw = explorer._plot_frame().iloc[0]
+    assert raw["Index"] == raw["Value"]
+    explorer.time_grain = "Era"
+    assert hv.render(explorer.plot()).select(BoxAnnotation)
+
+
 def test_address_denominators_follow_population_and_rate_unit(cohorts):
     identities = pd.DataFrame([
         {"role": "validator", "grain": "All", "bucket": "All", "Total Nodes": 2,
@@ -312,7 +403,9 @@ def test_pinned_run_data_is_reused_across_explorers(monkeypatch):
 
     monkeypatch.setattr(staking_cohorts.datasets, "receipt", receipt)
     monkeypatch.setattr(staking_cohorts.datasets, "parquet_path", lambda dataset, run: f"{dataset}/{run}")
-    monkeypatch.setattr(staking_cohorts, "accepted_commitments", lambda path: pd.DataFrame())
+    monkeypatch.setattr(staking_cohorts, "accepted_commitments", lambda path: pd.DataFrame({
+        "first_accepted": [pd.Timestamp("2026-09-10")],
+    }))
     monkeypatch.setattr(staking_cohorts, "distinct_identities", lambda *paths: pd.DataFrame())
     monkeypatch.setattr(staking_cohorts, "cohort_table", lambda *args: pd.DataFrame())
 
@@ -329,12 +422,20 @@ def test_panel_keeps_one_table_when_selections_change(monkeypatch):
     explorer.run = "fixture"
     explorer._cutoffs = {"validator": pd.Timestamp("2026-09-24")}
     explorer._reward_cutoff = pd.Timestamp("2026-09-24")
-    monkeypatch.setattr(StakingCohorts, "_frame", lambda self: pd.DataFrame({"Quantity count": [len(self.metrics)]}))
+    explorer.param.date_range.bounds = (pd.Timestamp("2026-09-21").date(), pd.Timestamp("2026-09-24").date())
+    explorer.date_range = explorer.param.date_range.bounds
+    frame = pd.DataFrame({"Nodes": [1], "Stake": [2]})
+    monkeypatch.setattr(StakingCohorts, "_full_frame", lambda self: frame)
+    monkeypatch.setattr(StakingCohorts, "_frame",
+                        lambda self: frame[["Nodes"] if "Nodes" in self.metrics else ["Stake"]])
 
     panel = explorer.panel()
     assert explorer.panel() is panel
     table = panel[1]
-    assert table.value.loc[0, "Quantity count"] == 7
+    original_value = table.value
+    assert table.value.columns.tolist() == ["Nodes", "Stake"]
+    assert table.hidden_columns == ["Stake"]
     explorer.metrics = ["Stake"]
     assert panel[1] is table
-    assert table.value.loc[0, "Quantity count"] == 1
+    assert table.value is original_value
+    assert table.hidden_columns == ["Nodes"]

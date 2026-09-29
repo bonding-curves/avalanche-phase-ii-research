@@ -3,19 +3,22 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import timedelta, timezone
+from datetime import date, timedelta, timezone
 from functools import cache
 
 import duckdb
+import holoviews as hv
 import pandas as pd
 import panel as pn
 import param as pm
+from bokeh.models import DatetimeAxis, FixedTicker
 
 from . import datasets
 from .model.protocol import MAINNET_UPGRADES
 
 
 DAY = timedelta(days=1)
+NETWORK_START = pd.Timestamp("2020-09-10")
 DAYS_PER_RATE_PERIOD = {"Day": 1, "Week": 7, "Year": 365.2425}
 MEASURES = (
     "commitments", "stake_avax", "stake_duration_avax_days",
@@ -26,6 +29,7 @@ ADDRESS_LINK_COLUMNS = ("Validator Node-address Pairs", "Delegator Node-address 
 LINKED_NODE_COLUMNS = ("Validator Nodes with Addresses", "Delegator Nodes with Addresses")
 VIEWS = ("Total", "Per Calendar Unit", "Per Commitment", "Per Node", "Per Node per Calendar Unit",
          "Per Address", "Per Address per Calendar Unit")
+CONTEXT_COLUMNS = ("Reporting Interval", "Start (UTC)", "End (UTC)", "Role")
 
 
 def denominator_options(rate_unit: str) -> dict[str, str]:
@@ -88,7 +92,7 @@ METRIC_COLUMNS = {
 }
 
 _IDENTITY_COUNTS_SQL = """
-WITH events AS ({events}),
+WITH events AS (SELECT * FROM ({events}) {window}),
 buckets AS (
     SELECT role, node_id, identity, accepted_at::DATE AS day_bucket,
            date_trunc('week', accepted_at)::DATE AS week_bucket,
@@ -161,7 +165,9 @@ def accepted_commitments(parquet: str) -> pd.DataFrame:
         ).df()
 
 
-def distinct_identities(periods: str, validators: str, delegators: str) -> pd.DataFrame:
+def distinct_identities(periods: str, validators: str, delegators: str,
+                        start: pd.Timestamp | None = None,
+                        end: pd.Timestamp | None = None) -> pd.DataFrame:
     """Count nodes, addresses, and distinct observed node-address links by interval."""
     sources = (
         ("Total Nodes", None, None, _NODE_EVENTS, periods),
@@ -177,7 +183,9 @@ def distinct_identities(periods: str, validators: str, delegators: str) -> pd.Da
                         for item in MAINNET_UPGRADES.upgrades])
         counts = None
         for column, links, linked_nodes, events, parquet in sources:
-            part = db.execute(_IDENTITY_COUNTS_SQL.format(events=events), [parquet]).df()
+            window = "WHERE accepted_at >= ? AND accepted_at < ?" if start is not None else ""
+            args = [parquet, start, end] if start is not None else [parquet]
+            part = db.execute(_IDENTITY_COUNTS_SQL.format(events=events, window=window), args).df()
             part = part.rename(columns={"identities": column})
             if links is None:
                 part = part.drop(columns=["links", "linked_nodes"])
@@ -222,16 +230,23 @@ def _calendar_starts(start: pd.Timestamp, end: pd.Timestamp, grain: str):
 
 
 def cohort_table(daily: pd.DataFrame, cutoffs: Mapping[str, pd.Timestamp], grain: str,
-                 identities: pd.DataFrame | None = None) -> pd.DataFrame:
+                 identities: pd.DataFrame | None = None,
+                 window: tuple[pd.Timestamp, pd.Timestamp] | None = None) -> pd.DataFrame:
     """One row per covered interval and role, including intervals with no accepted commitments."""
     if grain not in {"Day", "Week", "Year", "Era", "All"}:
         raise ValueError(f"unknown time grain: {grain}")
     daily = daily.copy()
     daily["accepted_day"] = pd.to_datetime(daily["accepted_day"])
     starts = daily.groupby("role")["first_accepted"].min().to_dict()
+    if window is not None:
+        daily = daily[daily["accepted_day"].ge(window[0]) & daily["accepted_day"].lt(window[1])]
     rows = []
     for role, start in starts.items():
         start, end = pd.Timestamp(start), cutoffs[role]
+        if window is not None:
+            start, end = max(start, window[0]), min(end, window[1])
+        if start >= end:
+            continue
         if grain == "All":
             intervals = [("All", "All", start, end)]
         elif grain == "Era":
@@ -393,6 +408,31 @@ def display_columns(table: pd.DataFrame) -> pd.DataFrame:
     return table.rename(columns=lambda column: column.replace(" / ", " per ").replace("/", " per "))
 
 
+def _upgrade_axis(plot, element):
+    """Label upgrade starts above the calendar axis, as in the staking canvas."""
+    if "upgrade_axis" in plot.handles:
+        plot.handles["upgrade_axis"].axis_label = None
+        return
+    ticks = {}
+    for era, start, _ in _era_intervals(NETWORK_START, pd.Timestamp.max.normalize()):
+        ticks[start.value / 1_000_000] = era
+    axis = DatetimeAxis(ticker=FixedTicker(ticks=list(ticks)), major_label_overrides=ticks,
+                        axis_line_color=None, major_label_text_font_size="8pt", major_tick_in=0)
+    plot.state.above = [axis, *plot.state.above]
+    plot.handles["upgrade_axis"] = axis
+
+
+def _legend_interaction(plot, element):
+    for legend in plot.state.legend:
+        legend.click_policy = "mute"
+
+
+def _hover_number(value: float) -> str:
+    if 0 < abs(value) < 0.005:
+        return "<0.01" if value > 0 else ">-0.01"
+    return f"{value:,.2f}".rstrip("0").rstrip(".")
+
+
 @cache
 def _cohort_data(run: str):
     """Build the checked cohort tables once per pinned run in this kernel."""
@@ -408,7 +448,17 @@ def _cohort_data(run: str):
               for grain in StakingCohorts.param.time_grain.objects}
     reward_cutoff = pd.Timestamp(next(item["captured_at"] for item in receipt["capture"]["inputs"]
                                       if item["input_id"] == "staking-rewards"))
-    return tables, cutoffs, reward_cutoff
+    return tables, cutoffs, reward_cutoff, daily, (periods, paths["validator-stakes"], paths["delegator-stakes"])
+
+
+@cache
+def _selected_tables(run: str, start: date, end: date):
+    """Recompute exact acceptance cohorts for inclusive UTC calendar dates."""
+    _, cutoffs, _, daily, sources = _cohort_data(run)
+    window = (pd.Timestamp(start), pd.Timestamp(end) + DAY)
+    identities = distinct_identities(*sources, *window)
+    return {grain: cohort_table(daily, cutoffs, grain, identities, window)
+            for grain in StakingCohorts.param.time_grain.objects}
 
 
 class StakingCohorts(pm.Parameterized):
@@ -420,21 +470,147 @@ class StakingCohorts(pm.Parameterized):
     metrics = pm.ListSelector(default=list(QUANTITIES), objects=list(QUANTITIES), label="Quantities")
     views = pm.ListSelector(default=["Total", "Per Calendar Unit", "Per Commitment"], objects=list(VIEWS),
                             label="Denominators")
+    normalization = pm.Selector(default="Mean", objects=["None", "First nonzero", "Mean", "Median"],
+                                label="Normalize by")
+    date_range = pm.CalendarDateRange(default=None, allow_None=True, label="Accepted dates (UTC)")
 
     def __init__(self, run: str, **params):
         super().__init__(**params)
         self.run = run
-        self._tables, self._cutoffs, self._reward_cutoff = _cohort_data(run)
+        self._tables, self._cutoffs, self._reward_cutoff, self._daily, self._sources = _cohort_data(run)
+        first = pd.Timestamp(self._daily["first_accepted"].min()).date()
+        last = max(self._cutoffs.values()).date()
+        self.param.date_range.bounds = (first, last)
+        if self.date_range is None:
+            self.date_range = (first, last)
+
+    def _selected_table(self):
+        full_range = self.param.date_range.bounds
+        tables = self._tables if self.date_range == full_range else _selected_tables(self.run, *self.date_range)
+        return tables[self.time_grain]
 
     def _frame(self):
-        table = for_population(self._tables[self.time_grain], self.population)
+        table = for_population(self._selected_table(), self.population)
         table = selected_columns(rates_per(table, self.periodic_denominator), self.metrics, self.views,
                                  self.periodic_denominator)
         return display_columns(table).round(2)
 
+    def _full_frame(self):
+        table = for_population(self._selected_table(), self.population)
+        table = selected_columns(rates_per(table, self.periodic_denominator), list(QUANTITIES), list(VIEWS),
+                                 self.periodic_denominator)
+        return display_columns(table).round(2)
+
+    def _plot_frame(self):
+        """Selected per-denominator quantities on the same reporting intervals as the table."""
+        views = [view for view in self.views if view != "Total"]
+        table = rates_per(for_population(self._selected_table(), self.population),
+                          self.periodic_denominator)
+        table = display_columns(selected_columns(table, self.metrics, views, self.periodic_denominator))
+        measures = [column for column in table if column not in (*CONTEXT_COLUMNS,
+                    f"Total {self.periodic_denominator}s", "Reward Outcomes")]
+        if not measures:
+            return pd.DataFrame(columns=["Date", "Role", "Measure", "Value", "Index"])
+        frame = table.melt(id_vars=["Start (UTC)", "End (UTC)", "Role"], value_vars=measures,
+                           var_name="Measure", value_name="Value")
+        frame["Date"] = frame["Start (UTC)"] + (frame["End (UTC)"] - frame["Start (UTC)"]) / 2
+        frame = frame.sort_values("Date")
+        grouped = frame.groupby(["Role", "Measure"], sort=False)["Value"]
+        if self.normalization == "None":
+            frame["Index"] = frame["Value"]
+            return frame.dropna(subset=["Index"])
+        if self.normalization == "First nonzero":
+            baseline = grouped.transform(lambda values: values[values.ne(0)].iloc[0]
+                                         if values.ne(0).any() else float("nan"))
+        elif self.normalization == "Median":
+            baseline = grouped.transform("median")
+        else:
+            baseline = grouped.transform("mean")
+        frame["Index"] = frame["Value"] / baseline.replace(0, float("nan"))
+        return frame.dropna(subset=["Index"])
+
+    @pm.depends("time_grain", "population", "periodic_denominator", "metrics", "views", "normalization",
+                "date_range")
+    def plot(self):
+        frame = self._plot_frame()
+        if frame.empty:
+            return pn.pane.Markdown("Select a Per denominator and a quantity with observed values to draw the chart.")
+        bands = [hv.VSpan(start, end).opts(color="#d9d9d9", alpha=0.35, line_alpha=0)
+                 for index, (_, start, end) in enumerate(_era_intervals(frame["Start (UTC)"].min(),
+                                                                          frame["End (UTC)"].max()))
+                 if index % 2]
+        curves = []
+        for (role, measure), values in frame.groupby(["Role", "Measure"], sort=False):
+            label = f"{role}: {measure}" if self.population == "Both" else measure
+            element = hv.Scatter if len(values) == 1 else hv.Curve
+            values = values.assign(Title=label, DisplayValue=values["Value"].map(_hover_number),
+                                   DisplayIndex=values["Index"].map(_hover_number))
+            style = {"tools": ["hover"], "muted_alpha": 0.08,
+                     "hover_tooltips": [("Measure", "@Title"), ("Date", "@Date{%F}"),
+                                        ("Value", "@DisplayValue"), ("Chart value", "@DisplayIndex")],
+                     "hover_formatters": {"@Date": "datetime"}}
+            style.update({"line_width": 4, "line_alpha": 0.75,
+                          "hover_line_width": 6, "hover_line_alpha": 1}
+                         if element is hv.Curve else {"size": 7})
+            curves.append(element(values, "Date", ["Index", "Value", "Title", "DisplayValue", "DisplayIndex"],
+                                  label=label)
+                          .opts(**style))
+        reference = [] if self.normalization == "None" else [
+            hv.HLine(1).opts(color="#888888", line_dash="dotted", line_width=1)
+        ]
+        return hv.Overlay([*bands, *reference, *curves]).opts(
+            title="New staking commitments over time", xlabel="Calendar time",
+            ylabel=("Value (original units)" if self.normalization == "None"
+                    else f"Relative to {self.normalization.lower()}"), responsive=True, height=600,
+            xlim=(frame["Start (UTC)"].min(), frame["End (UTC)"].max()),
+            legend_position="top_right", hooks=[_upgrade_axis, _legend_interaction],
+        )
+
+    def chart(self):
+        """A second set of controls edits the same parameters as the table."""
+        if getattr(self, "_chart", None) is None:
+            self._chart = pn.Column(
+                self._controls(normalization=True), self.plot,
+                pn.pane.Markdown("Selected Per measures share one axis. Choose Normalize by None only when "
+                                 "their original units are comparable. Totals stay in the table. "
+                                 "Legend clicks mute curves; hovering a curve emphasizes it. "
+                                 "Helicon is partial; rewards include known outcomes only."),
+                sizing_mode="stretch_width",
+            )
+        return self._chart
+
     def view(self):
-        return pn.widgets.Tabulator(self._frame(), show_index=False, disabled=True,
-                                    pagination="remote", page_size=20, sizing_mode="stretch_width")
+        full = self._full_frame()
+        hidden = [column for column in full if column not in self._frame()]
+        return pn.widgets.Tabulator(full, hidden_columns=hidden, show_index=False, disabled=True,
+                                    pagination="remote", page_size=20, height=350, sizing_mode="stretch_width")
+
+    def _controls(self, normalization=False):
+        parameters = [self.param.time_grain, self.param.population, self.param.periodic_denominator]
+        if normalization:
+            parameters.append(self.param.normalization)
+        grouping = pn.Column(*(pn.widgets.Select.from_param(parameter, width=220)
+                               for parameter in parameters), width=220)
+        dates = pn.widgets.DateRangePicker.from_param(
+            self.param.date_range, start=self.param.date_range.bounds[0],
+            end=self.param.date_range.bounds[1], width=220,
+        )
+        grouping.append(dates)
+        quantities = pn.widgets.CheckButtonGroup.from_param(
+            self.param.metrics, orientation="vertical", variant="outline", color="primary", width=190,
+        )
+        denominators = pn.widgets.CheckButtonGroup.from_param(
+            self.param.views, options=denominator_options(self.periodic_denominator),
+            orientation="vertical", variant="outline", color="primary", width=220,
+        )
+        self.param.watch(lambda event: setattr(denominators, "options", denominator_options(event.new)),
+                         "periodic_denominator")
+        return pn.Row(
+            grouping, pn.Spacer(width=16),
+            pn.Column(pn.pane.Markdown("Quantities", margin=(0, 0, 4, 0)), quantities, width=190),
+            pn.Spacer(width=16),
+            pn.Column(pn.pane.Markdown("Denominators", margin=(0, 0, 4, 0)), denominators, width=220),
+        )
 
     def panel(self):
         if getattr(self, "_panel", None) is not None:
@@ -453,33 +629,21 @@ class StakingCohorts(pm.Parameterized):
                 "Addresses per Node divides distinct node-address links by nodes with a recorded address; "
                 "Nodes per Address divides those links by distinct recorded addresses. "
                 "Total Committed Duration sums each new commitment's duration; it is not the row's elapsed time. "
-                "Reporting intervals group commitments by acceptance time. Rate Unit changes only the calendar-time "
+                "Reporting intervals group commitments by acceptance time. Accepted dates select inclusive UTC "
+                "calendar dates, and partial reporting intervals are recomputed from the selected commitments. "
+                "Rate Unit changes only the calendar-time "
                 "denominator, so reward rates are cohort-normalized, not payout flows. "
                 "Year rates use 365.2425 days. Start is inclusive; End is exclusive.")
-        grouping = pn.Column(
-            *(pn.widgets.Select.from_param(parameter, width=220)
-              for parameter in (self.param.time_grain, self.param.population,
-                                self.param.periodic_denominator)),
-            width=220,
-        )
-        quantities = pn.widgets.CheckButtonGroup.from_param(
-            self.param.metrics, orientation="vertical", variant="outline", color="primary", width=190,
-        )
-        denominators = pn.widgets.CheckButtonGroup.from_param(
-            self.param.views, options=denominator_options(self.periodic_denominator),
-            orientation="vertical", variant="outline", color="primary", width=220,
-        )
-        self.param.watch(lambda event: setattr(denominators, "options", denominator_options(event.new)),
-                         "periodic_denominator")
         table = self.view()
-        self.param.watch(lambda event: setattr(table, "value", self._frame()),
-                         ["time_grain", "population", "periodic_denominator", "metrics", "views"])
-        controls = pn.Row(
-            grouping,
-            pn.Spacer(width=16),
-            pn.Column(pn.pane.Markdown("Quantities", margin=(0, 0, 4, 0)), quantities, width=190),
-            pn.Spacer(width=16),
-            pn.Column(pn.pane.Markdown("Denominators", margin=(0, 0, 4, 0)), denominators, width=220),
-        )
-        self._panel = pn.Column(controls, table, pn.pane.Markdown(note), sizing_mode="stretch_width")
+        def update_visibility(event):
+            table.hidden_columns = [column for column in table.value if column not in self._frame()]
+
+        def update_data(event):
+            full = self._full_frame()
+            hidden = [column for column in full if column not in self._frame()]
+            table.param.update(value=full, hidden_columns=hidden)
+
+        self.param.watch(update_visibility, ["metrics", "views"])
+        self.param.watch(update_data, ["time_grain", "population", "periodic_denominator", "date_range"])
+        self._panel = pn.Column(self._controls(), table, pn.pane.Markdown(note), sizing_mode="stretch_width")
         return self._panel
