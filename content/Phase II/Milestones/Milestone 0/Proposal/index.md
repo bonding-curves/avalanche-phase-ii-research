@@ -71,7 +71,7 @@ Traditional parameter selection either ignores this uncertainty (picking values 
 
 PSUU, developed by [Block Science](https://medium.com/block-science/how-to-perform-parameter-selection-under-uncertainty-976931ba7e5d), is a computational methodology that maps the relationship between governance decisions and system outcomes across environmental scenarios. Successfully applied to [Subspace Network tokenomics](https://github.com/BlockScience/subspace), it produces actionable recommendations backed by simulation evidence.
 
-![PSUU Pipeline Overview](/Phase%20II/Milestones/Milestone%200/Proposal%20v2.5/img-psuu-pipeline-overview-white.png)
+![PSUU Pipeline Overview](/Phase%20II/Milestones/Milestone%200/Proposal/img-psuu-pipeline-overview-white.png)
 *Fig 1: Complete PSUU data pipeline. Left: Environmental scenarios (Scenario Groups 1-3) combined with Monte Carlo runs. Center: Governance parameters feed into the cadCAD simulation executor, producing per-timestep trajectories. Right: KPIs are computed per trajectory, converted to binary utilities via thresholds, grouped by controllable parameters, and passed to ML classifiers for analysis. The output identifies which parameter configurations achieve goals across scenario conditions.*
 
 ### The Trajectory Tensor
@@ -95,7 +95,7 @@ For Phase II, this yields approximately 50,000 trajectories (500 × 20 × 5), ea
 
 ### How PSUU Works
 
-![PSUU Methodology Steps](/Phase%20II/Milestones/Milestone%200/Proposal%20v2.5/psuu_workflow_steps.png)
+![PSUU Methodology Steps](/Phase%20II/Milestones/Milestone%200/Proposal/psuu_workflow_steps.png)
 *Fig 2: The four-step PSUU workflow. Step 1 defines controllable parameters, environmental scenarios, and cloud compute resources. Step 2 runs parallel simulations across the full design space. Step 3 aggregates results, applies statistical analysis, and identifies patterns through data mining. Step 4 synthesizes findings into actionable recommendations for governance decisions.*
 
 **Step 1: Define the Design Space**
@@ -119,12 +119,12 @@ The final step translates analysis into governance guidance. Parameter recommend
 
 ### Example Output: Decision Tree
 
-![PSUU Decision Tree](/Phase%20II/Milestones/Milestone%200/Proposal%20v2.5/img-psuu-decision-tree.png)
+![PSUU Decision Tree](/Phase%20II/Milestones/Milestone%200/Proposal/img-psuu-decision-tree.png)
 *Fig 3: Decision tree for goal G1 (rational economic incentives), achieving 87% classification accuracy across 210,000 simulation trajectories. The tree structure (top) shows decision splits: orange nodes indicate parameter ranges that fail the goal threshold; blue nodes indicate success. The feature importance chart (bottom) ranks parameters by their influence on goal achievement—taller bars indicate parameters whose values most determine whether the goal is met.*
 
 ### Example Output: Parameter Influence
 
-![PSUU Parameter Influence](/Phase%20II/Milestones/Milestone%200/Proposal%20v2.5/img-psuu-parameter-influence.png)
+![PSUU Parameter Influence](/Phase%20II/Milestones/Milestone%200/Proposal/img-psuu-parameter-influence.png)
 *Fig 4: Parameter-KPI influence matrix from prior PSUU engagement. Each cell shows how varying a parameter (columns) affects a KPI (rows) across all simulation runs. Upward-sloping scatter indicates positive correlation—increasing the parameter improves the KPI. Downward slopes indicate negative correlation. Flat or scattered patterns indicate weak influence. This visualization enables rapid identification of which governance levers most affect which outcomes, and whether effects are monotonic or exhibit threshold behavior.*
 
 ---
@@ -452,7 +452,7 @@ The equal milestone sizing is intended to simplify contract administration. Work
 
 **Project Period:** April 15, 2026 – January 14, 2027
 
-![Project Timeline](/Phase%20II/Milestones/Milestone%200/Proposal%20v2.5/timeline_gantt_detailed_v2.5.png)
+![Project Timeline](/Phase%20II/Milestones/Milestone%200/Proposal/timeline_gantt_detailed_v2.5.png)
 *Fig 5: Nine-month contract timeline showing four 2-month delivery blocks plus a final 1-month wrap-up period. Milestone 0 (blue) covers kickoff, data access, and alignment. Milestone 1 (teal) establishes the model and preliminary validation. Milestone 2 (green) executes PSUU simulation and analysis. Milestone 3 (orange) focuses on recommendations, iteration, transfer, and open-source release. The final gray block reserves time for revisions, training, communications support, and administrative closeout.*
 
 | Phase | Period | Focus |

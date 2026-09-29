@@ -8,7 +8,7 @@ Phase II builds a calibrated model of Avalanche staking and uses it to test rewa
 
 ## Schedule
 
-The research works to the schedule of [proposal v2.5](/Phase-II/Milestones/Milestone-0/Proposal-v2.5/). The [signed agreement](/Phase-II/Milestones/Milestone-0/Signed-Grant-Agreement) sets the deliverables and each milestone's success criterion.
+The research works to the schedule of [proposal v2.5](/Phase-II/Milestones/Milestone-0/Proposal/). The [signed agreement](/Phase-II/Milestones/Milestone-0/Signed-Grant-Agreement) sets the deliverables and each milestone's success criterion.
 
 | Milestone | Working period | Focus | Success criterion in the agreement |
 | --- | --- | --- | --- |
