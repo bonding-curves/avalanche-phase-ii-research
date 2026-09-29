@@ -750,3 +750,16 @@ def test_p_chain_gas_consumption_matches_avalanchego():
     assert protocol.p_chain_consume_gas(10, MAX64, 1) == (9, MAX64)
     with pytest.raises(ModelError):
         protocol.p_chain_consume_gas(10, 10, 11)
+
+
+# KG11 provenance for every mechanism
+def test_describe_lists_every_catalogued_mechanism_with_pinned_sources():
+    mechanisms = protocol.describe()["mechanisms"]
+    acps = {item["acp"] for item in mechanisms}
+    assert {"ACP-41", "ACP-62", "ACP-77", "ACP-103", "ACP-236", "ACP-247", "ACP-267", "ACP-273", "ACP-285"} <= acps
+    names = " ".join(item["name"] for item in mechanisms)
+    assert "Current supply" in names and "deferred" in names and "L1 validator fee" in names
+    upgrades = {item.name for item in protocol.MAINNET_UPGRADES.upgrades}
+    for item in mechanisms:
+        assert item["upgrade"] is None or item["upgrade"] in upgrades
+        assert all(source.startswith((protocol.AVALANCHEGO, protocol.ACPS)) for source in item["sources"])

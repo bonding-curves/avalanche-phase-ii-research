@@ -113,6 +113,55 @@ MECHANISMS = (
         "ACP-247", "Delegation multiplier 4 to 24", None, "not scheduled; proposal text only",
         (f"{ACPS}/247-delegation-multiplier-increase/README.md",),
     ),
+    Mechanism(
+        "protocol", "Current supply: potential reward added at stake start, removed when uptime fails", None,
+        "stake start and stake end",
+        (f"{AVALANCHEGO}/vms/platformvm/txs/executor/standard_tx_executor.go#L1508-L1533",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/proposal_tx_executor.go#L505-L520"),
+    ),
+    Mechanism(
+        "protocol", "Delegation fees deferred to the validator's end", "cortina", "validator start time",
+        (f"{AVALANCHEGO}/vms/platformvm/txs/executor/proposal_tx_executor.go#L667-L708",),
+    ),
+    Mechanism(
+        "ACP-41", "Stakes start at acceptance; the pending staker set is removed", "durango",
+        "chain time when the stake is verified",
+        (f"{ACPS}/41-remove-pending-stakers/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/standard_tx_executor.go#L1482-L1534",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L1036-L1052"),
+    ),
+    Mechanism(
+        "ACP-62", "AddValidatorTx and AddDelegatorTx disabled", "durango", "chain time when the transaction is verified",
+        (f"{ACPS}/62-disable-addvalidatortx-and-adddelegatortx/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L105-L108",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L406-L409"),
+    ),
+    Mechanism(
+        "ACP-77", "Subnets convert to L1s; L1 validators need no Primary Network stake", "etna",
+        "chain time when the transaction is verified",
+        (f"{ACPS}/77-reinventing-subnets/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L50-L90",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/subnet_tx_verification.go#L27-L56"),
+    ),
+    Mechanism(
+        "ACP-77", "Continuous L1 validator fee", "etna", "seconds between P-Chain blocks",
+        (f"{ACPS}/77-reinventing-subnets/README.md", f"{AVALANCHEGO}/vms/platformvm/validators/fee/fee.go",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/state_changes.go#L343-L390"),
+    ),
+    Mechanism(
+        "ACP-103", "P-Chain dynamic transaction fees", "etna", "chain time when the transaction is verified",
+        (f"{ACPS}/103-dynamic-fees/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/state/chain_time_helpers.go#L141-L157",
+         f"{AVALANCHEGO}/vms/components/gas/gas.go#L85-L121"),
+    ),
+    Mechanism(
+        "ACP-236", "Auto-renewed staking with the reward recomputed each cycle", "helicon",
+        "chain time when added; each cycle end",
+        (f"{ACPS}/236-auto-renewed-staking/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L874-L1033",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/proposal_tx_executor.go#L414-L503",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/proposal_tx_executor.go#L786-L950"),
+    ),
 )
 
 
