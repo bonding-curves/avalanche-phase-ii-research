@@ -502,6 +502,21 @@
             "baseFee",
             "feesSpent"
           ]
+        },
+        {
+          "id": "p-chain-transaction",
+          "url": "https://glacier-api.avax.network/v1/networks/mainnet/blockchains/p-chain/transactions",
+          "response_fields": [
+            "txHash",
+            "txType",
+            "nodeId",
+            "blockNumber",
+            "blockTimestamp",
+            "startTimestamp",
+            "endTimestamp",
+            "estimatedReward",
+            "rewardTxHash"
+          ]
         }
       ]
     },
@@ -648,6 +663,22 @@
             "jsonrpc": "2.0",
             "method": "platform.getCurrentSupply",
             "params": {},
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "get-reward-utxos",
+          "url": "https://api.avax.network/ext/bc/P",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "platform.getRewardUTXOs",
+            "params": {
+              "txID": "<staking transaction hash>",
+              "encoding": "hex"
+            },
             "id": 1
           },
           "response_fields": [
@@ -2831,6 +2862,115 @@
           "type": "string",
           "unit": "JSON",
           "derivation": "the node's unsigned transaction object as compact JSON with sorted keys, for the datasets built from the walk"
+        }
+      ]
+    },
+    {
+      "id": "data-api.p-chain-staking-transactions",
+      "name": "Data API records of the staking transactions a P-Chain walk sees end",
+      "source_id": "avalanche-data-api",
+      "status": "implemented",
+      "contract_quantities": [
+        "rewards",
+        "durations"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per staking transaction closed by a reward transaction in a p-chain-rpc.blocks walk, from the Data API's transaction record. Most of these stakes started before the walk, so the walk alone cannot say what they were. estimatedReward is the potential reward the protocol added to the supply counter at the stake's start; the supply reconstruction needs it for stakes that started before the walk and end unrewarded. The raw records stay hashed in the capture.",
+      "endpoint_ids": [
+        "p-chain-transaction"
+      ],
+      "fields": [
+        {
+          "name": "staking_transaction_hash",
+          "type": "string",
+          "unit": "base58 hash",
+          "derivation": "the staking transaction a walk's RewardValidatorTx or RewardAutoRenewedValidatorTx names in its txID"
+        },
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "type",
+          "derivation": "the Data API's txType"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "node ID",
+          "derivation": "the Data API's nodeId"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "height",
+          "derivation": "the P-Chain height of the block that accepted the staking transaction"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the accepting block's timestamp"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the stake's start"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the stake's end"
+        },
+        {
+          "name": "estimated_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the Data API's estimatedReward: the potential reward at the stake's start"
+        },
+        {
+          "name": "reward_transaction_hash",
+          "type": "string",
+          "unit": "base58 hash",
+          "derivation": "the Data API's rewardTxHash, the transaction that closed the stake"
+        }
+      ]
+    },
+    {
+      "id": "p-chain-rpc.reward-utxos",
+      "name": "Reward outputs a P-Chain node paid for the staking periods a walk sees end",
+      "source_id": "avalanche-p-chain-rpc",
+      "status": "implemented",
+      "contract_quantities": [
+        "rewards"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per staking transaction closed by a reward transaction in a p-chain-rpc.blocks walk, with the reward outputs the node reports for it through platform.getRewardUTXOs, decoded from their codec bytes. A staker that ended unrewarded has none. The raw responses stay hashed in the capture.",
+      "endpoint_ids": [
+        "get-reward-utxos"
+      ],
+      "fields": [
+        {
+          "name": "staking_transaction_hash",
+          "type": "string",
+          "unit": "base58 hash",
+          "derivation": "the staking transaction a walk's reward transaction names in its txID"
+        },
+        {
+          "name": "reward_utxo_count",
+          "type": "integer",
+          "unit": "outputs",
+          "derivation": "the number of reward UTXOs the node returns"
+        },
+        {
+          "name": "realized_reward_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "sum of the AVAX amounts of those outputs, each a TransferOutput or a StakeableLockOut around one"
         }
       ]
     },
