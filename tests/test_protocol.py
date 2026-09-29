@@ -411,3 +411,66 @@ def test_delegation_reward_follows_validator_outcome():
     validator_start = HELICON_MAINNET - timedelta(days=10)
     assert protocol.uptime_passes(0.85, validator_start)
     assert not protocol.uptime_passes(0.85, HELICON_MAINNET)
+
+
+# KG2 ACP-236 auto-renewed staking
+# reward_validator_test.go defaultAutoRenewedValidatorConfig with the executor test limits (min 5 mAVAX, max 500 mAVAX).
+# The potential reward is the TestRewards vector for 5,000,000 nAVAX staked one day at 360M AVAX supply.
+AUTO_RENEW = {"weight": 5 * MILLI, "delegatee": 5_000_000, "accrued_validation": 1_000_000, "accrued_delegatee": 500_000,
+              "shares": 4 * protocol.PERCENT_DENOMINATOR // 10}
+AUTO_RENEW_CONFIG = replace(protocol.MAINNET, min_validator_stake_navax=5 * MILLI, max_validator_stake_navax=500 * MILLI)
+AUTO_RENEW_REWARD = protocol.potential_reward(5_000_000, DAY, 360 * MEGA)
+
+
+def restaked(amount: int, shares: int) -> int:
+    # reward_validator_test.go autoRenewedValidatorConfig.restakedReward
+    return amount - (protocol.PERCENT_DENOMINATOR - shares) * amount // protocol.PERCENT_DENOMINATOR
+
+
+def test_auto_renew_graceful_stop_and_forced_exit():
+    # reward_validator_test.go TestRewardAutoRenewedValidatorTx graceful_stop, commit and abort branches
+    args = (AUTO_RENEW_REWARD, AUTO_RENEW["delegatee"], AUTO_RENEW["accrued_validation"], AUTO_RENEW["accrued_delegatee"])
+    assert AUTO_RENEW_REWARD == 1_370
+    assert protocol.auto_renew_exit_rewards(*args, passed=True) == (AUTO_RENEW_REWARD + 1_000_000, 5_500_000)
+    assert protocol.auto_renew_exit_rewards(*args, passed=False) == (1_000_000, 5_500_000)
+    assert not protocol.auto_renew_continues(True, 0)
+    assert not protocol.auto_renew_continues(False, DAY)
+    assert protocol.auto_renew_continues(True, DAY)
+
+
+def test_auto_renew_restake_below_max():
+    # reward_validator_test.go TestRewardAutoRenewedValidatorTx restake_below_max
+    validation, delegatee = restaked(AUTO_RENEW_REWARD, AUTO_RENEW["shares"]), restaked(AUTO_RENEW["delegatee"], AUTO_RENEW["shares"])
+    result = protocol.auto_renew_restake(AUTO_RENEW_REWARD, AUTO_RENEW["delegatee"], AUTO_RENEW["shares"], AUTO_RENEW["weight"], AUTO_RENEW_CONFIG)
+    assert result == (validation, delegatee, AUTO_RENEW_REWARD - validation, AUTO_RENEW["delegatee"] - delegatee)
+    assert (validation, delegatee) == (548, 2_000_000)
+
+
+def test_auto_renew_restake_capped_at_max():
+    # reward_validator_test.go TestRewardAutoRenewedValidatorTx restake_capped_at_max, restakingCapacity 2,000,000
+    capacity = 2_000_000
+    weight = AUTO_RENEW_CONFIG.max_validator_stake_navax - capacity
+    uncapped_validation = restaked(AUTO_RENEW_REWARD, AUTO_RENEW["shares"])
+    uncapped = uncapped_validation + restaked(AUTO_RENEW["delegatee"], AUTO_RENEW["shares"])
+    validation = uncapped_validation * capacity // uncapped
+    delegatee = capacity - validation
+    result = protocol.auto_renew_restake(AUTO_RENEW_REWARD, AUTO_RENEW["delegatee"], AUTO_RENEW["shares"], weight, AUTO_RENEW_CONFIG)
+    assert result == (validation, delegatee, AUTO_RENEW_REWARD - validation, AUTO_RENEW["delegatee"] - delegatee)
+    assert weight + result[0] + result[1] == AUTO_RENEW_CONFIG.max_validator_stake_navax
+    assert protocol.auto_renew_restake(10, 10, protocol.PERCENT_DENOMINATOR, AUTO_RENEW_CONFIG.max_validator_stake_navax, AUTO_RENEW_CONFIG) == (0, 0, 10, 10)
+    assert protocol.auto_renew_restake(10, 10, 0, weight, AUTO_RENEW_CONFIG) == (0, 0, 10, 10)
+
+
+def test_auto_renew_next_cycle_recomputes_reward_on_the_ramp():
+    # assertRewardAutoRenewedValidator: commit supply equals the supply plus the renewed cycle's potential reward.
+    supply = 460_000_000 * protocol.NAVAX_PER_AVAX
+    weight = 2 * KILO
+    end, reward, new_supply = protocol.auto_renew_next_cycle(HELICON_MAINNET, 14 * DAY, weight, supply)
+    assert end == HELICON_MAINNET + timedelta(days=14)
+    assert reward == protocol.primary_network_reward(HELICON_MAINNET, 14 * DAY, weight, supply)
+    assert new_supply == supply + reward
+    # MI2: the same cycle 45 days into the ACP-285 ramp earns less
+    _, later_reward, _ = protocol.auto_renew_next_cycle(HELICON_MAINNET + timedelta(days=45), 14 * DAY, weight, supply)
+    assert later_reward < reward
+    with pytest.raises(ModelError):
+        protocol.auto_renew_next_cycle(HELICON_MAINNET, 0, weight, supply)

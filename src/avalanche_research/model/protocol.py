@@ -393,6 +393,85 @@ def delegator_rewards_at_end(potential_reward_navax: int, delegation_fee_shares:
     return delegator, fee
 
 
+def auto_renew_continues(passed: bool, next_period_seconds: int) -> bool:
+    """Whether an ACP-236 validator starts another cycle at its cycle end.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L414-L503 RewardAutoRenewedValidatorTx:
+    a failed uptime check (abort) always removes the validator, and a next period of 0 is a graceful exit on commit.
+    """
+    if next_period_seconds < 0:
+        raise ModelError("next period must be non-negative")
+    return passed and next_period_seconds > 0
+
+
+def auto_renew_exit_rewards(
+    potential_reward_navax: int,
+    delegatee_reward_navax: int,
+    accrued_validation_rewards_navax: int,
+    accrued_delegatee_rewards_navax: int,
+    passed: bool,
+) -> tuple[int, int]:
+    """(validation rewards paid, delegatee rewards paid) when an ACP-236 validator leaves at a cycle end.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L459-L503 and L712-L733. Rewards
+    restaked in earlier cycles are paid out on either branch. A failed uptime check (forced exit) forfeits only the
+    current cycle's potential reward. The original stake is returned on both branches.
+    """
+    values = (potential_reward_navax, delegatee_reward_navax, accrued_validation_rewards_navax, accrued_delegatee_rewards_navax)
+    if min(values) < 0:
+        raise ModelError("rewards must be non-negative")
+    validation = accrued_validation_rewards_navax + (potential_reward_navax if passed else 0)
+    return validation, delegatee_reward_navax + accrued_delegatee_rewards_navax
+
+
+def auto_renew_restake(
+    potential_reward_navax: int,
+    delegatee_reward_navax: int,
+    auto_compound_shares: int,
+    weight_navax: int,
+    config: StakingConfig = MAINNET,
+) -> tuple[int, int, int, int]:
+    """(restaked validation, restaked delegatee, withdrawn validation, withdrawn delegatee) at a renewal.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L786-L888
+    restakeAutoRenewedValidatorOnCommit. Each reward is split by the auto-compound shares (split_reward). If the
+    restaked total would lift the weight above MaxValidatorStake, only the remaining capacity is restaked: the
+    validation part is floor(V * C / T) (intmath.MulDiv) and the delegatee part takes the rest of the capacity.
+    Everything not restaked is paid out. The new weight is the old weight plus both restaked parts.
+    """
+    if weight_navax > config.max_validator_stake_navax:
+        raise ModelError("weight exceeds the maximum validator stake")
+    validation, _ = split_reward(potential_reward_navax, auto_compound_shares)
+    delegatee, _ = split_reward(delegatee_reward_navax, auto_compound_shares)
+    capacity = config.max_validator_stake_navax - weight_navax
+    total = validation + delegatee
+    if total > capacity:
+        validation = validation * capacity // total
+        delegatee = capacity - validation
+    return validation, delegatee, potential_reward_navax - validation, delegatee_reward_navax - delegatee
+
+
+def auto_renew_next_cycle(
+    previous_end: datetime,
+    next_period_seconds: int,
+    weight_navax: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[datetime, int, int]:
+    """(cycle end, potential reward, current supply after) for the next ACP-236 cycle.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L890-L930: the next cycle starts at
+    the previous cycle's end, and its reward is recomputed from the post-restake weight, the current supply at
+    that instant, and the reward configuration for that start, so the ACP-285 ramp applies cycle by cycle.
+    """
+    if next_period_seconds <= 0:
+        raise ModelError("a renewed cycle needs a positive period")
+    start = as_utc(previous_end)
+    reward, supply = start_stake(start, next_period_seconds, weight_navax, current_supply_navax, config, upgrades)
+    return start + timedelta(seconds=next_period_seconds), reward, supply
+
+
 def max_validator_weight_navax(
     self_stake_navax: int,
     delegation_multiplier: int = ACP247_CURRENT_DELEGATION_MULTIPLIER,
