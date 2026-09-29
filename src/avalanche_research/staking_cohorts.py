@@ -232,6 +232,19 @@ def rates_per(table: pd.DataFrame, denominator: str) -> pd.DataFrame:
                                      for column in rate_columns}})
 
 
+def for_population(table: pd.DataFrame, population: str) -> pd.DataFrame:
+    """Show only the address count that applies to the selected population."""
+    validator_addresses, delegator_addresses = IDENTITY_COLUMNS[1:]
+    if population == "Both":
+        result = table.copy()
+        result.insert(result.columns.get_loc(validator_addresses), "Total Addresses",
+                      result[validator_addresses].combine_first(result[delegator_addresses]))
+        return result.drop(columns=[validator_addresses, delegator_addresses])
+    role, unused = (("Validator", delegator_addresses) if population == "Validators"
+                    else ("Delegator", validator_addresses))
+    return table[table["Role"].eq(role)].drop(columns=unused)
+
+
 class StakingCohorts(pm.Parameterized):
     """Fast notebook view of one checked staking-period release."""
 
@@ -258,9 +271,7 @@ class StakingCohorts(pm.Parameterized):
 
     @pm.depends("time_grain", "population", "periodic_denominator")
     def view(self):
-        table = self._tables[self.time_grain]
-        if self.population != "Both":
-            table = table[table["Role"] == self.population[:-1]]
+        table = for_population(self._tables[self.time_grain], self.population)
         return pn.widgets.Tabulator(rates_per(table, self.periodic_denominator).round(2), show_index=False, disabled=True,
                                     pagination="remote", page_size=20, sizing_mode="stretch_width")
 

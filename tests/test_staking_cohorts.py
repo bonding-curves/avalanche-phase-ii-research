@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import duckdb
 
-from avalanche_research.staking_cohorts import cohort_table, distinct_identities, rates_per
+from avalanche_research.staking_cohorts import cohort_table, distinct_identities, for_population, rates_per
 
 
 @pytest.fixture
@@ -143,3 +143,18 @@ def test_node_and_time_denominators(cohorts):
     weekly = rates_per(table, "Week")
     assert weekly.loc["Validator", "Total Weeks"] == pytest.approx(3 / 7)
     assert weekly.loc["Validator", "Commitments / Node / Week"] == pytest.approx(3.5)
+
+
+def test_population_selection_shows_only_applicable_address_count():
+    table = pd.DataFrame({
+        "Role": ["Validator", "Delegator"],
+        "Total Validator Reward Addresses": [3, float("nan")],
+        "Total Delegator Funding Addresses": [float("nan"), 2],
+    })
+    validators = for_population(table, "Validators")
+    delegators = for_population(table, "Delegators")
+    both = for_population(table, "Both")
+    assert validators.columns.tolist() == ["Role", "Total Validator Reward Addresses"]
+    assert delegators.columns.tolist() == ["Role", "Total Delegator Funding Addresses"]
+    assert both.columns.tolist() == ["Role", "Total Addresses"]
+    assert both["Total Addresses"].tolist() == [3, 2]
