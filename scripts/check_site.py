@@ -82,7 +82,7 @@ REQUIRED_TEXT = {
         "From Static Constants to Dynamic Variables: Where Avalanche's Economics Are Headed",
     ),
     "content/Phase II/Wiki/Collections/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md": (
-        "Source Article",
+        "/Source-Article)",
     ),
     "content/Phase II/Wiki/Collections/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/Source Article.md": (
         "## The Question",

@@ -1,46 +1,34 @@
 ---
 title: "Competitive Equilibria Between Staking and On-Chain Lending"
-description: "Chitra models token holders as mean-variance investors choosing between staking and lending, and shows that stake leaves validation when block rewards fall below lending yields."
+description: "Chitra shows that when on-chain lending pays more than staking, rational token holders move stake out of validation and weaken a proof-of-stake network's security."
 ---
 
-Read the [full paper](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2020-Staking-and-Lending-Equilibria/Source-Paper).
+Tarun Chitra shows that when on-chain lending pays more than staking, rational token holders move their tokens out of validation and weaken a proof-of-stake network's security, and that the block reward schedule decides whether this happens.
 
-A validator's outside option is what the same AVAX would earn elsewhere. The Foundation has asked that the model treat that option as a portfolio of alternative uses of capital, not lending alone. This paper is the first formal treatment of staking as one asset in such a portfolio. It shows how a lending market can draw stake away from validation.
+In a **proof-of-stake** network, security is bought with capital. Validators lock tokens as collateral, and the protocol pays them a **block reward** for doing so. Chitra's starting point, posted by Gauntlet in January 2020 and published in *Cryptoeconomic Systems* that November, is that this ties security to the **cost of capital**. A proof-of-work miner cannot quickly move a data centre into another use. A staker can move tokens with one transaction. The rise of **decentralized finance**, and of lending protocols such as Compound in particular, gave stakers an alternative with a visible yield. The paper asks what happens to staked supply when that alternative pays more than staking.
 
-## Citation
+The model gives each token holder a choice between two assets, staking and lending. Each holder is a **mean-variance investor** in the sense of Markowitz: it weighs expected return against risk, with its own risk tolerance, and rebalances its portfolio every block. The staking yield is the block reward divided by total stake, so it falls as more tokens are staked. The lending yield follows a Compound-style **utilization curve**, so it rises as more tokens are borrowed. The two yields feed back on each other through the holders' choices. The paper compares **monetary policies**, from deflationary block rewards that shrink over time to polynomial and exponential inflation.
 
-Tarun Chitra. 2020. Competitive equilibria between staking and on-chain lending. Cryptoeconomic Systems, published 30 November 2020. DOI [10.21428/58320208.9ce1cd26](https://doi.org/10.21428/58320208.9ce1cd26). Preprint arXiv:2001.00919, <https://arxiv.org/abs/2001.00919>.
+The main result is a **phase transition** in monetary policy. Under deflationary rewards, tokens move from staking to lending in large swings that the paper compares to a bank run, even though no holder coordinates with any other. Under inflationary rewards, staking dominates and the spread between borrowing and lending rates stays tight. Security therefore depends on keeping the staking reward above expected lending yields by a margin set by the spread of holders' risk preferences. Proofs cover a simplified two-state version. Agent-based simulations with 512 holders over 250,000 blocks, averaged over 100 random seeds per setting and using Compound's rate parameters, confirm the pattern. The paper's broader claim is that a threat model built only on malicious validators misses this risk, because the harm comes from ordinary yield-seeking.
 
-## Question and method
+![Figure 1 of the paper: share of token supply staked and lent over time, in two simulations](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2020-Staking-and-Lending-Equilibria/_page_2_Figure_0.jpeg)
 
-The paper asks whether on-chain lending yields can pull tokens out of proof-of-stake validation and weaken security, and how the answer depends on monetary policy. Each agent is a myopic mean-variance investor. It splits its tokens between staking and lending with portfolio weights
+*Figure 1 of the paper: the share of all tokens that is staked (blue) and lent (orange) as a simulation runs, block by block. In the top run, lending pays at the rates Compound used. Staking at first dominates, with close to 90% of supply staked, but after about 70,000 blocks holders move into lending until about 80% of supply is lent. In the bottom run, lending pays up to 75%, and staked supply falls to zero. No holder coordinates with any other. Each one only moves toward the better yield, and together they drain the stake that secures the network. Each run has 512 holders.*
 
-$$w = \lambda\,\Sigma^{-1}\mu, \qquad \mu = \left(\frac{\pi_{\text{stake}}}{\zeta_t},\ \gamma_t\right),$$
+## How it relates to our research
 
-where $\zeta_t$ is total staked supply, $\pi_{\text{stake}}$ the block reward, $\gamma_t$ the lending rate, $\Sigma$ an agent-specific covariance, and $\lambda$ the agent's risk tolerance. The lending rate follows a Compound-style utilization curve, so it rises as more tokens are borrowed. Rewards come only from block rewards. There are no fees and no unbonding period.
+**Where it enters the model.** The Foundation has asked that our staking model treat a validator's **outside option**, what the same AVAX would earn elsewhere, as a portfolio of alternative uses of capital rather than lending alone. This paper is the first formal treatment of staking as one asset in such a portfolio, and its mean-variance weights extend naturally to more than two assets. One block of the model in deliverable [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) can therefore hold staking, on-chain lending, treasury bills, and liquid staking yields together, with each holder's risk tolerance drawn from a distribution as Chitra draws them.
 
-```mermaid
-flowchart LR
-  B["Block reward and inflation policy"] --> YS["Staking yield"]
-  U["Utilization of the lending pool"] --> YL["Lending yield"]
-  YS --> W["Each agent's mean-variance weights"]
-  YL --> W
-  W --> S["Staked supply"]
-  W --> L["Lent supply"]
-  S --> YS
-  L --> U
-  S --> Q["Network security"]
-```
+**What changes for Avalanche.** Chitra's holders can leave staking at any block. Avalanche stake is locked for a fixed **commitment** of 48 hours to one year, so giving up liquidity costs more the longer the commitment. The Foundation's [validator rewards article](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/) measures that cost at about 0.8 percentage points of annualized yield per extra week. Our model keeps Chitra's portfolio choice but makes it only at the end of a commitment, and adds a **duration term** so that a longer commitment must pay more to be chosen. The paper also has no transaction fees and a fixed number of holders, and the Avalanche model needs both fees and entry and exit of validators and delegators.
 
-## Main result
+**Why the deflationary result matters here.** Avalanche's reward rate is scaled by a **remaining-supply factor**, so rewards per unit of stake fall as supply approaches the 720 million AVAX cap. Over time Avalanche therefore moves toward the declining-reward setting in which Chitra finds stake least stable. This is the same concern the Foundation raises in [Why Avalanche Validator Economics Need a Redesign](/Phase-II/Wiki/Collections/Essential-Readings/Why-Avalanche-Validator-Economics-Need-a-Redesign/), and the paper gives it a testable form: security holds only while the staking reward clears the best outside yield by a margin.
 
-The paper's conclusion is that rational actors "can dramatically reduce PoS network security if block rewards are not calibrated appropriately above the expected yields of on-chain lending." Under deflationary policy, large moves of tokens from staking to lending occur unless the reward rate clears a bound set by the lending rate and the spread of agents' risk preferences. The paper derives similar conditions for polynomial and exponential inflation. Simulations with 512 agents over 250,000 blocks, 100 seeds per setting, and Compound's rate parameters of 5% and 45% show more lending than staking under deflationary policy and staking dominance under linear inflation. The formal proofs cover only a two-state version of the model.
+**How we will use it in the sweeps.** In deliverables [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/) to [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), the best outside yield enters as an input the Foundation does not control, and the **spread between the staking reward and the best outside yield** is reported beside each parameter setting. Proposals that lower short-duration rewards, such as [ACP-285](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-285-Minimum-Consumption-Rate/), narrow that spread for short commitments, so the model should show where each proposal brings it close to zero. The region where it turns negative belongs on the risk map of deliverable [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/).
 
-## What it gives this research
+**Liquid staking weakens the trade-off.** On Avalanche a holder does not have to choose between staking and lending in the way the paper assumes. A **liquid staking token** earns the staking reward and can be lent at the same time. [BENQI told us](/Phase-II/Interviews/BENQI-2026-08-31/) that its liquid staking delegations run 14 to 18 days, a length set for its users' liquidity. The model therefore needs liquid staking as a separate route with its own duration choice, not as a third asset in Chitra's portfolio. Related work in this collection extends the same question: [Restaking Security Pricing](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2024-Restaking-Security-Pricing/) prices stake reused across services, and [The Tokenomics of Staking](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2025-The-Tokenomics-of-Staking) treats staking as a choice against holding liquid tokens in equilibrium.
 
-1. An outside-option block for deliverable [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/). The mean-variance weights extend to more than two assets, so one block can hold staking, lending, treasury bills, and liquid staking yields, which is the portfolio of alternatives the Foundation asked for.
-2. An environment variable and a failure condition for deliverables [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/) to [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/). The outside yield enters the sweep as an uncontrolled input, and the spread between the staking reward rate and the best outside yield is the quantity at which stake starts to leave.
+**Open questions for the Foundation.** Which outside yields should the portfolio include, and from which markets? Should holders of liquid staking tokens be modeled as stakers, as lenders, or as both?
 
-## Limits for Avalanche
+## Source
 
-The model has no lock-up. Avalanche stake is locked for the full commitment, from 48 hours to one year, so the cost of giving up liquidity rises with duration. The Foundation's [validator rewards article](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/) measures that cost at about 0.8 percentage points of annualized yield per extra week. A mean-variance block without a duration term would miss it. Agents are myopic and rebalance every block, while an Avalanche staker can only move stake at the end of a commitment. The model has no fees, a fixed number of agents, and no external markets.
+Tarun Chitra. 2020. Competitive equilibria between staking and on-chain lending. *Cryptoeconomic Systems*, published 30 November 2020. DOI [10.21428/58320208.9ce1cd26](https://doi.org/10.21428/58320208.9ce1cd26). Preprint arXiv:2001.00919. Read the [full paper](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2020-Staking-and-Lending-Equilibria/Source-Paper), with all figures.

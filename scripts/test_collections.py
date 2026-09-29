@@ -19,6 +19,11 @@ class CollectionNavigationTest(unittest.TestCase):
         source_page.parent.mkdir(parents=True)
         source_page.write_text('---\ntitle: "Source Article"\n---\n\n# Source title\n')
         component.write_text("---\ntitle: Reproduction\n---\n")
+        study_page.write_text(
+            '---\ntitle: "Source title"\n---\n\nOne sentence.\n\n'
+            "Read the [source](/Phase-II/Wiki/Collections/Essential-Readings/Source/Source-Article) "
+            "and the [reproduction](/Phase-II/Wiki/Collections/Essential-Readings/Source/Reproduction).\n"
+        )
         registry = {
             "schema_version": "research-navigation/v3",
             "sources": [{"id": "lit:source", "title": "Source title", "source_type": "article", "canonical_url": "https://example.com/source", "local_page": source_page.relative_to(root).as_posix()}],
@@ -29,7 +34,7 @@ class CollectionNavigationTest(unittest.TestCase):
         registry_path.write_text(json.dumps(registry))
         return registry, registry_path
 
-    def test_builds_one_combined_collection_and_source_package(self):
+    def test_builds_the_collection_index_and_keeps_the_authored_overview(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             _, registry_path = self.fixture(root)
@@ -40,8 +45,7 @@ class CollectionNavigationTest(unittest.TestCase):
             self.assertIn("title: Essential Readings", collection_text)
             self.assertIn("[Source title](/Phase-II/Wiki/Collections/Essential%20Readings/Source/) · Article", collection_text)
             package_text = (root / "content/Phase II/Wiki/Collections/Essential Readings/Source/index.md").read_text()
-            self.assertIn("[Source Article](/Phase-II/Wiki/Collections/Essential%20Readings/Source/Source%20Article)", package_text)
-            self.assertIn("[Reproduction](/Phase-II/Wiki/Collections/Essential%20Readings/Source/Reproduction)", package_text)
+            self.assertIn("One sentence.", package_text)
             self.assertEqual(collection_navigation.result("check", root, registry_path)["status"], "pass")
 
     def test_rejects_missing_collection_member(self):
@@ -58,6 +62,24 @@ class CollectionNavigationTest(unittest.TestCase):
             registry, _ = self.fixture(root)
             source_page = root / registry["sources"][0]["local_page"]
             source_page.write_text('---\ntitle: "Different title"\n---\n')
+            with self.assertRaises(collection_navigation.RegistryError):
+                collection_navigation.validate(registry, root)
+
+    def test_rejects_overview_without_source_link(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            registry, _ = self.fixture(root)
+            overview = root / registry["studies"][0]["page"]
+            overview.write_text('---\ntitle: "Source title"\n---\n\nNo links.\n')
+            with self.assertRaises(collection_navigation.RegistryError):
+                collection_navigation.validate(registry, root)
+
+    def test_rejects_overview_title_drift(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            registry, _ = self.fixture(root)
+            overview = root / registry["studies"][0]["page"]
+            overview.write_text(overview.read_text().replace("Source title", "Overview", 1))
             with self.assertRaises(collection_navigation.RegistryError):
                 collection_navigation.validate(registry, root)
 
