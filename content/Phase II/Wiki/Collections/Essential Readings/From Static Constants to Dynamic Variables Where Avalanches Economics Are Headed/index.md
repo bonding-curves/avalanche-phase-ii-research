@@ -1,9 +1,29 @@
 ---
 title: "From Static Constants to Dynamic Variables: Where Avalanche's Economics Are Headed"
 description: "Matias Antonio argues that Avalanche is starting to treat its reward curve and fee floor as variables to adjust on purpose, and reads ACP-273, ACP-285, and ACP-283 as the first three steps."
+authors: ["Matias Antonio"]
+published: 2026-07-02
+venue: "LinkedIn"
+url: "https://www.linkedin.com/pulse/from-static-constants-dynamic-variables-where-avalanches-matias-a-xh02e"
+tags: ["issuance-and-rewards", "protocol-governance", "staking-duration-and-liquidity"]
+key_terms: ["reward formula", "floor rate", "remaining-supply factor", "level effect", "gradient effect", "auto-renewed staking", "minimum gas price"]
+deliverables: ["1.3", "2.3", "2.4", "2.6", "2.8", "3.2"]
 ---
 
 Matias Antonio argues that Avalanche is starting to treat its reward curve and fee floor as variables to measure and adjust on purpose rather than constants fixed at launch, and reads ACP-273, ACP-285, and ACP-283 as the first three steps.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Matias Antonio |
+| **Published** | July 2, 2026 |
+| **Source** | LinkedIn, [original](https://www.linkedin.com/pulse/from-static-constants-dynamic-variables-where-avalanches-matias-a-xh02e) |
+| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [protocol governance](/tags/protocol-governance), [staking duration and liquidity](/tags/staking-duration-and-liquidity) |
+| **Key terms** | reward formula, floor rate, remaining-supply factor, level effect, gradient effect, [auto-renewed staking](/Phase-II/Wiki/Reference/Glossary-and-Notation), minimum gas price |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/), [3.2](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) |
+
+<!-- overview-table:end -->
 
 Matias Antonio, Chief Investment Officer of the Avalanche Foundation, published the article on LinkedIn on July 2, 2026. It opens with a claim about every blockchain: none yet pays for its own security out of its own activity. Security still runs on **issuance**, new supply paid to stakers. The reward curve, the issuance schedule, and the fee floor were set at launch, and the article says there is "no right value for them in the abstract." The right value depends on the objective and on network conditions that shift, so "an optimum is not a constant, not in a dynamic system." The article reads three proposals as the start of managing these parameters deliberately. The article describes ACP-273 and ACP-283 as merged and ACP-285 as in community discussion. All three activated with the Helicon upgrade on September 22, 2026.
 

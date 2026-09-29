@@ -1,9 +1,29 @@
 ---
 title: "Appropriate Summary Statistics for Evaluating the Historical Fit of System Dynamics Models"
 description: "Sterman splits a model's mean square error into bias, unequal variation, and unequal covariation, so a fit report shows whether the error is systematic or noise."
+authors: ["John D. Sterman"]
+published: 1984
+venue: "*Dynamica*"
+url: "https://systemdynamics.org/wp-content/uploads/assets/dynamica/volume-10/10-2/4.pdf"
+tags: ["model-validation"]
+key_terms: ["historical fit", "Theil's inequality statistics", "root mean square percent error", "unequal covariation", "ex post forecast", "system dynamics"]
+deliverables: ["1.4", "2.4"]
 ---
 
 John Sterman splits the mean square error between a simulated and an observed series into three parts, bias, unequal variation, and unequal covariation, so that a fit report shows whether a model's error is systematic or noise.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | John D. Sterman |
+| **Published** | 1984 |
+| **Source** | *Dynamica*, [original](https://systemdynamics.org/wp-content/uploads/assets/dynamica/volume-10/10-2/4.pdf) |
+| **Topics** | [model validation](/tags/model-validation) |
+| **Key terms** | historical fit, Theil's inequality statistics, root mean square percent error, unequal covariation, ex post forecast, system dynamics |
+| **Serves deliverables** | [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) |
+
+<!-- overview-table:end -->
 
 Sterman, then an assistant professor at the MIT Sloan School of Management, published the paper in *Dynamica* in the winter of 1984. It answers a complaint against his field. **System dynamics** models, simulations built from feedback loops, were often shown against history only as a graph beside the data, with the reader left to judge whether the fit was "close enough". Economists and other quantitative social scientists saw this as sloppy. Sterman accepts the complaint and proposes statistics that suit such models.
 

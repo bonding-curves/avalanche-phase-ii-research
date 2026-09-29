@@ -1,9 +1,29 @@
 ---
 title: "Large Sample Properties of Generalized Method of Moments Estimators"
 description: "Hansen defines the generalized method of moments, its optimal weighting, and the chi-square test that tells whether a model fitted to more moments than it has parameters is consistent with all of them."
+authors: ["Lars Peter Hansen"]
+published: 1982-07
+venue: "*Econometrica*"
+url: "https://doi.org/10.2307/1912775"
+tags: ["structural-estimation", "model-validation"]
+key_terms: ["generalized method of moments", "moment conditions", "weighting matrix", "long-run covariance", "J statistic", "overidentification test"]
+deliverables: ["1.4", "2.4"]
 ---
 
 Lars Peter Hansen defines the generalized method of moments, shows which weighting of the moments gives the most precise estimates, and gives the chi-square test that tells whether a model fitted to more moments than it has parameters is consistent with all of them.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Lars Peter Hansen |
+| **Published** | July 1982 |
+| **Source** | *Econometrica*, [original](https://doi.org/10.2307/1912775) |
+| **Topics** | [structural estimation](/tags/structural-estimation), [model validation](/tags/model-validation) |
+| **Key terms** | generalized method of moments, moment conditions, weighting matrix, long-run covariance, J statistic, overidentification test |
+| **Serves deliverables** | [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) |
+
+<!-- overview-table:end -->
 
 Hansen wrote the paper at Carnegie-Mellon University, and *Econometrica* published it in July 1982. Many estimators in econometrics work the same way underneath. An economic model implies **orthogonality conditions**: the expected product of the model's unobserved errors and some observed variables is zero. Replacing each expectation with a sample average gives **moment conditions**, and an estimator picks the parameters that set those averages as close to zero as possible. Instrumental variables, two- and three-stage least squares, and some least squares and quasi-maximum likelihood estimators all fit this pattern. The problem Hansen addresses is that the applications he names, rational expectations models, tests of forecast efficiency, and multiperiod probit models, produce errors that are **serially correlated**, related from one period to the next, and **conditionally heteroskedastic**, with a spread that changes with conditions. Existing theory did not cover those cases. The paper gives one large-sample theory for the whole class that does.
 

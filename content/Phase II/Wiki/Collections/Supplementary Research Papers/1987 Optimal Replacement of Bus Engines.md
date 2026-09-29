@@ -1,9 +1,29 @@
 ---
 title: "Optimal Replacement of GMC Bus Engines: An Empirical Model of Harold Zurcher"
 description: "Rust estimates a forward-looking keep-or-replace decision from one manager's records with a nested fixed point algorithm, the model form for a validator deciding at the end of each commitment whether to renew or exit."
+authors: ["John Rust"]
+published: 1987-09
+venue: "*Econometrica*"
+url: "https://doi.org/10.2307/1911259"
+tags: ["structural-estimation"]
+key_terms: ["dynamic discrete choice", "optimal stopping", "Bellman equation", "nested fixed point", "discount factor", "myopic model"]
+deliverables: ["1.3", "1.4"]
 ---
 
 John Rust estimates a forward-looking keep-or-replace decision from one maintenance manager's records, using a nested fixed point algorithm of his own, and the same model form fits a validator deciding at the end of each commitment whether to renew or exit.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | John Rust |
+| **Published** | September 1987 |
+| **Source** | *Econometrica*, [original](https://doi.org/10.2307/1911259) |
+| **Topics** | [structural estimation](/tags/structural-estimation) |
+| **Key terms** | dynamic discrete choice, optimal stopping, Bellman equation, nested fixed point, discount factor, myopic model |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) |
+
+<!-- overview-table:end -->
 
 Rust, at the University of Wisconsin-Madison, published the paper in *Econometrica* in September 1987. Its subject is Harold Zurcher, superintendent of maintenance at the Madison Metropolitan Bus Company in Wisconsin, who gave Rust the maintenance records of 162 buses from December 1974 to May 1985. Rust admits that few readers care about bus engines as such. He uses them to show two ideas: a **bottom-up** model of replacement investment built from individual decisions, and a way to estimate a **dynamic discrete choice** model, one in which today's choice changes the options and costs of later periods.
 

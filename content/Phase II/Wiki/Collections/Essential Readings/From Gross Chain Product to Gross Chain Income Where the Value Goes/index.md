@@ -1,9 +1,30 @@
 ---
 title: "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
 description: "Eric Lu extends gross chain product to gross chain income in three nested levels and shows that AVAX captures only the C-Chain fee burn, a small share of the most cyclical level, while the largest and steadiest level is not captured at all."
+authors: ["Siyu (Eric) Lu"]
+published: 2026-08-12
+venue: "Avalanche Foundation blog"
+url: "https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes"
+full_text: "/Phase-II/Wiki/Collections/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/Source-Article"
+tags: ["economic-measurement", "fees-and-value-capture"]
+key_terms: ["gross chain income", "holder yield", "issuer reserve income", "coefficient of variation", "voluntary revenue sharing", "protocol-owned stablecoin"]
+deliverables: ["1.1", "2.2", "2.3", "2.6", "2.8", "3.2"]
 ---
 
 Eric Lu extends gross chain product to gross chain income in three nested levels and shows that AVAX captures only the C-Chain fee burn, a small share of the most cyclical level, while the largest and steadiest level, the yield issuers earn on stablecoin reserves, is not captured at all.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Siyu (Eric) Lu |
+| **Published** | August 12, 2026 |
+| **Source** | Avalanche Foundation blog, [original](https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes), [full text](/Phase-II/Wiki/Collections/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/Source-Article) |
+| **Topics** | [economic measurement](/tags/economic-measurement), [fees and value capture](/tags/fees-and-value-capture) |
+| **Key terms** | gross chain income, holder yield, issuer reserve income, coefficient of variation, voluntary revenue sharing, protocol-owned stablecoin |
+| **Serves deliverables** | [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/), [3.2](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) |
+
+<!-- overview-table:end -->
 
 Eric Lu, the Avalanche Foundation's Lead Economist, published the article on the Foundation blog on August 12, 2026. It is the fuller account of gross chain income that the Foundation's [research agenda](/Phase-II/Wiki/Collections/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/) promised. It belongs to the agenda's measure step and uses the measurements to size the capture step. It asks the agenda's capture question: "of all this value, how much actually accrues to AVAX today, and how much could?"
 

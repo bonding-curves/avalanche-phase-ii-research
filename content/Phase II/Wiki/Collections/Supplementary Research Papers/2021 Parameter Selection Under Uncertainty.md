@@ -1,9 +1,29 @@
 ---
 title: "How to Perform Parameter Selection Under Uncertainty"
 description: "Paruch and Shorish set out parameter selection under uncertainty as six steps, from system goals to a recommended range of parameter values, the workflow our parameter sweeps follow."
+authors: ["Krzysztof Paruch", "Jamsheed Shorish"]
+published: 2021-04-08
+venue: "BlockScience blog"
+url: "https://blog.block.science/how-to-perform-parameter-selection-under-uncertainty/"
+tags: ["parameter-selection-under-uncertainty", "kpis-and-goals"]
+key_terms: ["PSUU", "system goals", "control parameters", "environmental parameters", "thresholds", "basins of attraction", "graduated goals"]
+deliverables: ["1.4", "2.1", "2.2", "2.3", "2.5", "2.6", "3.1"]
 ---
 
 Krzysztof Paruch and Jamsheed Shorish set out parameter selection under uncertainty as six steps, from stating a system's goals to recommending a range of parameter values, and this is the workflow our parameter sweeps follow.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Krzysztof Paruch, Jamsheed Shorish |
+| **Published** | April 8, 2021 |
+| **Source** | BlockScience blog, [original](https://blog.block.science/how-to-perform-parameter-selection-under-uncertainty/) |
+| **Topics** | [parameter selection under uncertainty](/tags/parameter-selection-under-uncertainty), [KPIs and goals](/tags/kpis-and-goals) |
+| **Key terms** | [PSUU](/Phase-II/Wiki/Reference/Glossary-and-Notation), system goals, control parameters, environmental parameters, thresholds, basins of attraction, graduated goals |
+| **Serves deliverables** | [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.5](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [3.1](/Phase-II/Milestones/Milestone-3/3-1-Parameter-Recommendation-Report/) |
+
+<!-- overview-table:end -->
 
 BlockScience published the article on its blog on April 8, 2021, with edits and suggestions by Michael Zargham, Danilo Lessa Bernardineli, Jeff Emmett, and Jessica Zartler. Its stated aim is to teach the process and show where it sits in the wider engineering of a system. It is a methods article, not a peer-reviewed paper. It has no equations, no data, and no worked example, and it is short. The article abbreviates the method as PSuU. This site writes **PSUU**.
 

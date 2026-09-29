@@ -1,9 +1,29 @@
 ---
 title: "ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment"
 description: "At the ACP-285 community call, Eric Lu presents the lower minimum consumption rate as a response to shorter and auto-renewed commitments, separates its mechanical effect from the behavioral response, and hears concerns on security, concentration, and delegation."
+authors: ["Avalanche"]
+published: 2026-07-07
+venue: "YouTube"
+url: "https://www.youtube.com/watch?v=sx4-AW7HcSU"
+tags: ["issuance-and-rewards", "staking-duration-and-liquidity", "mechanism-design"]
+key_terms: ["minimum consumption rate", "auto-renewed staking", "remaining-supply factor", "mechanical effect", "behavioral response", "ninety-day ramp"]
+deliverables: ["1.3", "2.3", "2.7", "2.8"]
 ---
 
 At the ACP-285 community call, Eric Lu presents the lower minimum consumption rate as a response to shorter and auto-renewed commitments, separates its mechanical effect on issuance from the behavioral response, and hears community concerns about security, concentration, and delegation.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Avalanche |
+| **Published** | July 7, 2026 |
+| **Source** | YouTube, [original](https://www.youtube.com/watch?v=sx4-AW7HcSU) |
+| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [staking duration and liquidity](/tags/staking-duration-and-liquidity), [mechanism design](/tags/mechanism-design) |
+| **Key terms** | minimum consumption rate, [auto-renewed staking](/Phase-II/Wiki/Reference/Glossary-and-Notation), remaining-supply factor, mechanical effect, behavioral response, ninety-day ramp |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.7](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
+
+<!-- overview-table:end -->
 
 Avalanche held the call on June 29, 2026, while ACP-285 was in community discussion, and published the recording on July 7, 2026. It runs 1:13:03. Eric Lu, one of the proposal's four authors, presents, and an open discussion follows. ACP-285 lowers the **minimum consumption rate**, the reward-formula parameter that sets the reward for the shortest commitments, from 10% to 7.5%. The call explains the reasoning and records what community members asked. Timestamps below point into the recording.
 

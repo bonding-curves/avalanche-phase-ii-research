@@ -1,9 +1,30 @@
 ---
 title: "ACP-273 Minimum Validator Duration"
 description: "ACP-273 lowers the Mainnet minimum validator duration from 14 days to 48 hours, leaving the delegator minimum at 14 days."
+authors: ["Eric Lu", "Martin Eckardt", "Meaghan FitzGerald", "Stephen Buttolph"]
+published: 2026-02-17
+venue: "Avalanche Community Proposal"
+url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/273-reduce-minimum-staking-duration/README.md"
+full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/ACP-273-Minimum-Validator-Duration/Source-Proposal"
+tags: ["staking-duration-and-liquidity", "delegation-market"]
+key_terms: ["minimum validator duration", "minimum delegator duration", "commitment duration", "annualized reward rate", "stake turnover", "Helicon"]
+deliverables: ["1.3", "1.4", "2.6"]
 ---
 
 ACP-273 widens the range of commitment lengths a validator can choose, which is the first governance parameter the staking model names. Before Helicon no validator could commit for less than 14 days. The question for the research is how many validators move to shorter commitments, what that does to delegation and to how fast stake can turn over, and whether ACP-285's steeper reward curve offsets the pull toward liquidity.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Eric Lu, Martin Eckardt, Meaghan FitzGerald, Stephen Buttolph |
+| **Published** | February 17, 2026 |
+| **Source** | Avalanche Community Proposal, [original](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/273-reduce-minimum-staking-duration/README.md), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-273-Minimum-Validator-Duration/Source-Proposal) |
+| **Topics** | [staking duration and liquidity](/tags/staking-duration-and-liquidity), [delegation market](/tags/delegation-market) |
+| **Key terms** | minimum validator duration, minimum delegator duration, [commitment duration](/Phase-II/Wiki/Reference/Glossary-and-Notation), [annualized reward rate](/Phase-II/Wiki/Reference/Glossary-and-Notation), stake turnover, [Helicon](/Phase-II/Wiki/Reference/Glossary-and-Notation) |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) |
+
+<!-- overview-table:end -->
 
 The full text of the ACP-273 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-273-Minimum-Validator-Duration/Source-Proposal) page.
 

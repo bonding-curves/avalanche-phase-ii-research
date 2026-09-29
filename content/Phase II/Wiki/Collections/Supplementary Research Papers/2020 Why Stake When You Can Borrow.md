@@ -1,9 +1,29 @@
 ---
 title: "Why Stake When You Can Borrow?"
 description: "Chitra and Evans model staking derivatives, tokens minted against staked assets, and find that they can spread stake more evenly, but only by burning a large share of the money supply through defaults."
+authors: ["Tarun Chitra", "Alex Evans"]
+published: 2020-06-16
+venue: "arXiv"
+url: "https://arxiv.org/abs/2006.11156"
+tags: ["liquid-staking-and-restaking", "decentralization"]
+key_terms: ["staking derivative", "collateral factor", "slashing", "derivative pricing function", "Pólya urn", "Gini coefficient", "mean-variance investor"]
+deliverables: ["1.3", "2.3", "2.6"]
 ---
 
 Tarun Chitra and Alex Evans model staking derivatives, tokens a validator mints against its staked assets, and find that they can spread stake more evenly across validators, but only by burning a large share of the money supply through defaults.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Tarun Chitra, Alex Evans |
+| **Published** | June 16, 2020 |
+| **Source** | arXiv, [original](https://arxiv.org/abs/2006.11156) |
+| **Topics** | [liquid staking and restaking](/tags/liquid-staking-and-restaking), [decentralization](/tags/decentralization) |
+| **Key terms** | staking derivative, collateral factor, slashing, derivative pricing function, Pólya urn, Gini coefficient, mean-variance investor |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) |
+
+<!-- overview-table:end -->
 
 Chitra, of Gauntlet, and Evans, of Placeholder, posted the paper on 16 June 2020. It follows Chitra's earlier paper on [staking and on-chain lending](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2020-Staking-and-Lending-Equilibria/), which showed that holders leave staking when lending pays more. Designs for Cosmos and Polkadot had proposed **staking derivatives** as a remedy. A staking derivative is a fungible token that lets a validator borrow against its locked stake and regain some liquidity. The paper asks what such derivatives do to network security, to the **concentration of stake** across validators, and to validators' returns.
 

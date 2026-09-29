@@ -1,9 +1,30 @@
 ---
 title: "ACP-283 Dynamic Minimum Gas Price"
 description: "ACP-283 replaces the C-Chain's fixed 1 wei minimum gas price with a floor that validators move through stake-weighted preferences."
+authors: ["Stephen Buttolph", "Martin Eckardt"]
+published: 2026-04-10
+venue: "Avalanche Community Proposal"
+url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/283-dynamic-minimum-gas-price/README.md"
+full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/ACP-283-Dynamic-Minimum-Gas-Price/Source-Proposal"
+tags: ["fees-and-value-capture", "protocol-governance"]
+key_terms: ["minimum gas price", "min-price-target", "stake-weighted median", "AVAX burned", "spam", "ACP-176"]
+deliverables: []
 ---
 
 ACP-283 is the second C-Chain change in Helicon. It gives validators a new economic control, the C-Chain price floor, and it changes how much AVAX is burned when the chain is quiet. It is in this collection because it activated at the same instant as the staking changes and because burns enter the net issuance measures the research reports. It does not change any staking parameter.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Stephen Buttolph, Martin Eckardt |
+| **Published** | April 10, 2026 |
+| **Source** | Avalanche Community Proposal, [original](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/283-dynamic-minimum-gas-price/README.md), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-283-Dynamic-Minimum-Gas-Price/Source-Proposal) |
+| **Topics** | [fees and value capture](/tags/fees-and-value-capture), [protocol governance](/tags/protocol-governance) |
+| **Key terms** | minimum gas price, min-price-target, stake-weighted median, [AVAX burned](/Phase-II/Wiki/Reference/Glossary-and-Notation), spam, ACP-176 |
+| **Serves deliverables** | Background only |
+
+<!-- overview-table:end -->
 
 The full text of the ACP-283 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-283-Dynamic-Minimum-Gas-Price/Source-Proposal) page.
 

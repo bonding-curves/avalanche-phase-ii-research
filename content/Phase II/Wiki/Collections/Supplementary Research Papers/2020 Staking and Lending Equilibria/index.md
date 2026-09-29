@@ -1,11 +1,32 @@
 ---
 title: "Competitive Equilibria Between Staking and On-Chain Lending"
 description: "Chitra shows that when on-chain lending pays more than staking, rational token holders move stake out of validation and weaken a proof-of-stake network's security."
+authors: ["Tarun Chitra"]
+published: 2020-11-30
+venue: "*Cryptoeconomic Systems*"
+url: "https://doi.org/10.21428/58320208.9ce1cd26"
+full_text: "/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2020-Staking-and-Lending-Equilibria/Source-Paper"
+tags: ["security-budget", "issuance-and-rewards"]
+key_terms: ["outside option", "block reward", "mean-variance investor", "utilization curve", "phase transition", "commitment"]
+deliverables: ["1.3", "2.1", "2.2", "2.3", "2.6"]
 ---
 
 Tarun Chitra shows that when on-chain lending pays more than staking, rational token holders move their tokens out of validation and weaken a proof-of-stake network's security, and that the block reward schedule decides whether this happens.
 
-In a **proof-of-stake** network, security is bought with capital. Validators lock tokens as collateral, and the protocol pays them a **block reward** for doing so. Chitra's starting point, posted by Gauntlet in January 2020 and published in *Cryptoeconomic Systems* that November, is that this ties security to the **cost of capital**. A proof-of-work miner cannot quickly move a data centre into another use. A staker can move tokens with one transaction. The rise of **decentralized finance**, and of lending protocols such as Compound in particular, gave stakers an alternative with a visible yield. The paper asks what happens to staked supply when that alternative pays more than staking.
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Tarun Chitra |
+| **Published** | November 30, 2020 |
+| **Source** | *Cryptoeconomic Systems*, [original](https://doi.org/10.21428/58320208.9ce1cd26), [full text](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2020-Staking-and-Lending-Equilibria/Source-Paper) |
+| **Topics** | [security budget](/tags/security-budget), [issuance and rewards](/tags/issuance-and-rewards) |
+| **Key terms** | outside option, block reward, mean-variance investor, utilization curve, phase transition, [commitment](/Phase-II/Wiki/Reference/Glossary-and-Notation) |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) |
+
+<!-- overview-table:end -->
+
+In a **proof-of-stake** network, security is bought with capital. Validators lock tokens as collateral, and the protocol pays them a **block reward** for doing so. Chitra's starting point, posted by Gauntlet in January 2020 and published in *Cryptoeconomic Systems* that November, is that this ties security to the **cost of capital**. A proof-of-work miner cannot quickly move a data center into another use. A staker can move tokens with one transaction. The rise of **decentralized finance**, and of lending protocols such as Compound in particular, gave stakers an alternative with a visible yield. The paper asks what happens to staked supply when that alternative pays more than staking.
 
 The model gives each token holder a choice between two assets, staking and lending. Each holder is a **mean-variance investor** in the sense of Markowitz: it weighs expected return against risk, with its own risk tolerance, and rebalances its portfolio every block. The staking yield is the block reward divided by total stake, so it falls as more tokens are staked. The lending yield follows a Compound-style **utilization curve**, so it rises as more tokens are borrowed. The two yields feed back on each other through the holders' choices. The paper compares **monetary policies**, from deflationary block rewards that shrink over time to polynomial and exponential inflation.
 

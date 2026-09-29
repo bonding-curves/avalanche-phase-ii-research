@@ -1,9 +1,29 @@
 ---
 title: "January Staking and Price Model: A Three-Image Reconstruction"
 description: "Three January images attributed to Eric Lu set out a staking and price equilibrium in which the staking ratio and reward rate solve a fixed point, price clears the market, and a random demand state moves both."
+authors: ["Siyu (Eric) Lu"]
+published: "Unpublished"
+venue: "Slides shown during the scoping of Phase II"
+full_text: "/Phase-II/Wiki/Collections/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/Source-Model-Artifact"
+tags: ["token-valuation", "model-structure"]
+key_terms: ["staking ratio", "reward rate", "fixed point", "market clearing", "transaction convenience", "demand state"]
+deliverables: ["1.3", "2.2"]
 ---
 
 Three January images attributed to Eric Lu set out a staking and price equilibrium in which holders split AVAX between liquid holdings and staking, the staking ratio and the reward rate solve a fixed point, a market-clearing condition sets the price, and a random demand state moves all three.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Siyu (Eric) Lu |
+| **Published** | Unpublished |
+| **Source** | Slides shown during the scoping of Phase II, [full text](/Phase-II/Wiki/Collections/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/Source-Model-Artifact) |
+| **Topics** | [token valuation](/tags/token-valuation), [model structure](/tags/model-structure) |
+| **Key terms** | [staking ratio](/Phase-II/Wiki/Reference/Glossary-and-Notation), reward rate, fixed point, market clearing, transaction convenience, demand state |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) |
+
+<!-- overview-table:end -->
 
 The artifact is three slide images of model work attributed to Eric Lu of the Avalanche Foundation. A recap dated January 13, from the scoping of Phase II, records that Hash captured them from work Eric had presented. The original deck, its date, and its purpose have not been recovered. The images give the structure of a model and one price equation. They give no data, parameter values, or results. The collection's source page reconstructs the smallest model the images support and lists what is missing.
 

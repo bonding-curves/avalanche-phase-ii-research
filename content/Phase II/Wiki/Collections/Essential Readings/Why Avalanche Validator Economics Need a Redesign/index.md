@@ -1,9 +1,29 @@
 ---
 title: "Why Avalanche Validator Economics Need a Redesign"
 description: "Matias Antonio argues that Avalanche validator economics, funded almost entirely by issuance, will not keep the network secure as it matures, and proposes fee revenue and rewards for performance and tenure as directions to research."
+authors: ["Matias Antonio"]
+published: 2026-04-02
+venue: "X"
+url: "https://x.com/i/article/2038984867807993857"
+tags: ["validator-economics", "security-budget", "delegation-market"]
+key_terms: ["supply cap", "fee burn", "untargeted inflation", "commission", "fee compression", "consolidation", "operator costs"]
+deliverables: ["1.1", "2.3", "2.6", "2.8"]
 ---
 
 Matias Antonio argues that Avalanche validator economics, funded almost entirely by new issuance, will not keep the network secure as it matures, and names fee revenue for validators and rewards for performance and tenure as the directions the Foundation is researching.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Matias Antonio |
+| **Published** | April 2, 2026 |
+| **Source** | X, [original](https://x.com/i/article/2038984867807993857) |
+| **Topics** | [validator economics](/tags/validator-economics), [security budget](/tags/security-budget), [delegation market](/tags/delegation-market) |
+| **Key terms** | [supply cap](/Phase-II/Wiki/Reference/Glossary-and-Notation), fee burn, untargeted inflation, commission, fee compression, consolidation, operator costs |
+| **Serves deliverables** | [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
+
+<!-- overview-table:end -->
 
 Matias Antonio, Chief Investment Officer of the Avalanche Foundation, published the article on X on April 2, 2026, as a follow-up to an earlier thread of his on AVAX tokenomics. It is a diagnosis rather than an analysis of data. Its claim is that validator economics on most proof-of-stake chains "were designed for an earlier stage," and that the incentives which launched these networks will not sustain them. The article is short, reports no data of its own, and ends by asking the community which problem is most urgent and at what point running a node stops making sense.
 

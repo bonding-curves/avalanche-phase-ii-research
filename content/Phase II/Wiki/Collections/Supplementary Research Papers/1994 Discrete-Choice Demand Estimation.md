@@ -1,9 +1,29 @@
 ---
 title: "Estimating Discrete-Choice Models of Product Differentiation"
 description: "Berry turns market shares into mean utilities so that logit and nested logit demand can be estimated by instrumental variables, the method behind the Foundation's delegator model."
+authors: ["Steven T. Berry"]
+published: 1994
+venue: "*The RAND Journal of Economics*"
+url: "https://doi.org/10.2307/2555829"
+tags: ["structural-estimation"]
+key_terms: ["inversion", "mean utility", "nested logit", "instrumental variables", "outside option", "unobserved demand factors"]
+deliverables: ["1.3", "1.4"]
 ---
 
 Steven Berry shows how to turn observed market shares into the mean utility of each product, so that logit and nested logit demand can be estimated by instrumental variables when prices are correlated with qualities the analyst cannot see, and this inversion is the method behind the Foundation's delegator model.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Steven T. Berry |
+| **Published** | 1994 |
+| **Source** | *The RAND Journal of Economics*, [original](https://doi.org/10.2307/2555829) |
+| **Topics** | [structural estimation](/tags/structural-estimation) |
+| **Key terms** | inversion, mean utility, nested logit, instrumental variables, outside option, unobserved demand factors |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) |
+
+<!-- overview-table:end -->
 
 Berry published the paper in *The RAND Journal of Economics* in the summer of 1994. No free full text is available, so this summary rests on the publisher's abstract and the published record of the paper. The abstract states the problem as supply-and-demand analysis across many **oligopoly** markets, markets with a few sellers, in which products differ. Demand is described by a discrete-choice model, and prices are set by the firms. In contrast to some earlier empirical work, the method allows prices to be correlated with **unobserved demand factors**, qualities of a product that buyers see and the analyst does not.
 

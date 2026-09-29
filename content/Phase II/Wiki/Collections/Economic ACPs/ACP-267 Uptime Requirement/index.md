@@ -1,9 +1,30 @@
 ---
 title: "ACP-267 Uptime Requirement"
 description: "ACP-267 raises the uptime a Primary Network validator needs for any reward from 80% to 90%, for validations starting at or after Helicon."
+authors: ["Martin Eckardt"]
+published: 2026-02-02
+venue: "Avalanche Community Proposal"
+url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/267-uptime-requirement-increase/README.md"
+full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/ACP-267-Uptime-Requirement/Source-Proposal"
+tags: ["validator-economics", "issuance-and-rewards"]
+key_terms: ["uptime requirement", "slashing", "potential reward", "realized reward", "uptime observer"]
+deliverables: ["1.3", "2.6"]
 ---
 
 ACP-267 changes which commitments are paid. Avalanche has no slashing: a validator that misses the **uptime requirement** keeps its stake and loses the whole reward of the period, and its delegators lose theirs. Raising the threshold therefore moves the realized reward of every validator whose uptime falls between 80% and 90%. The question for the research is how many validators and how much stake sit in that band, and whether they improve their operations, accept the lost reward, or leave.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Martin Eckardt |
+| **Published** | February 2, 2026 |
+| **Source** | Avalanche Community Proposal, [original](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/267-uptime-requirement-increase/README.md), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-267-Uptime-Requirement/Source-Proposal) |
+| **Topics** | [validator economics](/tags/validator-economics), [issuance and rewards](/tags/issuance-and-rewards) |
+| **Key terms** | [uptime requirement](/Phase-II/Wiki/Reference/Glossary-and-Notation), slashing, [potential reward](/Phase-II/Wiki/Reference/Glossary-and-Notation), [realized reward](/Phase-II/Wiki/Reference/Glossary-and-Notation), uptime observer |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) |
+
+<!-- overview-table:end -->
 
 The full text of the ACP-267 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-267-Uptime-Requirement/Source-Proposal) page.
 

@@ -1,9 +1,30 @@
 ---
 title: "Summoning the Money God: Applying Control Theory to Cryptocurrency Monetary Policy"
 description: "Zargham, Bernardineli, Clark, Shorish, and Emmett show how the feedback controller behind the RAI stablecoin was chosen by simulation before launch, and conclude that a proportional controller was the simplest and safest choice."
+authors: ["Michael Zargham", "Danilo Lessa Bernardineli", "Andrew Clark", "Jamsheed Shorish", "Jeff Emmett"]
+published: 2021-04-09
+venue: "BlockScience technical article"
+url: "https://doi.org/10.5281/zenodo.10474385"
+full_text: "/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2021-Control-Theory-for-Monetary-Policy/Source-Paper"
+tags: ["mechanism-design", "parameter-selection-under-uncertainty"]
+key_terms: ["feedback controller", "PID controller", "redemption rate", "governance surface", "windup", "leak", "steady-state error"]
+deliverables: ["2.1", "2.2", "2.3", "2.6", "2.8"]
 ---
 
 Zargham, Bernardineli, Clark, Shorish, and Emmett show how BlockScience chose the feedback controller that sets the RAI stablecoin's redemption rate, by testing candidate controllers in simulation against an attack, a slow drift, and a price shock before launch, and conclude that a proportional controller was the simplest and safest choice.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Michael Zargham, Danilo Lessa Bernardineli, Andrew Clark, Jamsheed Shorish, Jeff Emmett |
+| **Published** | April 9, 2021 |
+| **Source** | BlockScience technical article, [original](https://doi.org/10.5281/zenodo.10474385), [full text](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2021-Control-Theory-for-Monetary-Policy/Source-Paper) |
+| **Topics** | [mechanism design](/tags/mechanism-design), [parameter selection under uncertainty](/tags/parameter-selection-under-uncertainty) |
+| **Key terms** | feedback controller, PID controller, redemption rate, governance surface, windup, leak, steady-state error |
+| **Serves deliverables** | [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
+
+<!-- overview-table:end -->
 
 The five authors, all at BlockScience, published the article on April 9, 2021. It records work done with Reflexer Labs to set RAI's parameters before its mainnet launch on February 17, 2021. **RAI** is a token backed by ETH that is not pegged to the dollar or any other asset. The authors call it a "dampened ETH," because a controller softens the price swings that ETH passes through to it.
 

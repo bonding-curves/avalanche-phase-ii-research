@@ -1,9 +1,29 @@
 ---
 title: "Exploring the Usefulness of a Nonrandom Holdout Sample for Model Validation: Welfare Effects on Female Behavior"
 description: "Keane and Wolpin fit models of women's welfare, work, and family choices on five U.S. states, predict Texas, whose benefits are far lower, and find that models which fit equally well in sample differ sharply out of sample."
+authors: ["Michael P. Keane", "Kenneth I. Wolpin"]
+published: 2007
+venue: "*International Economic Review*"
+url: "https://doi.org/10.1111/j.1468-2354.2007.00465.x"
+tags: ["model-validation", "structural-estimation"]
+key_terms: ["nonrandom holdout sample", "dynamic programming model", "multinomial logit", "counterfactual", "overfitting"]
+deliverables: ["1.4", "2.4"]
 ---
 
 Keane and Wolpin fit models of young women's welfare, work, and family choices on five U.S. states, predict behavior in Texas, whose welfare benefits are far lower, and show that models which fit equally well in sample differ sharply once they must predict a different policy regime.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Michael P. Keane, Kenneth I. Wolpin |
+| **Published** | 2007 |
+| **Source** | *International Economic Review*, [original](https://doi.org/10.1111/j.1468-2354.2007.00465.x) |
+| **Topics** | [model validation](/tags/model-validation), [structural estimation](/tags/structural-estimation) |
+| **Key terms** | nonrandom holdout sample, dynamic programming model, multinomial logit, counterfactual, overfitting |
+| **Serves deliverables** | [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) |
+
+<!-- overview-table:end -->
 
 Michael Keane, then at Yale, and Kenneth Wolpin, at the University of Pennsylvania, circulated the paper in May 2005 as PIER Working Paper 06-006 and published it in the *International Economic Review* in 2007. Their problem is that chances to validate a behavioral model against a real change in policy are "extremely rare." The classic case is McFadden's forecast of ridership on San Francisco's BART rail system, made before the system opened and then compared with actual use. Waiting for such events is not a workable research strategy, so the authors create the test from existing data.
 

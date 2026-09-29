@@ -1,9 +1,29 @@
 ---
 title: "A General, Analytic Method for Generating Robust Strategies and Narrative Scenarios"
 description: "Lempert, Groves, Popper, and Bankes set out robust decision making, which proposes a strategy, finds the futures in which it fails, and weighs the cost of hedging against them."
+authors: ["Robert J. Lempert", "David G. Groves", "Steven W. Popper", "Steven C. Bankes"]
+published: 2006-04
+venue: "*Management Science*"
+url: "https://doi.org/10.1287/mnsc.1050.0472"
+tags: ["parameter-selection-under-uncertainty"]
+key_terms: ["deep uncertainty", "robust decision making", "robust strategy", "vulnerability", "hedge", "narrative scenarios", "adaptive strategy"]
+deliverables: ["1.4", "2.1", "2.2", "2.3", "2.6", "2.8", "3.1", "3.2"]
 ---
 
 Lempert, Groves, Popper, and Bankes set out robust decision making, a method that proposes a strategy, finds the futures in which it fails, and weighs the cost of hedging against them, so that scenarios come out of the analysis instead of being written in advance.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Robert J. Lempert, David G. Groves, Steven W. Popper, Steven C. Bankes |
+| **Published** | April 2006 |
+| **Source** | *Management Science*, [original](https://doi.org/10.1287/mnsc.1050.0472) |
+| **Topics** | [parameter selection under uncertainty](/tags/parameter-selection-under-uncertainty) |
+| **Key terms** | deep uncertainty, robust decision making, robust strategy, vulnerability, hedge, narrative scenarios, adaptive strategy |
+| **Serves deliverables** | [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/), [3.1](/Phase-II/Milestones/Milestone-3/3-1-Parameter-Recommendation-Report/), [3.2](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) |
+
+<!-- overview-table:end -->
 
 Robert Lempert, David Groves, Steven Popper, and Steven Bankes, all of the RAND Corporation, published the paper in *Management Science* in April 2006. Their starting point is that "robustness is a key criterion for evaluating alternative decisions under conditions of deep uncertainty," yet no systematic, general approach existed for finding robust strategies with the range of models and data that decision makers often have. The full text is behind the publisher's paywall. This overview rests on the publisher's abstract and the published record, and it gives none of the paper's numbers.
 

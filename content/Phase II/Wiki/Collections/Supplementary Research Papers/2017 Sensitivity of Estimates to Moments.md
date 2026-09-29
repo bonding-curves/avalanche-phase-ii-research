@@ -1,9 +1,29 @@
 ---
 title: "Measuring the Sensitivity of Parameter Estimates to Estimation Moments"
 description: "Andrews, Gentzkow, and Shapiro give a matrix that shows how much each estimated parameter moves with each data moment, so a reader can see what drives a structural estimate and predict the bias from a named violation of its assumptions."
+authors: ["Isaiah Andrews", "Matthew Gentzkow", "Jesse M. Shapiro"]
+published: 2017
+venue: "*The Quarterly Journal of Economics*"
+url: "https://doi.org/10.1093/qje/qjx023"
+tags: ["structural-estimation", "sensitivity-analysis"]
+key_terms: ["sensitivity matrix", "transparency", "minimum distance estimator", "moment", "omitted variables bias formula"]
+deliverables: ["1.4", "2.4"]
 ---
 
 Andrews, Gentzkow, and Shapiro give a matrix that shows how much each estimated parameter moves when each summary of the data moves, so that a reader can see which features of the data drive a structural estimate and predict the bias that a named violation of the model's assumptions would cause.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Isaiah Andrews, Matthew Gentzkow, Jesse M. Shapiro |
+| **Published** | 2017 |
+| **Source** | *The Quarterly Journal of Economics*, [original](https://doi.org/10.1093/qje/qjx023) |
+| **Topics** | [structural estimation](/tags/structural-estimation), [sensitivity analysis](/tags/sensitivity-analysis) |
+| **Key terms** | sensitivity matrix, transparency, minimum distance estimator, moment, omitted variables bias formula |
+| **Serves deliverables** | [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) |
+
+<!-- overview-table:end -->
 
 Isaiah Andrews of MIT, Matthew Gentzkow of Stanford, and Jesse Shapiro of Brown circulated the paper as NBER Working Paper 20673 in November 2014, revised it in May 2017, and published it in *The Quarterly Journal of Economics* in 2017. Their starting point is a common complaint about **structural estimation**, which fits an economic model of behavior to data. Critics say it lacks transparency, and the authors quote Angrist and Pischke that it is often "hard to see precisely which features of the data drive the ultimate results." The authors call research **transparent** when it lets a reader work out how the estimates would change under assumptions the reader finds more plausible.
 

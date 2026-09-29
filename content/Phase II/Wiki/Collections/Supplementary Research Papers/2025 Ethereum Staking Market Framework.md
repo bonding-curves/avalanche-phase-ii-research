@@ -1,9 +1,29 @@
 ---
 title: "Towards a Formal Framework of the Ethereum Staking Market"
 description: "Beccuti, Chantramonklasri, Hafner, and Oderbolz model three types of Ethereum staker and find that a cut in issuance lowers total stake by about a quarter, changes who stakes, and falls hardest on solo stakers' profits."
+authors: ["Juan Beccuti", "Thunj Chantramonklasri", "Matthias Hafner", "Nicolas Oderbolz"]
+published: 2025-07-20
+venue: "arXiv"
+url: "https://arxiv.org/abs/2503.14385"
+tags: ["issuance-and-rewards", "distributional-effects", "decentralization"]
+key_terms: ["solo staker", "segmented market", "Nash equilibrium", "MEV", "elasticity of stake", "instrumental variables"]
+deliverables: ["1.3", "1.4", "2.3", "2.8"]
 ---
 
 Beccuti, Chantramonklasri, Hafner, and Oderbolz model three types of Ethereum staker and find that a cut in issuance lowers total stake by about a quarter, changes who stakes, and falls hardest on the profits of solo stakers.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Juan Beccuti, Thunj Chantramonklasri, Matthias Hafner, Nicolas Oderbolz |
+| **Published** | July 20, 2025 |
+| **Source** | arXiv, [original](https://arxiv.org/abs/2503.14385) |
+| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [distributional effects](/tags/distributional-effects), [decentralization](/tags/decentralization) |
+| **Key terms** | solo staker, segmented market, Nash equilibrium, MEV, elasticity of stake, instrumental variables |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
+
+<!-- overview-table:end -->
 
 The authors work at the Center for Cryptoeconomics, and a CyberFund grant funded the paper. They posted it in March 2025 and revised it in July 2025. About 30% of circulating ETH is staked, and several proposals would lower **issuance**, the new ETH the protocol pays to stakers. Supporters say lower issuance would limit dilution and slow the spread of **liquid staking tokens**, tradable claims on staked ETH. Opponents say it would push out **solo stakers**, who run their own validators and add most to decentralization, and leave more stake with centralized exchanges. The paper asks how each kind of staker sets its stake, and how a new schedule changes the mix.
 

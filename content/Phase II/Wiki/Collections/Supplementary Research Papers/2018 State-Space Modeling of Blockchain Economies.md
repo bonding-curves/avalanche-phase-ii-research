@@ -1,9 +1,29 @@
 ---
 title: "A State-Space Modeling Framework for Engineering Blockchain-Enabled Economic Systems"
 description: "Zargham, Zhang, and Preciado write a blockchain ledger as a discrete-time state-space system and show that local rules on each account's actions can guarantee a global property such as total supply."
+authors: ["Michael Zargham", "Zixuan Zhang", "Victor Preciado"]
+published: 2018-07-03
+venue: "arXiv"
+url: "https://arxiv.org/abs/1807.00955"
+tags: ["model-structure"]
+key_terms: ["state-space representation", "invariant", "value function", "no-overspend rule", "linear time-expanding model", "finality"]
+deliverables: ["1.3", "2.4", "2.8"]
 ---
 
 Zargham, Zhang, and Preciado write a blockchain ledger as a discrete-time state-space system and show that local rules on what each account may do can guarantee a global property, such as total supply, whatever the individual agents choose.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Michael Zargham, Zixuan Zhang, Victor Preciado |
+| **Published** | July 3, 2018 |
+| **Source** | arXiv, [original](https://arxiv.org/abs/1807.00955) |
+| **Topics** | [model structure](/tags/model-structure) |
+| **Key terms** | state-space representation, invariant, value function, no-overspend rule, linear time-expanding model, finality |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
+
+<!-- overview-table:end -->
 
 Michael Zargham, founder and chief executive of BlockScience, wrote the paper with Zixuan Zhang and Victor Preciado of the University of Pennsylvania's Department of Electrical and Systems Engineering. It was posted to arXiv on 3 July 2018 and given as an oral presentation at the Ninth International Conference on Complex Systems. The authors argue that blockchain networks are economies of agents "driven by incentives under a set of rules," whatever their consensus mechanism, and that engineering them needs a proper mathematical framework. The paper supplies one from control theory.
 

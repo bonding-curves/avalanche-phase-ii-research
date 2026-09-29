@@ -1,9 +1,30 @@
 ---
 title: "ACP-236 Auto-Renewed Staking"
 description: "ACP-236 lets a Primary Network validator stake in repeated cycles that renew automatically and restake a chosen share of each cycle's reward."
+authors: ["Razvan Angheluta"]
+published: 2025-11-11
+venue: "Avalanche Community Proposal"
+url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/236-auto-renewed-staking/README.md"
+full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/ACP-236-Auto-Renewed-Staking/Source-Proposal"
+tags: ["staking-duration-and-liquidity", "issuance-and-rewards"]
+key_terms: ["auto-renewed staking", "cycle", "restake rate", "restaked reward share", "compounding", "uptime requirement"]
+deliverables: ["1.3", "1.4"]
 ---
 
 ACP-236 removes the manual step between one validator commitment and the next. Before Helicon a validator restaked by issuing a new transaction after its period ended, and its stake sat idle in between. The restake rate is one of the three behavioral state variables the staking model must carry, and this proposal changes how restaking happens. The question for the research is whether lower renewal friction moves validators toward short, repeated cycles, and what that does to delegation and to the reward they earn.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Razvan Angheluta |
+| **Published** | November 11, 2025 |
+| **Source** | Avalanche Community Proposal, [original](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/236-auto-renewed-staking/README.md), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-236-Auto-Renewed-Staking/Source-Proposal) |
+| **Topics** | [staking duration and liquidity](/tags/staking-duration-and-liquidity), [issuance and rewards](/tags/issuance-and-rewards) |
+| **Key terms** | [auto-renewed staking](/Phase-II/Wiki/Reference/Glossary-and-Notation), cycle, restake rate, restaked reward share, compounding, [uptime requirement](/Phase-II/Wiki/Reference/Glossary-and-Notation) |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) |
+
+<!-- overview-table:end -->
 
 The full text of the ACP-236 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-236-Auto-Renewed-Staking/Source-Proposal) page.
 

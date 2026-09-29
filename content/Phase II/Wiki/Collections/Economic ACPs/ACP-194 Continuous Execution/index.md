@@ -1,9 +1,30 @@
 ---
 title: "ACP-194 Continuous Execution"
 description: "ACP-194 separates C-Chain consensus from execution, so blocks are accepted first and executed and settled afterwards."
+authors: ["Arran Schlosberg", "Stephen Buttolph"]
+published: 2025-05-12
+venue: "Avalanche Community Proposal"
+url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/194-continuous-execution/README.md"
+full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/ACP-194-Continuous-Execution/Source-Proposal"
+tags: ["fees-and-value-capture"]
+key_terms: ["continuous execution", "execution queue", "settlement delay", "gas limit", "AVAX burned", "Helicon"]
+deliverables: []
 ---
 
 ACP-194 changes how the C-Chain executes transactions, not how staking is rewarded. It is in this collection because it activated with Helicon at the same instant as the four staking changes. Any comparison of the network before and after 2026-09-22 15:00 UTC mixes its effects on C-Chain throughput and fees with the staking effects, and the research has to keep the two apart.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Arran Schlosberg, Stephen Buttolph |
+| **Published** | May 12, 2025 |
+| **Source** | Avalanche Community Proposal, [original](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/194-continuous-execution/README.md), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-194-Continuous-Execution/Source-Proposal) |
+| **Topics** | [fees and value capture](/tags/fees-and-value-capture) |
+| **Key terms** | continuous execution, execution queue, settlement delay, gas limit, [AVAX burned](/Phase-II/Wiki/Reference/Glossary-and-Notation), [Helicon](/Phase-II/Wiki/Reference/Glossary-and-Notation) |
+| **Serves deliverables** | Background only |
+
+<!-- overview-table:end -->
 
 The full text of the ACP-194 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-194-Continuous-Execution/Source-Proposal) page.
 

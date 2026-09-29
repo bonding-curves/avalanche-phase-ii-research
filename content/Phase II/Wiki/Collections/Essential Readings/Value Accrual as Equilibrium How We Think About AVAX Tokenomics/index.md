@@ -1,9 +1,30 @@
 ---
 title: "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics"
 description: "Eric Lu argues that AVAX value accrual is an equilibrium outcome in which staking is a portfolio choice, reward rates are endogenous, and issuance is an inflation tax, and names two adaptations the framework needs for Avalanche."
+authors: ["Siyu (Eric) Lu"]
+published: 2026-03-19
+venue: "LinkedIn"
+url: "https://www.linkedin.com/pulse/value-accrual-equilibrium-how-we-think-avax-siyu-eric-lu-phd-pokvc"
+full_text: "/Phase-II/Wiki/Collections/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/Source-Article"
+tags: ["token-valuation", "distributional-effects", "issuance-and-rewards"]
+key_terms: ["transaction convenience", "inflation tax", "money-like", "asset-like", "supply-side levers", "demand-side drivers", "endogenous reward rate"]
+deliverables: ["1.3", "1.4", "2.3", "2.8"]
 ---
 
 Eric Lu argues that AVAX value accrual is the equilibrium outcome of supply and demand forces acting together, in which staking is a portfolio choice between rewards and liquidity, reward rates are set by the equilibrium, and issuance works as an inflation tax on all holders.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Siyu (Eric) Lu |
+| **Published** | March 19, 2026 |
+| **Source** | LinkedIn, [original](https://www.linkedin.com/pulse/value-accrual-equilibrium-how-we-think-avax-siyu-eric-lu-phd-pokvc), [full text](/Phase-II/Wiki/Collections/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/Source-Article) |
+| **Topics** | [token valuation](/tags/token-valuation), [distributional effects](/tags/distributional-effects), [issuance and rewards](/tags/issuance-and-rewards) |
+| **Key terms** | transaction convenience, inflation tax, money-like, asset-like, supply-side levers, demand-side drivers, endogenous reward rate |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
+
+<!-- overview-table:end -->
 
 Eric Lu of the Avalanche Foundation published the article on LinkedIn on March 19, 2026. It sets out the lens the Foundation uses to judge policy and design changes that affect AVAX value. Its starting point is that AVAX has two roles at once. It is **money-like**, because liquid tokens give their holders a **transaction convenience** flow. It is **asset-like**, because locked tokens earn staking rewards and voting rights. The article's claim is that the two roles cannot be valued separately.
 

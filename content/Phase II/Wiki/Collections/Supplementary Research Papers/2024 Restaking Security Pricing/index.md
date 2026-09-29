@@ -1,9 +1,30 @@
 ---
 title: "How Much Should You Pay for Restaking Security?"
 description: "Chitra and Pai show that services sharing restaked operators can stop a cascade of slashing attacks by paying rewards high enough that operators move stake to where it is needed, without every service having to be overcollateralized."
+authors: ["Tarun Chitra", "Mallesh Pai"]
+published: 2024-08-01
+venue: "arXiv"
+url: "https://arxiv.org/abs/2408.00928"
+full_text: "/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2024-Restaking-Security-Pricing/Source-Paper"
+tags: ["liquid-staking-and-restaking", "security-budget"]
+key_terms: ["service pooling", "profit from corruption", "slashing", "participation constraint", "Stackelberg security game", "overcollateralization", "operator costs"]
+deliverables: ["1.3", "2.3", "2.6", "2.8"]
 ---
 
 Tarun Chitra and Mallesh Pai show that services secured by the same restaked operators can stop a cascade of slashing attacks by paying rewards high enough that operators move stake to where it is needed, without requiring every service to be overcollateralized.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Tarun Chitra, Mallesh Pai |
+| **Published** | August 1, 2024 |
+| **Source** | arXiv, [original](https://arxiv.org/abs/2408.00928), [full text](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2024-Restaking-Security-Pricing/Source-Paper) |
+| **Topics** | [liquid staking and restaking](/tags/liquid-staking-and-restaking), [security budget](/tags/security-budget) |
+| **Key terms** | service pooling, profit from corruption, slashing, participation constraint, Stackelberg security game, overcollateralization, operator costs |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
+
+<!-- overview-table:end -->
 
 Chitra, of Gauntlet, and Pai, of Rice University and SMG, posted the paper to arXiv on 1 August 2024. Its subject is **restaking**, which EigenLayer introduced. Operators of an existing proof-of-stake network lock their stake into a contract and run extra services with it. Each service pays operators **incentives** for meeting its service-level agreement and **slashes** their stake, destroying part of it, if they break its rules. Citing LlamaRisk, the paper puts the capital restaking drew in 2024 alone at over \$20 billion. Its question is how much security each service really needs to buy.
 

@@ -1,9 +1,29 @@
 ---
 title: "Thinking inside the box: A participatory, computer-assisted approach to scenario discovery"
 description: "Bryant and Lempert define a scenario as a region of uncertain inputs in which a policy fails its goals, and find such regions by running a box-finding algorithm over a database of simulation runs."
+authors: ["Benjamin P. Bryant", "Robert J. Lempert"]
+published: 2010-01
+venue: "*Technological Forecasting and Social Change*"
+url: "https://doi.org/10.1016/j.techfore.2009.08.002"
+tags: ["parameter-selection-under-uncertainty", "sensitivity-analysis"]
+key_terms: ["scenario discovery", "PRIM", "box", "coverage", "density", "participatory"]
+deliverables: ["2.2", "2.3", "2.5", "2.6", "2.7", "3.2"]
 ---
 
 Bryant and Lempert define a scenario as a region of uncertain inputs in which a policy fails to meet its goals, and find such regions by running a box-finding algorithm over a database of simulation runs, so that the scenarios are both accurate and easy to state.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Benjamin P. Bryant, Robert J. Lempert |
+| **Published** | January 2010 |
+| **Source** | *Technological Forecasting and Social Change*, [original](https://doi.org/10.1016/j.techfore.2009.08.002) |
+| **Topics** | [parameter selection under uncertainty](/tags/parameter-selection-under-uncertainty), [sensitivity analysis](/tags/sensitivity-analysis) |
+| **Key terms** | scenario discovery, PRIM, box, coverage, density, participatory |
+| **Serves deliverables** | [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.5](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.7](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/), [3.2](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) |
+
+<!-- overview-table:end -->
 
 Benjamin Bryant and Robert Lempert, both of the RAND Corporation, published the paper in *Technological Forecasting and Social Change* in January 2010. It builds on [robust decision making](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2006-Robust-Strategies-and-Narrative-Scenarios), Lempert's earlier method, which asks in which futures a proposed strategy fails. This paper turns that question into a procedure with statistical tests. The full text is behind the publisher's paywall. This overview rests on the publisher's abstract, the published record, and a public reproduction of the paper's example, and it reports no number from the paper itself.
 

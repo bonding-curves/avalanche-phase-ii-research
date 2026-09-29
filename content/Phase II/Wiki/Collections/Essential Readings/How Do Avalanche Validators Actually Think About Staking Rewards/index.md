@@ -1,9 +1,30 @@
 ---
 title: "How Do Avalanche Validators Actually Think About Staking Rewards?"
 description: "Eric Lu estimates from 278 weeks of P-Chain data that Avalanche validators choose commitments by annualized yield, so lowering the reward floor, not shortening the minimum commitment, is the lever that lengthens them."
+authors: ["Siyu (Eric) Lu"]
+published: 2026-04-28
+venue: "LinkedIn"
+url: "https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc"
+full_text: "/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Source-Article"
+tags: ["structural-estimation", "staking-duration-and-liquidity", "delegation-market"]
+key_terms: ["two-sided market", "annualized yield", "period yield", "optionality cost", "marginal rate of substitution", "conditional logit", "inversion"]
+deliverables: ["1.3", "1.4", "2.4"]
 ---
 
 Eric Lu estimates from 278 weeks of P-Chain data that Avalanche validators choose their commitments by annualized yield rather than total income, so lowering the reward floor, not shortening the minimum commitment, is the lever that lengthens commitments.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Siyu (Eric) Lu |
+| **Published** | April 28, 2026 |
+| **Source** | LinkedIn, [original](https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc), [full text](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Source-Article) |
+| **Topics** | [structural estimation](/tags/structural-estimation), [staking duration and liquidity](/tags/staking-duration-and-liquidity), [delegation market](/tags/delegation-market) |
+| **Key terms** | two-sided market, annualized yield, period yield, optionality cost, marginal rate of substitution, conditional logit, inversion |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) |
+
+<!-- overview-table:end -->
 
 Eric Lu of the Avalanche Foundation published the article on LinkedIn on April 28, 2026. It applies the Foundation's practice of recovering preferences from on-chain data and using them "to inform decisions before they are implemented." The decisions were two proposals then under discussion: a shorter minimum staking duration and a lower reward floor under ACP-285. The article names the first proposal ACP-275, but its link opens the discussion of ACP-273, the proposal that shortened the minimum. The article asks how delegators trade off rewards, fees, and duration, and how validators trade off staking income, delegation fee income, and duration.
 

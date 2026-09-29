@@ -1,9 +1,30 @@
 ---
 title: "Minimum validator stake of 500 AVAX"
 description: "A lower minimum validator self-stake of 500 AVAX has been suggested in public discussion but has no ACP number, and the Mainnet minimum remains 2,000 AVAX."
+authors: ["CaptainDoubleBlade"]
+published: 2023-12-16
+venue: "GitHub discussion"
+url: "https://github.com/avalanche-foundation/ACPs/discussions/56"
+full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/Minimum-Validator-Stake-500-AVAX/Source-Discussion"
+tags: ["decentralization", "validator-economics"]
+key_terms: ["minimum validator stake", "self-stake", "AVAX-days", "minimum validator duration", "P-Chain state growth"]
+deliverables: ["2.8"]
 ---
 
 Our [brief of 2026-09-25](/Phase-II/Wiki/Briefs/2026-09-25-sprint-8/) described a 500 AVAX minimum stake as ACP-49 and discussed how it would combine with ACP-273's 48-hour minimum. That label is wrong. No ACP-49 exists, and no ACP proposes a 500 AVAX minimum. This page records what does exist, because the minimum self-stake is still a parameter the Foundation may want evaluated under [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/).
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | CaptainDoubleBlade |
+| **Published** | December 16, 2023 |
+| **Source** | GitHub discussion, [original](https://github.com/avalanche-foundation/ACPs/discussions/56), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/Minimum-Validator-Stake-500-AVAX/Source-Discussion) |
+| **Topics** | [decentralization](/tags/decentralization), [validator economics](/tags/validator-economics) |
+| **Key terms** | minimum validator stake, [self-stake](/Phase-II/Wiki/Reference/Glossary-and-Notation), AVAX-days, minimum validator duration, P-Chain state growth |
+| **Serves deliverables** | [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
+
+<!-- overview-table:end -->
 
 Discussion 56 is replicated in full on the [Source Discussion](/Phase-II/Wiki/Collections/Economic-ACPs/Minimum-Validator-Stake-500-AVAX/Source-Discussion) page.
 

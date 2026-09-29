@@ -1,9 +1,29 @@
 ---
 title: "Formal aspects of model validity and validation in system dynamics"
 description: "Barlas sets out the order in which a system dynamics model should be tested, structure first, then behavior tests that expose structural flaws, then the match to historical patterns."
+authors: ["Yaman Barlas"]
+published: 1996
+venue: "*System Dynamics Review*"
+url: "https://doi.org/10.1002/(SICI)1099-1727(199623)12:3%3C183::AID-SDR103%3E3.0.CO;2-4"
+tags: ["model-validation"]
+key_terms: ["causal-descriptive model", "direct structure tests", "structure-oriented behavior tests", "behavior pattern tests", "discrepancy coefficient", "system dynamics"]
+deliverables: ["1.3", "2.4", "2.5"]
 ---
 
 Yaman Barlas sets out the order in which a system dynamics model should be tested, structure first, then behavior tests designed to expose structural flaws, and only then the match to historical patterns, and he argues that the middle stage deserves the most attention.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Yaman Barlas |
+| **Published** | 1996 |
+| **Source** | *System Dynamics Review*, [original](https://doi.org/10.1002/(SICI)1099-1727(199623)12:3%3C183::AID-SDR103%3E3.0.CO;2-4) |
+| **Topics** | [model validation](/tags/model-validation) |
+| **Key terms** | causal-descriptive model, direct structure tests, structure-oriented behavior tests, behavior pattern tests, discrepancy coefficient, system dynamics |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/), [2.5](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) |
+
+<!-- overview-table:end -->
 
 Barlas, of Boğaziçi University, published the paper in *System Dynamics Review* in 1996. His starting point, in the abstract, is that published and informal evidence shows little effort in the system dynamics community devoted explicitly to model validity. The paper has no free full text. This overview rests on the publisher's abstract and the published record of the paper's tests, and it reports no result that those sources do not state.
 

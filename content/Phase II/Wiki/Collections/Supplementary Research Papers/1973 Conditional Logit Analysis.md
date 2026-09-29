@@ -1,9 +1,29 @@
 ---
 title: "Conditional Logit Analysis of Qualitative Choice Behavior"
 description: "McFadden derives the conditional logit from a population of utility maximizers with random tastes and shows how to estimate it, the model the Foundation uses for a validator's choice of duration and delegation fee."
+authors: ["Daniel McFadden"]
+published: 1973
+venue: "*Frontiers in Econometrics*"
+url: "https://eml.berkeley.edu/reprints/mcfadden/zarembka.pdf"
+tags: ["structural-estimation"]
+key_terms: ["conditional logit", "random utility", "independence of irrelevant alternatives", "extreme value distribution", "maximum likelihood", "marginal rate of substitution"]
+deliverables: ["1.3", "1.4"]
 ---
 
 Daniel McFadden derives the conditional logit model from a population of utility maximizers whose tastes vary at random, shows how to estimate and test it, and names its main limit, and the Foundation now uses this model for a validator's choice of duration and delegation fee.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Daniel McFadden |
+| **Published** | 1973 |
+| **Source** | *Frontiers in Econometrics*, [original](https://eml.berkeley.edu/reprints/mcfadden/zarembka.pdf) |
+| **Topics** | [structural estimation](/tags/structural-estimation) |
+| **Key terms** | conditional logit, random utility, independence of irrelevant alternatives, extreme value distribution, maximum likelihood, marginal rate of substitution |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) |
+
+<!-- overview-table:end -->
 
 McFadden, then at the University of California, Berkeley, wrote the chapter for *Frontiers in Econometrics*, a 1973 volume edited by Paul Zarembka. His starting point is that economists observe the choices of a population, not the rule inside each person's head. When the alternatives are **qualitative**, such as a travel mode, a college, or an occupation, a small change in conditions cannot move each person a little. It moves some people from one alternative to another. Changes in aggregate choice must then come from a **distribution of decision rules** across the population. The chapter sets out how to build an econometric model of population choice from such a distribution, and works one case through in detail.
 

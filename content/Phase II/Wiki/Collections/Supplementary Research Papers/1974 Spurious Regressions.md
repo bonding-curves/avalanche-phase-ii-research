@@ -1,9 +1,29 @@
 ---
 title: "Spurious regressions in econometrics"
 description: "Granger and Newbold show that regressing one random walk on another, unrelated one finds a significant relation about three times in four, which is why a high correlation between two trending series is weak evidence of a good model."
+authors: ["C. W. J. Granger", "P. Newbold"]
+published: 1974-07
+venue: "*Journal of Econometrics*"
+url: "https://doi.org/10.1016/0304-4076(74)90034-7"
+tags: ["model-validation"]
+key_terms: ["spurious regression", "random walk", "Durbin-Watson statistic", "first differences", "R-squared"]
+deliverables: ["2.4"]
 ---
 
 C. W. J. Granger and P. Newbold show that regressing one random walk on another, unrelated one finds a significant relation about three times in four, which is why a high correlation between two trending series is weak evidence of a good model.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | C. W. J. Granger, P. Newbold |
+| **Published** | July 1974 |
+| **Source** | *Journal of Econometrics*, [original](https://doi.org/10.1016/0304-4076(74)90034-7) |
+| **Topics** | [model validation](/tags/model-validation) |
+| **Key terms** | spurious regression, random walk, Durbin-Watson statistic, first differences, R-squared |
+| **Serves deliverables** | [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) |
+
+<!-- overview-table:end -->
 
 The paper appeared in the *Journal of Econometrics* in July 1974. No free full text is available and the publisher's record carries no abstract, so this summary rests on the published record of the paper's method and results. It asks what can be inferred from a time-series regression with a high $R^2$, the share of variation a regression explains, and a very low **Durbin-Watson statistic**. The Durbin-Watson statistic tests whether a regression's errors are correlated from one period to the next. It is near 2 when they are not and near 0 when each error closely follows the last.
 

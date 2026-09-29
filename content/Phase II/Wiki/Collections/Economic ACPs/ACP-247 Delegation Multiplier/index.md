@@ -1,9 +1,30 @@
 ---
 title: "ACP-247 Delegation Multiplier"
 description: "ACP-247 proposes raising the most delegated stake a validator can accept from 4 to 24 times its self-stake, under the unchanged 3,000,000 AVAX weight cap."
+authors: ["Giacomo Barbieri", "BENQI"]
+published: 2025-11-13
+venue: "Avalanche Community Proposal"
+url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/247-delegation-multiplier-increase/README.md"
+full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/ACP-247-Delegation-Multiplier/Source-Proposal"
+tags: ["delegation-market", "decentralization", "validator-economics"]
+key_terms: ["delegation capacity", "delegation multiplier", "self-stake", "maximum validator weight", "node splitting", "consensus weight"]
+deliverables: ["2.6", "2.8"]
 ---
 
 ACP-247 is a proposal from outside the Foundation, by Giacomo Barbieri and BENQI, to raise validator income by allowing more delegation per unit of self-stake. It did not ship with Helicon. It matters to the research because it is the kind of alternative mechanism [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) exists to evaluate, and because its effect depends on one measurable fact: whether the current **delegation capacity** limits delegation at all.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Giacomo Barbieri, BENQI |
+| **Published** | November 13, 2025 |
+| **Source** | Avalanche Community Proposal, [original](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/247-delegation-multiplier-increase/README.md), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-247-Delegation-Multiplier/Source-Proposal) |
+| **Topics** | [delegation market](/tags/delegation-market), [decentralization](/tags/decentralization), [validator economics](/tags/validator-economics) |
+| **Key terms** | [delegation capacity](/Phase-II/Wiki/Reference/Glossary-and-Notation), delegation multiplier, [self-stake](/Phase-II/Wiki/Reference/Glossary-and-Notation), maximum validator weight, node splitting, consensus weight |
+| **Serves deliverables** | [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
+
+<!-- overview-table:end -->
 
 The full text of the ACP-247 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-247-Delegation-Multiplier/Source-Proposal) page.
 

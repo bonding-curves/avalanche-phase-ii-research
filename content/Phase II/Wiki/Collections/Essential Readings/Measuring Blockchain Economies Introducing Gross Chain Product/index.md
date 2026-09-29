@@ -1,9 +1,29 @@
 ---
 title: "Measuring Blockchain Economies: Introducing Gross Chain Product"
 description: "Eric Lu defines gross chain product as on-chain value added, separates nominal from real output with a Fisher chain-weighted index, and finds that C-Chain real output fell 25% from January 2025 to March 2026 while nominal output fell 60%."
+authors: ["Siyu (Eric) Lu"]
+published: 2026-05-07
+venue: "LinkedIn"
+url: "https://www.linkedin.com/pulse/measuring-blockchain-economies-introducing-gross-chain-lu-phd-juj3c"
+tags: ["economic-measurement"]
+key_terms: ["gross chain product", "value added", "income approach", "nominal GCP", "real GCP", "Fisher index", "Törnqvist weights"]
+deliverables: ["1.1", "2.2", "2.3", "3.2"]
 ---
 
 Eric Lu defines gross chain product, a GDP-style measure of on-chain value added, and shows that the C-Chain's real output fell 25% from January 2025 to March 2026, while its nominal output, which also moves with token prices, fell 60%.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Siyu (Eric) Lu |
+| **Published** | May 7, 2026 |
+| **Source** | LinkedIn, [original](https://www.linkedin.com/pulse/measuring-blockchain-economies-introducing-gross-chain-lu-phd-juj3c) |
+| **Topics** | [economic measurement](/tags/economic-measurement) |
+| **Key terms** | gross chain product, value added, income approach, nominal GCP, real GCP, Fisher index, Törnqvist weights |
+| **Serves deliverables** | [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [3.2](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) |
+
+<!-- overview-table:end -->
 
 Eric Lu of the Avalanche Foundation published the article on May 7, 2026. It is the Foundation's first economy-wide measure of output on a blockchain, and the Foundation's [research agenda](/Phase-II/Wiki/Collections/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/), published in July, builds its measure step on it. The article asks "how much genuine economic value is being created on-chain, and is that number growing or contracting?" It argues that common metrics answer other questions. Total value locked measures a stock of capital, some of it idle. Market capitalization reflects sentiment and speculation. One protocol's revenue does not add up to a picture of the whole economy.
 

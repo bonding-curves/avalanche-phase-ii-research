@@ -1,9 +1,30 @@
 ---
 title: "ACP-285 Minimum Consumption Rate"
 description: "ACP-285 lowers the Primary Network minimum consumption rate from 10% to 7.5% over a 90-day ramp keyed to each stake's start time."
+authors: ["Matias Antonio", "Eric Lu", "Martin Eckardt", "Meaghan FitzGerald"]
+published: 2026-06-08
+venue: "Avalanche Community Proposal"
+url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/285-reduce-minimum-consumption-rate/README.md"
+full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/ACP-285-Minimum-Consumption-Rate/Source-Proposal"
+tags: ["issuance-and-rewards", "staking-duration-and-liquidity"]
+key_terms: ["minimum consumption rate", "maximum consumption rate", "remaining-supply factor", "ninety-day ramp", "annualized reward rate", "minting period"]
+deliverables: ["1.3", "1.4", "2.5"]
 ---
 
 ACP-285 is the first change to a Primary Network reward parameter since genesis. It sets the yield a validator earns at each commitment duration, which is one of the governance parameters the staking model varies, and it is the proposal whose behavioral effect the Foundation estimated before activation. The question it raises for the research is how far validators move toward longer commitments when the reward for short commitments falls and the reward for a 365-day commitment does not.
+
+<!-- overview-table:start -->
+
+| | |
+| --- | --- |
+| **Authors** | Matias Antonio, Eric Lu, Martin Eckardt, Meaghan FitzGerald |
+| **Published** | June 8, 2026 |
+| **Source** | Avalanche Community Proposal, [original](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/285-reduce-minimum-consumption-rate/README.md), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-285-Minimum-Consumption-Rate/Source-Proposal) |
+| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [staking duration and liquidity](/tags/staking-duration-and-liquidity) |
+| **Key terms** | minimum consumption rate, maximum consumption rate, remaining-supply factor, ninety-day ramp, [annualized reward rate](/Phase-II/Wiki/Reference/Glossary-and-Notation), minting period |
+| **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.5](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) |
+
+<!-- overview-table:end -->
 
 The full text of the ACP-285 proposal is replicated on the [Source Proposal](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-285-Minimum-Consumption-Rate/Source-Proposal) page.
 
