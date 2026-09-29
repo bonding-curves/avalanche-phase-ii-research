@@ -203,14 +203,15 @@ def compute(connection: Any) -> None:
     connection.execute(f"CREATE OR REPLACE VIEW periods AS {PERIODS_SQL}")
 
 
-def rewards_captured_at(inputs: list[dict[str, Any]]) -> str:
-    """When the reward transactions were captured: a period that ended later cannot have a reward row yet."""
-    record = next(item for item in inputs if item["input_id"] == "staking-rewards")
-    return str(record["captured_at"]).replace("Z", "")
+def reward_horizon(connection: Any) -> str:
+    """The latest reward the log holds: a period that ended later cannot have a reward row yet. The capture time is not
+    used, because a seamed or lagging input holds data well short of when it was built."""
+    latest = connection.execute("SELECT max(rewarded_at) FROM periods").fetchone()[0]
+    return latest.isoformat(sep=" ") if latest is not None else "9999-12-31"
 
 
 def summarize(connection: Any, as_of: str) -> dict[str, Any]:
-    """Counts over ``periods``; ``as_of`` is the reward capture time that separates ended periods from open ones."""
+    """Counts over ``periods``; ``as_of`` is the latest reward the log holds, which separates ended periods from open ones."""
     row = connection.execute(SUMMARY_SQL, [as_of, as_of]).fetchone()
     keys = [
         "rows", "validators", "delegators", "immediate_rows", "immediate_reproduced", "pending_rows", "pending_reproduced",
@@ -266,7 +267,7 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
             load_inputs(connection, inputs)
             compute(connection)
             connection.execute("COPY periods TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(parquet_path)])
-            summary = summarize(connection, rewards_captured_at(inputs))
+            summary = summarize(connection, reward_horizon(connection))
         finally:
             connection.close()
         build_receipt = {
@@ -336,7 +337,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                 columns = [row[0] for row in connection.execute("DESCRIBE periods").fetchall()]
                 if columns != list(TABLE_COLUMNS):
                     findings.append("Parquet columns differ from the declared fields")
-                summary.update(summarize(connection, rewards_captured_at(receipt["inputs"])))
+                summary.update(summarize(connection, reward_horizon(connection)))
             finally:
                 connection.close()
             if summary["rows"] != summary["distinct_hashes"]:

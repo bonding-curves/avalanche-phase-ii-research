@@ -143,3 +143,13 @@ def test_check_flags_changed_inputs_and_outputs(root):
         derived.check(output / "capture", None, against=root)
     with pytest.raises(DataError):
         derived.capture(derived.DATASET_ID, root / "capture")
+
+
+def test_ended_periods_are_counted_up_to_the_latest_reward_not_the_build_clock(root):
+    output = root / "periods"
+    summary = derived.derive(derived.DATASET_ID, output, root=root)["build"]["summary"]
+    connection = duckdb.connect()
+    connection.execute(f"CREATE VIEW periods AS SELECT * FROM read_parquet('{output / 'dataset' / 'staking-periods.parquet'}')")
+    # The latest reward is v2's at 2025-06-01 00:01; the fixture's inputs were captured on 2026-09-19.
+    assert derived.reward_horizon(connection) == "2025-06-01 00:01:00"
+    assert summary["gap_ended_without_reward_row"] == 0 and summary["open_periods"] == 1
