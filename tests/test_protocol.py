@@ -9,7 +9,7 @@ import pytest
 
 from avalanche_research.model import protocol
 from avalanche_research.model.backtest import backtest
-from avalanche_research.model.types import ModelError, RewardConfig, Upgrade, UpgradeSchedule
+from avalanche_research.model.types import ModelError, RewardConfig, Upgrade, UpgradeSchedule, ValidatorFeeConfig
 
 
 DAY = 86_400
@@ -622,3 +622,83 @@ def test_stake_start_before_and_after_durango():
     # from Durango the requested start is ignored and the stake starts at acceptance
     assert protocol.staker_start_time_error(DURANGO, DURANGO) is None
     assert protocol.effective_stake_start(DURANGO, DURANGO + timedelta(days=3)) == DURANGO
+
+
+# KG9 L1 validators: continuous fee and the Subnet validator rules
+MAX64 = 2**64 - 1
+
+
+@pytest.mark.parametrize("min_price, excess, constant, expected", [
+    # vms/components/gas/gas_test.go calculatePriceTests
+    (1, 0, 1, 1), (1, 1, 1, 2), (1, 2, 1, 6), (1, 10_000, 10_000, 2), (1, 1_000_000, 10_000, MAX64),
+    (10, 10_000_000, 1_000_000, 220_264), (MAX64, MAX64, 1, MAX64), (2**32 - 1, 1, 1, 11_674_931_546),
+    (6_786_177_901_268_885_274, 1, 1, MAX64 - 11), (6_786_177_901_268_885_274, MAX64, MAX64, MAX64 - 1),
+])
+def test_gas_price_matches_avalanchego_vectors(min_price, excess, constant, expected):
+    assert protocol.gas_price(min_price, excess, constant) == expected
+
+
+# vms/platformvm/validators/fee/fee_test.go tests: min price 2,048, target 10,000, price doubling each day
+FEE_TEST_CONFIG = ValidatorFeeConfig(20_000, 10_000, 2_048, 1_246_488_515)
+MINUTE, HOUR, WEEK = 60, 3_600, 7 * DAY
+FEE_VECTORS = [
+    # (current, excess, target, seconds, cost, excess after)
+    (10, 0, 10_000, MINUTE, 122_880, 0),
+    (10_000, 0, 10_000, MINUTE, 122_880, 0),
+    (10_000, 10_000 * DAY, 10_000, MINUTE, 245_760, 10_000 * DAY),
+    (10_000, 1_246_488_515, 10_000, MINUTE, 334_020, 1_246_488_515),
+    (15_000, 0, 10_000, MINUTE, 122_880, 5_000 * MINUTE),
+    (9_000, 6 * HOUR * 1_000, 10_000, DAY, 177_321_939, 0),
+    (10_000, 1_246_488_515, 10_000, DAY, 480_988_800, 1_246_488_515),
+    (15_000, 0, 10_000, DAY, 211_438_809, 5_000 * DAY),
+    (10_000, 0, 10_000, WEEK, 1_238_630_400, 0),
+    (15_000, 0, 10_000, WEEK, 5_265_492_669, 5_000 * WEEK),
+    (MAX64, 1, 0, 1, MAX64, MAX64),
+    (2**32 - 1, 0, 0, 10, 1_948_429_840_780_833_612, (2**32 - 1) * 10),
+]
+
+
+@pytest.mark.parametrize("current, excess, target, seconds, cost, excess_after", FEE_VECTORS)
+def test_l1_validator_fee_matches_avalanchego_vectors(current, excess, target, seconds, cost, excess_after):
+    # TestStateAdvanceTime, TestStateCostOf, TestStateSecondsRemaining
+    config = replace(FEE_TEST_CONFIG, target=target)
+    assert protocol.fee_excess_after(current, excess, target, seconds) == excess_after
+    assert protocol.l1_validator_fee_navax(current, excess, seconds, config) == cost
+    assert protocol.l1_validator_seconds_remaining(current, excess, cost, WEEK, config) == seconds
+
+
+@pytest.mark.parametrize("current, excess, seconds", [
+    # TestStateCostOfOverflow
+    (2**32 - 1, 0, MAX64), (10_000, 0, MAX64), (0, 0, MAX64), (0, 10_001, MAX64 // 2_048 + 1),
+])
+def test_l1_validator_fee_saturates(current, excess, seconds):
+    assert protocol.l1_validator_fee_navax(current, excess, seconds, FEE_TEST_CONFIG) == MAX64
+
+
+@pytest.mark.parametrize("current, min_price, limit", [
+    # TestStateSecondsRemainingLimit
+    (2**32 - 1, 0, 0), (10_001, 2_048, MAX64), (10_000, 2_048, 2_048 * (WEEK + 1)), (0, 2_048, 2_048 * (WEEK + 1)),
+])
+def test_l1_validator_seconds_remaining_limit(current, min_price, limit):
+    config = replace(FEE_TEST_CONFIG, min_price_navax=min_price)
+    assert protocol.l1_validator_seconds_remaining(current, 0, limit, WEEK, config) == WEEK
+
+
+def test_mainnet_l1_validator_fee_at_minimum_price():
+    # ACP-77: about 1.33 AVAX per validator per 30 days at the 512 nAVAX per second minimum
+    month = protocol.l1_validator_fee_navax(0, 0, 30 * DAY)
+    assert month == 512 * 30 * DAY
+    assert round(month / protocol.NAVAX_PER_AVAX, 2) == 1.33
+
+
+def test_subnet_validator_rules_around_acp77():
+    start = HELICON_MAINNET
+    end = start + timedelta(days=14)
+    primary = (start - timedelta(days=1), end + timedelta(days=1))
+    assert protocol.subnet_validator_admission_error(start, end, primary, subnet_converted=False) is None
+    assert protocol.subnet_validator_admission_error(start, end, primary, subnet_converted=True) == protocol.ERR_IS_IMMUTABLE
+    assert protocol.subnet_validator_admission_error(start, end, None, subnet_converted=False) == protocol.ERR_NOT_VALIDATOR
+    short_primary = (primary[0], end - timedelta(seconds=1))
+    assert protocol.subnet_validator_admission_error(start, end, short_primary, False) == protocol.ERR_PERIOD_MISMATCH
+    # the 48-hour ACP-273 minimum is for Primary Network validators only
+    assert protocol.subnet_validator_admission_error(start, start + timedelta(hours=48), primary, False) == protocol.ERR_STAKE_TOO_SHORT

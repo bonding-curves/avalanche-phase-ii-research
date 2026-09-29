@@ -57,6 +57,20 @@ class StakingConfig:
 
 
 @dataclass(frozen=True)
+class ValidatorFeeConfig:
+    """Mirror of vms/platformvm/validators/fee/fee.go Config: the ACP-77 continuous L1 validator fee."""
+
+    capacity: int
+    target: int
+    min_price_navax: int
+    excess_conversion_constant: int
+
+    def __post_init__(self) -> None:
+        if self.excess_conversion_constant <= 0 or min(self.capacity, self.target, self.min_price_navax) < 0:
+            raise ModelError("fee parameters must be non-negative and the excess conversion constant positive")
+
+
+@dataclass(frozen=True)
 class Upgrade:
     name: str
     activated_at: datetime

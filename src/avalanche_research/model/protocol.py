@@ -14,7 +14,7 @@ from typing import Any
 
 from .types import (
     NANOSECONDS_PER_SECOND, NAVAX_PER_AVAX, PERCENT_DENOMINATOR, SECONDS_PER_DAY, Mechanism, ModelError,
-    RewardConfig, StakingConfig, Upgrade, UpgradeSchedule, as_utc,
+    RewardConfig, StakingConfig, Upgrade, UpgradeSchedule, ValidatorFeeConfig, as_utc,
 )
 
 
@@ -39,6 +39,15 @@ MAINNET = StakingConfig(
     helicon_min_stake_duration_seconds=48 * 3_600,
     reward=MAINNET_REWARD,
 )
+
+# genesis/genesis_mainnet.go MainnetParams.ValidatorFeeConfig: price doubles each day of excess
+MAINNET_L1_VALIDATOR_FEE = ValidatorFeeConfig(
+    capacity=20_000,
+    target=10_000,
+    min_price_navax=512,
+    excess_conversion_constant=1_246_488_515,
+)
+MAX_UINT64 = 2**64 - 1
 
 # upgrade/upgrade.go Mainnet
 MAINNET_UPGRADES = UpgradeSchedule((
@@ -766,6 +775,124 @@ def delegator_admission_error(
     limit = delegation_weight_limit_navax(validator_weight_navax, chain_time, delegation_multiplier, config, upgrades)
     if over_delegated(validator_weight_navax, delegations, weight_navax, start, end, limit):
         return ERR_OVER_DELEGATED
+    return None
+
+
+def gas_price(min_price: int, excess: int, excess_conversion_constant: int) -> int:
+    """minPrice * e^(excess / K) by the EIP-4844 fake exponential, capped at MaxUint64.
+
+    AvalancheGo 70bd6d0 vms/components/gas/gas.go L85-L121 CalculatePrice. Used by the ACP-77 L1 validator fee and
+    the ACP-103 P-Chain gas price.
+    """
+    if min(min_price, excess) < 0 or excess_conversion_constant <= 0:
+        raise ModelError("price inputs must be non-negative and the conversion constant positive")
+    output, accumulator, index = 0, min_price * excess_conversion_constant, 1
+    ceiling = excess_conversion_constant * MAX_UINT64
+    while accumulator > 0:
+        output += accumulator
+        if output >= ceiling:
+            return MAX_UINT64
+        accumulator = accumulator * excess // excess_conversion_constant // index
+        index += 1
+    return output // excess_conversion_constant
+
+
+def fee_excess_after(current: int, excess: int, target: int, seconds: int) -> int:
+    """Excess after ``seconds`` at a constant usage: (current - target) per second, floored at 0, capped at
+    MaxUint64. AvalancheGo 70bd6d0 vms/platformvm/validators/fee/fee.go L29-L44 AdvanceTime and
+    vms/components/gas/gas.go L28-L56."""
+    if min(current, excess, target, seconds) < 0:
+        raise ModelError("fee state values must be non-negative")
+    return min(max(excess + (current - target) * seconds, 0), MAX_UINT64)
+
+
+def l1_validator_fee_navax(
+    active_validators: int,
+    excess: int,
+    seconds: int,
+    config: ValidatorFeeConfig = MAINNET_L1_VALIDATOR_FEE,
+) -> int:
+    """nAVAX one active L1 validator pays over ``seconds`` with a constant active count, capped at MaxUint64.
+
+    ACP-77 continuous fee: AvalancheGo 70bd6d0 vms/platformvm/validators/fee/fee.go L46-L93 CostOf, charged per
+    second at the price after that second's excess update. The fee is burned and never lowers the current supply
+    (supply_after_stake_end). L1 validators need no Primary Network stake. The network-wide accrued fee advances by
+    this cost (vms/platformvm/txs/executor/state_changes.go L343-L390).
+    """
+    if seconds < 0:
+        raise ModelError("seconds must be non-negative")
+    if active_validators == config.target:
+        return min(seconds * gas_price(config.min_price_navax, excess, config.excess_conversion_constant), MAX_UINT64)
+    cost = 0
+    for elapsed in range(seconds):
+        excess = fee_excess_after(active_validators, excess, config.target, 1)
+        if excess == 0:
+            return min(cost + config.min_price_navax * (seconds - elapsed), MAX_UINT64)
+        cost += gas_price(config.min_price_navax, excess, config.excess_conversion_constant)
+        if cost > MAX_UINT64:
+            return MAX_UINT64
+    return cost
+
+
+def l1_validator_seconds_remaining(
+    active_validators: int,
+    excess: int,
+    balance_navax: int,
+    max_seconds: int,
+    config: ValidatorFeeConfig = MAINNET_L1_VALIDATOR_FEE,
+) -> int:
+    """Seconds an L1 validator balance lasts before the validator is deactivated, capped at ``max_seconds``.
+
+    AvalancheGo 70bd6d0 vms/platformvm/validators/fee/fee.go L95-L137 SecondsRemaining.
+    """
+    if min(balance_navax, max_seconds) < 0:
+        raise ModelError("balance and max seconds must be non-negative")
+    if config.min_price_navax == 0:
+        return max_seconds
+    if active_validators == config.target:
+        price = gas_price(config.min_price_navax, excess, config.excess_conversion_constant)
+        return min(balance_navax // price, max_seconds)
+    for elapsed in range(max_seconds):
+        excess = fee_excess_after(active_validators, excess, config.target, 1)
+        if excess == 0:
+            return min(elapsed + balance_navax // config.min_price_navax, max_seconds)
+        price = gas_price(config.min_price_navax, excess, config.excess_conversion_constant)
+        if price > balance_navax:
+            return elapsed
+        balance_navax -= price
+    return max_seconds
+
+
+ERR_NOT_VALIDATOR = "ErrNotValidator"
+ERR_IS_IMMUTABLE = "errIsImmutable"
+
+
+def subnet_validator_admission_error(
+    start: datetime,
+    end: datetime,
+    primary_validator_period: tuple[datetime, datetime] | None,
+    subnet_converted: bool,
+    config: StakingConfig = MAINNET,
+) -> str | None:
+    """First rule an AddSubnetValidatorTx breaks, or None. ``start`` is the effective start.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L221-L266: MinStakeDuration and
+    MaxStakeDuration (the ACP-273 minimum does not apply), then the node must be a Primary Network validator whose
+    period contains the Subnet period (L50-L90), then the Subnet must not have converted to an L1 under ACP-77
+    (subnet_tx_verification.go L47-L53). A converted Subnet's validators are L1 validators with no Primary Network
+    stake, so a node that only served such a Subnet has no protocol reason to keep 2,000 AVAX staked.
+    """
+    duration = as_utc(end) - as_utc(start)
+    if duration < timedelta(seconds=config.min_stake_duration_seconds):
+        return ERR_STAKE_TOO_SHORT
+    if duration > timedelta(seconds=config.max_stake_duration_seconds):
+        return ERR_STAKE_TOO_LONG
+    if primary_validator_period is None:
+        return ERR_NOT_VALIDATOR
+    if not delegation_within_validator_period(start, end, *primary_validator_period):
+        return ERR_PERIOD_MISMATCH
+    if subnet_converted:
+        return ERR_IS_IMMUTABLE
     return None
 
 
