@@ -3,9 +3,11 @@
 import pandas as pd
 import pytest
 import duckdb
+import param as pm
 
 from avalanche_research.staking_cohorts import (
-    cohort_table, denominator_options, distinct_identities, for_population, rates_per, selected_columns,
+    StakingCohorts, cohort_table, denominator_options, distinct_identities, for_population, rates_per,
+    selected_columns,
 )
 
 
@@ -190,3 +192,19 @@ def test_denominator_labels_follow_rate_unit_without_changing_view_keys():
     assert "Per Day" in daily and "Per Node per Day" in daily
     assert weekly["Per Week"] == "Per Calendar Unit"
     assert weekly["Per Node per Week"] == "Per Node per Calendar Unit"
+
+
+def test_panel_keeps_one_table_when_selections_change(monkeypatch):
+    explorer = StakingCohorts.__new__(StakingCohorts)
+    pm.Parameterized.__init__(explorer)
+    explorer.run = "fixture"
+    explorer._cutoffs = {"validator": pd.Timestamp("2026-09-24")}
+    explorer._reward_cutoff = pd.Timestamp("2026-09-24")
+    monkeypatch.setattr(StakingCohorts, "_frame", lambda self: pd.DataFrame({"Quantity count": [len(self.metrics)]}))
+
+    panel = explorer.panel()
+    table = panel[1]
+    assert table.value.loc[0, "Quantity count"] == 4
+    explorer.metrics = ["Stake"]
+    assert panel[1] is table
+    assert table.value.loc[0, "Quantity count"] == 1

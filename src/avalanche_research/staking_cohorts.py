@@ -339,12 +339,14 @@ class StakingCohorts(pm.Parameterized):
         self._reward_cutoff = pd.Timestamp(next(item["captured_at"] for item in receipt["capture"]["inputs"]
                                                 if item["input_id"] == "staking-rewards"))
 
-    @pm.depends("time_grain", "population", "periodic_denominator", "metrics", "views")
-    def view(self):
+    def _frame(self):
         table = for_population(self._tables[self.time_grain], self.population)
         table = selected_columns(rates_per(table, self.periodic_denominator), self.metrics, self.views,
                                  self.periodic_denominator)
-        return pn.widgets.Tabulator(table.round(2), show_index=False, disabled=True,
+        return table.round(2)
+
+    def view(self):
+        return pn.widgets.Tabulator(self._frame(), show_index=False, disabled=True,
                                     pagination="remote", page_size=20, sizing_mode="stretch_width")
 
     def panel(self):
@@ -369,20 +371,23 @@ class StakingCohorts(pm.Parameterized):
             width=220,
         )
         quantities = pn.widgets.CheckButtonGroup.from_param(
-            self.param.metrics, orientation="vertical", variant="outline", color="primary", width=190,
+            self.param.metrics, orientation="vertical", variant="outline", color="default", width=190,
         )
         denominators = pn.widgets.CheckButtonGroup.from_param(
             self.param.views, options=denominator_options(self.periodic_denominator),
-            orientation="vertical", variant="outline", color="primary", width=220,
+            orientation="vertical", variant="outline", color="default", width=220,
         )
         self.param.watch(lambda event: setattr(denominators, "options", denominator_options(event.new)),
                          "periodic_denominator")
+        table = self.view()
+        self.param.watch(lambda event: setattr(table, "value", self._frame()),
+                         ["time_grain", "population", "periodic_denominator", "metrics", "views"])
         controls = pn.Row(
             grouping,
             pn.Spacer(width=16),
-            pn.Column(pn.pane.Markdown("**Quantities**"), quantities, width=190),
+            pn.Column(pn.pane.Markdown("Quantities", margin=(0, 0, 4, 0)), quantities, width=190),
             pn.Spacer(width=16),
-            pn.Column(pn.pane.Markdown("**Denominators**"), denominators, width=220),
+            pn.Column(pn.pane.Markdown("Denominators", margin=(0, 0, 4, 0)), denominators, width=220),
         )
         return pn.Column(controls,
-                         self.view, pn.pane.Markdown(note), sizing_mode="stretch_width")
+                         table, pn.pane.Markdown(note), sizing_mode="stretch_width")
