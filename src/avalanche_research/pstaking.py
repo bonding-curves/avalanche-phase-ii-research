@@ -77,6 +77,7 @@ VALIDATOR_TYPES = ("AddValidatorTx", "AddPermissionlessValidatorTx", "AddAutoRen
 DELEGATOR_TYPES = ("AddDelegatorTx", "AddPermissionlessDelegatorTx")
 PRIMARY_STAKE_TYPES = ("AddValidatorTx", "AddPermissionlessValidatorTx", "AddDelegatorTx", "AddPermissionlessDelegatorTx")
 LOWEST_SUPPLY = 360_000_000 * 10**9
+AUTO_RENEW_TYPES = ("RewardAutoRenewedValidatorTx", "SetAutoRenewedValidatorConfigTx")
 
 
 def _spec(dataset_id: str) -> tuple[str, dict[str, str]]:
@@ -145,7 +146,8 @@ def _load(inputs: list[dict[str, Any]]) -> dict[str, Any]:
     finally:
         connection.close()
     parsed = [_stake(row) for row in walk]
-    reward_of = [json.loads(row[7])["txID"] if row[5] == "RewardValidatorTx" else None for row in walk]
+    reward_of = [json.loads(row[7]) if row[5] in AUTO_RENEW_TYPES else json.loads(row[7])["txID"] if row[5] == "RewardValidatorTx" else None
+                 for row in walk]
     return {"walk": walk, "parsed": parsed, "reward_of": reward_of, "records": records, "paid": paid, "current": current}
 
 
@@ -158,7 +160,9 @@ def _stake(row: tuple[Any, ...]) -> dict[str, Any] | None:
     if tx_type == "AddAutoRenewedValidatorTx":
         node_id, weight, end = unsigned["nodeID"], staked_navax, int(block_time.replace(tzinfo=UTC).timestamp()) + int(unsigned["period"])
         shares, owner = unsigned["delegationShares"], unsigned["validationRewardsOwner"]
+        renewal = {"auto_compound_shares": int(unsigned["autoCompoundRewardShares"]), "period": int(unsigned["period"])}
     else:
+        renewal = {}
         if unsigned.get("subnetID", PRIMARY_SUBNET) != PRIMARY_SUBNET:
             return None
         validator = unsigned["validator"]
@@ -181,15 +185,25 @@ def _stake(row: tuple[Any, ...]) -> dict[str, Any] | None:
         "staked_utxo_count": len(stake_outputs), "utxo_stake_navax": staked_navax if stake_outputs else None,
         "delegator_address": min(funding, key=lambda address: (-funding[address], address)) if funding else None,
         "delegator_address_count": len(funding),
+        **renewal,
     }
 
 
 def replay(loaded: dict[str, Any], start_supply: int) -> dict[str, Any]:
     """The walk replayed from one starting counter: every stake with its potential reward, every closed stake with
-    its outcome, the counter after each block, and each staking transaction's place in its block's supply changes."""
+    its outcome, the counter after each block, and each staking transaction's place in its block's supply changes.
+
+    An ACP-236 auto-renewed validator (AvalancheGo v1.15.0 proposal_tx_executor.go RewardAutoRenewedValidatorTx and
+    restakeAutoRenewedValidatorOnCommit) ends each cycle with a reward transaction. On an abort its cycle's reward is
+    removed and it leaves. On a commit with a next period, the auto-compound share of the cycle's reward and of the
+    delegation fees its delegators paid in the cycle is restaked, and the next cycle starts at the cycle's end with a
+    potential reward on the new weight, added to the counter (``protocol.auto_renew_restake``, ``auto_renew_next_cycle``).
+    A committed delegation to it adds the fee share of the delegation's reward (``protocol.split_reward``)."""
     supply = start_supply
     stakes: dict[str, dict[str, Any]] = {}
     closed: dict[str, dict[str, Any]] = {}
+    renewing: dict[str, dict[str, Any]] = {}
+    cycles: list[dict[str, Any]] = []
     walk = loaded["walk"]
     # The starting counter is the counter after the block below the walk.
     after_block: dict[int, int] = {walk[0][0] - 1: start_supply} if walk else {}
@@ -200,24 +214,36 @@ def replay(loaded: dict[str, Any], start_supply: int) -> dict[str, Any]:
         if pending is not None and block_type in ("commit", "abort"):
             reward_row, staking_hash = pending
             rewarded = block_type == "commit"
-            if staking_hash in stakes:
-                potential = stakes[staking_hash]["potential_reward_navax"]
+            if isinstance(staking_hash, dict):
+                supply = _end_cycle(renewing, cycles, staking_hash, reward_row, rewarded, supply, block_deltas, height)
+                pending = None
             else:
-                record = loaded["records"].get(staking_hash)
-                potential = record[7] if record is not None and record[1] in PRIMARY_STAKE_TYPES else 0
-                if potential is None:
-                    raise DataError(f"stake {staking_hash} ended unrewarded and has no potential reward in the Data API record")
-            if not rewarded and potential:
-                supply = protocol.supply_after_stake_end(supply, potential, False)
-                block_deltas.setdefault(reward_row[0], []).append((reward_row[3], reward_row[4], -potential))
-            closed[staking_hash] = {"reward_row": reward_row, "rewarded": rewarded, "potential": potential}
-            pending = None
+                if staking_hash in stakes:
+                    potential = stakes[staking_hash]["potential_reward_navax"]
+                else:
+                    record = loaded["records"].get(staking_hash)
+                    potential = record[7] if record is not None and record[1] in PRIMARY_STAKE_TYPES else 0
+                    if potential is None:
+                        raise DataError(f"stake {staking_hash} ended and has no potential reward in the Data API record")
+                if not rewarded and potential:
+                    supply = protocol.supply_after_stake_end(supply, potential, False)
+                    block_deltas.setdefault(reward_row[0], []).append((reward_row[3], reward_row[4], -potential))
+                delegation = stakes.get(staking_hash)
+                if rewarded and delegation is not None and delegation["tx_type"] in DELEGATOR_TYPES:
+                    for validator in renewing.values():
+                        if validator["node_id"] == delegation["node_id"]:
+                            validator["delegatee"] += protocol.split_reward(potential, validator["delegation_shares"])[0]
+                closed[staking_hash] = {"reward_row": reward_row, "rewarded": rewarded, "potential": potential}
+                pending = None
         elif pending is not None:
             raise DataError(f"the reward proposal before block {height} is followed by neither a commit nor an abort")
-        if tx_type == "RewardValidatorTx":
+        if tx_type == "RewardValidatorTx" or tx_type == "RewardAutoRenewedValidatorTx":
             pending = (row, loaded["reward_of"][position])
-        elif tx_type == "RewardAutoRenewedValidatorTx":
-            raise DataError(f"block {height} ends an auto-renewed cycle, which the replay does not model yet")
+        elif tx_type == "SetAutoRenewedValidatorConfigTx":
+            config = loaded["reward_of"][position]
+            if config["txID"] not in renewing:
+                raise DataError(f"block {height} configures auto-renewed validator {config['txID']}, which the walk did not see start")
+            renewing[config["txID"]].update(auto_compound_shares=int(config["autoCompoundRewardShares"]), period=int(config["period"]))
         stake = loaded["parsed"][position]
         if stake is not None:
             try:
@@ -226,9 +252,41 @@ def replay(loaded: dict[str, Any], start_supply: int) -> dict[str, Any]:
                 raise DataError(f"stake {tx_hash} cannot start from counter {supply}: {error}") from error
             stakes[tx_hash] = {**stake, "potential_reward_navax": reward}
             block_deltas.setdefault(height, []).append((index, tx_hash, reward))
+            if tx_type == "AddAutoRenewedValidatorTx":
+                renewing[tx_hash] = {"node_id": stake["node_id"], "weight": stake["stake_navax"], "potential": reward, "delegatee": 0,
+                                     "end": stake["end_time"].replace(tzinfo=UTC), "delegation_shares": stake["shares"],
+                                     "auto_compound_shares": stake["auto_compound_shares"], "period": stake["period"]}
         if position + 1 == len(walk) or walk[position + 1][0] != height:
             after_block[height] = supply
-    return {"supply": supply, "stakes": stakes, "closed": closed, "after_block": after_block, "block_deltas": block_deltas}
+    return {"supply": supply, "stakes": stakes, "closed": closed, "after_block": after_block, "block_deltas": block_deltas, "cycles": cycles}
+
+
+def _end_cycle(renewing: dict[str, dict[str, Any]], cycles: list[dict[str, Any]], reward: dict[str, Any], reward_row: tuple[Any, ...],
+               rewarded: bool, supply: int, block_deltas: dict[int, list[tuple[int | None, str | None, int]]], height: int) -> int:
+    """The counter after an auto-renewed validator's cycle ends with a commit or an abort."""
+    validator = renewing.get(reward["txID"])
+    if validator is None:
+        raise DataError(f"block {reward_row[0]} ends a cycle of auto-renewed validator {reward['txID']}, which the walk did not see start")
+    if int(reward["timestamp"]) != int(validator["end"].timestamp()):
+        raise DataError(f"the cycle of {reward['txID']} ends at {reward['timestamp']}, not at the replayed end {validator['end']}")
+    cycle = {"validator": reward["txID"], "reward_transaction_hash": reward_row[4], "cycle_end": validator["end"], "rewarded": rewarded,
+             "potential_reward_navax": validator["potential"], "weight_navax": validator["weight"]}
+    if not rewarded:
+        supply = protocol.supply_after_stake_end(supply, validator["potential"], False)
+        block_deltas.setdefault(reward_row[0], []).append((reward_row[3], reward_row[4], -validator["potential"]))
+        del renewing[reward["txID"]]
+    elif validator["period"] > 0:
+        restaked, delegatee, _, _ = protocol.auto_renew_restake(validator["potential"], validator["delegatee"], validator["auto_compound_shares"], validator["weight"])
+        weight = validator["weight"] + restaked + delegatee
+        end, potential, supply_after = protocol.auto_renew_next_cycle(validator["end"], validator["period"], weight, supply)
+        block_deltas.setdefault(height, []).append((None, None, supply_after - supply))
+        validator.update(weight=weight, end=end, potential=potential, delegatee=0)
+        cycle.update(next_weight_navax=weight, next_potential_reward_navax=potential)
+        supply = supply_after
+    else:
+        del renewing[reward["txID"]]
+    cycles.append(cycle)
+    return supply
 
 
 def solve_start(loaded: dict[str, Any], anchor: int) -> tuple[int, int, dict[str, Any]]:
