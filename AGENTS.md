@@ -96,6 +96,11 @@ prios = `Please reply in one sentence`
 - Never amend or rebase a commit that exists on `main`. Fix forward with a new commit.
 - Run the tests, lint, and the client delivery check before pushing.
 
+### 6. Published links
+
+- After changing `content/` or site-generated navigation, run `npm --prefix .site run verify` before committing. Fix new rendered-link failures in owned files; hand off failures in another lane's uncommitted files. Do not update the known-failure baseline to excuse one.
+- Link only to a route, asset, or heading that the client site actually publishes. A source file elsewhere in the workspace is not a client page. See [Writing links](README.md#writing-links) for examples.
+
 ### Examples
 
 Here are concrete examples of how we DO and DO NOT communicate together. 
