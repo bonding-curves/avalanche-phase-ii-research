@@ -95,6 +95,14 @@ class OverviewTableTest(unittest.TestCase):
         self.assertEqual(overview_tables.published("2020-11"), "November 2020")
         self.assertEqual(overview_tables.published("1973"), "1973")
 
+    def test_authors_page_groups_name_variants(self):
+        text = overview_tables.authors_page()
+        self.assertNotIn("| Eric Lu |", text)
+        self.assertIn("| Siyu (Eric) Lu |", text)
+        self.assertLess(text.index("## People"), text.index("| Siyu (Eric) Lu |"))
+        self.assertLess(text.index("## Organizations"), text.index("| BENQI |"))
+        self.assertIn("CaptainDoubleBlade (GitHub handle)", text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -54,6 +54,12 @@ TOPICS = {
     "kpis-and-goals": ("KPIs and goals", "Indicators of success, their thresholds, and the goals that group them", ""),
     "parameter-selection-under-uncertainty": ("parameter selection under uncertainty", "Choosing parameters and policies that perform well across futures that cannot be predicted", ""),
 }
+# Authors are written on each page as the source prints them. The index groups variants under one canonical name.
+AUTHOR_ALIASES = {"Eric Lu": "Siyu (Eric) Lu", "Siyu (Eric) Lu, PhD": "Siyu (Eric) Lu", "Matias A.": "Matias Antonio"}
+ORGANIZATIONS = {"Avalanche", "Avalanche Foundation", "BENQI"}
+HANDLES = {"CaptainDoubleBlade": "GitHub handle"}
+AUTHORS_PAGE = ROOT / "content" / "Phase II" / "Wiki" / "Collections" / "Authors.md"
+
 RETIRED: dict[str, str] = {}  # retired slug -> the topic that replaced it
 CONTENT = ROOT / "content"
 
@@ -253,11 +259,43 @@ def topic_index(members: dict[str, list]) -> str:
     ])
 
 
+def surname(name: str) -> str:
+    return name.split()[-1].lower() if " " in name else name.lower()
+
+
+def authors_page() -> str:
+    """Every author of a collection page, variants grouped under one name, people apart from organizations."""
+    works: dict[str, list[tuple[str, str, str]]] = {}
+    for path in overview_pages():
+        fields = frontmatter(path.read_text(encoding="utf-8"))[0]
+        year = str(fields.get("published", "")).strip('"')[:4]
+        link = f"[{cell(fields.get('title', path.stem))}]({route(path)})"
+        for author in fields.get("authors", []):
+            works.setdefault(AUTHOR_ALIASES.get(author, author), []).append((year, link, page_type(path)))
+    def rows(names: list[str]) -> list[str]:
+        out = ["| Author | Sources |", "| --- | --- |"]
+        for name in names:
+            listed = "<br>".join(f"{link}, {year}" for year, link, _ in sorted(works[name]))
+            label = f"{name} ({HANDLES[name]})" if name in HANDLES else name
+            out.append(f"| {label} | {listed} |")
+        return out
+    people = sorted((n for n in works if n not in ORGANIZATIONS), key=lambda n: (surname(n), n))
+    orgs = sorted(n for n in works if n in ORGANIZATIONS)
+    return "\n".join([
+        "---", 'title: "Authors"', 'description: "Every author of the Essential Readings, Economic ACPs, and Supplementary Research Papers, with their sources."', "---", "",
+        f"The {len(people)} people and {len(orgs)} organizations who wrote the sources in the [collections](/Phase-II/Wiki/Collections/). "
+        "Names are written as each source prints them, with variants of one name grouped together. Sources can also be browsed by [topic](/tags/).", "",
+        "## People", "", *rows(people), "",
+        "## Organizations", "", *rows(orgs), "",
+    ])
+
+
 def topic_pages() -> dict[Path, str]:
     """One page per topic with its table of pages, plus the all-topics page."""
     members = topic_members()
     pages = {CONTENT / "tags" / f"{slug}.md": topic_page(slug, members[slug]) for slug in TOPICS}
     pages[CONTENT / "tags" / "index.md"] = topic_index(members)
+    pages[AUTHORS_PAGE] = authors_page()
     return pages
 
 
@@ -295,7 +333,7 @@ def main() -> int:
         else:
             print(f"{path.relative_to(ROOT)}: topic page is stale")
             failed = True
-    for path in sorted((ROOT / "content" / "tags").glob("*.md")):
+    for path in sorted((CONTENT / "tags").glob("*.md")):
         if path not in generated:
             if args.command == "build":
                 path.unlink()

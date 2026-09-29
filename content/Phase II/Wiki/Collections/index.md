@@ -3,7 +3,7 @@ title: Collections
 description: "Curated source collections the research reproduces and builds on."
 ---
 
-Browse by topic: every source below is filed under the [topics](/tags/) it covers, from issuance and rewards to model validation.
+Browse by topic: every source below is filed under the [topics](/tags/) it covers, from issuance and rewards to model validation. Browse by author: [Authors](/Phase-II/Wiki/Collections/Authors) lists every author with their sources.
 
 | Collection | What it holds |
 | --- | --- |
