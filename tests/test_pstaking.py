@@ -120,3 +120,7 @@ def test_a_walk_without_the_node_anchor_is_refused(root, tmp_path):
     pblocks.build(pblocks.DATASET_ID, runs / "walk" / "capture", runs / "walk" / "dataset")
     with pytest.raises(DataError):
         pstaking.select_inputs(None, runs)
+
+
+def test_the_replay_needs_records_only_for_older_stakes_that_end_unrewarded(root):
+    assert pstakers.staking_hashes("walk", root, "unrewarded-before-walk")[1] == ["OLD"]

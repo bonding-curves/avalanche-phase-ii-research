@@ -11,6 +11,9 @@ the stake started. The supply reconstruction needs it for stakes that started be
 paid, decoded from their codec bytes. A staker that ended unrewarded has none.
 
 One hash is one JSON line, written as it arrives, and a stopped capture continues with ``resume=<kept directory>``.
+``which=unrewarded-before-walk`` reads only the stakes the supply replay needs from the Data API: those that started
+before the walk and ended unrewarded. ``node=publicnode`` reads the reward outputs from PublicNode's public P-Chain node,
+the second node the redundancy plan keeps for when the Avalanche node refuses a long walk.
 """
 
 from __future__ import annotations
@@ -52,6 +55,8 @@ SPECS = {
     REWARDS_ID: {"source_id": "avalanche-p-chain-rpc", "endpoint_id": "get-reward-utxos", "table": "reward-utxos"},
 }
 REWARD_TYPES = ("RewardValidatorTx", "RewardAutoRenewedValidatorTx")
+WHICH = ("all", "unrewarded-before-walk")
+NODES = {"avalanche": "get-reward-utxos", "publicnode": "get-reward-utxos-publicnode"}
 PROGRESS = "progress.jsonl"
 RAW = "raw/records.jsonl"
 ATTEMPTS = 8
@@ -86,14 +91,15 @@ def _spec(dataset_id: str) -> dict[str, str]:
     return SPECS[dataset_id]
 
 
-def _endpoint(catalog: dict[str, Any], dataset_id: str) -> str:
+def _endpoint(catalog: dict[str, Any], dataset_id: str, node: str = "avalanche") -> str:
     spec = _spec(dataset_id)
-    return next(item["url"] for item in source(catalog, spec["source_id"])["endpoints"] if item["id"] == spec["endpoint_id"])
+    endpoint_id = NODES[node] if dataset_id == REWARDS_ID else spec["endpoint_id"]
+    return next(item["url"] for item in source(catalog, spec["source_id"])["endpoints"] if item["id"] == endpoint_id)
 
 
 def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
     values = dict(parameters or {})
-    unknown = set(values) - {"blocks", "workers", "resume"}
+    unknown = set(values) - {"blocks", "workers", "resume", "which", "node"}
     if unknown:
         raise DataError(f"unknown parameters: {', '.join(sorted(unknown))}")
     if not values.get("blocks"):
@@ -104,18 +110,27 @@ def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
         raise DataError("workers is an integer") from error
     if not 1 <= workers <= MAX_WORKERS:
         raise DataError(f"workers must be between 1 and {MAX_WORKERS}")
-    return {"blocks": values["blocks"], "workers": workers, **({"resume": values["resume"]} if values.get("resume") else {})}
+    which, node = values.get("which", "all"), values.get("node", "avalanche")
+    if which not in WHICH or node not in NODES:
+        raise DataError(f"which is one of {', '.join(WHICH)}, and node one of {', '.join(NODES)}")
+    return {"blocks": values["blocks"], "workers": workers, "which": which, "node": node, **({"resume": values["resume"]} if values.get("resume") else {})}
 
 
-def staking_hashes(run: str, root: Path | None = None) -> tuple[dict[str, Any], list[str]]:
-    """The staking transactions the walk's reward transactions close, in walk order, and the walk's receipt."""
+def staking_hashes(run: str, root: Path | None = None, which: str = "all") -> tuple[dict[str, Any], list[str]]:
+    """The staking transactions the walk's reward transactions close, in walk order, and the walk's receipt. With
+    ``unrewarded-before-walk``, only those closed by an abort that the walk did not see start."""
     record = datasets.receipt(BLOCKS_ID, run, root)
     parquet = datasets.parquet_path(BLOCKS_ID, run, root)
     connection = duckdb.connect()
     try:
+        quoted = str(parquet).replace("'", "''")
+        connection.execute(f"CREATE VIEW walk AS SELECT * FROM read_parquet('{quoted}')")
         hashes = [row[0] for row in connection.execute(
-            "SELECT json_extract_string(unsigned_tx, '$.txID') FROM read_parquet(?) WHERE tx_type IN (?, ?)"
-            " ORDER BY block_height, tx_index", [str(parquet), *REWARD_TYPES]).fetchall()]
+            "SELECT staking_hash FROM (SELECT json_extract_string(unsigned_tx, '$.txID') AS staking_hash, tx_type, block_height, tx_index,"
+            " lead(block_type) OVER (ORDER BY block_height, tx_index NULLS FIRST) AS next_type FROM walk)"
+            " WHERE tx_type IN (?, ?) AND (? = 'all' OR (next_type = 'abort'"
+            " AND staking_hash NOT IN (SELECT transaction_hash FROM walk WHERE transaction_hash IS NOT NULL)))"
+            " ORDER BY block_height, tx_index", [*REWARD_TYPES, which]).fetchall()]
     finally:
         connection.close()
     return record, list(dict.fromkeys(hashes))
@@ -124,10 +139,10 @@ def staking_hashes(run: str, root: Path | None = None) -> tuple[dict[str, Any], 
 def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None, root: Path | None = None) -> dict[str, Any]:
     spec = _spec(dataset_id)
     values = _parameters(parameters)
-    record, hashes = staking_hashes(values["blocks"], root)
+    record, hashes = staking_hashes(values["blocks"], root, values["which"])
     return {
-        "dataset_id": dataset_id, "source_id": spec["source_id"], "output": str(output), "endpoint": _endpoint(load_catalog(), dataset_id),
-        "blocks_run": values["blocks"], "blocks_capture_id": record["capture"]["capture_id"], "stakes": len(hashes),
+        "dataset_id": dataset_id, "source_id": spec["source_id"], "output": str(output), "endpoint": _endpoint(load_catalog(), dataset_id, values["node"]),
+        "blocks_run": values["blocks"], "blocks_capture_id": record["capture"]["capture_id"], "stakes": len(hashes), "which": values["which"],
         "workers": values["workers"], **({"resume": values["resume"]} if "resume" in values else {}),
         "writes": [RAW, "capture.json"], "overwrite": False,
     }
@@ -152,8 +167,8 @@ def capture(
     if output.exists():
         raise DataError(f"output already exists: {output}")
     catalog = load_catalog()
-    _, hashes = staking_hashes(preview["blocks_run"], root)
-    header = {"endpoint": preview["endpoint"], "blocks_capture_id": preview["blocks_capture_id"]}
+    _, hashes = staking_hashes(preview["blocks_run"], root, preview["which"])
+    header = {"endpoint": preview["endpoint"], "blocks_capture_id": preview["blocks_capture_id"], "which": preview["which"]}
     output.parent.mkdir(parents=True, exist_ok=True)
     if "resume" in preview:
         temporary = Path(preview["resume"])
@@ -235,7 +250,7 @@ def capture(
             "dataset_id": dataset_id, "source_id": spec["source_id"], "completed_at": completed_at,
             "contract_sha256": contract_hash(catalog, dataset_id), "tool": f"avalanche-research@{__version__}",
             "endpoint": preview["endpoint"], "blocks_run": preview["blocks_run"], "blocks_capture_id": preview["blocks_capture_id"],
-            "retries": retries,
+            "which": preview["which"], "retries": retries,
             "responses": [{"endpoint_id": spec["endpoint_id"], "path": RAW, "records": len(records), "bytes": len(body_all), "sha256": sha256(body_all)}],
             "records": records,
         }

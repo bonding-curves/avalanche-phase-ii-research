@@ -612,7 +612,7 @@
       "authority": "Direct response of a public Avalanche node. Authoritative for current protocol state at the observation instant, for its record of one transaction by hash, which carries every input and output amount and so settles burns the share cannot, and for accepted blocks by height, which carry every transaction and make the node a source independent of the Snowflake share.",
       "documentation_url": "https://build.avax.network/docs/rpcs/p-chain/validators/platform_getCurrentValidators",
       "authentication": "none; the public endpoint at api.avax.network answers JSON-RPC POST requests",
-      "reuse_status": "Public access observed; node operators may rate-limit.",
+      "reuse_status": "Public access observed; node operators may rate-limit. The Avalanche node refused this client for about an hour after about 90,000 requests on 2026-09-29; PublicNode's public P-Chain node answers the same calls.",
       "endpoints": [
         {
           "id": "current-validators",
@@ -688,6 +688,22 @@
         {
           "id": "get-reward-utxos",
           "url": "https://api.avax.network/ext/bc/P",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "platform.getRewardUTXOs",
+            "params": {
+              "txID": "<staking transaction hash>",
+              "encoding": "hex"
+            },
+            "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "get-reward-utxos-publicnode",
+          "url": "https://avalanche-p-chain-rpc.publicnode.com",
           "request_json": {
             "jsonrpc": "2.0",
             "method": "platform.getRewardUTXOs",
@@ -3055,7 +3071,7 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One row per staking transaction closed by a reward transaction in a p-chain-rpc.blocks walk, from the Data API's transaction record. Most of these stakes started before the walk, so the walk alone cannot say what they were. estimatedReward is the potential reward the protocol added to the supply counter at the stake's start; the supply reconstruction needs it for stakes that started before the walk and end unrewarded. The raw records stay hashed in the capture.",
+      "description": "One row per staking transaction closed by a reward transaction in a p-chain-rpc.blocks walk, from the Data API's transaction record. Most of these stakes started before the walk, so the walk alone cannot say what they were. estimatedReward is the potential reward the protocol added to the supply counter at the stake's start; the supply reconstruction needs it for stakes that started before the walk and end unrewarded. The raw records stay hashed in the capture. A capture may read only the stakes that started before the walk and ended unrewarded, the ones the supply replay needs; its receipt says which.",
       "endpoint_ids": [
         "p-chain-transaction"
       ],
@@ -3127,9 +3143,10 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One row per staking transaction closed by a reward transaction in a p-chain-rpc.blocks walk, with the reward outputs the node reports for it through platform.getRewardUTXOs, decoded from their codec bytes. A staker that ended unrewarded has none. The raw responses stay hashed in the capture.",
+      "description": "One row per staking transaction closed by a reward transaction in a p-chain-rpc.blocks walk, with the reward outputs the node reports for it through platform.getRewardUTXOs, decoded from their codec bytes. A staker that ended unrewarded has none. The raw responses stay hashed in the capture. The receipt names the node read: the Avalanche public node, or PublicNode's.",
       "endpoint_ids": [
-        "get-reward-utxos"
+        "get-reward-utxos",
+        "get-reward-utxos-publicnode"
       ],
       "fields": [
         {
