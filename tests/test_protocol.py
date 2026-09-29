@@ -581,3 +581,44 @@ def test_delegation_fee_deferred_to_validator_end_from_cortina():
     assert not protocol.delegation_fee_deferred(CORTINA - timedelta(seconds=1))
     assert protocol.delegation_fee_deferred(CORTINA)
     assert protocol.settle_delegation_fee(10, 5, CORTINA) == (0, 15)
+
+
+# KG8 pending stakers before Durango
+DURANGO = protocol.MAINNET_UPGRADES.time("durango")
+
+
+def test_pending_promotion_rewards_follow_iterator_order():
+    # state_changes_test.go TestAdvanceTimeTo_PromotePendingDelegatorAndValidator_PreservesRewardOrder: an Apricot
+    # delegator and a validator with the same start; the delegator's reward is minted first.
+    start = DURANGO - timedelta(days=30)
+    end = start + timedelta(days=14)
+    stakes = [("AddValidatorTx", start, end, 2 * MEGA), ("AddDelegatorTx", start, end, KILO)]
+    want_delegator = protocol.potential_reward(KILO, 14 * DAY, GENESISTEST_SUPPLY)
+    want_validator = protocol.potential_reward(2 * MEGA, 14 * DAY, GENESISTEST_SUPPLY + want_delegator)
+    rewards, supply = protocol.promote_pending_stakes(stakes, GENESISTEST_SUPPLY)
+    assert rewards == (want_validator, want_delegator)
+    assert supply == GENESISTEST_SUPPLY + want_delegator + want_validator
+    # a Banff (permissionless) delegator at the same start comes after the validator
+    banff = [("AddPermissionlessDelegatorTx", start, end, KILO), ("AddPermissionlessValidatorTx", start, end, 2 * MEGA)]
+    rewards, _ = protocol.promote_pending_stakes(banff, GENESISTEST_SUPPLY)
+    assert rewards[1] == protocol.potential_reward(2 * MEGA, 14 * DAY, GENESISTEST_SUPPLY)
+    # an earlier start is promoted first whatever its priority
+    early = [("AddPermissionlessDelegatorTx", start - timedelta(seconds=1), end, KILO), ("AddDelegatorTx", start, end, KILO)]
+    rewards, _ = protocol.promote_pending_stakes(early, GENESISTEST_SUPPLY)
+    assert rewards[0] == protocol.potential_reward(KILO, 14 * DAY + 1, GENESISTEST_SUPPLY)
+    with pytest.raises(ModelError):
+        protocol.promote_pending_stakes([("AddSubnetValidatorTx", start, end, KILO)], GENESISTEST_SUPPLY)
+
+
+def test_stake_start_before_and_after_durango():
+    # staker_tx_verification_test.go "start time too early" and standard_tx_executor_test.go "starts delegating at
+    # current timestamp": before Durango a start equal to the chain time is rejected.
+    chain = DURANGO - timedelta(days=1)
+    second = timedelta(seconds=1)
+    assert protocol.staker_start_time_error(chain, chain) == protocol.ERR_TIMESTAMP_NOT_BEFORE_START_TIME
+    assert protocol.staker_start_time_error(chain, chain - second) == protocol.ERR_TIMESTAMP_NOT_BEFORE_START_TIME
+    assert protocol.staker_start_time_error(chain, chain + second) is None
+    assert protocol.effective_stake_start(chain, chain + timedelta(days=3)) == chain + timedelta(days=3)
+    # from Durango the requested start is ignored and the stake starts at acceptance
+    assert protocol.staker_start_time_error(DURANGO, DURANGO) is None
+    assert protocol.effective_stake_start(DURANGO, DURANGO + timedelta(days=3)) == DURANGO

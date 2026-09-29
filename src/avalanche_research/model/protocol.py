@@ -8,7 +8,7 @@ not floating-point approximations.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -270,6 +270,78 @@ def start_stakes_in_order(
 
 
 STAKER_ROLES = ("validator", "delegator")
+
+
+ERR_TIMESTAMP_NOT_BEFORE_START_TIME = "ErrTimestampNotBeforeStartTime"
+# vms/platformvm/txs/priorities.go L7-L13 and each transaction's PendingPriority: Apricot delegators are promoted
+# before validators, which are promoted before Banff (permissionless) delegators at the same start time.
+PENDING_PRIORITY = {
+    "AddDelegatorTx": 1,
+    "AddValidatorTx": 2,
+    "AddPermissionlessValidatorTx": 2,
+    "AddPermissionlessDelegatorTx": 3,
+}
+
+
+def effective_stake_start(
+    chain_time: datetime,
+    requested_start: datetime,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> datetime:
+    """When a stake starts: the requested start before Durango, the chain time of acceptance from Durango (ACP-41).
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L546-L549 and L675-L681, and
+    standard_tx_executor.go L1489-L1502 putStaker, which placed pre-Durango stakers in the pending set.
+    """
+    if upgrades.activated("durango", chain_time):
+        return as_utc(chain_time)
+    return as_utc(requested_start)
+
+
+def staker_start_time_error(
+    chain_time: datetime,
+    requested_start: datetime,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """Before Durango a stake's requested start must be strictly after the chain time. From Durango it is ignored.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L1036-L1052 verifyStakerStartTime.
+    """
+    if upgrades.activated("durango", chain_time) or as_utc(chain_time) < as_utc(requested_start):
+        return None
+    return ERR_TIMESTAMP_NOT_BEFORE_START_TIME
+
+
+def promote_pending_stakes(
+    stakes: Sequence[tuple[str, datetime, datetime, int]],
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[tuple[int, ...], int]:
+    """Potential rewards, in input order, and the final supply for pending stakes (tx type, start, end, amount).
+
+    Before Durango a stake's reward was computed when chain time reached its start, from the supply at that moment,
+    in pending-iterator order: start time, then PENDING_PRIORITY, then transaction ID. AvalancheGo 70bd6d0
+    vms/platformvm/txs/executor/state_changes.go L159-L197 and vms/platformvm/state/staker.go L79-L95 Less. Ties on
+    start and priority keep input order, so pass them in transaction ID byte order.
+    """
+    items = list(stakes)
+    for tx_type, _, _, _ in items:
+        if tx_type not in PENDING_PRIORITY:
+            raise ModelError(f"no pending priority for {tx_type}")
+    order = sorted(range(len(items)), key=lambda index: (as_utc(items[index][1]), PENDING_PRIORITY[items[index][0]]))
+    ordered = []
+    for index in order:
+        _, start, end, amount = items[index]
+        seconds = (as_utc(end) - as_utc(start)).total_seconds()
+        if seconds < 0 or seconds != int(seconds):
+            raise ModelError("pending stakes need whole-second durations and start <= end")
+        ordered.append((as_utc(start), int(seconds), amount))
+    rewards, supply = start_stakes_in_order(ordered, current_supply_navax, config, upgrades)
+    by_input = [0] * len(items)
+    for index, reward in zip(order, rewards, strict=True):
+        by_input[index] = reward
+    return tuple(by_input), supply
 
 
 def min_stake_duration_seconds(
