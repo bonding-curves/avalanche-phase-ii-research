@@ -31,6 +31,8 @@ PAGE_RETRY_SECONDS = 5.0
 # it, and never written to a capture, a receipt, or the repository. The data-api.avax.network alias rejects the same key.
 DATA_API_KEY_VARIABLE = "AVALANCHE_DATA_API_KEY"
 DATA_API_HOSTS = frozenset({"glacier-api.avax.network"})
+# The tool and its public repository. FRED drops requests whose agent names the tool without a link.
+USER_AGENT = "avalanche-phase-ii-research/0.1 (+https://github.com/bonding-curves/avalanche-phase-ii-research)"
 
 
 def _data_api_key(url: str) -> str | None:
@@ -47,7 +49,8 @@ def _request(
     content: str = "json",
 ) -> tuple[bytes, dict[str, Any]]:
     """Fetch one endpoint. A JSON body turns the request into a POST; content selects the response validation."""
-    headers = {"Accept": "application/json" if content.startswith("json") else "application/xml, text/xml", "User-Agent": "avalanche-phase-ii-research/0.1"}
+    accept = {"csv": "text/csv"}.get(content, "application/json" if content.startswith("json") else "application/xml, text/xml")
+    headers = {"Accept": accept, "User-Agent": USER_AGENT}
     key = _data_api_key(url)
     if key:
         headers["x-glacier-api-key"] = key
@@ -85,6 +88,13 @@ def _request(
             ElementTree.fromstring(body)
         except ElementTree.ParseError as error:
             raise DataError(f"response is not well-formed XML for {url}: {error}") from error
+    elif content == "csv":
+        try:
+            header = body.decode("utf-8").splitlines()[0]
+        except (UnicodeDecodeError, IndexError) as error:
+            raise DataError(f"response is not UTF-8 CSV for {url}") from error
+        if "," not in header:
+            raise DataError(f"response has no CSV header for {url}")
     else:
         raise DataError(f"unsupported endpoint content type: {content}")
     return body, {"http_status": status, "content_type": content_type}

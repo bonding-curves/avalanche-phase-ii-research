@@ -166,6 +166,13 @@
             "status",
             "data"
           ]
+        },
+        {
+          "id": "avalanche-fees-overview",
+          "url": "https://api.llama.fi/overview/fees/avalanche",
+          "response_fields": [
+            "totalDataChart"
+          ]
         }
       ]
     },
@@ -605,6 +612,27 @@
       ]
     },
     {
+      "id": "fred",
+      "name": "Federal Reserve Bank of St. Louis FRED",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "FRED republishes the Board of Governors' H.15 release. DTB3 is the 3-month Treasury bill secondary-market rate on a discount basis, daily; TB3MS is its monthly average.",
+      "documentation_url": "https://fred.stlouisfed.org/series/DTB3",
+      "authentication": "none; the fredgraph CSV download answers keyless requests",
+      "reuse_status": "Public domain government data, cited to its source.",
+      "endpoints": [
+        {
+          "id": "fredgraph-csv",
+          "url": "https://fred.stlouisfed.org/graph/fredgraph.csv",
+          "response_fields": [
+            "observation_date",
+            "DTB3",
+            "TB3MS"
+          ]
+        }
+      ]
+    },
+    {
       "id": "avalanche-p-chain-rpc",
       "name": "Avalanche P-Chain public RPC",
       "source_type": "rest_api",
@@ -899,6 +927,25 @@
             }
           ],
           "content": "json-list",
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "eth-call",
+          "url": "https://avalanche-mainnet.gateway.tenderly.co",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "eth_call",
+            "params": [
+              {
+                "to": "<contract>",
+                "data": "<selector>"
+              },
+              "<hex block>"
+            ]
+          },
           "response_fields": [
             "result"
           ]
@@ -1443,6 +1490,21 @@
           "id": "operators",
           "dataset_id": "derived.operators",
           "role": "one row per validator node with its operator and fleet"
+        },
+        {
+          "id": "token-supply-monthly",
+          "dataset_id": "c-chain-rpc.token-supply-monthly",
+          "role": "month-end supply of the tracked stablecoins and holder products"
+        },
+        {
+          "id": "tbill-3m-daily",
+          "dataset_id": "fred.tbill-3m-daily",
+          "role": "the 3-month bill discount rate, daily"
+        },
+        {
+          "id": "avalanche-fees-daily",
+          "dataset_id": "defillama.avalanche-fees-daily",
+          "role": "DefiLlama's Avalanche fees and revenue, daily"
         }
       ]
     },
@@ -3671,6 +3733,42 @@
       ]
     },
     {
+      "id": "defillama.avalanche-fees-daily",
+      "name": "DefiLlama Avalanche fees and revenue, daily",
+      "source_id": "defillama",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
+      ],
+      "description": "One row per day of DefiLlama's fees overview for Avalanche: fees paid by users and the protocols' revenue, in USD. Context for the article's NGCP, which has its own method and is never equal to it.",
+      "endpoint_ids": [
+        "avalanche-fees-overview"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC date",
+          "derivation": "the day of the totalDataChart point"
+        },
+        {
+          "name": "fees_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "dataType=dailyFees"
+        },
+        {
+          "name": "revenue_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "dataType=dailyRevenue"
+        }
+      ]
+    },
+    {
       "id": "us-treasury.par-yield-daily",
       "name": "US Treasury daily par yields",
       "source_id": "us-treasury",
@@ -3722,6 +3820,36 @@
           "type": "integer",
           "unit": "feed year",
           "derivation": "the yearly endpoint that supplied the entry"
+        }
+      ]
+    },
+    {
+      "id": "fred.tbill-3m-daily",
+      "name": "3-month Treasury bill discount rate, daily",
+      "source_id": "fred",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
+      ],
+      "description": "One row per day of FRED DTB3, the rate the Gross Chain Income article applies to the issuer float. Days without a quote are null. The capture also keeps TB3MS, which the check compares with the monthly means.",
+      "endpoint_ids": [
+        "fredgraph-csv"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC date",
+          "derivation": "observation_date"
+        },
+        {
+          "name": "discount_rate_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "DTB3, null on a day without a quote"
         }
       ]
     },
@@ -4595,6 +4723,108 @@
           "type": "integer",
           "unit": "wei",
           "derivation": "sum over the receipts of gasUsed times effectiveGasPrice: the AVAX the block's transactions burned"
+        }
+      ]
+    },
+    {
+      "id": "c-chain-rpc.token-supply-monthly",
+      "name": "Month-end supply of stablecoins and holder products on the C-Chain",
+      "source_id": "tenderly-c-chain-rpc",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
+      ],
+      "description": "One row per tracked token and UTC month: totalSupply and decimals by eth_call at the month's last C-Chain block, found by bisection on block time, and totalAssets for the ERC-4626 vaults. Tokens: native USDT and USDC, their bridged .e versions, BUIDL, JAAA, savUSD, and savBTC, each contract pinned with the public page that confirms it and its name read on-chain. The input of the Gross Chain Income study's issuer and holder layers.",
+      "endpoint_ids": [
+        "eth-call"
+      ],
+      "fields": [
+        {
+          "name": "month",
+          "type": "string",
+          "unit": "UTC month",
+          "derivation": "the first day of the month"
+        },
+        {
+          "name": "block_number",
+          "type": "integer",
+          "unit": "height",
+          "derivation": "the month's last block: its time is before the next month's first instant and the next block's is not"
+        },
+        {
+          "name": "block_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "that block's time"
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "unit": "symbol",
+          "derivation": "the tracked token"
+        },
+        {
+          "name": "contract",
+          "type": "string",
+          "unit": "address",
+          "derivation": "its C-Chain contract"
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "unit": "role",
+          "derivation": "issuer, bridged, or holder"
+        },
+        {
+          "name": "issuer",
+          "type": "string",
+          "unit": "organization",
+          "derivation": "the token's issuer or product sponsor"
+        },
+        {
+          "name": "deployed",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "whether the contract answered at that block"
+        },
+        {
+          "name": "decimals",
+          "type": "integer",
+          "unit": "decimals",
+          "derivation": "decimals() at that block"
+        },
+        {
+          "name": "total_supply_raw",
+          "type": "integer",
+          "unit": "base units",
+          "derivation": "totalSupply() at that block"
+        },
+        {
+          "name": "total_supply",
+          "type": "number",
+          "unit": "tokens",
+          "derivation": "total_supply_raw scaled by decimals"
+        },
+        {
+          "name": "total_assets_raw",
+          "type": "integer",
+          "unit": "base units",
+          "derivation": "totalAssets() for a vault, null otherwise"
+        },
+        {
+          "name": "total_assets",
+          "type": "number",
+          "unit": "underlying tokens",
+          "derivation": "total_assets_raw scaled by decimals"
+        },
+        {
+          "name": "assets_per_share",
+          "type": "number",
+          "unit": "ratio",
+          "derivation": "total_assets over total_supply for a vault"
         }
       ]
     },
@@ -8002,6 +8232,166 @@
           "type": "string",
           "unit": "source",
           "derivation": "'snowflake' for a share row, 'backup' for a backup row"
+        }
+      ]
+    },
+    {
+      "id": "derived.gci-monthly",
+      "name": "Gross Chain Income inputs by month",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
+      ],
+      "description": "One row per UTC month from January 2024 to the last month every input covers: issuer float and reserve income, holder-product float and the income a vault's share price shows, DefiLlama fees and revenue, and the C-Chain EVM burn in AVAX and USD. Issuer income is native USDT and USDC supply times the month's mean DTB3 over 12. A vault's income is the rise in assets per share over the month times the shares at its start. BUIDL and JAAA pay yield off-chain or in new tokens, so only their float appears.",
+      "input_ids": [
+        "token-supply-monthly",
+        "tbill-3m-daily",
+        "avalanche-fees-daily",
+        "monetary-daily",
+        "binance-daily"
+      ],
+      "fields": [
+        {
+          "name": "month",
+          "type": "string",
+          "unit": "UTC month",
+          "derivation": "the first day of the month"
+        },
+        {
+          "name": "month_end_block",
+          "type": "integer",
+          "unit": "height",
+          "derivation": "the month's last C-Chain block"
+        },
+        {
+          "name": "tether_float_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "native USDT supply at the month's end"
+        },
+        {
+          "name": "circle_float_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "native USDC supply at the month's end"
+        },
+        {
+          "name": "bridged_float_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "USDT.e and USDC.e supply at the month's end, kept apart from the issuer layer"
+        },
+        {
+          "name": "bill_rate_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "the month's mean DTB3"
+        },
+        {
+          "name": "rate_days",
+          "type": "integer",
+          "unit": "days",
+          "derivation": "days with a DTB3 quote"
+        },
+        {
+          "name": "issuer_income_tether_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "tether_float_usd times bill_rate_pct over 1,200"
+        },
+        {
+          "name": "issuer_income_circle_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "circle_float_usd times bill_rate_pct over 1,200"
+        },
+        {
+          "name": "issuer_income_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "the sum of both issuers"
+        },
+        {
+          "name": "buidl_float_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "BUIDL supply at the month's end, one dollar a token"
+        },
+        {
+          "name": "jaaa_float_usd",
+          "type": "number",
+          "unit": "tokens",
+          "derivation": "JAAA supply at the month's end; its price is off-chain"
+        },
+        {
+          "name": "savusd_assets_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "savUSD totalAssets in avUSD, taken at one dollar"
+        },
+        {
+          "name": "savusd_income_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "the rise in savUSD assets per share over the month times the shares at its start"
+        },
+        {
+          "name": "savbtc_assets_btc",
+          "type": "number",
+          "unit": "BTC",
+          "derivation": "savBTC totalAssets in avBTC"
+        },
+        {
+          "name": "savbtc_income_btc",
+          "type": "number",
+          "unit": "BTC",
+          "derivation": "the same income rule in avBTC"
+        },
+        {
+          "name": "fees_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "DefiLlama fees summed over the month"
+        },
+        {
+          "name": "revenue_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "DefiLlama revenue summed over the month"
+        },
+        {
+          "name": "fee_days",
+          "type": "integer",
+          "unit": "days",
+          "derivation": "days with a DefiLlama point"
+        },
+        {
+          "name": "burn_c_evm_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "the monetary ledger's C-Chain EVM burn summed over the month"
+        },
+        {
+          "name": "burn_c_evm_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "each day's burn times Binance's daily close, summed"
+        },
+        {
+          "name": "burn_days",
+          "type": "integer",
+          "unit": "days",
+          "derivation": "ledger days in the month"
+        },
+        {
+          "name": "priced_burn_days",
+          "type": "integer",
+          "unit": "days",
+          "derivation": "of those, days with a Binance close"
         }
       ]
     }

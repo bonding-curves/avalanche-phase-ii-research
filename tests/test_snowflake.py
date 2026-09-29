@@ -461,14 +461,14 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
     manifest = runner.invoke(cli.cli, ["data", "manifest", "--json"])
     assert [item["id"] for item in json.loads(manifest.output)["records"]] == [
         "snowpeer.network-summary", *snowflake.DATASET_IDS, "coingecko.avax-market-daily", "binance.avax-usdt-daily", "defillama.avax-price-daily",
-        "c-chain-rpc.receipt-gap-repairs", "p-chain-rpc.current-validators", "p-chain-rpc.transactions", "p-chain-rpc.blocks", "x-chain-rpc.blocks", "data-api.p-chain-staking-transactions", "p-chain-rpc.reward-utxos", "data-api.c-chain-block-list", "data-api.p-chain-block-list", "c-chain-rpc.atomic-transactions", "defillama.pool-yields", "us-treasury.par-yield-daily",
+        "c-chain-rpc.receipt-gap-repairs", "p-chain-rpc.current-validators", "p-chain-rpc.transactions", "p-chain-rpc.blocks", "x-chain-rpc.blocks", "data-api.p-chain-staking-transactions", "p-chain-rpc.reward-utxos", "data-api.c-chain-block-list", "data-api.p-chain-block-list", "c-chain-rpc.atomic-transactions", "defillama.pool-yields", "defillama.avalanche-fees-daily", "us-treasury.par-yield-daily", "fred.tbill-3m-daily",
             "metrics-api.primary-staking-daily", "metrics-api.c-chain-activity-daily", "data-api.avax-supply",
         "data-api.validators-active",
         "data-api.validators-completed",
         "data-api.validators-completed-recent",
             "data-api.c-chain-atomic-burn",
         "data-api.c-chain-block-fees",
-        "c-chain-rpc.block-receipt-fees",
+        "c-chain-rpc.block-receipt-fees", "c-chain-rpc.token-supply-monthly",
         "derived.staking-periods",
         "derived.node-table",
         "derived.validator-weeks",
@@ -481,7 +481,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "etf-issuers.avax-fund-snapshot",
         "etf-issuers.avax-fund-history",
         "derived.subnet-validation",
-        "derived.operators", "derived.operator-attributions", "derived.p-chain-validator-stakes", "derived.p-chain-delegator-stakes", "derived.p-chain-staking-rewards", "derived.p-chain-staking-supply", "derived.p-chain-staking-cycles", "derived.c-chain-evm-burn-daily", "derived.primary-burn-daily", "derived.seamed-validator-stakes", "derived.seamed-delegator-stakes", "derived.seamed-staking-rewards", "derived.seamed-staking-supply", "derived.seamed-burn-daily", "derived.seamed-c-chain-evm-burn-daily",
+        "derived.operators", "derived.operator-attributions", "derived.p-chain-validator-stakes", "derived.p-chain-delegator-stakes", "derived.p-chain-staking-rewards", "derived.p-chain-staking-supply", "derived.p-chain-staking-cycles", "derived.c-chain-evm-burn-daily", "derived.primary-burn-daily", "derived.seamed-validator-stakes", "derived.seamed-delegator-stakes", "derived.seamed-staking-rewards", "derived.seamed-staking-supply", "derived.seamed-burn-daily", "derived.seamed-c-chain-evm-burn-daily", "derived.gci-monthly",
     ]
 
 

@@ -67,7 +67,7 @@ def make_capture(tmp_path: Path) -> tuple[Path, dict]:
 
 def test_catalog_schema_and_references_are_valid():
     catalog = snowpeer.load_catalog()
-    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "binance-public-data", "defillama", "avalanche-metrics-api", "avalanche-data-api", "us-treasury", "avalanche-p-chain-rpc", "avalanche-x-chain-rpc", "avalanche-c-chain-rpc", "tenderly-c-chain-rpc", "avalanche-snowflake", "avalanche-builder-hub", "derived", "etf-issuers"]
+    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "binance-public-data", "defillama", "avalanche-metrics-api", "avalanche-data-api", "us-treasury", "fred", "avalanche-p-chain-rpc", "avalanche-x-chain-rpc", "avalanche-c-chain-rpc", "tenderly-c-chain-rpc", "avalanche-snowflake", "avalanche-builder-hub", "derived", "etf-issuers"]
     assert [item["id"] for item in catalog["datasets"]] == [
         "snowpeer.network-summary",
         "snowflake.primary-validator-stakes",
@@ -93,7 +93,9 @@ def test_catalog_schema_and_references_are_valid():
         "data-api.p-chain-block-list",
         "c-chain-rpc.atomic-transactions",
         "defillama.pool-yields",
+        "defillama.avalanche-fees-daily",
         "us-treasury.par-yield-daily",
+        "fred.tbill-3m-daily",
         "metrics-api.primary-staking-daily",
         "metrics-api.c-chain-activity-daily",
         "data-api.avax-supply",
@@ -103,6 +105,7 @@ def test_catalog_schema_and_references_are_valid():
         "data-api.c-chain-atomic-burn",
         "data-api.c-chain-block-fees",
         "c-chain-rpc.block-receipt-fees",
+        "c-chain-rpc.token-supply-monthly",
         "derived.staking-periods",
         "derived.node-table",
         "derived.validator-weeks",
@@ -130,6 +133,7 @@ def test_catalog_schema_and_references_are_valid():
         "derived.seamed-staking-supply",
         "derived.seamed-burn-daily",
         "derived.seamed-c-chain-evm-burn-daily",
+        "derived.gci-monthly",
     ]
 
 

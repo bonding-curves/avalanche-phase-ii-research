@@ -25,6 +25,7 @@ from . import defillama
 from . import derived
 from . import etf
 from . import freshness
+from . import gci
 from . import helicon
 from . import metrics
 from . import monetary
@@ -67,6 +68,7 @@ MODULES = {
     **{dataset_id: pstaking for dataset_id in pstaking.DATASET_IDS},
     **{dataset_id: clist for dataset_id in clist.DATASET_IDS},
     pburns.DATASET_ID: pburns,
+    **{dataset_id: gci for dataset_id in gci.DATASET_IDS},
     **{dataset_id: seam for dataset_id in seam.DATASET_IDS},
     catx.DATASET_ID: catx,
     yields.DATASET_ID: yields,
