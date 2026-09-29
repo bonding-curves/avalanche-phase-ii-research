@@ -5,7 +5,7 @@ authors: ["Lin William Cong", "Zhiheng He", "Ke Tang"]
 published: 2025-04
 venue: "NBER working paper"
 url: "https://doi.org/10.3386/w33640"
-tags: ["token-valuation", "issuance-and-rewards"]
+tags: ["token-valuation", "issuance-and-rewards", "distributional-effects"]
 key_terms: ["staking ratio", "reward ratio", "reward rate", "transaction convenience", "convenience loss", "inflation tax", "uncovered interest parity"]
 deliverables: ["1.1", "1.3", "1.4", "2.4", "2.8"]
 ---
@@ -19,7 +19,7 @@ Lin William Cong, Zhiheng He, and Ke Tang show that a token's staking ratio and 
 | **Authors** | Lin William Cong, Zhiheng He, Ke Tang |
 | **Published** | April 2025 |
 | **Source** | NBER working paper, [original](https://doi.org/10.3386/w33640) |
-| **Topics** | [token valuation](/tags/token-valuation), [issuance and rewards](/tags/issuance-and-rewards) |
+| **Topics** | [token valuation](/tags/token-valuation), [issuance and rewards](/tags/issuance-and-rewards), [distributional effects](/tags/distributional-effects) |
 | **Key terms** | [staking ratio](/Phase-II/Wiki/Reference/Glossary-and-Notation), reward ratio, reward rate, transaction convenience, convenience loss, inflation tax, uncovered interest parity |
 | **Serves deliverables** | [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/), [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
 

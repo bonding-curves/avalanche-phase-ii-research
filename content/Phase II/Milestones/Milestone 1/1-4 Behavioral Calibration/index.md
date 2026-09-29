@@ -3,6 +3,7 @@ title: "1.4 Behavioral Calibration"
 description: "Contract deliverable 1.4: Behavioral Calibration."
 status: in progress
 source: signed-grant-agreement
+tags: ["structural-estimation", "staking-duration-and-liquidity"]
 ---
 
 ## Contract requirement

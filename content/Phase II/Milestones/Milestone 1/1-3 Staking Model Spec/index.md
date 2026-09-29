@@ -3,6 +3,7 @@ title: "1.3 Staking Model Spec"
 description: "Contract deliverable 1.3: Staking Model Spec."
 status: in progress
 source: signed-grant-agreement
+tags: ["model-structure", "staking-duration-and-liquidity", "issuance-and-rewards"]
 ---
 
 ## Contract requirement

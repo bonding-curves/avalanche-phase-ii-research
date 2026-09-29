@@ -5,7 +5,7 @@ authors: ["Juan Beccuti", "Thunj Chantramonklasri", "Matthias Hafner", "Nicolas 
 published: 2025-07-20
 venue: "arXiv"
 url: "https://arxiv.org/abs/2503.14385"
-tags: ["issuance-and-rewards", "distributional-effects", "decentralization"]
+tags: ["issuance-and-rewards", "distributional-effects", "decentralization", "liquid-staking-and-restaking"]
 key_terms: ["solo staker", "segmented market", "Nash equilibrium", "MEV", "elasticity of stake", "instrumental variables"]
 deliverables: ["1.3", "1.4", "2.3", "2.8"]
 ---
@@ -19,7 +19,7 @@ Beccuti, Chantramonklasri, Hafner, and Oderbolz model three types of Ethereum st
 | **Authors** | Juan Beccuti, Thunj Chantramonklasri, Matthias Hafner, Nicolas Oderbolz |
 | **Published** | July 20, 2025 |
 | **Source** | arXiv, [original](https://arxiv.org/abs/2503.14385) |
-| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [distributional effects](/tags/distributional-effects), [decentralization](/tags/decentralization) |
+| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [distributional effects](/tags/distributional-effects), [decentralization](/tags/decentralization), [liquid staking and restaking](/tags/liquid-staking-and-restaking) |
 | **Key terms** | solo staker, segmented market, Nash equilibrium, MEV, elasticity of stake, instrumental variables |
 | **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
 

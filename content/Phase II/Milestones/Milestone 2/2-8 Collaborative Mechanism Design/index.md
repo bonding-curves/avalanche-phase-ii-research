@@ -3,6 +3,7 @@ title: "2.8 Collaborative Mechanism Design"
 description: "Contract deliverable 2.8: Collaborative Mechanism Design."
 status: not started
 source: signed-grant-agreement
+tags: ["mechanism-design", "issuance-and-rewards"]
 ---
 
 ## Contract requirement

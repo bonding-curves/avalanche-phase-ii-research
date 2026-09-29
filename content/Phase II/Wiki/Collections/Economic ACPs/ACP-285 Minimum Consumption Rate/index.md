@@ -6,7 +6,7 @@ published: 2026-06-08
 venue: "Avalanche Community Proposal"
 url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/285-reduce-minimum-consumption-rate/README.md"
 full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/ACP-285-Minimum-Consumption-Rate/Source-Proposal"
-tags: ["issuance-and-rewards", "staking-duration-and-liquidity"]
+tags: ["issuance-and-rewards", "staking-duration-and-liquidity", "protocol-governance"]
 key_terms: ["minimum consumption rate", "maximum consumption rate", "remaining-supply factor", "ninety-day ramp", "annualized reward rate", "minting period"]
 deliverables: ["1.3", "1.4", "2.5"]
 ---
@@ -20,7 +20,7 @@ ACP-285 is the first change to a Primary Network reward parameter since genesis.
 | **Authors** | Matias Antonio, Eric Lu, Martin Eckardt, Meaghan FitzGerald |
 | **Published** | June 8, 2026 |
 | **Source** | Avalanche Community Proposal, [original](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/285-reduce-minimum-consumption-rate/README.md), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-285-Minimum-Consumption-Rate/Source-Proposal) |
-| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [staking duration and liquidity](/tags/staking-duration-and-liquidity) |
+| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [staking duration and liquidity](/tags/staking-duration-and-liquidity), [protocol governance](/tags/protocol-governance) |
 | **Key terms** | minimum consumption rate, maximum consumption rate, remaining-supply factor, ninety-day ramp, [annualized reward rate](/Phase-II/Wiki/Reference/Glossary-and-Notation), minting period |
 | **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.5](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) |
 

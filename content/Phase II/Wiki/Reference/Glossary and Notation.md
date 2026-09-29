@@ -1,6 +1,7 @@
 ---
 title: Glossary and Notation
 description: "The terms, symbols, units, and network upgrades used across the notebooks, datasets, and milestone pages of this research, each defined once."
+tags: ["issuance-and-rewards", "staking-duration-and-liquidity", "delegation-market"]
 ---
 
 Every page on this site uses the words and symbols below with the meanings given here.

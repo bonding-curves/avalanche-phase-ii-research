@@ -3,6 +3,7 @@ title: "2.6 Risk Surface Map"
 description: "Contract deliverable 2.6: Risk Surface Map."
 status: not started
 source: signed-grant-agreement
+tags: ["parameter-selection-under-uncertainty", "kpis-and-goals", "market-conditions"]
 ---
 
 ## Contract requirement

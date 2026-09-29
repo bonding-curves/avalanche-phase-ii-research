@@ -6,7 +6,7 @@ published: 2026-07-30
 venue: "Avalanche Foundation blog"
 url: "https://www.avax.network/about/blog/the-avalanche-foundation-unveils-its-economic-research-agenda"
 full_text: "/Phase-II/Wiki/Collections/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/Source-Article"
-tags: ["fees-and-value-capture", "security-budget", "economic-measurement"]
+tags: ["fees-and-value-capture", "security-budget", "economic-measurement", "distributional-effects"]
 key_terms: ["gross chain product", "gross chain income", "value accrual", "research streams", "emissions", "MEV"]
 deliverables: ["1.1", "2.2", "2.3", "2.6", "2.8", "3.1"]
 ---
@@ -20,7 +20,7 @@ The Avalanche Foundation's economic research agenda names the link between ecosy
 | **Authors** | Avalanche Foundation |
 | **Published** | July 30, 2026 |
 | **Source** | Avalanche Foundation blog, [original](https://www.avax.network/about/blog/the-avalanche-foundation-unveils-its-economic-research-agenda), [full text](/Phase-II/Wiki/Collections/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/Source-Article) |
-| **Topics** | [fees and value capture](/tags/fees-and-value-capture), [security budget](/tags/security-budget), [economic measurement](/tags/economic-measurement) |
+| **Topics** | [fees and value capture](/tags/fees-and-value-capture), [security budget](/tags/security-budget), [economic measurement](/tags/economic-measurement), [distributional effects](/tags/distributional-effects) |
 | **Key terms** | gross chain product, gross chain income, value accrual, research streams, emissions, MEV |
 | **Serves deliverables** | [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/), [3.1](/Phase-II/Milestones/Milestone-3/3-1-Parameter-Recommendation-Report/) |
 

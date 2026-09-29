@@ -5,7 +5,7 @@ authors: ["Daniel McFadden"]
 published: 1973
 venue: "*Frontiers in Econometrics*"
 url: "https://eml.berkeley.edu/reprints/mcfadden/zarembka.pdf"
-tags: ["structural-estimation"]
+tags: ["structural-estimation", "staking-duration-and-liquidity"]
 key_terms: ["conditional logit", "random utility", "independence of irrelevant alternatives", "extreme value distribution", "maximum likelihood", "marginal rate of substitution"]
 deliverables: ["1.3", "1.4"]
 ---
@@ -19,7 +19,7 @@ Daniel McFadden derives the conditional logit model from a population of utility
 | **Authors** | Daniel McFadden |
 | **Published** | 1973 |
 | **Source** | *Frontiers in Econometrics*, [original](https://eml.berkeley.edu/reprints/mcfadden/zarembka.pdf) |
-| **Topics** | [structural estimation](/tags/structural-estimation) |
+| **Topics** | [structural estimation](/tags/structural-estimation), [staking duration and liquidity](/tags/staking-duration-and-liquidity) |
 | **Key terms** | conditional logit, random utility, independence of irrelevant alternatives, extreme value distribution, maximum likelihood, marginal rate of substitution |
 | **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) |
 

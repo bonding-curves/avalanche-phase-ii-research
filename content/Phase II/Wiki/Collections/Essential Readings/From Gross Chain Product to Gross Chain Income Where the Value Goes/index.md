@@ -6,7 +6,7 @@ published: 2026-08-12
 venue: "Avalanche Foundation blog"
 url: "https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes"
 full_text: "/Phase-II/Wiki/Collections/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/Source-Article"
-tags: ["economic-measurement", "fees-and-value-capture"]
+tags: ["economic-measurement", "fees-and-value-capture", "security-budget", "market-conditions"]
 key_terms: ["gross chain income", "holder yield", "issuer reserve income", "coefficient of variation", "voluntary revenue sharing", "protocol-owned stablecoin"]
 deliverables: ["1.1", "2.2", "2.3", "2.6", "2.8", "3.2"]
 ---
@@ -20,7 +20,7 @@ Eric Lu extends gross chain product to gross chain income in three nested levels
 | **Authors** | Siyu (Eric) Lu |
 | **Published** | August 12, 2026 |
 | **Source** | Avalanche Foundation blog, [original](https://www.avax.network/about/blog/from-gross-chain-product-to-gross-chain-income-where-the-value-goes), [full text](/Phase-II/Wiki/Collections/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/Source-Article) |
-| **Topics** | [economic measurement](/tags/economic-measurement), [fees and value capture](/tags/fees-and-value-capture) |
+| **Topics** | [economic measurement](/tags/economic-measurement), [fees and value capture](/tags/fees-and-value-capture), [security budget](/tags/security-budget), [market conditions](/tags/market-conditions) |
 | **Key terms** | gross chain income, holder yield, issuer reserve income, coefficient of variation, voluntary revenue sharing, protocol-owned stablecoin |
 | **Serves deliverables** | [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/), [3.2](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) |
 

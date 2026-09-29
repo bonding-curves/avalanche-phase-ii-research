@@ -1,6 +1,7 @@
 ---
 title: Notebooks
 description: What the two research notebooks answer and show, which datasets they read, and how to run them.
+tags: ["staking-duration-and-liquidity", "issuance-and-rewards", "structural-estimation"]
 ---
 
 The repository holds two Jupyter notebooks in `notebooks/`. Both read the built datasets described on [Data](/Phase-II/Wiki/Reference/Data) and never fetch or build data themselves. A commitment in both is the period of one staking transaction, from its start time to its end time.

@@ -3,6 +3,7 @@ title: "3.2 Scenario Playbook"
 description: "Contract deliverable 3.2: Scenario Playbook."
 status: not started
 source: signed-grant-agreement
+tags: ["market-conditions", "parameter-selection-under-uncertainty"]
 ---
 
 ## Contract requirement

@@ -6,7 +6,7 @@ published: 2023-12-16
 venue: "GitHub discussion"
 url: "https://github.com/avalanche-foundation/ACPs/discussions/56"
 full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/Minimum-Validator-Stake-500-AVAX/Source-Discussion"
-tags: ["decentralization", "validator-economics"]
+tags: ["decentralization", "validator-economics", "mechanism-design"]
 key_terms: ["minimum validator stake", "self-stake", "AVAX-days", "minimum validator duration", "P-Chain state growth"]
 deliverables: ["2.8"]
 ---
@@ -20,7 +20,7 @@ Our [brief of 2026-09-25](/Phase-II/Wiki/Briefs/2026-09-25-sprint-8/) described 
 | **Authors** | CaptainDoubleBlade |
 | **Published** | December 16, 2023 |
 | **Source** | GitHub discussion, [original](https://github.com/avalanche-foundation/ACPs/discussions/56), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/Minimum-Validator-Stake-500-AVAX/Source-Discussion) |
-| **Topics** | [decentralization](/tags/decentralization), [validator economics](/tags/validator-economics) |
+| **Topics** | [decentralization](/tags/decentralization), [validator economics](/tags/validator-economics), [mechanism design](/tags/mechanism-design) |
 | **Key terms** | minimum validator stake, [self-stake](/Phase-II/Wiki/Reference/Glossary-and-Notation), AVAX-days, minimum validator duration, P-Chain state growth |
 | **Serves deliverables** | [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
 

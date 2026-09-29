@@ -3,6 +3,7 @@ title: "Preliminary Validation Report"
 description: "Milestone 1 success criterion: Preliminary Validation Report."
 status: not started
 source: signed-grant-agreement
+tags: ["model-validation"]
 ---
 
 ## Contract requirement

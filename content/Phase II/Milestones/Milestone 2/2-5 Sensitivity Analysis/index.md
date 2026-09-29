@@ -3,6 +3,7 @@ title: "2.5 Sensitivity Analysis"
 description: "Contract deliverable 2.5: Sensitivity Analysis."
 status: not started
 source: signed-grant-agreement
+tags: ["sensitivity-analysis", "kpis-and-goals"]
 ---
 
 ## Contract requirement

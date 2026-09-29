@@ -6,7 +6,7 @@ published: 2025-11-13
 venue: "Avalanche Community Proposal"
 url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/247-delegation-multiplier-increase/README.md"
 full_text: "/Phase-II/Wiki/Collections/Economic-ACPs/ACP-247-Delegation-Multiplier/Source-Proposal"
-tags: ["delegation-market", "decentralization", "validator-economics"]
+tags: ["delegation-market", "decentralization", "validator-economics", "mechanism-design"]
 key_terms: ["delegation capacity", "delegation multiplier", "self-stake", "maximum validator weight", "node splitting", "consensus weight"]
 deliverables: ["2.6", "2.8"]
 ---
@@ -20,7 +20,7 @@ ACP-247 is a proposal from outside the Foundation, by Giacomo Barbieri and BENQI
 | **Authors** | Giacomo Barbieri, BENQI |
 | **Published** | November 13, 2025 |
 | **Source** | Avalanche Community Proposal, [original](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/247-delegation-multiplier-increase/README.md), [full text](/Phase-II/Wiki/Collections/Economic-ACPs/ACP-247-Delegation-Multiplier/Source-Proposal) |
-| **Topics** | [delegation market](/tags/delegation-market), [decentralization](/tags/decentralization), [validator economics](/tags/validator-economics) |
+| **Topics** | [delegation market](/tags/delegation-market), [decentralization](/tags/decentralization), [validator economics](/tags/validator-economics), [mechanism design](/tags/mechanism-design) |
 | **Key terms** | [delegation capacity](/Phase-II/Wiki/Reference/Glossary-and-Notation), delegation multiplier, [self-stake](/Phase-II/Wiki/Reference/Glossary-and-Notation), maximum validator weight, node splitting, consensus weight |
 | **Serves deliverables** | [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
 

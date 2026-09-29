@@ -107,7 +107,7 @@ def render(catalog: dict[str, Any], runs: dict[str, dict[str, Any]]) -> dict[str
 
     ingestion = [
         "---", 'title: "1.1 Data Ingestion"', 'description: "Contract deliverable 1.1: Data Ingestion."',
-        "status: delivered", "source: signed-grant-agreement", "---", "", MARKER, "",
+        "status: delivered", "source: signed-grant-agreement", 'tags: ["staking-duration-and-liquidity", "issuance-and-rewards", "delegation-market"]', "---", "", MARKER, "",
         "## Contract requirement", "", "Ingest Avalanche-provided historical data (validator/delegator flows, rewards, durations)", "",
         "## Evidence status", "",
         f"{built} of {len(datasets)} declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, "
@@ -132,7 +132,7 @@ def render(catalog: dict[str, Any], runs: dict[str, dict[str, Any]]) -> dict[str
 
     manifest = [
         "---", 'title: "1.2 Data Manifest"', 'description: "Contract deliverable 1.2: Data Manifest."',
-        "status: delivered", "source: signed-grant-agreement", "---", "", MARKER, "",
+        "status: delivered", "source: signed-grant-agreement", 'tags: ["issuance-and-rewards", "staking-duration-and-liquidity", "fees-and-value-capture"]', "---", "", MARKER, "",
         "## Contract requirement", "", "Documentation of sources, transformations, quality metrics", "",
         "## Evidence status", "",
         "The manifest is machine-readable: `data/data-catalog.json` declares every source and dataset with fields, units, and derivations, "

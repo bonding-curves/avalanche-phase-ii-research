@@ -2,6 +2,7 @@
 title: "BENQI, 2026-08-31"
 description: "Interview with Hansen of BENQI about how BENQI places and times its liquid staking delegations."
 status: summary published
+tags: ["liquid-staking-and-restaking", "delegation-market", "staking-duration-and-liquidity"]
 ---
 
 The research team interviewed Hansen of BENQI on 2026-08-31. Daniel introduced him.

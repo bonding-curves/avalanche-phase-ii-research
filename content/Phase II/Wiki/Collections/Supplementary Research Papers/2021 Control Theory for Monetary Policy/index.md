@@ -6,7 +6,7 @@ published: 2021-04-09
 venue: "BlockScience technical article"
 url: "https://doi.org/10.5281/zenodo.10474385"
 full_text: "/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2021-Control-Theory-for-Monetary-Policy/Source-Paper"
-tags: ["mechanism-design", "parameter-selection-under-uncertainty"]
+tags: ["mechanism-design", "parameter-selection-under-uncertainty", "protocol-governance"]
 key_terms: ["feedback controller", "PID controller", "redemption rate", "governance surface", "windup", "leak", "steady-state error"]
 deliverables: ["2.1", "2.2", "2.3", "2.6", "2.8"]
 ---
@@ -20,7 +20,7 @@ Zargham, Bernardineli, Clark, Shorish, and Emmett show how BlockScience chose th
 | **Authors** | Michael Zargham, Danilo Lessa Bernardineli, Andrew Clark, Jamsheed Shorish, Jeff Emmett |
 | **Published** | April 9, 2021 |
 | **Source** | BlockScience technical article, [original](https://doi.org/10.5281/zenodo.10474385), [full text](/Phase-II/Wiki/Collections/Supplementary-Research-Papers/2021-Control-Theory-for-Monetary-Policy/Source-Paper) |
-| **Topics** | [mechanism design](/tags/mechanism-design), [parameter selection under uncertainty](/tags/parameter-selection-under-uncertainty) |
+| **Topics** | [mechanism design](/tags/mechanism-design), [parameter selection under uncertainty](/tags/parameter-selection-under-uncertainty), [protocol governance](/tags/protocol-governance) |
 | **Key terms** | feedback controller, PID controller, redemption rate, governance surface, windup, leak, steady-state error |
 | **Serves deliverables** | [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
 

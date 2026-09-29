@@ -3,6 +3,7 @@ title: "3.1 Parameter Recommendation Report"
 description: "Contract deliverable 3.1: Parameter Recommendation Report."
 status: not started
 source: signed-grant-agreement
+tags: ["parameter-selection-under-uncertainty", "kpis-and-goals"]
 ---
 
 ## Contract requirement

@@ -5,7 +5,7 @@ authors: ["John Rust"]
 published: 1987-09
 venue: "*Econometrica*"
 url: "https://doi.org/10.2307/1911259"
-tags: ["structural-estimation"]
+tags: ["structural-estimation", "staking-duration-and-liquidity"]
 key_terms: ["dynamic discrete choice", "optimal stopping", "Bellman equation", "nested fixed point", "discount factor", "myopic model"]
 deliverables: ["1.3", "1.4"]
 ---
@@ -19,7 +19,7 @@ John Rust estimates a forward-looking keep-or-replace decision from one maintena
 | **Authors** | John Rust |
 | **Published** | September 1987 |
 | **Source** | *Econometrica*, [original](https://doi.org/10.2307/1911259) |
-| **Topics** | [structural estimation](/tags/structural-estimation) |
+| **Topics** | [structural estimation](/tags/structural-estimation), [staking duration and liquidity](/tags/staking-duration-and-liquidity) |
 | **Key terms** | dynamic discrete choice, optimal stopping, Bellman equation, nested fixed point, discount factor, myopic model |
 | **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) |
 

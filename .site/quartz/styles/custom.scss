@@ -42,8 +42,6 @@ article table { font-size: 13px; margin: 20px 0; width: 100%; }
 .table-container > table { margin: 20px 0; }
 // A facts table has no header row. Its empty header is hidden.
 article thead:has(th:first-child:empty + th:last-child:empty) { display: none; }
-// The Topics page lists every topic in its own table. Quartz's repeated listing of each topic's pages below it is hidden.
-article.topics-index ~ * { display: none; }
 article th { text-transform: uppercase; font-size: 11px; color: var(--gray); font-weight: 600; background: var(--surface); }
 article th, article td { padding: 14px 12px; border-bottom: 1px solid var(--lightgray); line-height: 1.6; }
 article tr:hover td { background: var(--highlight); }

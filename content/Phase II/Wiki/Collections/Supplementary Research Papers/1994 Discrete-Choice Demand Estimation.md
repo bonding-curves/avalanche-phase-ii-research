@@ -5,7 +5,7 @@ authors: ["Steven T. Berry"]
 published: 1994
 venue: "*The RAND Journal of Economics*"
 url: "https://doi.org/10.2307/2555829"
-tags: ["structural-estimation"]
+tags: ["structural-estimation", "delegation-market"]
 key_terms: ["inversion", "mean utility", "nested logit", "instrumental variables", "outside option", "unobserved demand factors"]
 deliverables: ["1.3", "1.4"]
 ---
@@ -19,7 +19,7 @@ Steven Berry shows how to turn observed market shares into the mean utility of e
 | **Authors** | Steven T. Berry |
 | **Published** | 1994 |
 | **Source** | *The RAND Journal of Economics*, [original](https://doi.org/10.2307/2555829) |
-| **Topics** | [structural estimation](/tags/structural-estimation) |
+| **Topics** | [structural estimation](/tags/structural-estimation), [delegation market](/tags/delegation-market) |
 | **Key terms** | inversion, mean utility, nested logit, instrumental variables, outside option, unobserved demand factors |
 | **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) |
 

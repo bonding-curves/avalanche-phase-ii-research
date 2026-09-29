@@ -1,6 +1,7 @@
 ---
 title: Data
 description: The sources behind the research, how each dataset is captured, built, and checked, and how to load the published data release.
+tags: ["issuance-and-rewards", "staking-duration-and-liquidity", "fees-and-value-capture"]
 ---
 
 Every number in this research comes from a dataset declared in `data/data-catalog.json`. The catalog names 13 sources and 35 datasets, with each dataset's query or request, fields, units, and derivation. Each built dataset sits in a run folder that holds a receipt of what was captured, the table built from it, and the result of its checks. A number in a notebook therefore traces back to a Parquet file, the receipt that hashes it, and the raw capture or input runs it came from.

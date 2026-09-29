@@ -6,7 +6,7 @@ published: 2026-04-28
 venue: "LinkedIn"
 url: "https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc"
 full_text: "/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Source-Article"
-tags: ["structural-estimation", "staking-duration-and-liquidity", "delegation-market"]
+tags: ["structural-estimation", "staking-duration-and-liquidity", "delegation-market", "market-conditions"]
 key_terms: ["two-sided market", "annualized yield", "period yield", "optionality cost", "marginal rate of substitution", "conditional logit", "inversion"]
 deliverables: ["1.3", "1.4", "2.4"]
 ---
@@ -20,7 +20,7 @@ Eric Lu estimates from 278 weeks of P-Chain data that Avalanche validators choos
 | **Authors** | Siyu (Eric) Lu |
 | **Published** | April 28, 2026 |
 | **Source** | LinkedIn, [original](https://www.linkedin.com/pulse/how-do-avalanche-validators-actually-think-staking-rewards-lu-phd-q9igc), [full text](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Source-Article) |
-| **Topics** | [structural estimation](/tags/structural-estimation), [staking duration and liquidity](/tags/staking-duration-and-liquidity), [delegation market](/tags/delegation-market) |
+| **Topics** | [structural estimation](/tags/structural-estimation), [staking duration and liquidity](/tags/staking-duration-and-liquidity), [delegation market](/tags/delegation-market), [market conditions](/tags/market-conditions) |
 | **Key terms** | two-sided market, annualized yield, period yield, optionality cost, marginal rate of substitution, conditional logit, inversion |
 | **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) |
 

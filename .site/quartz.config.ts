@@ -1,5 +1,6 @@
 import { QuartzConfig } from "./quartz/cfg"
 import * as Plugin from "./quartz/plugins"
+import * as Component from "./quartz/components"
 
 /**
  * Quartz 4 Configuration
@@ -76,7 +77,8 @@ const config: QuartzConfig = {
       Plugin.AliasRedirects(),
       Plugin.ComponentResources(),
       Plugin.ContentPage(),
-      Plugin.TagPage(),
+      // Topic pages show only their generated table, not Quartz's default list of tagged pages.
+      Plugin.TagPage({ pageBody: Component.Content() }),
       Plugin.ContentIndex({
         enableSiteMap: false,
         enableRSS: false,

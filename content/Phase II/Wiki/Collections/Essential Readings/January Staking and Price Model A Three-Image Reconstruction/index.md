@@ -5,7 +5,7 @@ authors: ["Siyu (Eric) Lu"]
 published: "Unpublished"
 venue: "Slides shown during the scoping of Phase II"
 full_text: "/Phase-II/Wiki/Collections/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/Source-Model-Artifact"
-tags: ["token-valuation", "model-structure"]
+tags: ["token-valuation", "model-structure", "market-conditions"]
 key_terms: ["staking ratio", "reward rate", "fixed point", "market clearing", "transaction convenience", "demand state"]
 deliverables: ["1.3", "2.2"]
 ---
@@ -19,7 +19,7 @@ Three January images attributed to Eric Lu set out a staking and price equilibri
 | **Authors** | Siyu (Eric) Lu |
 | **Published** | Unpublished |
 | **Source** | Slides shown during the scoping of Phase II, [full text](/Phase-II/Wiki/Collections/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/Source-Model-Artifact) |
-| **Topics** | [token valuation](/tags/token-valuation), [model structure](/tags/model-structure) |
+| **Topics** | [token valuation](/tags/token-valuation), [model structure](/tags/model-structure), [market conditions](/tags/market-conditions) |
 | **Key terms** | [staking ratio](/Phase-II/Wiki/Reference/Glossary-and-Notation), reward rate, fixed point, market clearing, transaction convenience, demand state |
 | **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) |
 

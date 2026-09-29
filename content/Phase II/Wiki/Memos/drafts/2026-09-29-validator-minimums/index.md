@@ -4,6 +4,7 @@ description: "Since Durango, 62% to 69% of new validator commitments last the 14
 date: 2026-09-29
 status: draft
 deliverables: ["1.4", "2.8"]
+tags: ["staking-duration-and-liquidity", "validator-economics", "mechanism-design"]
 ---
 
 # Most new validator commitments stop at the minimum, but hold little of the capital

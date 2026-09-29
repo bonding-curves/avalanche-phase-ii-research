@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Render the facts table under the first paragraph of each collection overview, from the page's frontmatter.
+"""Render the facts table on each collection overview, and the topic pages that list every tagged page.
 
-    python scripts/overview_tables.py build   # write the tables
-    python scripts/overview_tables.py check   # exit 1 when a table is stale or a field is missing
+    python scripts/overview_tables.py build   # write the tables and topic pages
+    python scripts/overview_tables.py check   # exit 1 when a table or topic page is stale, or a field or topic is wrong
+
+Topics: any content page may carry `tags`, one to four slugs from TOPICS, written inline. Each topic page is a table of
+every page on that topic, grouped by page type. TOPICS has one owner. Every add, merge, or rename is its own commit with
+a one-line reason. A retired slug goes into RETIRED with its replacement and is never reused.
 
 A page opts in with `authors`. Its frontmatter then holds `authors`, `published`, `venue`, `tags` (topics from TOPICS),
 `key_terms`, and `deliverables`, and optionally `url`, the public original, and `full_text`, a site route to the full
@@ -27,28 +31,31 @@ GLOSSARY_ROUTE = "/Phase-II/Wiki/Reference/Glossary-and-Notation"
 START, END = "<!-- overview-table:start -->", "<!-- overview-table:end -->"
 REQUIRED = ("authors", "published", "venue", "tags", "key_terms", "deliverables")
 
+# slug: (label, what it covers, which neighbouring topic to use instead)
 TOPICS = {
-    "issuance-and-rewards": ("issuance and rewards", "The reward formula, consumption rates, the issuance schedule, inflation, and the supply cap"),
-    "staking-duration-and-liquidity": ("staking duration and liquidity", "How long stake is committed, what locking costs, and the option to exit"),
-    "delegation-market": ("delegation market", "Delegator choice, validator fees, and competition for delegation"),
-    "decentralization": ("decentralization", "Validator count against stake-weighted security, concentration, and small operators"),
-    "validator-economics": ("validator economics", "Operator costs, profitability, uptime, tenure, and rewarding them"),
-    "liquid-staking-and-restaking": ("liquid staking and restaking", "Stake that stays usable elsewhere, and stake reused across services"),
-    "security-budget": ("security budget", "What pays for security, and the outside options that compete with staking"),
-    "fees-and-value-capture": ("fees and value capture", "Gas pricing, the fee burn, fee revenue, and mechanisms that capture value for AVAX"),
-    "economic-measurement": ("economic measurement", "Value added, nominal against real output, chain-weighted indexes, and income against production"),
-    "token-valuation": ("token valuation", "Why people hold AVAX, and how price, staking, and liquidity are determined together"),
-    "distributional-effects": ("distributional effects", "Who pays for emissions and who gains from rewards and the fee burn"),
-    "mechanism-design": ("mechanism design", "Proposed rule changes and how to evaluate them"),
-    "protocol-governance": ("protocol governance", "How protocol parameters change: proposals, validator voting, phased activation, and rules against discretion"),
-    "market-conditions": ("market conditions", "Bull and bear markets, shocks, and how volatility changes choices"),
-    "structural-estimation": ("structural estimation", "Recovering preferences from observed choices and fitting a model to data"),
-    "model-structure": ("model structure", "Specifying an economic system as states, actions, and update rules"),
-    "model-validation": ("model validation", "Tests that decide whether a model can be trusted for policy"),
-    "sensitivity-analysis": ("sensitivity analysis", "Which parameters and inputs drive each result"),
-    "kpis-and-goals": ("KPIs and goals", "Indicators of success, their thresholds, and the goals that group them"),
-    "parameter-selection-under-uncertainty": ("parameter selection under uncertainty", "Choosing parameters and policies that perform well across futures that cannot be predicted"),
+    "issuance-and-rewards": ("issuance and rewards", "The reward formula, consumption rates, the issuance schedule, inflation, and the supply cap", ""),
+    "staking-duration-and-liquidity": ("staking duration and liquidity", "How long stake is committed, what locking costs, and the option to exit", ""),
+    "delegation-market": ("delegation market", "Delegator choice, validator fees, and competition for delegation", "For concentration of stake across operators, see decentralization"),
+    "decentralization": ("decentralization", "Validator count against stake-weighted security, concentration, and small operators", "For how delegators choose a validator, see delegation market"),
+    "validator-economics": ("validator economics", "Operator costs, profitability, uptime, tenure, and rewarding them", "For what funds the network's security as a whole, see security budget"),
+    "liquid-staking-and-restaking": ("liquid staking and restaking", "Stake that stays usable elsewhere, and stake reused across services", ""),
+    "security-budget": ("security budget", "What pays for security, and the outside options that compete with staking", "For one operator's costs and income, see validator economics"),
+    "fees-and-value-capture": ("fees and value capture", "Gas pricing, the fee burn, fee revenue, and mechanisms that capture value for AVAX", ""),
+    "economic-measurement": ("economic measurement", "Value added, nominal against real output, chain-weighted indexes, and income against production", ""),
+    "token-valuation": ("token valuation", "Why people hold AVAX, and how price, staking, and liquidity are determined together", ""),
+    "distributional-effects": ("distributional effects", "Who pays for emissions and who gains from rewards and the fee burn", "For how rewards are computed, see issuance and rewards"),
+    "mechanism-design": ("mechanism design", "Proposed rule changes and how to evaluate them", "For how a change is proposed and adopted, see protocol governance"),
+    "protocol-governance": ("protocol governance", "How protocol parameters change: proposals, validator voting, phased activation, and rules against discretion", "For the design and evaluation of the rule itself, see mechanism design"),
+    "market-conditions": ("market conditions", "Bull and bear markets, shocks, and how volatility changes choices", ""),
+    "structural-estimation": ("structural estimation", "Recovering preferences from observed choices and fitting a model to data", ""),
+    "model-structure": ("model structure", "Specifying an economic system as states, actions, and update rules", "For whether a model can be trusted, see model validation"),
+    "model-validation": ("model validation", "Tests that decide whether a model can be trusted for policy", "For how a model is specified, see model structure"),
+    "sensitivity-analysis": ("sensitivity analysis", "Which parameters and inputs drive each result", ""),
+    "kpis-and-goals": ("KPIs and goals", "Indicators of success, their thresholds, and the goals that group them", ""),
+    "parameter-selection-under-uncertainty": ("parameter selection under uncertainty", "Choosing parameters and policies that perform well across futures that cannot be predicted", ""),
 }
+RETIRED: dict[str, str] = {}  # retired slug -> the topic that replaced it
+CONTENT = ROOT / "content"
 
 
 def frontmatter(text: str) -> tuple[dict, str, str]:
@@ -111,7 +118,6 @@ def render(path: Path, routes: dict[str, str], terms: set[str]) -> tuple[str, li
     text = path.read_text(encoding="utf-8")
     fields, block, body = frontmatter(text)
     problems = [f"missing {key}" for key in REQUIRED if key not in fields]
-    problems += [f"unknown topic {t}" for t in fields.get("tags", []) if t not in TOPICS]
     problems += [f"unknown deliverable {d}" for d in fields.get("deliverables", []) if d not in routes]
     if problems:
         return text, problems
@@ -122,34 +128,136 @@ def render(path: Path, routes: dict[str, str], terms: set[str]) -> tuple[str, li
 
 ECONOMICS = 14  # the first 14 topics are about Avalanche's economics, the rest about research method
 
+# Page types in the order a topic page lists them, matched on the page's path under content/Phase II.
+PAGE_TYPES = (
+    ("Deliverables", lambda parts: parts[:1] == ("Milestones",) and "Milestone 0" not in parts),
+    ("Memos", lambda parts: parts[:2] == ("Wiki", "Memos")),
+    ("Briefs", lambda parts: parts[:2] == ("Wiki", "Briefs")),
+    ("Reference", lambda parts: parts[:2] == ("Wiki", "Reference")),
+    ("Interviews", lambda parts: parts[:1] == ("Interviews",)),
+    ("Essential Readings", lambda parts: parts[:3] == ("Wiki", "Collections", "Essential Readings")),
+    ("Economic ACPs", lambda parts: parts[:3] == ("Wiki", "Collections", "Economic ACPs")),
+    ("Research papers", lambda parts: parts[:3] == ("Wiki", "Collections", "Supplementary Research Papers")),
+    ("Contract", lambda parts: parts[:2] == ("Milestones", "Milestone 0")),
+)
 
-def topic_index() -> str:
-    """The all-topics page: each topic, what it covers, and how many sources carry it.
 
-    Quartz builds a topic's page only once a source carries it, so a topic with no sources is listed without a link.
+def page_type(path: Path) -> str:
+    parts = path.relative_to(CONTENT / "Phase II").parts if (CONTENT / "Phase II") in path.parents else ()
+    return next((name for name, match in PAGE_TYPES if match(parts)), "Other")
+
+
+def route(path: Path) -> str:
+    """The published route: spaces become hyphens, and a folder's index.md is the folder."""
+    parts = list(path.relative_to(CONTENT).parts)
+    if parts[-1] == "index.md":
+        return "/" + "/".join(part.replace(" ", "-") for part in parts[:-1]) + "/"
+    parts[-1] = Path(parts[-1]).stem
+    return "/" + "/".join(part.replace(" ", "-") for part in parts)
+
+
+def tagged_pages() -> list[Path]:
+    """Every content page with a tags field, outside the generated topic pages."""
+    pages = []
+    for path in sorted(CONTENT.rglob("*.md")):
+        if CONTENT / "tags" in path.parents:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if text.startswith("---\n") and re.search(r"^tags:", text.split("---\n", 2)[1], flags=re.M):
+            pages.append(path)
+    return pages
+
+
+def topic_problems(path: Path) -> list[str]:
+    fields, block, _ = frontmatter(path.read_text(encoding="utf-8"))
+    tags = fields.get("tags")
+    if not isinstance(tags, list):
+        return ["tags must be an inline list, for example tags: [\"security-budget\"]"]
+    problems = [f"retired topic {s}, use {RETIRED[s]}" for s in tags if s in RETIRED]
+    problems += [f"unknown topic {s}" for s in tags if s not in TOPICS and s not in RETIRED]
+    if not 1 <= len(tags) <= 4:
+        problems.append(f"{len(tags)} topics, a page carries one to four")
+    return problems
+
+
+def cell(text: str) -> str:
+    return str(text).replace("|", "\\|").replace("\n", " ").strip()
+
+
+def page_date(fields: dict) -> str:
+    value = fields.get("published") or fields.get("date") or ""
+    try:
+        return published(str(value).strip('"'))
+    except ValueError:
+        return str(value)
+
+
+def page_authors(fields: dict, kind: str) -> str:
+    """The source's authors for a collection page, and BCRG for the research's own pages. More than three become et al."""
+    authors = fields.get("authors")
+    if not isinstance(authors, list) or not authors:
+        return "" if kind in ("Essential Readings", "Economic ACPs", "Research papers") else "BCRG"
+    return ", ".join(authors) if len(authors) <= 3 else f"{authors[0]} et al."
+
+
+def topic_members() -> dict[str, list[tuple[str, Path, dict]]]:
+    members: dict[str, list[tuple[str, Path, dict]]] = {slug: [] for slug in TOPICS}
+    for path in tagged_pages():
+        fields = frontmatter(path.read_text(encoding="utf-8"))[0]
+        for slug in fields.get("tags", []) if isinstance(fields.get("tags"), list) else []:
+            if slug in members:
+                members[slug].append((page_type(path), path, fields))
+    return members
+
+
+def topic_page(slug: str, pages: list[tuple[str, Path, dict]]) -> str:
+    label, meaning, instead = TOPICS[slug]
+    lines = ["---", f'title: "Topic: {label}"', f'description: "{meaning}."']
+    retired = [old for old, new in RETIRED.items() if new == slug]
+    if retired:
+        lines.append("aliases: [" + ", ".join(f'"tags/{old}"' for old in retired) + "]")
+    lines += ["---", "", f"{meaning}." + (f" {instead}." if instead else ""), "",
+              f"{len(pages)} pages are filed under this topic. See [all topics](/tags/).", ""]
+    order = [name for name, _ in PAGE_TYPES] + ["Other"]
+    for kind in order:
+        # Oldest first, except memos and briefs, which read newest first. Sort on the raw ISO date, not the display text.
+        raw = lambda p: str(p[2].get("published") or p[2].get("date") or "").strip('"')
+        chosen = sorted((p for p in pages if p[0] == kind), key=lambda p: (raw(p), p[1].name), reverse=kind in ("Memos", "Briefs"))
+        if not chosen:
+            continue
+        lines += [f"## {kind}", "", "| Page | Authors | Date | Summary |", "| --- | --- | --- | --- |"]
+        lines += [f"| [{cell(f.get('title', path.stem))}]({route(path)}) | {cell(page_authors(f, kind))} | {cell(page_date(f))} | {cell(f.get('description', ''))} |" for _, path, f in chosen]
+        lines.append("")
+    return "\n".join(lines)
+
+
+def topic_index(members: dict[str, list]) -> str:
+    """The all-topics page: each topic, what it covers, and how many pages carry it.
+
+    Quartz builds a topic's page only once a page carries it, so a topic with no pages is listed without a link.
     """
-    counts = {slug: 0 for slug in TOPICS}
-    for path in overview_pages():
-        for slug in frontmatter(path.read_text(encoding="utf-8"))[0].get("tags", []):
-            counts[slug] = counts.get(slug, 0) + 1
     def rows(slugs: list[str]) -> list[str]:
-        return ["| Topic | What it covers | Sources |", "| --- | --- | ---: |",
-                *(f"| {f'[{TOPICS[s][0]}](/tags/{s})' if counts[s] else TOPICS[s][0]} | {TOPICS[s][1]} | {counts[s]} |" for s in slugs)]
+        out = ["| Topic | What it covers | Pages |", "| --- | --- | ---: |"]
+        for s in slugs:
+            label, meaning, instead = TOPICS[s]
+            name = f"[{label}](/tags/{s})" if members[s] else label
+            out.append(f"| {name} | {meaning}." + (f" *{instead}.*" if instead else "") + f" | {len(members[s])} |")
+        return out
     slugs = list(TOPICS)
     return "\n".join([
-        "---", 'title: "Topics"', 'description: "Every source in the collections, filed by topic: Avalanche economics and research method."', 'cssclasses: ["topics-index"]', "---", "",
-        "Every page in the [collections](/Phase-II/Wiki/Collections/) is filed under one or more topics, shown under its title and in its facts table. "
-        "Each topic below opens a page listing its sources.", "",
+        "---", 'title: "Topics"', 'description: "Every content page on the site, filed by topic: Avalanche economics and research method."', "---", "",
+        "Every content page on the site is filed under one to four topics, shown under its title. Each topic opens a table of its pages: "
+        "deliverables, memos, briefs, reference pages, interviews, and the [collections](/Phase-II/Wiki/Collections/).", "",
         "## Avalanche economics", "", *rows(slugs[:ECONOMICS]), "",
         "## Research method", "", *rows(slugs[ECONOMICS:]), "",
     ])
 
 
 def topic_pages() -> dict[Path, str]:
-    """One page per topic, so each Quartz tag page carries its title and meaning, plus the all-topics page."""
-    pages = {ROOT / "content" / "tags" / f"{slug}.md": f'---\ntitle: "Topic: {label}"\ndescription: "{meaning}."\n---\n\n{meaning}. The sources below are filed under this topic. See [all topics](/tags/).\n'
-             for slug, (label, meaning) in TOPICS.items()}
-    pages[ROOT / "content" / "tags" / "index.md"] = topic_index()
+    """One page per topic with its table of pages, plus the all-topics page."""
+    members = topic_members()
+    pages = {CONTENT / "tags" / f"{slug}.md": topic_page(slug, members[slug]) for slug in TOPICS}
+    pages[CONTENT / "tags" / "index.md"] = topic_index(members)
     return pages
 
 
@@ -158,6 +266,11 @@ def main() -> int:
     parser.add_argument("command", choices=("build", "check"))
     args = parser.parse_args()
     routes, terms, failed = deliverable_routes(), glossary_terms(), False
+    for path in tagged_pages():
+        problems = topic_problems(path)
+        if problems:
+            print(f"{path.relative_to(CONTENT)}: {', '.join(problems)}")
+            failed = True
     for path in overview_pages():
         text, problems = render(path, routes, terms)
         name = path.relative_to(COLLECTIONS)
@@ -171,7 +284,8 @@ def main() -> int:
             else:
                 print(f"{name}: table is stale, run: python scripts/overview_tables.py build")
                 failed = True
-    for path, text in topic_pages().items():
+    generated = topic_pages()
+    for path, text in generated.items():
         if path.is_file() and path.read_text(encoding="utf-8") == text:
             continue
         if args.command == "build":
@@ -182,7 +296,7 @@ def main() -> int:
             print(f"{path.relative_to(ROOT)}: topic page is stale")
             failed = True
     for path in sorted((ROOT / "content" / "tags").glob("*.md")):
-        if path not in topic_pages():
+        if path not in generated:
             if args.command == "build":
                 path.unlink()
                 print(f"removed {path.relative_to(ROOT)}")

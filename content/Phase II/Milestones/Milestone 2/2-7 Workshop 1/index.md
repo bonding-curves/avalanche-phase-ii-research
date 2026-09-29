@@ -3,6 +3,7 @@ title: "2.7 Workshop 1"
 description: "Contract deliverable 2.7: Workshop 1."
 status: not started
 source: signed-grant-agreement
+tags: ["model-structure", "sensitivity-analysis"]
 ---
 
 ## Contract requirement

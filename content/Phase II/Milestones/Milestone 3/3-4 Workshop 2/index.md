@@ -3,6 +3,7 @@ title: "3.4 Workshop 2"
 description: "Contract deliverable 3.4: Workshop 2."
 status: not started
 source: signed-grant-agreement
+tags: ["parameter-selection-under-uncertainty"]
 ---
 
 ## Contract requirement

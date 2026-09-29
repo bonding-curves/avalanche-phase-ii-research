@@ -3,6 +3,7 @@ title: "2.4 Validation Confirmation"
 description: "Contract deliverable 2.4: Validation Confirmation."
 status: not started
 source: signed-grant-agreement
+tags: ["model-validation"]
 ---
 
 ## Contract requirement

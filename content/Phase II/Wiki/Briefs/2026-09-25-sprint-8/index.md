@@ -3,6 +3,7 @@ title: "2026-09-25-sprint-8"
 description: "The brief submitted to the Avalanche Foundation in Notion for the call of 2026-09-25, as sent."
 date: 2026-09-25
 status: submitted
+tags: ["staking-duration-and-liquidity", "mechanism-design", "liquid-staking-and-restaking"]
 ---
 
 # Avalanche economic modeling, 25 September 2026

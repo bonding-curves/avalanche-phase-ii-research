@@ -3,6 +3,7 @@ title: "2.2 Simulation Execution"
 description: "Contract deliverable 2.2: Simulation Execution."
 status: not started
 source: signed-grant-agreement
+tags: ["parameter-selection-under-uncertainty", "market-conditions"]
 ---
 
 ## Contract requirement
