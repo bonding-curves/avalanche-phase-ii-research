@@ -2740,7 +2740,7 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One row per transaction of every P-Chain block in a height range, and one row without a transaction for each commit or abort block, read from the node's own blocks. The independent source behind the P-Chain backup datasets: stakes, rewards, the supply counter, and burns. The transaction type is read from the fields the node's JSON carries, and a commit is told from an abort by the block's codec type ID. The raw platform.getBlockByHeight responses stay hashed in the capture.",
+      "description": "One row per transaction of every P-Chain block in a height range, and one row without a transaction for each block that has none: a commit, an abort, or an empty standard block, read from the node's own blocks. The independent source behind the P-Chain backup datasets: stakes, rewards, the supply counter, and burns. The transaction type is read from the fields the node's JSON carries, and a commit is told from an abort by the block's codec type ID. The raw platform.getBlockByHeight responses stay hashed in the capture.",
       "endpoint_ids": [
         "get-block-by-height",
         "get-height"
@@ -2774,19 +2774,19 @@
           "name": "block_type",
           "type": "string",
           "unit": "kind",
-          "derivation": "'standard' for a block with a transaction list, 'proposal' for a block with one proposed transaction, and 'commit' or 'abort' from the hex encoding's codec type ID 31 or 30"
+          "derivation": "'standard' for a block with a transaction list, 'proposal' for a block with one proposed transaction, and for a block with no transaction 'commit', 'abort', or 'standard' from the hex encoding's codec type ID 31, 30, or 32"
         },
         {
           "name": "tx_index",
           "type": "integer",
           "unit": "position",
-          "derivation": "the transaction's position in the block from 0; null on a commit or abort row"
+          "derivation": "the transaction's position in the block from 0; null on a row without a transaction"
         },
         {
           "name": "transaction_hash",
           "type": "string",
           "unit": "base58 hash",
-          "derivation": "the transaction id; null on a commit or abort row"
+          "derivation": "the transaction id; null on a row without a transaction"
         },
         {
           "name": "tx_type",

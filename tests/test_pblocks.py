@@ -58,7 +58,7 @@ class FakeNode:
         height = int(params["height"])
         self.calls.append((height, params["encoding"]))
         if params["encoding"] == "hex":
-            block = "0x0000" + f"{31:08x}" + "00" * 60
+            block = "0x0000" + f"{32 if self.chain[height].get('txs') == [] and 'tx' not in self.chain[height] else 31:08x}" + "00" * 60
         else:
             block = self.chain[height]
         return json.dumps({"jsonrpc": "2.0", "id": body_json["id"], "result": {"block": block, "encoding": params["encoding"]}}).encode(), {}
@@ -124,6 +124,14 @@ def test_a_broken_parent_link_stops_the_build(tmp_path):
     assert "do not name the block below" in pblocks.check(tmp_path / "capture")["findings"][0]
     with pytest.raises(DataError, match="do not name the block below"):
         pblocks.build(pblocks.DATASET_ID, tmp_path / "capture", tmp_path / "dataset")
+
+
+def test_an_empty_standard_block_is_one_row_without_a_transaction(tmp_path):
+    chain = blocks(3)
+    chain[101] = {key: value for key, value in chain[101].items() if key != "tx"}
+    pblocks.capture(pblocks.DATASET_ID, tmp_path / "capture", parameters={"from_height": "100"}, request=FakeNode(chain))
+    pblocks.build(pblocks.DATASET_ID, tmp_path / "capture", tmp_path / "dataset")
+    assert rows(tmp_path / "dataset")[1] == (101, "standard", None, None, None, None)
 
 
 def test_bare_and_based_types_are_told_apart():

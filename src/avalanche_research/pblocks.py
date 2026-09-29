@@ -4,8 +4,9 @@
 its inputs, outputs, and staked outputs. The JSON names no transaction type, so the type is read from the fields the
 transaction carries (``TX_TYPES``, from the avalanchego v1.15.0 JSON tags), and a transaction with fields no type
 declares stops the build rather than being skipped. A block without transactions is a commit or an abort of the
-proposal before it, which the JSON cannot tell apart, so the walk also reads that block in hex, whose bytes 2 to 6 are
-the codec type ID: 30 is an abort and 31 a commit.
+proposal before it, or an empty standard block that only moves the chain's time forward. The JSON cannot tell these
+apart, so the walk also reads that block in hex, whose bytes 2 to 6 are the codec type ID: 30 is an abort, 31 a
+commit, and 32 a standard block.
 
 One height is one JSON line, the node's responses in request order, written as it arrives, so a walk shows its
 progress on disk, retries a refused request, keeps its lines on failure, and continues with ``resume=<kept directory>``.
@@ -88,7 +89,7 @@ TX_TYPES = {
 }
 # Transactions that do not embed a BaseTx and so carry only their own fields.
 BARE_TYPES = frozenset({"RewardValidatorTx", "RewardAutoRenewedValidatorTx", "AdvanceTimeTx"})
-HEX_BLOCK_TYPES = {30: "abort", 31: "commit"}
+HEX_BLOCK_TYPES = {30: "abort", 31: "commit", 32: "standard"}
 COLUMNS = {
     "block_height": "BIGINT",
     "block_id": "VARCHAR",
@@ -374,7 +375,7 @@ def _avax(unsigned: dict[str, Any], keys: tuple[str, ...], tx_hash: str) -> int:
 
 
 def _rows(answers: Any, height: int) -> list[tuple[Any, ...]]:
-    """One row per transaction of one captured block, or one row without a transaction for a commit or abort block."""
+    """One row per transaction of one captured block, or one row without a transaction for a block that has none."""
     if not isinstance(answers, list) or len(answers) not in (1, 2):
         raise DataError(f"block {height} is not one or two node answers")
     block = _result_block(answers[0], height)
@@ -392,7 +393,7 @@ def _rows(answers: Any, height: int) -> list[tuple[Any, ...]]:
         except (ValueError, KeyError):
             kind = None
         if kind is None:
-            raise DataError(f"block {height} has no transactions and is neither a commit nor an abort")
+            raise DataError(f"block {height} has no transactions and is not a commit, an abort, or a standard block")
         return [(*head, kind, None, None, None, None, None, None, None)]
     if len(answers) != 1:
         raise DataError(f"block {height} has transactions and a hex answer")
