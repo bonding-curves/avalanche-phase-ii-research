@@ -1151,6 +1151,11 @@
           "id": "subnet-transactions",
           "dataset_id": "snowflake.subnet-validator-transactions",
           "role": "Subnet and L1 validator transactions of the P-Chain"
+        },
+        {
+          "id": "node-table",
+          "dataset_id": "derived.node-table",
+          "role": "one row per validator node, with its latest reward address and period span"
         }
       ]
     },
@@ -5524,6 +5529,103 @@
           "type": "integer",
           "unit": "count",
           "derivation": "Subnet periods not spanned by one Primary Network validator period of the node, which the pre-Etna rule forbids"
+        }
+      ]
+    },
+    {
+      "id": "derived.operators",
+      "name": "Operators and fleets of validator nodes",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per validator node with two groupings: operator_id, the node's latest reward address, and fleet_id, nodes that entered in the same UTC week, left in the same UTC week, and carry the same latest fee. Named agents are flagged with the evidence for each label. Validator types are fitted on operators, not nodes. A reward address is a proxy for an operator, never proof of one.",
+      "input_ids": [
+        "node-table"
+      ],
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "validator node"
+        },
+        {
+          "name": "operator_id",
+          "type": "string",
+          "unit": "P-Chain address",
+          "derivation": "the node's latest reward address, the operator proxy"
+        },
+        {
+          "name": "operator_nodes",
+          "type": "integer",
+          "unit": "count",
+          "derivation": "nodes sharing the operator_id"
+        },
+        {
+          "name": "fleet_id",
+          "type": "string",
+          "unit": "hash",
+          "derivation": "md5 of entry week, exit week, and latest fee"
+        },
+        {
+          "name": "fleet_nodes",
+          "type": "integer",
+          "unit": "count",
+          "derivation": "nodes sharing the fleet_id"
+        },
+        {
+          "name": "fleet_operators",
+          "type": "integer",
+          "unit": "count",
+          "derivation": "distinct operators in the fleet"
+        },
+        {
+          "name": "entry_week",
+          "type": "string",
+          "unit": "UTC week start",
+          "derivation": "Monday of the node's first period start"
+        },
+        {
+          "name": "exit_week",
+          "type": "string",
+          "unit": "UTC week start",
+          "derivation": "Monday of the node's last period end"
+        },
+        {
+          "name": "latest_fee_rate",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "delegation fee of the node's latest period"
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "validating at the node table's as_of"
+        },
+        {
+          "name": "periods",
+          "type": "integer",
+          "unit": "count",
+          "derivation": "validator periods of the node"
+        },
+        {
+          "name": "named_agent",
+          "type": "string",
+          "unit": "label",
+          "derivation": "public or catalog label of the operator address"
+        },
+        {
+          "name": "named_agent_evidence",
+          "type": "string",
+          "unit": "source",
+          "derivation": "where the label comes from, public source or inference"
         }
       ]
     }

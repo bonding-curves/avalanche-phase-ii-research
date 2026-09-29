@@ -15,7 +15,7 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 
 ## Evidence status
 
-40 of 40 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
+41 of 41 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
 
 ### Coverage by contract quantity
 
@@ -34,6 +34,7 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 | validator flows | `derived.validator-uptime-hourly` | n/a | 234220 | pass, 3 checks, 0 findings |
 | validator flows | `derived.helicon-commitments` | n/a | 78 | pass, 8 checks, 0 findings |
 | validator flows | `derived.subnet-validation` | n/a | 4257 | pass, 8 checks, 0 findings |
+| validator flows | `derived.operators` | n/a | 7644 | pass, 7 checks, 0 findings |
 | delegator flows | `snowflake.primary-delegator-stakes` | 2020-09-22 to 2026-09-21 | 7056798 | pass, 12 checks, 0 findings |
 | delegator flows | `metrics-api.primary-staking-daily` | 2021-01-01 to 2026-08-31 | 2058 | attention, 10 checks, 5 findings |
 | delegator flows | `data-api.validators-active` | snapshot 2026-09-29T00:15:36 | 601 | pass, 11 checks, 0 findings |
@@ -78,6 +79,7 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 | context | `etf-issuers.avax-fund-snapshot` | n/a | 6 | pass, 11 checks, 0 findings |
 | context | `etf-issuers.avax-fund-history` | n/a | 4619 | pass, 9 checks, 0 findings |
 | context | `derived.subnet-validation` | n/a | 4257 | pass, 8 checks, 0 findings |
+| context | `derived.operators` | n/a | 7644 | pass, 7 checks, 0 findings |
 
 ### Known gaps
 

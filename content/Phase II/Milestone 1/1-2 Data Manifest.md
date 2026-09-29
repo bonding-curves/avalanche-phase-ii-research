@@ -80,6 +80,7 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `etf-issuers.avax-fund-snapshot` | `etf-issuers` | 8 requests to `https://bavaetf.com/` | 14 |  |
 | `etf-issuers.avax-fund-history` | `etf-issuers` | 5 requests to `https://bavaetf.com/` | 13 |  |
 | `derived.subnet-validation` | `derived` | derived from `derived.staking-periods`, `snowflake.subnet-validator-transactions` | 14 | How Do Avalanche Validators Actually Think About Staking Rewards? |
+| `derived.operators` | `derived` | derived from `derived.node-table` | 13 | How Do Avalanche Validators Actually Think About Staking Rewards? |
 
 ### Latest runs
 
@@ -125,6 +126,7 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `etf-issuers.avax-fund-snapshot` | 2026-09-28T20:06:52Z | `capture:etf-issuers:2026-09-28T20:06:52Z:7c19a5ef7348` | `7c1faa62b986, 4c8c547a60f5 ...` | 6 | pass, 11 checks, 0 findings | none recorded |
 | `etf-issuers.avax-fund-history` | 2026-09-28T20:06:57Z | `capture:etf-issuers:2026-09-28T20:06:57Z:916a8e99e83f` | `7c1faa62b986, 29151f92cce7 ...` | 4619 | pass, 9 checks, 0 findings | none recorded |
 | `derived.subnet-validation` | 2026-09-29T10:09:56Z | `capture:derived:2026-09-29T10:09:56Z:8fda5ac21955` | `58ebc07eed09, d37d01974ccf` | 4257 | pass, 8 checks, 0 findings | none recorded |
+| `derived.operators` | 2026-09-29T10:18:00Z | `capture:derived:2026-09-29T10:18:00Z:3cbe6e89cf90` | `1bd85c84affd` | 7644 | pass, 7 checks, 0 findings | none recorded |
 
 Units are preserved as served and converted once where the catalog says so. Internal review-ready evidence; not Avalanche acceptance.
 

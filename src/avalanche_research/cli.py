@@ -26,6 +26,7 @@ from . import helicon
 from . import metrics
 from . import monetary
 from . import nodes
+from . import operators
 from . import pchain
 from . import ptx
 from . import snowflake
@@ -60,6 +61,7 @@ MODULES = {
     nodes.DATASET_ID: nodes,
     helicon.DATASET_ID: helicon,
     subnets.DATASET_ID: subnets,
+    operators.DATASET_ID: operators,
     monetary.DATASET_ID: monetary,
     **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},

@@ -44,6 +44,7 @@ This directory defines the machine-readable contracts for research data used in 
 | `derived.helicon-commitments` | One Parquet row per validation cycle started at or after Helicon's activation, with its duration and bin, whether the node validated before Helicon, the change from the node's previous period, and whether the transaction auto-renewed | Implemented, tested, and derived daily from 2026-09-28 over every validator snapshot: 73 cycles on 67 nodes on the first run |
 | `snowflake.subnet-validator-transactions` | One Parquet row per P-Chain transaction that adds, removes, converts, registers, or disables a Subnet or L1 validator, one per initial validator of each conversion | Implemented, tested, and captured on 2026-09-29: 6,530 rows, 329 converted Subnets |
 | `derived.subnet-validation` | One Parquet row per node and Subnet: Subnet periods, the Subnet's L1 conversion, the node's L1 registration, and its Primary Network span | Implemented, tested, and derived on 2026-09-29: 4,257 rows on 3,946 nodes, reproducing the catalog's ACP-77 counts |
+| `derived.operators` | One Parquet row per validator node with its operator (latest reward address) and fleet (same entry week, exit week, and fee), and named agents with their evidence | Implemented, tested, and derived on 2026-09-29: 7,644 nodes, 3,963 operators, 4,247 fleets |
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
@@ -309,6 +310,17 @@ uv run --locked avalanche data check derived.helicon-commitments --capture data/
 ```
 
 The check verifies the input runs still hash as recorded, one row per cycle, that every cycle starts at or after activation and lasts at least 48 hours, and that every renewal starts where the transaction's previous cycle ended with the next cycle number. It then rebuilds the table from the recorded inputs and requires the same rows. A cycle is seen only if a snapshot falls inside it, so the summary reports the longest wait between snapshots since activation. Above 48 hours a minimum-length cycle can pass unseen. The daily validator capture derives and checks a new run after each snapshot. On the 2026-09-28 run it builds 73 cycles from nine snapshots in a few seconds.
+
+## Group nodes by operator and fleet
+
+`derived.operators` gives every validator node two groupings, so validator types are fitted on operators, not machines. `operator_id` is the node's latest reward address, the node table's operator proxy: a shared address links nodes, but it does not prove one decision maker. `fleet_id` joins nodes that entered in the same UTC week, left in the same UTC week, and carry the same latest fee. Named agents are flagged with the evidence for each label: GoGoPool and BENQI by Snowpeer's liquid staking provider list, and two unnamed addresses from the protocol mechanism catalog's August 2025 exits.
+
+```bash
+uv run --locked avalanche data derive derived.operators --output data/runs/operators-example
+uv run --locked avalanche data check derived.operators --capture data/runs/operators-example/capture --dataset data/runs/operators-example/dataset
+```
+
+The check requires every node of the node table assigned exactly once, with an operator and a fleet, then rebuilds the table from the recorded input. On the 2026-09-29 run, 7,644 nodes fall into 3,963 operators and 4,247 fleets. GoGoPool's address was the reward address of 1,942 nodes, one of them still active. The fleet rule is fragile: widening its week to two weeks changes the fleet size of 2,914 nodes, so the operator is the grouping to fit on and the fleet a cross-check.
 
 ## Split validator exits by Subnet role
 
