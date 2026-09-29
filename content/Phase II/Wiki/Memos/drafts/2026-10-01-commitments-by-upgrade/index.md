@@ -20,16 +20,18 @@ A rule aimed at short commitments reaches most validators but little of the stak
 
 ## The numbers
 
-| Upgrade period | Commitments | Nodes | Median duration (weeks) | Stake-weighted median duration (weeks) | Median self-stake (AVAX) | At the minimum | Their share of AVAX-days |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Genesis | 2,951 | 1,218 | 4.4 | 12.4 | 5,000 | 18% | 1% |
-| Apricot | 11,847 | 2,811 | 4.3 | 8.8 | 2,085 | 18% | 2% |
-| Banff | 3,431 | 1,360 | 4.4 | 9.7 | 2,202 | 9% | 1% |
-| Cortina | 9,101 | 2,388 | 4.2 | 7.0 | 2,005 | 30% | 1% |
-| Durango | 12,657 | 2,672 | 2.1 | 4.4 | 2,005 | 62% | 3% |
-| Etna | 5,179 | 1,762 | 2.1 | 4.4 | 2,000 | 69% | 3% |
-| Fortuna | 7,775 | 2,012 | 2.1 | 4.2 | 2,000 | 63% | 5% |
-| Granite | 4,619 | 1,000 | 3.6 | 4.0 | 14,655 | 41% | 11% |
+| Period | Commitments | Median weeks | Stake-weighted median weeks | Median self-stake (AVAX) | At the minimum | Their AVAX-days |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Genesis | 2,951 | 4.4 | 12.4 | 5,000 | 18% | 1% |
+| Apricot | 11,847 | 4.3 | 8.8 | 2,085 | 18% | 2% |
+| Banff | 3,431 | 4.4 | 9.7 | 2,202 | 9% | 1% |
+| Cortina | 9,101 | 4.2 | 7.0 | 2,005 | 30% | 1% |
+| Durango | 12,657 | 2.1 | 4.4 | 2,005 | 62% | 3% |
+| Etna | 5,179 | 2.1 | 4.4 | 2,000 | 69% | 3% |
+| Fortuna | 7,775 | 2.1 | 4.2 | 2,000 | 63% | 5% |
+| Granite | 4,619 | 3.6 | 4.0 | 14,655 | 41% | 11% |
+
+Node counts per period are in `commitments-by-upgrade.csv` beside this page.
 
 The median commitment falls from about 4.3 weeks to 2.1 weeks at Durango and stays there until Granite. The median self-stake stays at the 2,000 AVAX floor until Granite, when it rises to 14,655 AVAX. The stake-weighted median falls from 7.0 to about 4 weeks, so large validators shortened too, but less.
 
