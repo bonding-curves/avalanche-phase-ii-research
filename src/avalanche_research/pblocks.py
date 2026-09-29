@@ -190,8 +190,22 @@ def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | 
     }
 
 
+def _retried(request: Callable[..., tuple[bytes, dict[str, Any]]], endpoint: str, timeout: float, payload: dict[str, Any]) -> tuple[bytes, int]:
+    """One JSON-RPC call, retried with a doubling wait while the node refuses or drops it, about four minutes in all."""
+    for attempt in range(1, ATTEMPTS + 1):
+        try:
+            body, _ = request(endpoint, timeout, body_json=payload)
+            return body, attempt - 1
+        except DataError as error:
+            # The public node answers 502 now and then, and 429 while other walks share its limit.
+            if attempt == ATTEMPTS or not isinstance(error.__cause__, (OSError, urllib.error.URLError)) and "HTTP" not in str(error):
+                raise
+            time.sleep(RETRY_SECONDS * 2 ** (attempt - 1))
+    raise AssertionError("unreachable")
+
+
 def _head(endpoint: str, timeout: float, request: Callable[..., tuple[bytes, dict[str, Any]]], prefix: str = "platform") -> int:
-    body, _ = request(endpoint, timeout, body_json={"jsonrpc": "2.0", "method": f"{prefix}.getHeight", "params": {}, "id": 1})
+    body, _ = _retried(request, endpoint, timeout, {"jsonrpc": "2.0", "method": f"{prefix}.getHeight", "params": {}, "id": 1})
     try:
         return int(json.loads(body)["result"]["height"])
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
@@ -200,7 +214,7 @@ def _head(endpoint: str, timeout: float, request: Callable[..., tuple[bytes, dic
 
 def _current_supply(endpoint: str, timeout: float, request: Callable[..., tuple[bytes, dict[str, Any]]]) -> dict[str, int]:
     """The node's Primary Network supply counter and the height it holds for, the anchor of the supply reconstruction."""
-    body, _ = request(endpoint, timeout, body_json={"jsonrpc": "2.0", "method": "platform.getCurrentSupply", "params": {}, "id": 1})
+    body, _ = _retried(request, endpoint, timeout, {"jsonrpc": "2.0", "method": "platform.getCurrentSupply", "params": {}, "id": 1})
     try:
         result = json.loads(body)["result"]
         return {"height": int(result["height"]), "supply_navax": int(result["supply"])}
@@ -282,16 +296,7 @@ def capture(
     retries = 0
 
     def call(payload: dict[str, Any]) -> tuple[bytes, int]:
-        for attempt in range(1, ATTEMPTS + 1):
-            try:
-                body, _ = request(endpoint, timeout, body_json=payload)
-                return body, attempt - 1
-            except DataError as error:
-                # The public node answers 502 now and then. Wait, doubling, about four minutes in all, then keep the lines.
-                if attempt == ATTEMPTS or not isinstance(error.__cause__, (OSError, urllib.error.URLError)) and "HTTP" not in str(error):
-                    raise
-                time.sleep(RETRY_SECONDS * 2 ** (attempt - 1))
-        raise AssertionError("unreachable")
+        return _retried(request, endpoint, timeout, payload)
 
     def fetch(height: int) -> tuple[int, bytes, int]:
         body, retried = call(_payload(height, "json", 1, chain["prefix"]))
