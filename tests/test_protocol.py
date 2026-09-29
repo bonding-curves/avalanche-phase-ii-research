@@ -280,3 +280,85 @@ def test_delegation_window_closes_fourteen_days_before_validator_end():
     assert not protocol.delegation_window_open(start, start, start + timedelta(hours=48))
     assert not protocol.delegation_window_open(start, start, start + timedelta(days=13))
     assert protocol.delegation_window_open(start, start, start + timedelta(days=14))
+
+
+# KG5 peak-weight delegation check
+MILLI = protocol.NAVAX_PER_AVAX // 1_000
+
+
+def test_peak_weight_without_delegations_is_the_validator_weight():
+    # vm_test.go TestMaxStakeAmount: every window inside the validator period
+    start, end = at_second(0), at_second(360 * DAY)
+    minute = timedelta(minutes=1)
+    for window in ((start, end), (start + minute, end), (start, end - minute), (start + minute, end - minute)):
+        assert protocol.peak_validator_weight_navax(5 * MILLI, [], *window) == 5 * MILLI
+
+
+def test_over_delegated_regression():
+    # vm_regression_test.go TestAddDelegatorTxOverDelegatedRegression: validator 5 mAVAX, limit 25 mAVAX,
+    # MinStakeDuration 48 hours in vm_test.go
+    minimum = timedelta(hours=48)
+    validator = 5 * MILLI
+    limit = protocol.delegation_weight_limit_navax(validator, HELICON_MAINNET)
+    assert limit == 25 * MILLI
+    first_start = at_second(100)
+    first = (first_start, first_start + minimum, 4 * validator)
+    second_start = first[1] + timedelta(seconds=2)
+    second = (second_start, second_start + minimum, MILLI)
+    assert not protocol.over_delegated(validator, [first], MILLI, second_start, second_start + minimum, limit)
+    third_start = first[1] - timedelta(seconds=1)
+    assert protocol.over_delegated(validator, [first, second], MILLI, third_start, third_start + minimum, limit)
+
+
+@pytest.mark.parametrize("ap3_offset", [timedelta(days=-400), timedelta(days=400)])
+def test_heap_corruption_regression_accepts_all_four(ap3_offset):
+    # vm_regression_test.go TestAddDelegatorTxHeapCorruption, min stake 5 mAVAX, max 500 mAVAX, min duration 48 hours
+    minimum = timedelta(hours=48)
+    config = replace(protocol.MAINNET, min_validator_stake_navax=5 * MILLI, max_validator_stake_navax=500 * MILLI)
+    validator = config.max_validator_stake_navax // 5
+    start = HELICON_MAINNET
+    upgrades = UpgradeSchedule((Upgrade("apricot_phase_3", start + ap3_offset),))
+    delegations = [
+        (start, start + 3 * minimum, 5 * MILLI),
+        (start + minimum, start + 6 * minimum, 5 * MILLI),
+        (start + 2 * minimum, start + 4 * minimum, config.max_validator_stake_navax - validator - 10 * MILLI),
+        (start + 5 * minimum, start + 7 * minimum, config.max_validator_stake_navax - validator - 5 * MILLI),
+    ]
+    limit = protocol.delegation_weight_limit_navax(validator, start, config=config, upgrades=upgrades)
+    for index, (delegation_start, delegation_end, weight) in enumerate(delegations):
+        assert not protocol.over_delegated(validator, delegations[:index], weight, delegation_start, delegation_end, limit)
+
+
+def test_add_before_remove_regression():
+    # vm_regression_test.go TestAddDelegatorTxAddBeforeRemove: the second delegation starts when the first ends
+    minimum = timedelta(hours=48)
+    maximum = 500 * MILLI
+    validator = maximum // 5
+    start = at_second(0)
+    first = (start, start + 3 * minimum, maximum - validator)
+    limit = min(5 * validator, maximum)
+    assert protocol.over_delegated(validator, [first], maximum - validator, first[1], first[1] + 3 * minimum, limit)
+
+
+def test_weight_limit_is_capped_from_apricot_phase_3():
+    # standard_tx_executor_test.go TestStandardTxExecutorAddDelegator, over delegation before and after AP3:
+    # validator at MaxValidatorStake 500 mAVAX, delegation of MinDelegatorStake 1 mAVAX
+    config = replace(protocol.MAINNET, max_validator_stake_navax=500 * MILLI)
+    start, end = at_second(5), at_second(360 * DAY - 5)
+    for ap3, expected in ((end, False), (start, True)):
+        upgrades = UpgradeSchedule((Upgrade("apricot_phase_3", ap3),))
+        limit = protocol.delegation_weight_limit_navax(500 * MILLI, start, config=config, upgrades=upgrades)
+        assert protocol.over_delegated(500 * MILLI, [], MILLI, start, end, limit) is expected
+
+
+def test_peak_weight_counts_changes_at_both_interval_bounds():
+    start, end = at_second(10), at_second(20)
+    ends_at_start = (at_second(0), start, 7)
+    starts_at_end = (end, at_second(30), 11)
+    outside = (at_second(21), at_second(30), 13)
+    assert protocol.peak_validator_weight_navax(100, [ends_at_start], start, end) == 107
+    assert protocol.peak_validator_weight_navax(100, [starts_at_end], start, end) == 111
+    assert protocol.peak_validator_weight_navax(100, [outside], start, end) == 100
+    assert protocol.peak_validator_weight_navax(100, [(at_second(0), at_second(5), 50)], start, end) == 100
+    with pytest.raises(ModelError):
+        protocol.peak_validator_weight_navax(100, [], end, start)

@@ -351,6 +351,74 @@ def max_validator_weight_navax(
     return min(self_stake_navax * (1 + delegation_multiplier), config.max_validator_stake_navax)
 
 
+def delegation_weight_limit_navax(
+    validator_weight_navax: int,
+    chain_time: datetime,
+    delegation_multiplier: int = ACP247_CURRENT_DELEGATION_MULTIPLIER,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> int:
+    """Total weight a delegation may not push its validator above, at the chain time of verification.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L461-L468 (AddDelegatorTx) and
+    L727-L734 (AddPermissionlessDelegatorTx): MaxValidatorWeightFactor (5, proposal_tx_executor.go L32) times the
+    validator's weight, capped at MaxValidatorStake from Apricot Phase 3. For an ACP-236 validator the weight is the
+    current cycle's weight after restaking.
+    """
+    if upgrades.activated("apricot_phase_3", chain_time):
+        return max_validator_weight_navax(validator_weight_navax, delegation_multiplier, config)
+    if validator_weight_navax < 0 or delegation_multiplier < 0:
+        raise ModelError("validator weight and multiplier must be non-negative")
+    return validator_weight_navax * (1 + delegation_multiplier)
+
+
+def peak_validator_weight_navax(
+    validator_weight_navax: int,
+    delegations: Iterable[tuple[datetime, datetime, int]],
+    start: datetime,
+    end: datetime,
+) -> int:
+    """Largest total weight on a validator between ``start`` and ``end`` given its delegations (start, end, weight).
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification_helpers.go L143-L226 GetMaxWeight.
+    Delegation starts and ends are applied in time order, a start before an end at the same instant
+    (vms/platformvm/state/staker_diff_iterator.go L69-L78). The weight is sampled before each change inside
+    [start, end] and once after the last change at or before ``end``, so a delegation that ends at ``start`` or
+    begins at ``end`` still counts. Pass every current and pending delegation on the validator.
+    """
+    if as_utc(end) <= as_utc(start):
+        raise ModelError("the interval must have start < end")
+    changes = []
+    for delegation_start, delegation_end, weight in delegations:
+        if weight < 0 or as_utc(delegation_end) < as_utc(delegation_start):
+            raise ModelError("delegations need a non-negative weight and start <= end")
+        changes.append((as_utc(delegation_start), 0, weight))
+        changes.append((as_utc(delegation_end), 1, -weight))
+    changes.sort(key=lambda change: (change[0], change[1]))
+    current, peak = validator_weight_navax, 0
+    for instant, _, delta in changes:
+        if instant > as_utc(end):
+            break
+        if instant >= as_utc(start):
+            peak = max(peak, current)
+        current += delta
+    return max(peak, current)
+
+
+def over_delegated(
+    validator_weight_navax: int,
+    delegations: Iterable[tuple[datetime, datetime, int]],
+    delegation_weight_navax: int,
+    start: datetime,
+    end: datetime,
+    weight_limit_navax: int,
+) -> bool:
+    """AvalancheGo 70bd6d0 staker_tx_verification_helpers.go L120-L141 overDelegated: peak weight plus the new
+    delegation above the limit (delegation_weight_limit_navax) rejects the delegation."""
+    peak = peak_validator_weight_navax(validator_weight_navax, delegations, start, end)
+    return peak + delegation_weight_navax > weight_limit_navax
+
+
 def describe(config: StakingConfig = MAINNET, upgrades: UpgradeSchedule = MAINNET_UPGRADES) -> dict[str, Any]:
     return {
         "staking": {
