@@ -8,6 +8,10 @@ capture continues from its last page with ``resume=<kept directory>``.
 
 ``derived.c-chain-evm-burn-daily`` sums the blocks of each complete UTC day into the columns of
 ``snowflake.c-chain-evm-burn-daily``. The Data API lists every block, so a day has no absent or short block.
+
+``data-api.p-chain-block-list`` pages the P-Chain list the same way. Each P-Chain block carries the supply counter and the
+ACP-77 counters: the active L1 validator count and the fee each has accrued since Etna. The continuous L1 validator fee
+between two blocks is the earlier count times the rise in accrued fees, as in the share's burn table.
 """
 
 from __future__ import annotations
@@ -42,8 +46,9 @@ from .rest import _request
 from .snowflake import C_CHAIN_EVM_BURN_DAILY
 
 DATASET_ID = "data-api.c-chain-block-list"
+P_LIST_ID = "data-api.p-chain-block-list"
 DAILY_ID = "derived.c-chain-evm-burn-daily"
-DATASET_IDS = (DATASET_ID, DAILY_ID)
+DATASET_IDS = (DATASET_ID, P_LIST_ID, DAILY_ID)
 SOURCE_ID = "avalanche-data-api"
 ENDPOINT_ID = "c-chain-block-list"
 TABLE = "c-chain-block-list"
@@ -65,10 +70,37 @@ COLUMNS = {
     "fees_wei": "DECIMAL(38,0)",
 }
 DAILY_COLUMNS = C_CHAIN_EVM_BURN_DAILY.table_columns
+P_COLUMNS = {
+    "block_height": "BIGINT",
+    "block_hash": "VARCHAR",
+    "block_timestamp": "TIMESTAMP",
+    "date_utc": "DATE",
+    "block_type": "VARCHAR",
+    "transactions": "INTEGER",
+    "current_supply_navax": "BIGINT",
+    "active_l1_validators": "BIGINT",
+    "l1_validators_accrued_fees_navax": "BIGINT",
+}
 
 
-def _endpoint(catalog: dict[str, Any]) -> str:
-    return next(item["url"] for item in source(catalog, SOURCE_ID)["endpoints"] if item["id"] == ENDPOINT_ID)
+def _c_row(item: dict[str, Any], stamp: datetime) -> tuple[Any, ...]:
+    return (int(item["blockNumber"]), item["blockHash"], stamp, stamp.date(), int(item["txCount"]), int(item["gasUsed"]),
+            int(item["baseFee"]), int(item["feesSpent"]))
+
+
+def _p_row(item: dict[str, Any], stamp: datetime) -> tuple[Any, ...]:
+    return (int(item["blockNumber"]), item["blockHash"], stamp, stamp.date(), item["blockType"], int(item["txCount"]),
+            int(item["currentSupply"]), int(item["activeL1Validators"]), int(item["l1ValidatorsAccruedFees"]))
+
+
+LISTS = {
+    DATASET_ID: {"endpoint_id": ENDPOINT_ID, "table": TABLE, "columns": COLUMNS, "row": _c_row},
+    P_LIST_ID: {"endpoint_id": "p-chain-block-list", "table": "p-chain-block-list", "columns": P_COLUMNS, "row": _p_row},
+}
+
+
+def _endpoint(catalog: dict[str, Any], dataset_id: str = DATASET_ID) -> str:
+    return next(item["url"] for item in source(catalog, SOURCE_ID)["endpoints"] if item["id"] == LISTS[dataset_id]["endpoint_id"])
 
 
 def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
@@ -84,9 +116,9 @@ def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
 
 
 def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None) -> dict[str, Any]:
-    if dataset_id != DATASET_ID:
+    if dataset_id not in LISTS:
         raise DataError(f"{dataset_id} is derived; use `avalanche data derive`" if dataset_id == DAILY_ID else f"unknown dataset: {dataset_id}")
-    return {"dataset_id": DATASET_ID, "source_id": SOURCE_ID, "output": str(output), "endpoint": _endpoint(load_catalog()),
+    return {"dataset_id": dataset_id, "source_id": SOURCE_ID, "output": str(output), "endpoint": _endpoint(load_catalog(), dataset_id),
             **_parameters(parameters), "writes": [RAW, "capture.json"], "overwrite": False}
 
 
@@ -173,10 +205,10 @@ def capture(
         receipt = {
             "schema_version": "data-api-block-list-capture/v1",
             "capture_id": f"capture:{SOURCE_ID}:{completed_at}:{identity[:12]}",
-            "dataset_id": DATASET_ID, "source_id": SOURCE_ID, "completed_at": completed_at,
-            "contract_sha256": contract_hash(catalog, DATASET_ID), "tool": f"avalanche-research@{__version__}",
+            "dataset_id": dataset_id, "source_id": SOURCE_ID, "completed_at": completed_at,
+            "contract_sha256": contract_hash(catalog, dataset_id), "tool": f"avalanche-research@{__version__}",
             "endpoint": preview["endpoint"], "from_date": preview["from_date"], "retries": retries,
-            "responses": [{"endpoint_id": ENDPOINT_ID, "path": RAW, "pages": len(records), "bytes": len(body_all), "sha256": sha256(body_all)}],
+            "responses": [{"endpoint_id": LISTS[dataset_id]["endpoint_id"], "path": RAW, "pages": len(records), "bytes": len(body_all), "sha256": sha256(body_all)}],
             "pages": [{key: record[key] for key in ("page", "bytes", "sha256", "blocks")} for record in records],
         }
         (temporary / "capture.json").write_bytes(canonical_bytes(receipt))
@@ -195,9 +227,11 @@ def read_rows(capture_dir: Path) -> tuple[dict[str, Any], list[tuple[Any, ...]]]
         receipt = json.loads((capture_dir / "capture.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise DataError(f"invalid block list capture receipt: {error}") from error
-    if receipt.get("schema_version") != "data-api-block-list-capture/v1" or receipt.get("dataset_id") != DATASET_ID:
+    dataset_id = receipt.get("dataset_id")
+    if receipt.get("schema_version") != "data-api-block-list-capture/v1" or dataset_id not in LISTS:
         raise DataError("unsupported block list capture receipt")
-    if receipt.get("contract_sha256") != contract_hash(load_catalog(), DATASET_ID):
+    parse = LISTS[dataset_id]["row"]
+    if receipt.get("contract_sha256") != contract_hash(load_catalog(), dataset_id):
         raise DataError("block list capture contract hash differs")
     summary = receipt["responses"][0]
     body = (capture_dir / summary["path"]).read_bytes()
@@ -220,8 +254,7 @@ def read_rows(capture_dir: Path) -> tuple[dict[str, Any], list[tuple[Any, ...]]]
             stamp = datetime.fromtimestamp(int(item["blockTimestamp"]), UTC).replace(tzinfo=None)
             if stamp.date() < floor:
                 continue
-            row = (int(item["blockNumber"]), item["blockHash"], stamp, stamp.date(), int(item["txCount"]), int(item["gasUsed"]),
-                   int(item["baseFee"]), int(item["feesSpent"]))
+            row = parse(item, stamp)
             if rows.setdefault(row[0], row) != row:
                 raise DataError(f"block {row[0]} is listed twice with different fields")
     return receipt, [rows[height] for height in sorted(rows)]
@@ -232,9 +265,9 @@ def _gaps(rows: list[tuple[Any, ...]]) -> int:
 
 
 def build_preview(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
-    if dataset_id != DATASET_ID:
+    if dataset_id not in LISTS:
         raise DataError(f"unknown dataset: {dataset_id}")
-    return {"dataset_id": dataset_id, "capture": str(capture_dir), "output": str(output), "writes": [f"{TABLE}.parquet", "build.json"], "overwrite": False}
+    return {"dataset_id": dataset_id, "capture": str(capture_dir), "output": str(output), "writes": [f"{LISTS[dataset_id]['table']}.parquet", "build.json"], "overwrite": False}
 
 
 def _write(parquet: Path, columns: dict[str, str], rows: list[tuple[Any, ...]]) -> None:
@@ -254,16 +287,19 @@ def build(dataset_id: str, capture_dir: Path, output: Path) -> dict[str, Any]:
     if output.exists():
         raise DataError(f"output already exists: {output}")
     receipt, rows = read_rows(capture_dir)
+    if receipt["dataset_id"] != dataset_id:
+        raise DataError(f"the capture is of {receipt['dataset_id']}, not {dataset_id}")
+    spec = LISTS[dataset_id]
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:
-        parquet = temporary / f"{TABLE}.parquet"
-        _write(parquet, COLUMNS, rows)
+        parquet = temporary / f"{spec['table']}.parquet"
+        _write(parquet, spec["columns"], rows)
         result = {
-            "schema_version": "data-api-build/v1", "dataset_id": DATASET_ID, "dataset_schema": dataset(load_catalog(), DATASET_ID)["fields"],
+            "schema_version": "data-api-build/v1", "dataset_id": dataset_id, "dataset_schema": dataset(load_catalog(), dataset_id)["fields"],
             "source_capture_id": receipt["capture_id"], "completed_at": now(), "tool": f"avalanche-research@{__version__}",
             "summary": {"rows": len(rows), "first_block": rows[0][0] if rows else None, "last_block": rows[-1][0] if rows else None,
-                        "missing_heights": _gaps(rows), "fees_wei": str(sum(row[7] for row in rows))},
+                        "missing_heights": _gaps(rows), **({"fees_wei": str(sum(row[7] for row in rows))} if dataset_id == DATASET_ID else {})},
             "outputs": [{"path": parquet.name, "bytes": parquet.stat().st_size, "sha256": sha256(parquet.read_bytes())}],
         }
         (temporary / "build.json").write_bytes(canonical_bytes(result))
@@ -349,14 +385,14 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
     equal, and with ``--against`` a built ``snowflake.c-chain-evm-burn-daily``, every day both hold has the same burn."""
     receipt = json.loads((capture_dir / "capture.json").read_text(encoding="utf-8"))
     findings: list[str] = []
-    if receipt.get("dataset_id") == DATASET_ID:
+    if receipt.get("dataset_id") in LISTS:
         if against is not None:
-            raise DataError(f"{DATASET_ID} takes no --against directory")
+            raise DataError(f"{receipt['dataset_id']} takes no --against directory")
         _, rows = read_rows(capture_dir)
         summary: dict[str, Any] = {"rows": len(rows), "missing_heights": _gaps(rows)}
         if summary["missing_heights"]:
             findings.append(f"{summary['missing_heights']} heights are missing between the first and last listed block")
-        return {"dataset_id": DATASET_ID, "capture_id": receipt["capture_id"], "status": "pass" if not findings else "attention",
+        return {"dataset_id": receipt["dataset_id"], "capture_id": receipt["capture_id"], "status": "pass" if not findings else "attention",
                 "checked": ["capture hashes", "page token chain", "every block once", "no missing height"], "summary": summary, "findings": findings}
     if receipt.get("dataset_id") != DAILY_ID:
         raise DataError(f"not a {DAILY_ID} or {DATASET_ID} capture: {capture_dir}")

@@ -525,6 +525,14 @@
             "blocks",
             "nextPageToken"
           ]
+        },
+        {
+          "id": "p-chain-block-list",
+          "url": "https://glacier-api.avax.network/v1/networks/mainnet/blockchains/p-chain/blocks",
+          "response_fields": [
+            "blocks",
+            "nextPageToken"
+          ]
         }
       ]
     },
@@ -3065,6 +3073,78 @@
           "type": "integer",
           "unit": "wei",
           "derivation": "feesSpent: sum of gas used times effective gas price over the block's receipts"
+        }
+      ]
+    },
+    {
+      "id": "data-api.p-chain-block-list",
+      "name": "Every P-Chain block from a UTC date, from the Data API's block list",
+      "source_id": "avalanche-data-api",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per P-Chain block from the start of a UTC date to the capture, read from the Data API's block list newest first, 100 blocks a page, following each page's token. Each block carries the Primary Network supply counter and the ACP-77 counters, the active L1 validator count and the fee each has accrued since Etna, from which the continuous L1 validator fee is computed. It cross-checks the supply counter the P-Chain backup replays. The raw pages stay hashed in the capture.",
+      "endpoint_ids": [
+        "p-chain-block-list"
+      ],
+      "fields": [
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "height",
+          "derivation": "blockNumber"
+        },
+        {
+          "name": "block_hash",
+          "type": "string",
+          "unit": "base58 id",
+          "derivation": "blockHash"
+        },
+        {
+          "name": "block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "blockTimestamp"
+        },
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC date",
+          "derivation": "the UTC date of block_timestamp"
+        },
+        {
+          "name": "block_type",
+          "type": "string",
+          "unit": "type",
+          "derivation": "blockType, such as BanffStandardBlock or BanffCommitBlock"
+        },
+        {
+          "name": "transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "txCount"
+        },
+        {
+          "name": "current_supply_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "currentSupply: the Primary Network supply counter after the block"
+        },
+        {
+          "name": "active_l1_validators",
+          "type": "integer",
+          "unit": "validators",
+          "derivation": "activeL1Validators after the block"
+        },
+        {
+          "name": "l1_validators_accrued_fees_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "l1ValidatorsAccruedFees: the continuous fee one L1 validator has accrued since Etna, after the block"
         }
       ]
     },

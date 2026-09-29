@@ -89,6 +89,7 @@ def test_catalog_schema_and_references_are_valid():
         "data-api.p-chain-staking-transactions",
         "p-chain-rpc.reward-utxos",
         "data-api.c-chain-block-list",
+        "data-api.p-chain-block-list",
         "c-chain-rpc.atomic-transactions",
         "defillama.pool-yields",
         "us-treasury.par-yield-daily",

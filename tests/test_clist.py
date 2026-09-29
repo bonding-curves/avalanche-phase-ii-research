@@ -79,3 +79,22 @@ def test_a_broken_token_chain_is_refused(tmp_path):
     with pytest.raises(DataError, match="token"):
         clist.read_rows(tmp_path / "capture")
     assert Path(tmp_path / "capture").is_dir()
+
+
+def fake_p(url, timeout):
+    body, metadata = fake(url, timeout)
+    value = json.loads(body)
+    for item in value["blocks"]:
+        height = int(item["blockNumber"])
+        item.update({"blockType": "BanffStandardBlock", "currentSupply": str(474 * 10**15 + height), "activeL1Validators": 583,
+                     "l1ValidatorsAccruedFees": 28_833_000_000 + height})
+    return json.dumps(value).encode(), metadata
+
+
+def test_the_p_chain_list_keeps_the_supply_and_l1_counters(tmp_path):
+    clist.capture(clist.P_LIST_ID, tmp_path / "capture", parameters={"from_date": "2026-09-16"}, request=fake_p)
+    clist.build(clist.P_LIST_ID, tmp_path / "capture", tmp_path / "dataset")
+    assert clist.check(tmp_path / "capture")["status"] == "pass"
+    rows = duckdb.connect().execute("SELECT block_height, current_supply_navax, active_l1_validators FROM read_parquet(?) ORDER BY 1",
+                                    [str(tmp_path / "dataset" / "p-chain-block-list.parquet")]).fetchall()
+    assert rows[0] == (1010, 474 * 10**15 + 1010, 583) and len(rows) == 10
