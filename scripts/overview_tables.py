@@ -120,10 +120,34 @@ def render(path: Path, routes: dict[str, str], terms: set[str]) -> tuple[str, li
     return f"---\n{block}---\n\n{first}\n\n{table(fields, routes, terms)}\n\n{rest}", []
 
 
+ECONOMICS = 14  # the first 14 topics are about Avalanche's economics, the rest about research method
+
+
+def topic_index() -> str:
+    """The all-topics page: each topic, what it covers, and how many sources carry it."""
+    counts = {slug: 0 for slug in TOPICS}
+    for path in overview_pages():
+        for slug in frontmatter(path.read_text(encoding="utf-8"))[0].get("tags", []):
+            counts[slug] = counts.get(slug, 0) + 1
+    def rows(slugs: list[str]) -> list[str]:
+        return ["| Topic | What it covers | Sources |", "| --- | --- | ---: |",
+                *(f"| [{TOPICS[s][0]}](/tags/{s}) | {TOPICS[s][1]} | {counts[s]} |" for s in slugs)]
+    slugs = list(TOPICS)
+    return "\n".join([
+        "---", 'title: "Topics"', 'description: "Every source in the collections, filed by topic: Avalanche economics and research method."', 'cssclasses: ["topics-index"]', "---", "",
+        "Every page in the [collections](/Phase-II/Wiki/Collections/) is filed under one or more topics, shown under its title and in its facts table. "
+        "Each topic below opens a page listing its sources.", "",
+        "## Avalanche economics", "", *rows(slugs[:ECONOMICS]), "",
+        "## Research method", "", *rows(slugs[ECONOMICS:]), "",
+    ])
+
+
 def topic_pages() -> dict[Path, str]:
-    """One page per topic, so each Quartz tag page carries its title and meaning."""
-    return {ROOT / "content" / "tags" / f"{slug}.md": f'---\ntitle: "Topic: {label}"\ndescription: "{meaning}."\n---\n\n{meaning}. The sources below are filed under this topic.\n'
-            for slug, (label, meaning) in TOPICS.items()}
+    """One page per topic, so each Quartz tag page carries its title and meaning, plus the all-topics page."""
+    pages = {ROOT / "content" / "tags" / f"{slug}.md": f'---\ntitle: "Topic: {label}"\ndescription: "{meaning}."\n---\n\n{meaning}. The sources below are filed under this topic. See [all topics](/tags/).\n'
+             for slug, (label, meaning) in TOPICS.items()}
+    pages[ROOT / "content" / "tags" / "index.md"] = topic_index()
+    return pages
 
 
 def main() -> int:
