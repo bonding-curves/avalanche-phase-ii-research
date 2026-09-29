@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import timedelta, timezone
+from functools import cache
 
 import duckdb
 import pandas as pd
@@ -392,6 +393,24 @@ def display_columns(table: pd.DataFrame) -> pd.DataFrame:
     return table.rename(columns=lambda column: column.replace(" / ", " per ").replace("/", " per "))
 
 
+@cache
+def _cohort_data(run: str):
+    """Build the checked cohort tables once per pinned run in this kernel."""
+    receipt = datasets.receipt("derived.staking-periods", run)
+    cutoffs = _source_cutoffs(receipt["capture"])
+    inputs = {item["input_id"]: item for item in receipt["capture"]["inputs"]}
+    paths = {name: str(datasets.parquet_path(item["dataset_id"], item["run"]))
+             for name, item in inputs.items() if name in {"validator-stakes", "delegator-stakes"}}
+    periods = str(datasets.parquet_path("derived.staking-periods", run))
+    daily = accepted_commitments(periods)
+    identities = distinct_identities(periods, paths["validator-stakes"], paths["delegator-stakes"])
+    tables = {grain: cohort_table(daily, cutoffs, grain, identities)
+              for grain in StakingCohorts.param.time_grain.objects}
+    reward_cutoff = pd.Timestamp(next(item["captured_at"] for item in receipt["capture"]["inputs"]
+                                      if item["input_id"] == "staking-rewards"))
+    return tables, cutoffs, reward_cutoff
+
+
 class StakingCohorts(pm.Parameterized):
     """Fast notebook view of one checked staking-period release."""
 
@@ -405,19 +424,7 @@ class StakingCohorts(pm.Parameterized):
     def __init__(self, run: str, **params):
         super().__init__(**params)
         self.run = run
-        receipt = datasets.receipt("derived.staking-periods", run)
-        cutoffs = _source_cutoffs(receipt["capture"])
-        inputs = {item["input_id"]: item for item in receipt["capture"]["inputs"]}
-        paths = {name: str(datasets.parquet_path(item["dataset_id"], item["run"]))
-                 for name, item in inputs.items() if name in {"validator-stakes", "delegator-stakes"}}
-        periods = str(datasets.parquet_path("derived.staking-periods", run))
-        daily = accepted_commitments(periods)
-        identities = distinct_identities(periods, paths["validator-stakes"], paths["delegator-stakes"])
-        self._tables = {grain: cohort_table(daily, cutoffs, grain, identities)
-                        for grain in self.param.time_grain.objects}
-        self._cutoffs = cutoffs
-        self._reward_cutoff = pd.Timestamp(next(item["captured_at"] for item in receipt["capture"]["inputs"]
-                                                if item["input_id"] == "staking-rewards"))
+        self._tables, self._cutoffs, self._reward_cutoff = _cohort_data(run)
 
     def _frame(self):
         table = for_population(self._tables[self.time_grain], self.population)

@@ -5,6 +5,7 @@ import pytest
 import duckdb
 import param as pm
 
+import avalanche_research.staking_cohorts as staking_cohorts
 from avalanche_research.staking_cohorts import (
     StakingCohorts, cohort_table, denominator_options, display_columns, distinct_identities, for_population, rates_per,
     selected_columns,
@@ -293,6 +294,33 @@ def test_display_headings_use_per_without_changing_values_or_selection_order(coh
         "Stake per Commitment (AVAX)",
     ]
     assert displayed.iloc[0, -1] == selected.iloc[0, -1]
+
+
+def test_pinned_run_data_is_reused_across_explorers(monkeypatch):
+    calls = []
+    capture = {"inputs": [
+        {"input_id": "validator-stakes", "dataset_id": "validators", "run": "source",
+         "captured_at": "2026-09-22T00:00:00Z"},
+        {"input_id": "delegator-stakes", "dataset_id": "delegators", "run": "source",
+         "captured_at": "2026-09-22T00:00:00Z"},
+        {"input_id": "staking-rewards", "captured_at": "2026-09-22T00:00:00Z"},
+    ]}
+
+    def receipt(dataset, run):
+        calls.append((dataset, run))
+        return {"capture": capture}
+
+    monkeypatch.setattr(staking_cohorts.datasets, "receipt", receipt)
+    monkeypatch.setattr(staking_cohorts.datasets, "parquet_path", lambda dataset, run: f"{dataset}/{run}")
+    monkeypatch.setattr(staking_cohorts, "accepted_commitments", lambda path: pd.DataFrame())
+    monkeypatch.setattr(staking_cohorts, "distinct_identities", lambda *paths: pd.DataFrame())
+    monkeypatch.setattr(staking_cohorts, "cohort_table", lambda *args: pd.DataFrame())
+
+    first = StakingCohorts("fixture-cohort-cache")
+    second = StakingCohorts("fixture-cohort-cache")
+    assert calls == [("derived.staking-periods", "fixture-cohort-cache")]
+    assert first is not second
+    assert first._tables is second._tables
 
 
 def test_panel_keeps_one_table_when_selections_change(monkeypatch):
