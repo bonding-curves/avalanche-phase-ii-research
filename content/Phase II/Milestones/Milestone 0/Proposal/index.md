@@ -9,7 +9,7 @@ description: "The accepted Phase II proposal, version 2.5: Parameter Selection U
 
 **Team:** Bonding Curve Research Group (BCRG)
 
-**Amount:** $100,000
+**Amount:** \$100,000
 
 **Duration:** 9 Months (8 months active delivery + 1 month wrap-up buffer)
 
@@ -19,7 +19,7 @@ description: "The accepted Phase II proposal, version 2.5: Parameter Selection U
 
 ---
 
-> **Version note:** v2.5 updates v2.4 (April 8, 2026) to align the proposal with the currently discussed contracting cadence: a 9-month contract window from signature, structured as four 2-month delivery blocks followed by a 1-month wrap-up and buffer period. The grant remains $100,000, handled administratively as four equal installments of $25,000. Scope remains focused on Avalanche staking economics, but the delivery window now explicitly includes time for review cycles, iteration, knowledge transfer, communications, and administrative closeout.
+> **Version note:** v2.5 updates v2.4 (April 8, 2026) to align the proposal with the currently discussed contracting cadence: a 9-month contract window from signature, structured as four 2-month delivery blocks followed by a 1-month wrap-up and buffer period. The grant remains \$100,000, handled administratively as four equal installments of \$25,000. Scope remains focused on Avalanche staking economics, but the delivery window now explicitly includes time for review cycles, iteration, knowledge transfer, communications, and administrative closeout.
 
 ---
 
@@ -306,14 +306,14 @@ The work proceeds through four contract-aligned delivery blocks, each spanning a
 
 ### Administrative Disbursement Structure
 
-For contracting and invoice administration, the $100,000 grant is expected to be handled as four equal installments:
+For contracting and invoice administration, the \$100,000 grant is expected to be handled as four equal installments:
 
 | Disbursement | Trigger | Amount |
 |--------------|---------|--------|
-| **Milestone 0** | Upfront kickoff payment at project start | $25,000 |
-| **Milestone 1** | Milestone 1 completion and approval | $25,000 |
-| **Milestone 2** | Milestone 2 completion and approval | $25,000 |
-| **Milestone 3** | Milestone 3 completion and approval | $25,000 |
+| **Milestone 0** | Upfront kickoff payment at project start | \$25,000 |
+| **Milestone 1** | Milestone 1 completion and approval | \$25,000 |
+| **Milestone 2** | Milestone 2 completion and approval | \$25,000 |
+| **Milestone 3** | Milestone 3 completion and approval | \$25,000 |
 
 ### Contract Window and Delivery Cadence
 
@@ -338,7 +338,7 @@ This cadence is designed to support both rigorous research and practical integra
 
 **Success Criterion:** Kickoff package delivered, reviewed, and accepted by the Avalanche team
 
-**Commercial milestone amount:** $25,000
+**Commercial milestone amount:** \$25,000
 
 ---
 
@@ -358,7 +358,7 @@ This cadence is designed to support both rigorous research and practical integra
 
 **Success Criterion:** Preliminary Validation Report delivered and approved by Avalanche team
 
-**Commercial milestone amount:** $25,000
+**Commercial milestone amount:** \$25,000
 
 ---
 
@@ -391,7 +391,7 @@ This structure ensures BCRG's analytical work complements—rather than duplicat
 
 **Success Criterion:** Sensitivity Analysis Report delivered covering all key parameters
 
-**Commercial milestone amount:** $25,000
+**Commercial milestone amount:** \$25,000
 
 ---
 
@@ -411,7 +411,7 @@ This structure ensures BCRG's analytical work complements—rather than duplicat
 
 **Success Criterion:** Final Parameter Report delivered and Code Repository transferred
 
-**Commercial milestone amount:** $25,000
+**Commercial milestone amount:** \$25,000
 
 ### Month 9: Wrap-Up, Training & Administrative Closeout
 
@@ -431,21 +431,21 @@ This month provides schedule resilience without weakening milestone accountabili
 
 | Category | Item | Amount |
 |----------|------|--------|
-| **Milestone 0** | Project initiation & alignment | $25,000 |
-| **Milestone 1** | Foundation & validation | $25,000 |
-| **Milestone 2** | Simulation & analysis | $25,000 |
-| **Milestone 3** | Delivery, transfer & decision support | $25,000 |
-| **TOTAL** | | **$100,000** |
+| **Milestone 0** | Project initiation & alignment | \$25,000 |
+| **Milestone 1** | Foundation & validation | \$25,000 |
+| **Milestone 2** | Simulation & analysis | \$25,000 |
+| **Milestone 3** | Delivery, transfer & decision support | \$25,000 |
+| **TOTAL** | | **\$100,000** |
 
 ### Budget Breakdown by Function
 
 | Function | Amount | Notes |
 |----------|--------|-------|
-| Principal Researcher | $60,000 | Model architecture, analysis, synthesis |
-| Data Engineering | $25,000 | Data pipeline, simulation infrastructure |
-| Compute | $2,000 | Cloud resources for Monte Carlo sweeps |
-| Operations | $8,000 | Coordination, documentation, workshops |
-| Buffer | $5,000 | Unforeseen complexity |
+| Principal Researcher | \$60,000 | Model architecture, analysis, synthesis |
+| Data Engineering | \$25,000 | Data pipeline, simulation infrastructure |
+| Compute | \$2,000 | Cloud resources for Monte Carlo sweeps |
+| Operations | \$8,000 | Coordination, documentation, workshops |
+| Buffer | \$5,000 | Unforeseen complexity |
 
 The budget reflects three efficiencies: focused scope on the staking subsystem (rather than the full economic system), existing infrastructure from Phase I, and a reduced total reflecting the Foundation's budget constraints. The differential specification, simulation framework architecture, and team relationships are already established—Phase II builds on that foundation rather than starting from scratch.
 
