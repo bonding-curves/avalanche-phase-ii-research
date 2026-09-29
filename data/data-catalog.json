@@ -6973,13 +6973,13 @@
           "name": "recorded_transactions",
           "type": "integer",
           "unit": "transactions",
-          "derivation": "transactions settled by the node's own record of their inputs and outputs"
+          "derivation": "every transaction: the node's own record of its inputs and outputs settles it, a reward transaction at zero, as the share records it"
         },
         {
           "name": "system_transactions",
           "type": "integer",
           "unit": "transactions",
-          "derivation": "RewardValidatorTx, RewardAutoRenewedValidatorTx, and AdvanceTimeTx, which consume nothing"
+          "derivation": "0: the node's record settles every transaction"
         },
         {
           "name": "genesis_transactions",

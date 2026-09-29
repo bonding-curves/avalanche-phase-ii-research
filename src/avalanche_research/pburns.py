@@ -6,9 +6,8 @@ difference; it is subtracted and reported apart, as in the share, because it is 
 validator fee. That fee is the earlier active L1 validator count times the rise in the fee each has accrued, between
 consecutive P-Chain blocks that hold a transaction, from the Data API's block list, dated by the later block. The share
 reads the counters at transactions, so blocks without one are skipped; reading every block instead differs by at most
-0.0003 AVAX a day over 2026-09-15 to 2026-09-21, from active counts that change at blocks without transactions. ``RewardValidatorTx``,
-``RewardAutoRenewedValidatorTx``, and ``AdvanceTimeTx`` consume nothing and count as system transactions; every other
-transaction is settled by the node's own record, counted as recorded.
+0.0003 AVAX a day over 2026-09-15 to 2026-09-21, from active counts that change at blocks without transactions. The node's own record settles every
+transaction, so all count as recorded, as in the share, where ``RewardValidatorTx`` carries a recorded burn of zero.
 
 A day is in the table when both walks and the block list cover all of it: a source that starts after midnight covers
 from the next day, which is conservative for a walk that started at a day's first block.
@@ -45,7 +44,6 @@ SOURCE_ID = "derived"
 TABLE = "primary-burn-daily"
 COLUMNS = PRIMARY_BURN_DAILY.table_columns
 INPUTS = {"p-chain-blocks": "p-chain-rpc.blocks", "x-chain-blocks": "x-chain-rpc.blocks", "p-block-list": "data-api.p-chain-block-list"}
-SYSTEM_TYPES = ("RewardValidatorTx", "RewardAutoRenewedValidatorTx", "AdvanceTimeTx")
 
 
 def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None) -> dict[str, Any]:
@@ -107,9 +105,6 @@ def compute(inputs: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
                 continue
             item = days.setdefault((day, chain), {"transactions": 0, "burned": 0, "recorded": 0, "system": 0, "l1": 0})
             item["transactions"] += 1
-            if tx_type in SYSTEM_TYPES:
-                item["system"] += 1
-                continue
             deposit = l1_balance(tx_type, json.loads(unsigned_json)) if chain == "P" else 0
             burned = input_navax - output_navax - staked_navax - deposit
             if burned < 0:
