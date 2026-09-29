@@ -164,3 +164,33 @@ def test_snapshots_cannot_be_pinned_and_other_datasets_are_rejected(root, tmp_pa
         helicon.capture(helicon.DATASET_ID, tmp_path / "c")
     with pytest.raises(DataError):
         helicon.build(helicon.DATASET_ID, tmp_path / "c", tmp_path / "d")
+
+
+# Frozen 2026-09-29 (W215): the modeling lead's Helicon forecast and its naive benchmarks are scored on these bins and
+# this node_status rule. Changing either invalidates the forecast, so the change must be a new, dated rule, not an edit.
+FROZEN_BINS = (
+    ("48h to 7d", 2.0, 7),
+    ("7d to 14d", 7, 14),
+    ("14d to 30d", 14, 30),
+    ("30d to 90d", 30, 90),
+    ("90d to 180d", 90, 180),
+    ("180d to 365d", 180, 365),
+)
+
+
+def test_bins_and_node_status_rule_are_frozen():
+    assert helicon.ACTIVATION.isoformat() == "2026-09-22T15:00:00"
+    assert helicon.MIN_DURATION_DAYS == 2.0
+    assert helicon.LOWERED_THRESHOLD_DAYS == 1
+    assert helicon.BINS == FROZEN_BINS
+    assert (helicon.UNDER_BIN, helicon.OVER_BIN) == ("under 48h", "over 365d")
+    cases = {1.99: "under 48h", 2.0: "48h to 7d", 6.99: "48h to 7d", 7.0: "7d to 14d", 14.0: "14d to 30d",
+             29.99: "14d to 30d", 30.0: "30d to 90d", 180.0: "180d to 365d", 365.0: "180d to 365d", 365.01: "over 365d"}
+    for days, label in cases.items():
+        assert duckdb.sql(f"SELECT {helicon.bin_case(str(days))}").fetchone()[0] == label, days
+    # node_status: 'returning' when the node has any validator period that started before activation, in the staking
+    # log or in an earlier snapshot, and 'new' otherwise.
+    sql = " ".join(helicon.COMMITMENTS_SQL.split())
+    assert "SELECT DISTINCT node_id FROM history WHERE start_time < TIMESTAMP '2026-09-22 15:00:00'" in sql
+    assert "CASE WHEN was_validator THEN 'returning' ELSE 'new' END AS node_status" in sql
+    assert "duration_days - previous_duration_days < -1 AS lowered" in sql
