@@ -5,9 +5,10 @@ authors: ["Matias Antonio"]
 published: 2026-07-02
 venue: "LinkedIn"
 url: "https://www.linkedin.com/pulse/from-static-constants-dynamic-variables-where-avalanches-matias-a-xh02e"
-tags: ["issuance-and-rewards", "protocol-governance", "staking-duration-and-liquidity"]
+tags: ["issuance-and-rewards", "protocol-governance", "staking-duration-and-liquidity", "fees-and-value-capture"]
 key_terms: ["reward formula", "floor rate", "remaining-supply factor", "level effect", "gradient effect", "auto-renewed staking", "minimum gas price"]
 deliverables: ["1.3", "2.3", "2.4", "2.6", "2.8", "3.2"]
+full_text: "/Phase-II/Wiki/Collections/Essential-Readings/From-Static-Constants-to-Dynamic-Variables-Where-Avalanches-Economics-Are-Headed/Source-Article"
 ---
 
 Matias Antonio argues that Avalanche is starting to treat its reward curve and fee floor as variables to measure and adjust on purpose rather than constants fixed at launch, and reads ACP-273, ACP-285, and ACP-283 as the first three steps.
@@ -18,8 +19,8 @@ Matias Antonio argues that Avalanche is starting to treat its reward curve and f
 | --- | --- |
 | **Authors** | Matias Antonio |
 | **Published** | July 2, 2026 |
-| **Source** | LinkedIn, [original](https://www.linkedin.com/pulse/from-static-constants-dynamic-variables-where-avalanches-matias-a-xh02e) |
-| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [protocol governance](/tags/protocol-governance), [staking duration and liquidity](/tags/staking-duration-and-liquidity) |
+| **Source** | LinkedIn, [original](https://www.linkedin.com/pulse/from-static-constants-dynamic-variables-where-avalanches-matias-a-xh02e), [full text](/Phase-II/Wiki/Collections/Essential-Readings/From-Static-Constants-to-Dynamic-Variables-Where-Avalanches-Economics-Are-Headed/Source-Article) |
+| **Topics** | [issuance and rewards](/tags/issuance-and-rewards), [protocol governance](/tags/protocol-governance), [staking duration and liquidity](/tags/staking-duration-and-liquidity), [fees and value capture](/tags/fees-and-value-capture) |
 | **Key terms** | reward formula, floor rate, remaining-supply factor, level effect, gradient effect, [auto-renewed staking](/Phase-II/Wiki/Reference/Glossary-and-Notation), minimum gas price |
 | **Serves deliverables** | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/), [3.2](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) |
 
@@ -63,4 +64,4 @@ flowchart LR
 
 ## Source
 
-Matias Antonio. 2026. From Static Constants to Dynamic Variables: Where Avalanche's Economics Are Headed. LinkedIn article, July 2, 2026. <https://www.linkedin.com/pulse/from-static-constants-dynamic-variables-where-avalanches-matias-a-xh02e>. The collection holds a [guide to the article](/Phase-II/Wiki/Collections/Essential-Readings/From-Static-Constants-to-Dynamic-Variables-Where-Avalanches-Economics-Are-Headed/Source-Article) rather than a copy. This overview follows a dated capture of the article text.
+Matias Antonio. 2026. From Static Constants to Dynamic Variables: Where Avalanche's Economics Are Headed. LinkedIn article, July 2, 2026. <https://www.linkedin.com/pulse/from-static-constants-dynamic-variables-where-avalanches-matias-a-xh02e>. Read the [full article](/Phase-II/Wiki/Collections/Essential-Readings/From-Static-Constants-to-Dynamic-Variables-Where-Avalanches-Economics-Are-Headed/Source-Article), with its figure. The Foundation blog edition has been removed, so the collection's copy is the author's LinkedIn edition, which has a shorter title.

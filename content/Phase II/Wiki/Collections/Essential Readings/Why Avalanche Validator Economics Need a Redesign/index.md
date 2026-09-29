@@ -5,9 +5,10 @@ authors: ["Matias Antonio"]
 published: 2026-04-02
 venue: "X"
 url: "https://x.com/i/article/2038984867807993857"
-tags: ["validator-economics", "security-budget", "delegation-market"]
+tags: ["validator-economics", "security-budget", "delegation-market", "mechanism-design"]
 key_terms: ["supply cap", "fee burn", "untargeted inflation", "commission", "fee compression", "consolidation", "operator costs"]
 deliverables: ["1.1", "2.3", "2.6", "2.8"]
+full_text: "/Phase-II/Wiki/Collections/Essential-Readings/Why-Avalanche-Validator-Economics-Need-a-Redesign/Source-Article"
 ---
 
 Matias Antonio argues that Avalanche validator economics, funded almost entirely by new issuance, will not keep the network secure as it matures, and names fee revenue for validators and rewards for performance and tenure as the directions the Foundation is researching.
@@ -18,8 +19,8 @@ Matias Antonio argues that Avalanche validator economics, funded almost entirely
 | --- | --- |
 | **Authors** | Matias Antonio |
 | **Published** | April 2, 2026 |
-| **Source** | X, [original](https://x.com/i/article/2038984867807993857) |
-| **Topics** | [validator economics](/tags/validator-economics), [security budget](/tags/security-budget), [delegation market](/tags/delegation-market) |
+| **Source** | X, [original](https://x.com/i/article/2038984867807993857), [full text](/Phase-II/Wiki/Collections/Essential-Readings/Why-Avalanche-Validator-Economics-Need-a-Redesign/Source-Article) |
+| **Topics** | [validator economics](/tags/validator-economics), [security budget](/tags/security-budget), [delegation market](/tags/delegation-market), [mechanism design](/tags/mechanism-design) |
 | **Key terms** | [supply cap](/Phase-II/Wiki/Reference/Glossary-and-Notation), fee burn, untargeted inflation, commission, fee compression, consolidation, operator costs |
 | **Serves deliverables** | [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/), [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) |
 
@@ -62,4 +63,4 @@ flowchart LR
 
 ## Source
 
-Matias Antonio. 2026. Why Avalanche Validator Economics Need a Redesign. X article, April 2, 2026. The collection holds a [guide to the article](/Phase-II/Wiki/Collections/Essential-Readings/Why-Avalanche-Validator-Economics-Need-a-Redesign/Source-Article) rather than a copy, because the original X address does not reliably open. This overview follows a dated capture of the article text.
+Matias Antonio. 2026. Why Avalanche Validator Economics Need a Redesign. X article, April 2, 2026. <https://x.com/i/article/2038984867807993857>. Read the [full article](/Phase-II/Wiki/Collections/Essential-Readings/Why-Avalanche-Validator-Economics-Need-a-Redesign/Source-Article). The Foundation blog edition has been removed and the X article does not open without signing in, so the collection's copy was taken from the X article on 2026-09-29.

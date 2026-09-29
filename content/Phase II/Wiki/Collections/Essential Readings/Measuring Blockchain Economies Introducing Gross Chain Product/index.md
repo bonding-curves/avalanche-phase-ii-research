@@ -5,9 +5,10 @@ authors: ["Siyu (Eric) Lu"]
 published: 2026-05-07
 venue: "LinkedIn"
 url: "https://www.linkedin.com/pulse/measuring-blockchain-economies-introducing-gross-chain-lu-phd-juj3c"
-tags: ["economic-measurement"]
+tags: ["economic-measurement", "market-conditions"]
 key_terms: ["gross chain product", "value added", "income approach", "nominal GCP", "real GCP", "Fisher index", "Törnqvist weights"]
 deliverables: ["1.1", "2.2", "2.3", "3.2"]
+full_text: "/Phase-II/Wiki/Collections/Essential-Readings/Measuring-Blockchain-Economies-Introducing-Gross-Chain-Product/Source-Article"
 ---
 
 Eric Lu defines gross chain product, a GDP-style measure of on-chain value added, and shows that the C-Chain's real output fell 25% from January 2025 to March 2026, while its nominal output, which also moves with token prices, fell 60%.
@@ -18,8 +19,8 @@ Eric Lu defines gross chain product, a GDP-style measure of on-chain value added
 | --- | --- |
 | **Authors** | Siyu (Eric) Lu |
 | **Published** | May 7, 2026 |
-| **Source** | LinkedIn, [original](https://www.linkedin.com/pulse/measuring-blockchain-economies-introducing-gross-chain-lu-phd-juj3c) |
-| **Topics** | [economic measurement](/tags/economic-measurement) |
+| **Source** | LinkedIn, [original](https://www.linkedin.com/pulse/measuring-blockchain-economies-introducing-gross-chain-lu-phd-juj3c), [full text](/Phase-II/Wiki/Collections/Essential-Readings/Measuring-Blockchain-Economies-Introducing-Gross-Chain-Product/Source-Article) |
+| **Topics** | [economic measurement](/tags/economic-measurement), [market conditions](/tags/market-conditions) |
 | **Key terms** | gross chain product, value added, income approach, nominal GCP, real GCP, Fisher index, Törnqvist weights |
 | **Serves deliverables** | [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/), [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/), [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/), [3.2](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) |
 
@@ -62,4 +63,4 @@ flowchart LR
 
 ## Source
 
-Siyu (Eric) Lu. 2026. Measuring Blockchain Economies: Introducing Gross Chain Product. LinkedIn article, May 7, 2026. <https://www.linkedin.com/pulse/measuring-blockchain-economies-introducing-gross-chain-lu-phd-juj3c>. The collection holds a [guide to the article](/Phase-II/Wiki/Collections/Essential-Readings/Measuring-Blockchain-Economies-Introducing-Gross-Chain-Product/Source-Article) rather than a copy. This overview follows a dated capture of the article text.
+Siyu (Eric) Lu. 2026. Measuring Blockchain Economies: Introducing Gross Chain Product. LinkedIn article, May 7, 2026. <https://www.linkedin.com/pulse/measuring-blockchain-economies-introducing-gross-chain-lu-phd-juj3c>. Read the [full article](/Phase-II/Wiki/Collections/Essential-Readings/Measuring-Blockchain-Economies-Introducing-Gross-Chain-Product/Source-Article), with its six figures. The Foundation blog edition has been removed, so the collection's copy is the author's LinkedIn edition.
