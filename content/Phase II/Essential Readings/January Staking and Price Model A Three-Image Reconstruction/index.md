@@ -8,4 +8,4 @@ Source material admitted to the Essential Readings collection.
 
 ## Contents
 
-- [Source Model Artifact](Source%20Model%20Artifact)
+- [Source Model Artifact](/Phase-II/Essential%20Readings/January%20Staking%20and%20Price%20Model%20A%20Three-Image%20Reconstruction/Source%20Model%20Artifact)

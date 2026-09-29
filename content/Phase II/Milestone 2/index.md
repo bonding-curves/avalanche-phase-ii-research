@@ -15,11 +15,11 @@ The project works to the schedule of proposal v2.5. The signed agreement's dates
 
 | ID | Deliverable | Contract requirement | Status |
 | --- | --- | --- | --- |
-| [2.1](2-1%20PSUU%20Infrastructure/) | PSUU Infrastructure | Full parameter sweep pipeline with cloud compute | not started |
-| [2.2](2-2%20Simulation%20Execution/) | Simulation Execution | 50,000+ trajectories across governance × environment space | not started |
-| [2.3](2-3%20KPI%20Computation/) | KPI Computation | Automated computation of all KPIs per trajectory | not started |
-| [2.4](2-4%20Validation%20Confirmation/) | Validation Confirmation | Final goodness-of-fit achieving >90% correlation | not started |
-| [2.5](2-5%20Sensitivity%20Analysis/) | Sensitivity Analysis | Decision trees and correlation matrices for all KPIs | not started |
-| [2.6](2-6%20Risk%20Surface%20Map/) | Risk Surface Map | Parameter regions where staking incentives fail | not started |
-| [2.7](2-7%20Workshop%201/) | Workshop 1 | Model walkthrough and preliminary findings review | not started |
-| [2.8](2-8%20Collaborative%20Mechanism%20Design/) | Collaborative Mechanism Design | Support for evaluating alternative reward mechanisms proposed by Avalanche or external teams | not started |
+| [2.1](/Phase-II/Milestone-2/2-1-PSUU-Infrastructure/) | PSUU Infrastructure | Full parameter sweep pipeline with cloud compute | not started |
+| [2.2](/Phase-II/Milestone-2/2-2-Simulation-Execution/) | Simulation Execution | 50,000+ trajectories across governance × environment space | not started |
+| [2.3](/Phase-II/Milestone-2/2-3-KPI-Computation/) | KPI Computation | Automated computation of all KPIs per trajectory | not started |
+| [2.4](/Phase-II/Milestone-2/2-4-Validation-Confirmation/) | Validation Confirmation | Final goodness-of-fit achieving >90% correlation | not started |
+| [2.5](/Phase-II/Milestone-2/2-5-Sensitivity-Analysis/) | Sensitivity Analysis | Decision trees and correlation matrices for all KPIs | not started |
+| [2.6](/Phase-II/Milestone-2/2-6-Risk-Surface-Map/) | Risk Surface Map | Parameter regions where staking incentives fail | not started |
+| [2.7](/Phase-II/Milestone-2/2-7-Workshop-1/) | Workshop 1 | Model walkthrough and preliminary findings review | not started |
+| [2.8](/Phase-II/Milestone-2/2-8-Collaborative-Mechanism-Design/) | Collaborative Mechanism Design | Support for evaluating alternative reward mechanisms proposed by Avalanche or external teams | not started |

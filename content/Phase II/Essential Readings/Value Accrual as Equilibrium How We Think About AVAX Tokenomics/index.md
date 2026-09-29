@@ -8,4 +8,4 @@ Source material admitted to the Essential Readings collection.
 
 ## Contents
 
-- [Source Article](Source%20Article)
+- [Source Article](/Phase-II/Essential%20Readings/Value%20Accrual%20as%20Equilibrium%20How%20We%20Think%20About%20AVAX%20Tokenomics/Source%20Article)

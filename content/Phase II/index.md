@@ -8,13 +8,13 @@ Phase II builds a calibrated model of Avalanche staking and uses it to test rewa
 
 ## Schedule
 
-The research works to the schedule of [proposal v2.5](Milestone%200/Proposal%20v2.5/). The [signed agreement](Milestone%200/Signed%20Grant%20Agreement) sets the deliverables and each milestone's success criterion.
+The research works to the schedule of [proposal v2.5](/Phase-II/Milestone-0/Proposal-v2.5/). The [signed agreement](/Phase-II/Milestone-0/Signed-Grant-Agreement) sets the deliverables and each milestone's success criterion.
 
 | Milestone | Working period | Focus | Success criterion in the agreement |
 | --- | --- | --- | --- |
-| [Milestone 1](Milestone%201/) | June 15 to August 14, 2026 | Data ingestion, model definition, and behavioural calibration | Preliminary Validation Report delivered and approved by the Avalanche team |
-| [Milestone 2](Milestone%202/) | August 15 to October 14, 2026 | Parameter sweeps, Monte Carlo simulation, and sensitivity analysis | Sensitivity Analysis Report covering all key parameters |
-| [Milestone 3](Milestone%203/) | October 15 to December 14, 2026 | Recommendations, playbook, open-source release, and knowledge transfer | Final Parameter Report delivered and code repository transferred |
+| [Milestone 1](/Phase-II/Milestone-1/) | June 15 to August 14, 2026 | Data ingestion, model definition, and behavioural calibration | Preliminary Validation Report delivered and approved by the Avalanche team |
+| [Milestone 2](/Phase-II/Milestone-2/) | August 15 to October 14, 2026 | Parameter sweeps, Monte Carlo simulation, and sensitivity analysis | Sensitivity Analysis Report covering all key parameters |
+| [Milestone 3](/Phase-II/Milestone-3/) | October 15 to December 14, 2026 | Recommendations, playbook, open-source release, and knowledge transfer | Final Parameter Report delivered and code repository transferred |
 
 In September the research was rebuilt from the chain up: every dataset recaptured with receipts, and the protocol's reward formula reimplemented and checked against the chain. Milestone 1 is therefore being delivered again inside Milestone 2's window.
 
@@ -24,23 +24,23 @@ Status is one of not started, in progress, delivered, or accepted by Avalanche.
 
 | ID | Deliverable | Status on 2026-09-28 |
 | --- | --- | --- |
-| [1.1](Milestone%201/1-1%20Data%20Ingestion/) | Data Ingestion | Delivered for review |
-| [1.2](Milestone%201/1-2%20Data%20Manifest/) | Data Manifest | Delivered for review |
-| [1.3](Milestone%201/1-3%20Staking%20Model%20Spec/) | Staking Model Spec | In progress |
-| [1.4](Milestone%201/1-4%20Behavioral%20Calibration/) | Behavioral Calibration | In progress |
-| [M1](Milestone%201/Preliminary%20Validation%20Report/) | Preliminary Validation Report | Not started |
-| [2.1](Milestone%202/2-1%20PSUU%20Infrastructure/) | PSUU Infrastructure | Not started |
-| [2.2](Milestone%202/2-2%20Simulation%20Execution/) | Simulation Execution | Not started |
-| [2.3](Milestone%202/2-3%20KPI%20Computation/) | KPI Computation | Not started |
-| [2.4](Milestone%202/2-4%20Validation%20Confirmation/) | Validation Confirmation | Not started |
-| [2.5](Milestone%202/2-5%20Sensitivity%20Analysis/) | Sensitivity Analysis | Not started |
-| [2.6](Milestone%202/2-6%20Risk%20Surface%20Map/) | Risk Surface Map | Not started |
-| [2.7](Milestone%202/2-7%20Workshop%201/) | Workshop 1 | Not started |
-| [2.8](Milestone%202/2-8%20Collaborative%20Mechanism%20Design/) | Collaborative Mechanism Design | Not started |
-| [3.1](Milestone%203/3-1%20Parameter%20Recommendation%20Report/) | Parameter Recommendation Report | Not started |
-| [3.2](Milestone%203/3-2%20Scenario%20Playbook/) | Scenario Playbook | Not started |
-| [3.3](Milestone%203/3-3%20Open%20Source%20Release/) | Open Source Release | Not started |
-| [3.4](Milestone%203/3-4%20Workshop%202/) | Workshop 2 | Not started |
+| [1.1](/Phase-II/Milestone-1/1-1-Data-Ingestion/) | Data Ingestion | Delivered for review |
+| [1.2](/Phase-II/Milestone-1/1-2-Data-Manifest/) | Data Manifest | Delivered for review |
+| [1.3](/Phase-II/Milestone-1/1-3-Staking-Model-Spec/) | Staking Model Spec | In progress |
+| [1.4](/Phase-II/Milestone-1/1-4-Behavioral-Calibration/) | Behavioral Calibration | In progress |
+| [M1](/Phase-II/Milestone-1/Preliminary-Validation-Report/) | Preliminary Validation Report | Not started |
+| [2.1](/Phase-II/Milestone-2/2-1-PSUU-Infrastructure/) | PSUU Infrastructure | Not started |
+| [2.2](/Phase-II/Milestone-2/2-2-Simulation-Execution/) | Simulation Execution | Not started |
+| [2.3](/Phase-II/Milestone-2/2-3-KPI-Computation/) | KPI Computation | Not started |
+| [2.4](/Phase-II/Milestone-2/2-4-Validation-Confirmation/) | Validation Confirmation | Not started |
+| [2.5](/Phase-II/Milestone-2/2-5-Sensitivity-Analysis/) | Sensitivity Analysis | Not started |
+| [2.6](/Phase-II/Milestone-2/2-6-Risk-Surface-Map/) | Risk Surface Map | Not started |
+| [2.7](/Phase-II/Milestone-2/2-7-Workshop-1/) | Workshop 1 | Not started |
+| [2.8](/Phase-II/Milestone-2/2-8-Collaborative-Mechanism-Design/) | Collaborative Mechanism Design | Not started |
+| [3.1](/Phase-II/Milestone-3/3-1-Parameter-Recommendation-Report/) | Parameter Recommendation Report | Not started |
+| [3.2](/Phase-II/Milestone-3/3-2-Scenario-Playbook/) | Scenario Playbook | Not started |
+| [3.3](/Phase-II/Milestone-3/3-3-Open-Source-Release/) | Open Source Release | Not started |
+| [3.4](/Phase-II/Milestone-3/3-4-Workshop-2/) | Workshop 2 | Not started |
 
 ## How the deliverables connect
 
@@ -57,7 +57,7 @@ Each deliverable is built from the ones before it. The data of 1.1 and 1.2 feeds
 
 ## Supporting material
 
-- [Calls](Calls/2026-10-02/): the agenda for each call with the Foundation and what was done about the comments on the last one.
-- [Essential Readings](Essential%20Readings/): the six Foundation articles and sources the research reproduces and builds on.
-- [Interviews](Interviews/): what stakeholders told us, starting with BENQI.
-- [Data](../Reference/Data), [Notebooks](../Reference/Notebooks), and [Glossary and Notation](../Reference/Glossary%20and%20Notation).
+- [Calls](/Phase-II/Calls/2026-10-02/): the agenda for each call with the Foundation and what was done about the comments on the last one.
+- [Essential Readings](/Phase-II/Essential-Readings/): the six Foundation articles and sources the research reproduces and builds on.
+- [Interviews](/Phase-II/Interviews/): what stakeholders told us, starting with BENQI.
+- [Data](/Reference/Data), [Notebooks](/Reference/Notebooks), and [Glossary and Notation](/Reference/Glossary-and-Notation).

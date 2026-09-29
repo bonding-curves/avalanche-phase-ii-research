@@ -3,7 +3,7 @@ title: Notebooks
 description: What the two research notebooks answer and show, which datasets they read, and how to run them.
 ---
 
-The repository holds two Jupyter notebooks in `notebooks/`. Both read the built datasets described on [Data](Data.md) and never fetch or build data themselves. A commitment in both is the period of one staking transaction, from its start time to its end time.
+The repository holds two Jupyter notebooks in `notebooks/`. Both read the built datasets described on [Data](/Reference/Data) and never fetch or build data themselves. A commitment in both is the period of one staking transaction, from its start time to its end time.
 
 | Notebook | Question | Datasets |
 | --- | --- | --- |
@@ -12,7 +12,7 @@ The repository holds two Jupyter notebooks in `notebooks/`. Both read the built 
 
 ## Validator rewards article
 
-`validator-rewards-article.ipynb` rebuilds the evidence, data, and results of the article published on April 28, 2026, and keeps each assumption and open gap in view. The notebook is a work in progress. The article itself is on [How Do Avalanche Validators Actually Think About Staking Rewards?](../Phase%20II/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/index.md).
+`validator-rewards-article.ipynb` rebuilds the evidence, data, and results of the article published on April 28, 2026, and keeps each assumption and open gap in view. The notebook is a work in progress. The article itself is on [How Do Avalanche Validators Actually Think About Staking Rewards?](/Phase-II/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/).
 
 The notebook has these parts, in order:
 

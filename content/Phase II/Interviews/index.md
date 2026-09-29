@@ -9,4 +9,4 @@ Each interview page gives a public summary of what the interviewee said. A summa
 
 | Date | Interviewee | Page | Status |
 | --- | --- | --- | --- |
-| 2026-08-31 | Hansen, BENQI | [BENQI 2026-08-31](BENQI%202026-08-31/) | summary published |
+| 2026-08-31 | Hansen, BENQI | [BENQI 2026-08-31](/Phase-II/Interviews/BENQI-2026-08-31/) | summary published |

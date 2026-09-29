@@ -127,6 +127,12 @@ See the [`data/` guide](data/) for the preview, capture, build, and validation w
 
 The generated site is written to `.site/public/`. Generated output and installed dependencies are not committed.
 
+### Writing links
+
+Link to the route readers get from Quartz, not merely to a source file. For example, `[Phase II context](/Wiki/Avalanche/phase-ii-context)` targets a published page; a link to a private or unpublished Markdown file does not. A folder link needs a published index page, and a `#fragment` must match an ID in the rendered HTML. Publish a new target in the same change as its incoming link.
+
+After editing content or navigation, run `npm run verify` from `.site/` before committing. The link check distinguishes existing known failures from **new** ones. Fix new failures in the owning source and hand off another agent's uncommitted failure; never refresh `data/quartz-link-baseline.json` simply to pass the check. The baseline is reduced only after a verified repair.
+
 ## Current limitations
 
 - Only one Essential Reading currently has an initialized study package.

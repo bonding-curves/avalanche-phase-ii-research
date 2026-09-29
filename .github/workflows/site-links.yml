@@ -1,0 +1,42 @@
+name: Client site links
+
+on:
+  push:
+    paths:
+      - "content/**"
+      - "data/research-navigation.json"
+      - "data/quartz-link-baseline.json"
+      - "scripts/**"
+      - ".site/**"
+      - ".github/workflows/site-links.yml"
+  pull_request:
+    paths:
+      - "content/**"
+      - "data/research-navigation.json"
+      - "data/quartz-link-baseline.json"
+      - "scripts/**"
+      - ".site/**"
+      - ".github/workflows/site-links.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: .site/package-lock.json
+      - run: npm ci
+        working-directory: .site
+      - run: npm run verify
+        working-directory: .site

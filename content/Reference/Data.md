@@ -5,7 +5,7 @@ description: The sources behind the research, how each dataset is captured, buil
 
 Every number in this research comes from a dataset declared in `data/data-catalog.json`. The catalog names 13 sources and 35 datasets, with each dataset's query or request, fields, units, and derivation. Each built dataset sits in a run folder that holds a receipt of what was captured, the table built from it, and the result of its checks. A number in a notebook therefore traces back to a Parquet file, the receipt that hashes it, and the raw capture or input runs it came from.
 
-`data/README.md` in the repository gives the commands that reproduce every dataset. Two generated pages list the current state: [1.1 Data Ingestion](../Phase%20II/Milestone%201/1-1%20Data%20Ingestion/index.md) shows coverage, row counts, check results, and known gaps for each dataset, and [1.2 Data Manifest](../Phase%20II/Milestone%201/1-2%20Data%20Manifest/index.md) lists each source's authority and each dataset's fields and latest runs.
+`data/README.md` in the repository gives the commands that reproduce every dataset. Two generated pages list the current state: [1.1 Data Ingestion](/Phase-II/Milestone-1/1-1-Data-Ingestion/) shows coverage, row counts, check results, and known gaps for each dataset, and [1.2 Data Manifest](/Phase-II/Milestone-1/1-2-Data-Manifest/) lists each source's authority and each dataset's fields and latest runs.
 
 ## Sources
 
@@ -101,4 +101,4 @@ The monetary ledger in the release is an interim run. It writes a checked total 
 
 CoinGecko's keyless API serves only the trailing 365 days, so the full price history comes from DefiLlama and Binance. Current-state sources such as the P-Chain RPC, the Data API supply endpoint, and Builder Hub hold no history. Their datasets are dated snapshots, and history exists only from the first capture on.
 
-Each dataset's known gaps are listed on [1.1 Data Ingestion](../Phase%20II/Milestone%201/1-1%20Data%20Ingestion/index.md). To run the notebooks on this data, see [Notebooks](Notebooks.md).
+Each dataset's known gaps are listed on [1.1 Data Ingestion](/Phase-II/Milestone-1/1-1-Data-Ingestion/). To run the notebooks on this data, see [Notebooks](/Reference/Notebooks).

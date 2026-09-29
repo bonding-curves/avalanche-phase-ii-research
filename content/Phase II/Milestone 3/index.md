@@ -15,7 +15,7 @@ The project works to the schedule of proposal v2.5. The signed agreement's dates
 
 | ID | Deliverable | Contract requirement | Status |
 | --- | --- | --- | --- |
-| [3.1](3-1%20Parameter%20Recommendation%20Report/) | Parameter Recommendation Report | Actionable guidance with decision framework | not started |
-| [3.2](3-2%20Scenario%20Playbook/) | Scenario Playbook | If X market condition, then Y parameter adjustment | not started |
-| [3.3](3-3%20Open%20Source%20Release/) | Open Source Release | Full model code with documentation | not started |
-| [3.4](3-4%20Workshop%202/) | Workshop 2 | How to run scenarios and interpret results | not started |
+| [3.1](/Phase-II/Milestone-3/3-1-Parameter-Recommendation-Report/) | Parameter Recommendation Report | Actionable guidance with decision framework | not started |
+| [3.2](/Phase-II/Milestone-3/3-2-Scenario-Playbook/) | Scenario Playbook | If X market condition, then Y parameter adjustment | not started |
+| [3.3](/Phase-II/Milestone-3/3-3-Open-Source-Release/) | Open Source Release | Full model code with documentation | not started |
+| [3.4](/Phase-II/Milestone-3/3-4-Workshop-2/) | Workshop 2 | How to run scenarios and interpret results | not started |

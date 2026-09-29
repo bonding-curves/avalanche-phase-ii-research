@@ -477,6 +477,9 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "derived.avax-monetary-daily",
         "builder-hub.validator-uptime",
         "derived.validator-uptime-hourly",
+        "derived.helicon-commitments",
+        "etf-issuers.avax-fund-snapshot",
+        "etf-issuers.avax-fund-history",
     ]
 
 

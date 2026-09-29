@@ -41,6 +41,9 @@ This directory defines the machine-readable contracts for research data used in 
 | `derived.observed-delegations` | One Parquet row per delegation accepted in the same window, with its exact duration, week, delegator address, and whether its validator was on offer at that week's cutoff | Implemented, tested, and derived on 2026-09-27: 7,056,204 delegations |
 | `derived.market-weeks` | One Parquet row per week of the same window: the unstaked supply stock at the Monday cutoff, the week's delegated volume by stratum, the concentrated address's share, and the AVAX price and 30-day volatility at the cutoff | Implemented, tested, and derived on 2026-09-27: 313 weeks |
 | `derived.validator-uptime-hourly` | One Parquet row per validator per hour across every Builder Hub capture, with the number of captures that held the hour and whether they disagreed | Implemented, tested, and derived daily; the only record of hourly uptime percentages outside Ava Labs, and it exists only from the captures on |
+| `derived.helicon-commitments` | One Parquet row per validation cycle started at or after Helicon's activation, with its duration and bin, whether the node validated before Helicon, the change from the node's previous period, and whether the transaction auto-renewed | Implemented, tested, and derived daily from 2026-09-28 over every validator snapshot: 73 cycles on 67 nodes on the first run |
+| `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
+| `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
 [`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
@@ -291,6 +294,36 @@ uv run --locked avalanche data check derived.node-table --capture data/runs/node
 ```
 
 On the 2026-09-22 runs this builds 7,644 rows in about two seconds and loads as the `node_table` view.
+
+## Track validation commitments after Helicon
+
+`derived.helicon-commitments` follows the validator duration choices Helicon opened on 2026-09-22 15:00 UTC, when the minimum validator duration fell from 14 days to 48 hours and auto-renewal began. It has one row per validation cycle that started at or after activation. A cycle is a distinct transaction hash and start time, because an auto-renewed validation keeps its hash while its start and end move forward. For that reason the derive reads every built run of `p-chain-rpc.current-validators` under the current catalog contract, not only the newest, and records each run as its own input in the capture receipt with its run name and hash. The staking-period log is the one pinnable input and gives each node's history before Helicon, together with snapshot cycles the log does not yet hold.
+
+Each row carries the cycle's duration and bin, its stake and fee from the first snapshot that shows it, and its number within the transaction. A node is `returning` when it has a validator period that started before activation and `new` otherwise. `previous_duration_days` is the node's latest validator period that started before the cycle, which for a renewal is the cycle before it. A cycle is `lowered` when it is more than one day shorter than that period. The bins run from the 48-hour minimum to 7, 14, 30, 90, 180, and 365 days, and each includes its lower bound. The build summary counts cycles, nodes, new and returning nodes, lowered and raised cycles, auto-renewed transactions, and cycles and transactions by bin, beside the same bins for the validator periods started in the 30 days before activation.
+
+```bash
+uv run --locked avalanche data derive derived.helicon-commitments --output data/runs/helicon-commitments-example
+uv run --locked avalanche data check derived.helicon-commitments --capture data/runs/helicon-commitments-example/capture --dataset data/runs/helicon-commitments-example/dataset
+```
+
+The check verifies the input runs still hash as recorded, one row per cycle, that every cycle starts at or after activation and lasts at least 48 hours, and that every renewal starts where the transaction's previous cycle ended with the next cycle number. It then rebuilds the table from the recorded inputs and requires the same rows. A cycle is seen only if a snapshot falls inside it, so the summary reports the longest wait between snapshots since activation. Above 48 hours a minimum-length cycle can pass unseen. The daily validator capture derives and checks a new run after each snapshot. On the 2026-09-28 run it builds 73 cycles from nine snapshots in a few seconds.
+
+## Capture the AVAX exchange-traded products
+
+These datasets follow AVAX held by the exchange-traded products that hold it, to test whether fund flows rise after Helicon. Each issuer is the authority for its own figures, and none of them is an on-chain observation. Bitwise embeds BAVA's fund record in its page, VanEck serves VAVX's figures as JSON blocks that expect a browser, 21Shares serves gzipped JSON, and Grayscale's GAVA page refuses automated requests, so GAVA comes from its 10-Q filings through SEC EDGAR, which requires a User-Agent that names a contact. The capture stores each response as served, after gzip decoding, with its hash in the receipt. The BAVA page is kept whole, so its custody wallet list stays in the raw capture.
+
+BAVA and VAVX publish shares outstanding and AVAX held only as a current figure, usually as of the prior business day. The snapshot therefore becomes a series only as daily captures accumulate from 2026-09-28. For 21Shares, AVAX held is the AVAX entitlement per unit times units outstanding, and `avax_held_derived` marks it. The history table carries the 21Shares valuation histories, in which the change in units outstanding is the fund flow. For the single-asset product AVAX held is total NAV over the AVAX price. For the MOON and KEYS baskets it is left null because their historical weights are not published. BAVA's history has its NAV for every day and its AVAX held only on the current as-of date.
+
+```bash
+uv run --locked avalanche data fetch etf-issuers.avax-fund-snapshot --output data/runs/etf-snapshot-example/capture --timeout 60
+uv run --locked avalanche data build etf-issuers.avax-fund-snapshot --from data/runs/etf-snapshot-example/capture --output data/runs/etf-snapshot-example/dataset
+uv run --locked avalanche data check etf-issuers.avax-fund-snapshot --capture data/runs/etf-snapshot-example/capture --dataset data/runs/etf-snapshot-example/dataset
+uv run --locked avalanche data fetch etf-issuers.avax-fund-history --output data/runs/etf-history-example/capture --timeout 60
+uv run --locked avalanche data build etf-issuers.avax-fund-history --from data/runs/etf-history-example/capture --output data/runs/etf-history-example/dataset
+uv run --locked avalanche data check etf-issuers.avax-fund-history --capture data/runs/etf-history-example/capture --dataset data/runs/etf-history-example/dataset
+```
+
+The snapshot check verifies required values, non-negative AVAX held, one row per fund, that BAVA's AVAX held equals its basket units, that each 21Shares product's AVAX held is within 0.5% of its NAV in AVAX over the AVAX price, that VAVX's AVAX per 1,000 shares agrees with its AVAX in trust, and that NAV times shares agrees with net assets. The history check verifies the same values and BAVA units, one row per fund and date, and that the AVAX price used for the single-asset product equals its index. Two old MOON dates disagree on NAV times units against net assets in the issuer's own record, so the history check lists such dates in its summary rather than failing. A history capture is about 3.4 MB.
 
 ## Derive the validator-week panel
 

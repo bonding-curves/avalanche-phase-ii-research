@@ -4,7 +4,7 @@ description: "The agenda for the 2026-10-02 call with the Avalanche Foundation, 
 date: 2026-09-28
 ---
 
-The call planned for 2026-09-25 moved to 2026-10-02. This page carries its results, the answers to the Foundation's comments on the agenda of 2026-09-25, and what is new since. The terms used here are defined in [Glossary and Notation](../../../Reference/Glossary%20and%20Notation).
+The call planned for 2026-09-25 moved to 2026-10-02. This page carries its results, the answers to the Foundation's comments on the agenda of 2026-09-25, and what is new since. The terms used here are defined in [Glossary and Notation](/Reference/Glossary-and-Notation).
 
 ## 1. How validators commit, six years of staking
 
@@ -23,16 +23,16 @@ Validator commitments by the upgrade period in which they began:
 | Fortuna | 7,775 | 2,012 | 2.1 | 4.2 | 2,000 | 601 |
 | Granite | 4,580 | 996 | 3.6 | 4.0 | 14,585 | 890 |
 
-The median duration falls to 2.1 weeks at Durango and holds there until Granite. Weighted by self-stake, the median falls from 7.0 weeks under Cortina to about 4 weeks from Durango on, so large validators shortened too, but less. Under Granite the median self-stake rises from 2,000 to 14,585 AVAX. Self-stake committed sums every commitment's stake, so a validator that renews every two weeks is counted at each renewal. It measures decisions, not stake held at one time. The table is built from the 2026-09-19 capture of 57,521 validator commitments by the [validator rewards notebook](../../../Reference/Notebooks), which runs it and shows it interactively.
+The median duration falls to 2.1 weeks at Durango and holds there until Granite. Weighted by self-stake, the median falls from 7.0 weeks under Cortina to about 4 weeks from Durango on, so large validators shortened too, but less. Under Granite the median self-stake rises from 2,000 to 14,585 AVAX. Self-stake committed sums every commitment's stake, so a validator that renews every two weeks is counted at each renewal. It measures decisions, not stake held at one time. The table is built from the 2026-09-19 capture of 57,521 validator commitments by the [validator rewards notebook](/Reference/Notebooks), which runs it and shows it interactively.
 
-The [staking-periods notebook](../../../Reference/Notebooks) holds four linked views on one time axis: commitments begun by stake, commitments begun by duration, each node's history as a line coloured by its fee, and the stock of commitments open each week. A selection in one view filters the others.
+The [staking-periods notebook](/Reference/Notebooks) holds four linked views on one time axis: commitments begun by stake, commitments begun by duration, each node's history as a line coloured by its fee, and the stock of commitments open each week. A selection in one view filters the others.
 
 ## 2. Answers to the comments on the 2026-09-25 agenda
 
 | Comment | What was done |
 | --- | --- |
 | "Do you mean the amount or duration?", on what changed at Durango | Duration. The median validator commitment moves to 2.1 weeks at Durango and stays there until Granite, as the table above shows. The question stands: what changed at Durango that moved most new commitments to the minimum duration? |
-| "Interesting idea", and "Sure if it does not result in a huge incremental lift.", on a minimum stake that falls as committed duration rises | It will be evaluated as one more reward mechanism in the parameter sweeps of Milestone 2, through the swappable mechanism interface of [2.8](../../Milestone%202/2-8%20Collaborative%20Mechanism%20Design/). It adds a mechanism, not a new model, so the added work is small |
+| "Interesting idea", and "Sure if it does not result in a huge incremental lift.", on a minimum stake that falls as committed duration rises | It will be evaluated as one more reward mechanism in the parameter sweeps of Milestone 2, through the swappable mechanism interface of [2.8](/Phase-II/Milestone-2/2-8-Collaborative-Mechanism-Design/). It adds a mechanism, not a new model, so the added work is small |
 | "Yes, let me follow up with Matias on that.", on introductions to the institutional staking panel and the Summit slides | Waiting on the Foundation |
 | Live tracking after Helicon of new nodes' duration choices, old nodes lowering their duration, and the overall duration distribution | Started. The validator set has been captured daily since Helicon, and the first full comparison runs on 2026-09-29, after the first 48-hour cycles have renewed. The three views are next |
 | New flow is likely to come from ETFs, so check for a notable NAV increase in the AVAX ETF or ETFs holding AVAX | To be added to the data catalogue |

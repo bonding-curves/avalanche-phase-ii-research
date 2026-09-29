@@ -21,6 +21,8 @@ from . import dataapi
 from . import datasets
 from . import defillama
 from . import derived
+from . import etf
+from . import helicon
 from . import metrics
 from . import monetary
 from . import nodes
@@ -55,12 +57,14 @@ MODULES = {
     treasury.DATASET_ID: treasury,
     derived.DATASET_ID: derived,
     nodes.DATASET_ID: nodes,
+    helicon.DATASET_ID: helicon,
     monetary.DATASET_ID: monetary,
     **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
     **{dataset_id: validators_api for dataset_id in validators_api.DATASET_IDS},
     **{dataset_id: builderhub for dataset_id in builderhub.DATASET_IDS},
     **{dataset_id: weeks for dataset_id in weeks.DATASET_IDS},
+    **{dataset_id: etf for dataset_id in etf.DATASET_IDS},
 }
 
 

@@ -38,10 +38,10 @@ class CollectionNavigationTest(unittest.TestCase):
             self.assertEqual(report["coverage"], [{"collection_id": "collection:readings", "members": 1, "local_editions": 1, "studies": 1}])
             collection_text = (root / "content/Phase II/Essential Readings/index.md").read_text()
             self.assertIn("title: Essential Readings", collection_text)
-            self.assertIn("[Source title](Source/) · Article", collection_text)
+            self.assertIn("[Source title](/Phase-II/Essential%20Readings/Source/) · Article", collection_text)
             package_text = (root / "content/Phase II/Essential Readings/Source/index.md").read_text()
-            self.assertIn("[Source Article](Source%20Article)", package_text)
-            self.assertIn("[Reproduction](Reproduction)", package_text)
+            self.assertIn("[Source Article](/Phase-II/Essential%20Readings/Source/Source%20Article)", package_text)
+            self.assertIn("[Reproduction](/Phase-II/Essential%20Readings/Source/Reproduction)", package_text)
             self.assertEqual(collection_navigation.result("check", root, registry_path)["status"], "pass")
 
     def test_rejects_missing_collection_member(self):

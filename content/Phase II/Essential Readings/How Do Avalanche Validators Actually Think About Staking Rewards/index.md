@@ -8,4 +8,4 @@ The source, and the research built on it as each part is delivered.
 
 ## Contents
 
-- [Source Article](Source%20Article)
+- [Source Article](/Phase-II/Essential%20Readings/How%20Do%20Avalanche%20Validators%20Actually%20Think%20About%20Staking%20Rewards/Source%20Article)
