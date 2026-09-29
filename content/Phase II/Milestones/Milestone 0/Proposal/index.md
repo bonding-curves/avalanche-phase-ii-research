@@ -1,3 +1,8 @@
+---
+title: "Proposal v2.5"
+description: "The accepted Phase II proposal, version 2.5: Parameter Selection Under Uncertainty for Avalanche Staking."
+---
+
 # Avalanche Staking Economics: Phase II Proposal
 
 **Project:** Parameter Selection Under Uncertainty for Avalanche Staking
