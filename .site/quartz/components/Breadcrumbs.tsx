@@ -7,6 +7,7 @@ import { trieFromAllFiles } from "../util/ctx"
 type CrumbData = {
   displayName: string
   path: string
+  hasPage: boolean
 }
 
 interface BreadcrumbOptions {
@@ -35,10 +36,16 @@ const defaultOptions: BreadcrumbOptions = {
   showCurrentPage: true,
 }
 
-function formatCrumb(displayName: string, baseSlug: FullSlug, currentSlug: SimpleSlug): CrumbData {
+function formatCrumb(
+  displayName: string,
+  baseSlug: FullSlug,
+  currentSlug: SimpleSlug,
+  hasPage: boolean,
+): CrumbData {
   return {
     displayName: displayName.replaceAll("-", " "),
     path: resolveRelative(baseSlug, currentSlug),
+    hasPage,
   }
 }
 
@@ -59,7 +66,12 @@ export default ((opts?: Partial<BreadcrumbOptions>) => {
     }
 
     const crumbs: CrumbData[] = pathNodes.map((node, idx) => {
-      const crumb = formatCrumb(node.displayName, fileData.slug!, simplifySlug(node.slug))
+      const crumb = formatCrumb(
+        node.displayName,
+        fileData.slug!,
+        simplifySlug(node.slug),
+        node.data !== null,
+      )
       if (idx === 0) {
         crumb.displayName = options.rootName
       }
@@ -80,7 +92,11 @@ export default ((opts?: Partial<BreadcrumbOptions>) => {
       <nav class={classNames(displayClass, "breadcrumb-container")} aria-label="breadcrumbs">
         {crumbs.map((crumb, index) => (
           <div class="breadcrumb-element">
-            <a href={crumb.path}>{crumb.displayName}</a>
+            {crumb.hasPage ? (
+              <a href={crumb.path}>{crumb.displayName}</a>
+            ) : (
+              <span>{crumb.displayName}</span>
+            )}
             {index !== crumbs.length - 1 && <p>{` ${options.spacerSymbol} `}</p>}
           </div>
         ))}
