@@ -22,6 +22,11 @@ These documents represent the **approved, current state of the research** (Septe
    * **Capabilities:** Real-time parameter slider sweeps, candidate curve comparisons, live Axioms 1–5 compliance scorecard, marginal elasticity profiles $\varepsilon_{S, d}$, and governance presets.
    * **Local Server Mirror:** `research/plots/admission_frontier_digital_twin.html`.
 
+4. **[Empirical Calibration & Digital Twin Guide](./2026-09-29-empirical-calibration-and-digital-twin-guide.md)**
+   * **Scope:** Operational guide for empirical grounding and cadCAD simulation.
+   * **Key Sections:** Census quantiles from `01-renewal-panel.parquet`, Stationary Continuous Arrival invariant, state representation, and execution steps for Methodological Steps 5–7.
+
+
 ---
 
 ## Active Calibration Scope: The Bounded Harmonic P-Decay Frontier
