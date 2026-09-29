@@ -87,9 +87,11 @@ def test_the_share_last_date_comes_from_the_backup(tmp_path):
     runs = tmp_path / "runs"
     columns = SPECS["snowflake.c-chain-evm-burn-daily"].table_columns
     day = [date(2026, 9, 19 + offset) for offset in range(4)]
-    make_run(runs, "share", "snowflake.c-chain-evm-burn-daily", columns, [{"date_utc": day[0], "burned_wei": 5}, {"date_utc": day[1], "burned_wei": 3}])
+    complete = {"absent_blocks": 0, "short_blocks": 0}
+    make_run(runs, "share", "snowflake.c-chain-evm-burn-daily", columns,
+             [{"date_utc": day[0], "burned_wei": 5, **complete}, {"date_utc": day[1], "burned_wei": 3, **complete}])
     make_run(runs, "backup", "derived.c-chain-evm-burn-daily", columns,
-             [{"date_utc": day[0], "burned_wei": 5}, {"date_utc": day[1], "burned_wei": 6}, {"date_utc": day[2], "burned_wei": 7}])
+             [{"date_utc": day[0], "burned_wei": 5, **complete}, {"date_utc": day[1], "burned_wei": 6, **complete}, {"date_utc": day[2], "burned_wei": 7, **complete}])
     output = runs / "seamed"
     seam.derive("derived.seamed-c-chain-evm-burn-daily", output, root=runs)
     rows = duckdb.connect().execute("SELECT date_utc::VARCHAR, burned_wei::BIGINT, source FROM read_parquet(?) ORDER BY 1",
@@ -103,3 +105,20 @@ def test_downstream_reads_the_seamed_table_unless_the_share_is_pinned(root):
     seam.derive("derived.seamed-validator-stakes", root / "seamed", root=root)
     assert seam.resolve(share, None, root) == ("derived.seamed-validator-stakes", None)
     assert seam.resolve(share, {share: "share-validators"}, root) == (share, "share-validators")
+
+
+def test_a_share_day_that_declares_itself_incomplete_is_kept_but_not_compared(tmp_path):
+    runs = tmp_path / "runs"
+    columns = SPECS["snowflake.c-chain-evm-burn-daily"].table_columns
+    day = [date(2026, 9, 19 + offset) for offset in range(3)]
+    make_run(runs, "share", "snowflake.c-chain-evm-burn-daily", columns,
+             [{"date_utc": day[0], "burned_wei": 5, "absent_blocks": 1, "short_blocks": 0}, {"date_utc": day[1], "burned_wei": 3, "absent_blocks": 0, "short_blocks": 0},
+              {"date_utc": day[2], "burned_wei": 1, "absent_blocks": 0, "short_blocks": 0}])
+    make_run(runs, "backup", "derived.c-chain-evm-burn-daily", columns,
+             [{"date_utc": day[0], "burned_wei": 9, "absent_blocks": 0, "short_blocks": 0}, {"date_utc": day[1], "burned_wei": 3, "absent_blocks": 0, "short_blocks": 0},
+              {"date_utc": day[2], "burned_wei": 4, "absent_blocks": 0, "short_blocks": 0}])
+    overlap = seam.derive("derived.seamed-c-chain-evm-burn-daily", runs / "seamed", root=runs)["build"]["summary"]["overlap"]
+    assert (overlap["rows_compared"], overlap["share_rows_incomplete_not_compared"]) == (1, 1)
+    rows = duckdb.connect().execute("SELECT burned_wei::BIGINT, source FROM read_parquet(?) ORDER BY date_utc",
+                                    [str(runs / "seamed" / "dataset" / "seamed-c-chain-evm-burn-daily.parquet")]).fetchall()
+    assert rows == [(5, "snowflake"), (3, "snowflake"), (4, "backup")]

@@ -5,8 +5,9 @@ import pytest
 import duckdb
 import param as pm
 
+import avalanche_research.staking_cohorts as staking_cohorts
 from avalanche_research.staking_cohorts import (
-    StakingCohorts, cohort_table, denominator_options, distinct_identities, for_population, rates_per,
+    StakingCohorts, cohort_table, denominator_options, display_columns, distinct_identities, for_population, rates_per,
     selected_columns,
 )
 
@@ -202,7 +203,7 @@ def test_node_and_time_denominators(cohorts):
     assert weekly.loc["Validator", "Commitments / Address / Week"] == pytest.approx(7 / 3)
     assert weekly.loc["Validator", "Stake / Address / Week (AVAX)"] == pytest.approx(800 * 7 / 9)
     visible = selected_columns(weekly, ["Nodes", "Addresses"], ["Per Address", "Per Node"], "Week")
-    assert visible.columns[-2:].tolist() == ["Nodes per Address", "Addresses per Node"]
+    assert visible.columns[-2:].tolist() == ["Addresses per Node", "Nodes per Address"]
 
 
 def test_population_selection_shows_only_applicable_address_count():
@@ -226,8 +227,9 @@ def test_metric_and_view_selections_keep_context_and_filter_families(cohorts):
     assert visible.columns.tolist() == [
         "Reporting Interval", "Start (UTC)", "End (UTC)", "Role", "Total Weeks",
         "Total Committed Duration (commitment-days)",
+        "Total Rewards (AVAX)",
         "Committed Duration / Node / Week (commitment-days/node/week)",
-        "Total Rewards (AVAX)", "Rewards / Node / Week (AVAX)", "Reward Outcomes",
+        "Rewards / Node / Week (AVAX)", "Reward Outcomes",
     ]
     context = selected_columns(table, [], [], "Week")
     assert context.columns.tolist() == visible.columns.tolist()[:5]
@@ -263,8 +265,8 @@ def test_address_denominators_follow_population_and_rate_unit(cohorts):
     visible = selected_columns(weekly, ["Commitments", "Stake"],
                                ["Per Address", "Per Address per Calendar Unit"], "Week")
     assert visible.columns.tolist()[-4:] == [
-        "Commitments / Address", "Commitments / Address / Week",
-        "Stake / Address (AVAX)", "Stake / Address / Week (AVAX)",
+        "Commitments / Address", "Stake / Address (AVAX)",
+        "Commitments / Address / Week", "Stake / Address / Week (AVAX)",
     ]
     assert weekly.set_index("Role")["Total Addresses"].to_dict() == {"Validator": 3, "Delegator": 1}
 
@@ -280,6 +282,47 @@ def test_denominator_labels_follow_rate_unit_without_changing_view_keys():
     assert weekly["Per Address per Week"] == "Per Address per Calendar Unit"
 
 
+def test_display_headings_use_per_without_changing_values_or_selection_order(cohorts):
+    table = rates_per(for_population(cohort_table(*cohorts, "All"), "Validators"), "Week")
+    selected = selected_columns(table, ["Commitments", "Stake"],
+                                ["Total", "Per Calendar Unit", "Per Commitment"], "Week")
+    displayed = display_columns(selected)
+    assert displayed.columns.tolist() == [
+        "Reporting Interval", "Start (UTC)", "End (UTC)", "Role", "Total Weeks",
+        "Total Commitments", "Total Stake (AVAX)",
+        "Commitments per Week", "Stake per Week (AVAX)",
+        "Stake per Commitment (AVAX)",
+    ]
+    assert displayed.iloc[0, -1] == selected.iloc[0, -1]
+
+
+def test_pinned_run_data_is_reused_across_explorers(monkeypatch):
+    calls = []
+    capture = {"inputs": [
+        {"input_id": "validator-stakes", "dataset_id": "validators", "run": "source",
+         "captured_at": "2026-09-22T00:00:00Z"},
+        {"input_id": "delegator-stakes", "dataset_id": "delegators", "run": "source",
+         "captured_at": "2026-09-22T00:00:00Z"},
+        {"input_id": "staking-rewards", "captured_at": "2026-09-22T00:00:00Z"},
+    ]}
+
+    def receipt(dataset, run):
+        calls.append((dataset, run))
+        return {"capture": capture}
+
+    monkeypatch.setattr(staking_cohorts.datasets, "receipt", receipt)
+    monkeypatch.setattr(staking_cohorts.datasets, "parquet_path", lambda dataset, run: f"{dataset}/{run}")
+    monkeypatch.setattr(staking_cohorts, "accepted_commitments", lambda path: pd.DataFrame())
+    monkeypatch.setattr(staking_cohorts, "distinct_identities", lambda *paths: pd.DataFrame())
+    monkeypatch.setattr(staking_cohorts, "cohort_table", lambda *args: pd.DataFrame())
+
+    first = StakingCohorts("fixture-cohort-cache")
+    second = StakingCohorts("fixture-cohort-cache")
+    assert calls == [("derived.staking-periods", "fixture-cohort-cache")]
+    assert first is not second
+    assert first._tables is second._tables
+
+
 def test_panel_keeps_one_table_when_selections_change(monkeypatch):
     explorer = StakingCohorts.__new__(StakingCohorts)
     pm.Parameterized.__init__(explorer)
@@ -289,6 +332,7 @@ def test_panel_keeps_one_table_when_selections_change(monkeypatch):
     monkeypatch.setattr(StakingCohorts, "_frame", lambda self: pd.DataFrame({"Quantity count": [len(self.metrics)]}))
 
     panel = explorer.panel()
+    assert explorer.panel() is panel
     table = panel[1]
     assert table.value.loc[0, "Quantity count"] == 7
     explorer.metrics = ["Stake"]
