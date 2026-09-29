@@ -7015,7 +7015,7 @@
           "name": "l1_validator_fees_navax",
           "type": "integer",
           "unit": "nAVAX",
-          "derivation": "P-Chain: the earlier active L1 validator count times the rise in accrued fees between consecutive blocks of the Data API's block list, dated by the later block; X-Chain: 0"
+          "derivation": "P-Chain: the earlier active L1 validator count times the rise in accrued fees between consecutive blocks holding a transaction in the Data API's block list, dated by the later block, as the share reads them at transactions; X-Chain: 0"
         }
       ]
     },

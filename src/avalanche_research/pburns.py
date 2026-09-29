@@ -4,7 +4,9 @@ A transaction burns the AVAX it consumes less the AVAX it creates: inputs and im
 outputs, and staked outputs. The three P-Chain transactions that fund an L1 validator balance carry that deposit in the
 difference; it is subtracted and reported apart, as in the share, because it is consumed later as the continuous L1
 validator fee. That fee is the earlier active L1 validator count times the rise in the fee each has accrued, between
-consecutive P-Chain blocks of the Data API's block list, dated by the later block. ``RewardValidatorTx``,
+consecutive P-Chain blocks that hold a transaction, from the Data API's block list, dated by the later block. The share
+reads the counters at transactions, so blocks without one are skipped; reading every block instead differs by at most
+0.0003 AVAX a day over 2026-09-15 to 2026-09-21, from active counts that change at blocks without transactions. ``RewardValidatorTx``,
 ``RewardAutoRenewedValidatorTx``, and ``AdvanceTimeTx`` consume nothing and count as system transactions; every other
 transaction is settled by the node's own record, counted as recorded.
 
@@ -88,7 +90,8 @@ def compute(inputs: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
         spans = {chain: connection.execute("SELECT min(block_time), max(block_time) FROM read_parquet(?)", [paths[key]]).fetchone()
                  for chain, key in (("P", "p-chain-blocks"), ("X", "x-chain-blocks"))}
         counters = connection.execute(
-            "SELECT block_timestamp, active_l1_validators, l1_validators_accrued_fees_navax FROM read_parquet(?) ORDER BY block_height",
+            "SELECT block_timestamp, active_l1_validators, l1_validators_accrued_fees_navax FROM read_parquet(?) WHERE transactions > 0"
+            " ORDER BY block_height",
             [paths["p-block-list"]]).fetchall()
     finally:
         connection.close()
@@ -146,7 +149,7 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
         "dataset_id": DATASET_ID, "source_id": SOURCE_ID, "completed_at": completed_at, "contract_sha256": contract_hash(catalog, DATASET_ID),
         "tool": f"avalanche-research@{__version__}", "inputs": records,
         "parameters": {"burn_rule": "inputs and imported inputs less outputs, exported outputs, staked outputs, and L1 balance deposits",
-                       "l1_fee_rule": "earlier active L1 validator count times the rise in accrued fees between consecutive P-Chain blocks, dated by the later block"},
+                       "l1_fee_rule": "earlier active L1 validator count times the rise in accrued fees between consecutive P-Chain blocks holding a transaction, dated by the later block"},
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
