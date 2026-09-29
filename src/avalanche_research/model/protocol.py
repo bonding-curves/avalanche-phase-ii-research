@@ -393,6 +393,32 @@ def delegator_rewards_at_end(potential_reward_navax: int, delegation_fee_shares:
     return delegator, fee
 
 
+def delegation_fee_deferred(validator_start: datetime, upgrades: UpgradeSchedule = MAINNET_UPGRADES) -> bool:
+    """Whether a validator's delegation fees wait until its own end. Keyed to the validator's start, not the
+    delegation's: AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L668 (Cortina)."""
+    return upgrades.activated("cortina", validator_start)
+
+
+def settle_delegation_fee(
+    fee_navax: int,
+    delegatee_reward_navax: int,
+    validator_start: datetime,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[int, int]:
+    """(fee paid at the delegation's end, validator's accrued delegatee reward after) for one rewarded delegation.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L667-L708 rewardDelegatorTx. For a
+    validator that started at or after Cortina the fee is added to its delegatee reward, which is paid when the
+    validator ends whatever its uptime (validator_rewards_at_end), or split and restaked at an ACP-236 cycle end
+    (auto_renew_restake). For earlier validators the fee is paid when the delegation ends.
+    """
+    if fee_navax < 0 or delegatee_reward_navax < 0:
+        raise ModelError("fees must be non-negative")
+    if delegation_fee_deferred(validator_start, upgrades):
+        return 0, delegatee_reward_navax + fee_navax
+    return fee_navax, delegatee_reward_navax
+
+
 def auto_renew_continues(passed: bool, next_period_seconds: int) -> bool:
     """Whether an ACP-236 validator starts another cycle at its cycle end.
 

@@ -553,3 +553,31 @@ def test_delegator_admission_order_and_rules():
     assert check(*short_small) == protocol.ERR_WEIGHT_TOO_SMALL
     pre_durango = protocol.MAINNET_UPGRADES.time("durango") - timedelta(days=1)
     assert check(short_small[0], pre_durango, pre_durango + timedelta(days=1), at=pre_durango) == protocol.ERR_STAKE_TOO_SHORT
+
+
+# KG7 delegation fee deferral
+CORTINA = protocol.MAINNET_UPGRADES.time("cortina")
+
+
+def test_delegation_fee_paid_at_delegation_end_before_cortina():
+    # reward_validator_test.go TestRewardDelegatorTxExecuteOnCommitPreDelegateeDeferral: 25% of a 1,000,000 reward
+    # reaches the validator's delegation owner when the delegation ends.
+    delegator, fee = protocol.delegator_rewards_at_end(1_000_000, protocol.PERCENT_DENOMINATOR // 4, passed=True)
+    assert protocol.settle_delegation_fee(fee, 0, CORTINA - timedelta(seconds=1)) == (250_000, 0)
+    assert delegator == 750_000
+
+
+def test_delegation_fee_deferred_to_validator_end_from_cortina():
+    # reward_validator_test.go TestRewardDelegatorTxExecuteOnCommitPostDelegateeDeferral and
+    # TestRewardDelegatorTxAndValidatorTxExecuteOnCommitPostDelegateeDeferral: delegation reward 1,000,000 at 25%,
+    # validator reward 2,000,000. Nothing reaches the validator at the delegation's end; at its own end it
+    # receives 2,000,000 plus 1,000,000 / 4.
+    delegator, fee = protocol.delegator_rewards_at_end(1_000_000, protocol.PERCENT_DENOMINATOR // 4, passed=True)
+    paid_now, accrued = protocol.settle_delegation_fee(fee, 0, CORTINA)
+    assert (delegator, paid_now, accrued) == (750_000, 0, 250_000)
+    assert protocol.validator_rewards_at_end(2_000_000, accrued, passed=True) == (2_000_000, 250_000)
+    assert protocol.validator_rewards_at_end(2_000_000, accrued, passed=False) == (0, 250_000)
+    # keyed to the validator's start, not the delegation's
+    assert not protocol.delegation_fee_deferred(CORTINA - timedelta(seconds=1))
+    assert protocol.delegation_fee_deferred(CORTINA)
+    assert protocol.settle_delegation_fee(10, 5, CORTINA) == (0, 15)
