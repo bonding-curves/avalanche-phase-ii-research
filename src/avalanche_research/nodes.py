@@ -109,7 +109,7 @@ SELECT p.node_id,
        min(p.start_time) AS first_start,
        max(p.end_time) AS last_end,
        max(p.end_time) > ?::TIMESTAMP AS active,
-       count(*) AS periods,
+       sum(p.cycles) AS periods,
        count(*) FILTER (WHERE p.rewarded_at IS NOT NULL) AS closed_periods,
        count(*) FILTER (WHERE p.rewarded_at IS NOT NULL AND p.realized_reward_navax = 0) AS failed_periods,
        any_value(s.streaks) AS streaks,
@@ -236,6 +236,12 @@ def as_of_time(inputs: list[dict[str, Any]]) -> str:
     return next(item["captured_at"] for item in inputs if item["input_id"] == "validator-stakes")
 
 
+def cycles_of(path: str) -> str:
+    """Nothing for a log with the Helicon cycle columns, else one cycle per period."""
+    columns = {row[0] for row in duckdb.connect().execute(f"DESCRIBE SELECT * FROM read_parquet('{path}')").fetchall()}
+    return "" if "cycles" in columns else ", 1 AS cycles"
+
+
 def load_inputs(connection: Any, inputs: list[dict[str, Any]]) -> None:
     names = {"staking-periods": "periods", "validator-stakes": "validators", "delegator-stakes": "delegators", "current-validators": "rpc_snapshot", "validators-active": "api_snapshot"}
     present = set()
@@ -243,6 +249,13 @@ def load_inputs(connection: Any, inputs: list[dict[str, Any]]) -> None:
         path = str(item["path"]).replace("'", "''")
         connection.execute(f"CREATE OR REPLACE VIEW {names[item['input_id']]} AS SELECT * FROM read_parquet('{path}')")
         present.add(item["input_id"])
+    periods = str(next(item["path"] for item in inputs if item["input_id"] == "staking-periods")).replace("'", "''")
+    columns = {row[0] for row in connection.execute(f"DESCRIBE SELECT * FROM read_parquet('{periods}')").fetchall()}
+    # An auto-renewed validator runs to the end of its latest cycle, and each of its cycles is a period (NC6). A log built
+    # before the Helicon grain has neither column, and every period in it is one cycle.
+    cycles = "" if "cycles" in columns else ", 1 AS cycles, NULL::TIMESTAMP AS last_cycle_end_time"
+    connection.execute(f"CREATE OR REPLACE VIEW periods AS SELECT * REPLACE (coalesce(last_cycle_end_time, end_time) AS end_time) FROM"
+                       f" (SELECT *{cycles} FROM read_parquet('{periods}'))")
     key = {frozenset(): "none", frozenset({"current-validators"}): "rpc", frozenset({"validators-active"}): "api", frozenset({"current-validators", "validators-active"}): "both"}
     connection.execute(OBSERVERS_SQL[key[frozenset(present & set(OPTIONAL_INPUTS))]])
 
@@ -372,7 +385,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                     path = str(inputs["staking-periods"]).replace("'", "''")
                     stamp = receipt["as_of"].replace("Z", "")
                     nodes, periods, rewards = connection.execute(
-                        f"SELECT count(DISTINCT node_id), count(*), round(coalesce(sum(realized_reward_navax), 0) / 1e9, 6) FROM read_parquet('{path}') WHERE role = 'validator' AND start_time < ?::TIMESTAMP", [stamp]
+                        f"SELECT count(DISTINCT node_id), sum(cycles), round(coalesce(sum(realized_reward_navax), 0) / 1e9, 6) FROM (SELECT *{cycles_of(path)} FROM read_parquet('{path}')) WHERE role = 'validator' AND start_time < ?::TIMESTAMP", [stamp]
                     ).fetchone()
                     summary.update({"log_validator_nodes": nodes, "log_validator_periods": periods, "log_validator_rewards_avax": rewards})
                     if nodes != summary["rows"]:

@@ -1433,6 +1433,11 @@
           "id": "c-evm-daily-backup",
           "dataset_id": "derived.c-chain-evm-burn-daily",
           "role": "C-Chain EVM burn per day from the Data API's block list"
+        },
+        {
+          "id": "p-staking-cycles",
+          "dataset_id": "derived.p-chain-staking-cycles",
+          "role": "one row per cycle of each ACP-236 auto-renewed validator, from a P-Chain walk"
         }
       ]
     },
@@ -4602,12 +4607,13 @@
       "studies": [
         "How Do Avalanche Validators Actually Think About Staking Rewards?"
       ],
-      "description": "One row per staking period on the Avalanche Primary Network, validators and delegators together, joined to its reward outcome and its supply reading, with the network upgrade regime at acceptance and the reward the protocol kernel computes for the row.",
+      "description": "One row per staking period on the Avalanche Primary Network, validators and delegators together, joined to its reward outcome and its supply reading, with the network upgrade regime at acceptance and the reward the protocol kernel computes for the row. From Helicon one auto-renewed transaction holds many cycles: its row keeps the transaction's first period, and cycles and last_cycle_end_time give the rest.",
       "input_ids": [
         "validator-stakes",
         "delegator-stakes",
         "staking-rewards",
-        "staking-supply"
+        "staking-supply",
+        "p-staking-cycles"
       ],
       "fields": [
         {
@@ -4765,6 +4771,18 @@
           "type": "boolean",
           "unit": "flag, null when no kernel value",
           "derivation": "kernel_reward_navax equals potential_reward_navax"
+        },
+        {
+          "name": "cycles",
+          "type": "integer",
+          "unit": "cycles",
+          "derivation": "1 for an ordinary period; for an ACP-236 auto-renewed validator, the cycles its transaction has started, from derived.p-chain-staking-cycles when that table is built"
+        },
+        {
+          "name": "last_cycle_end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the end of the latest cycle of an auto-renewed validator; null for an ordinary period, whose end is end_time"
         }
       ]
     },

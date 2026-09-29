@@ -91,7 +91,7 @@ def root(tmp_path: Path) -> Path:
 def test_catalog_declares_the_staking_period_log():
     definition = next(item for item in load_catalog()["datasets"] if item["id"] == derived.DATASET_ID)
     assert [field["name"] for field in definition["fields"]] == list(derived.TABLE_COLUMNS)
-    assert definition["input_ids"] == list(derived.INPUTS)
+    assert definition["input_ids"] == [*derived.INPUTS, *derived.OPTIONAL_INPUTS]
 
 
 def test_derive_joins_regimes_and_kernel(root):

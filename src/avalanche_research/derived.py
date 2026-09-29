@@ -43,8 +43,12 @@ TABLE_COLUMNS = {
     "rewarded": "BOOLEAN", "delegation_fee_rate": "DOUBLE", "regime": "VARCHAR", "start_kind": "VARCHAR",
     "rewarded_at": "TIMESTAMP", "realized_reward_navax": "BIGINT", "realized_reward_avax": "DOUBLE",
     "fee_transfer_navax": "BIGINT", "supply_before_navax": "BIGINT", "kernel_reward_navax": "BIGINT",
-    "kernel_gap_navax": "BIGINT", "reproduced": "BOOLEAN",
+    "kernel_gap_navax": "BIGINT", "reproduced": "BOOLEAN", "cycles": "BIGINT", "last_cycle_end_time": "TIMESTAMP",
 }
+# From Helicon one AddAutoRenewedValidatorTx holds many cycles (glossary G9, decision DC3). The row keeps the transaction's
+# own first period; cycles counts the cycles it has started and last_cycle_end_time ends the latest. History has none, so
+# the cycle table is optional.
+OPTIONAL_INPUTS = {"p-staking-cycles": "derived.p-chain-staking-cycles"}
 IMMEDIATE_REPRODUCTION_FLOOR = 0.999
 # From Cortina, a delegator's fee is withheld from its reward and paid to the validator at the validator's own period end,
 # so a rewarded delegation's fee_transfer equals -(potential reward x the validator's fee rate) to the nAVAX. Before
@@ -79,17 +83,20 @@ SELECT s.*,
        CASE WHEN s.start_time > s.accepted_at THEN 'pending' ELSE 'immediate' END AS start_kind,
        r.rewarded_at, r.realized_reward_navax, r.realized_reward_avax, r.fee_transfer_navax,
        u.supply_before_navax,
-       NULL::BIGINT AS kernel_reward_navax
+       NULL::BIGINT AS kernel_reward_navax,
+       coalesce(c.cycles, 1) AS cycles, c.last_cycle_end_time
 FROM unioned s
 ASOF LEFT JOIN upgrades g ON s.accepted_at >= g.activated_at
 LEFT JOIN rewards r ON r.staking_transaction_hash = s.transaction_hash
 LEFT JOIN supply u USING (transaction_hash)
+LEFT JOIN (SELECT validator_transaction_hash, count(*) AS cycles, max(end_time) AS last_cycle_end_time FROM cycles GROUP BY 1) c
+       ON c.validator_transaction_hash = s.transaction_hash
 """
 
+_COMPUTED = {"kernel_gap_navax": "kernel_reward_navax - potential_reward_navax AS kernel_gap_navax",
+             "reproduced": "kernel_reward_navax = potential_reward_navax AS reproduced"}
 PERIODS_SQL = f"""
-SELECT {', '.join(name for name in TABLE_COLUMNS if name not in ('kernel_gap_navax', 'reproduced'))},
-       kernel_reward_navax - potential_reward_navax AS kernel_gap_navax,
-       kernel_reward_navax = potential_reward_navax AS reproduced
+SELECT {', '.join(_COMPUTED.get(name, name) for name in TABLE_COLUMNS)}
 FROM stakes
 ORDER BY accepted_at, transaction_hash
 """
@@ -105,7 +112,7 @@ SELECT count(*) AS rows,
        count(*) FILTER (WHERE supply_before_navax IS NULL) AS gap_without_supply_row,
        count(*) FILTER (WHERE supply_before_navax IS NOT NULL AND kernel_reward_navax IS NULL) AS kernel_failed,
        count(*) FILTER (WHERE rewarded_at IS NOT NULL) AS with_reward_row,
-       count(*) FILTER (WHERE rewarded_at IS NULL AND end_time < ?::TIMESTAMP) AS gap_ended_without_reward_row,
+       count(*) FILTER (WHERE rewarded_at IS NULL AND end_time < ?::TIMESTAMP AND tx_type <> 'AddAutoRenewedValidatorTx') AS gap_ended_without_reward_row,
        count(*) FILTER (WHERE rewarded_at IS NULL AND end_time >= ?::TIMESTAMP) AS open_periods,
        count(*) FILTER (WHERE realized_reward_navax = 0) AS zero_realized,
        count(DISTINCT transaction_hash) AS distinct_hashes,
@@ -143,12 +150,14 @@ def upgrade_schedule() -> list[dict[str, str]]:
 def select_inputs(pinned: dict[str, str] | None, root: Path | None) -> list[dict[str, Any]]:
     """The input runs: pinned by ``dataset_id=run`` or the newest built run of each input."""
     pinned = pinned or {}
-    unknown = sorted(set(pinned) - set(INPUTS.values()) - set(seam.SEAMED.values()))
+    unknown = sorted(set(pinned) - set(INPUTS.values()) - set(OPTIONAL_INPUTS.values()) - set(seam.SEAMED.values()))
     if unknown:
         raise DataError(f"not an input of {DATASET_ID}: {', '.join(unknown)}")
     selected = []
-    for input_id, share_id in INPUTS.items():
+    for input_id, share_id in {**INPUTS, **OPTIONAL_INPUTS}.items():
         dataset_id, run = seam.resolve(share_id, pinned, root)
+        if input_id in OPTIONAL_INPUTS and run is None and not datasets.runs(dataset_id, root):
+            continue
         record = datasets.receipt(dataset_id, run, root)
         parquet = datasets.parquet_path(dataset_id, run, root)
         body = parquet.read_bytes()
@@ -162,10 +171,13 @@ def select_inputs(pinned: dict[str, str] | None, root: Path | None) -> list[dict
 
 
 def load_inputs(connection: Any, inputs: list[dict[str, Any]]) -> None:
-    names = {"validator-stakes": "validators", "delegator-stakes": "delegators", "staking-rewards": "rewards", "staking-supply": "supply"}
+    names = {"validator-stakes": "validators", "delegator-stakes": "delegators", "staking-rewards": "rewards", "staking-supply": "supply",
+             "p-staking-cycles": "cycles"}
     for item in inputs:
         path = str(item["path"]).replace("'", "''")
         connection.execute(f"CREATE OR REPLACE VIEW {names[item['input_id']]} AS SELECT * FROM read_parquet('{path}')")
+    if not any(item["input_id"] == "p-staking-cycles" for item in inputs):
+        connection.execute("CREATE OR REPLACE TABLE cycles(validator_transaction_hash VARCHAR, cycle INTEGER, end_time TIMESTAMP)")
     connection.execute("CREATE OR REPLACE TABLE upgrades(regime VARCHAR, activated_at TIMESTAMP)")
     for item in MAINNET_UPGRADES.upgrades:
         connection.execute("INSERT INTO upgrades VALUES (?, ?)", [item.name, item.activated_at.replace(tzinfo=None)])
@@ -223,6 +235,8 @@ def summarize(connection: Any, as_of: str) -> dict[str, Any]:
         summary[key] = summary[key].isoformat(timespec="seconds") + "Z" if summary[key] is not None else None
     summary["immediate_reproduced_share"] = summary["immediate_reproduced"] / summary["immediate_rows"] if summary["immediate_rows"] else None
     summary["pending_reproduced_share"] = summary["pending_reproduced"] / summary["pending_rows"] if summary["pending_rows"] else None
+    summary["auto_renewed_periods"], summary["auto_renewed_cycles"] = connection.execute(
+        "SELECT count(*), coalesce(sum(cycles), 0) FROM periods WHERE tx_type = 'AddAutoRenewedValidatorTx'").fetchone()
     placeholders = ", ".join("?" for _ in PRE_CORTINA)
     fee_rows, fee_matched = connection.execute(FEE_RECONCILIATION_SQL.format(pre_cortina=placeholders), list(PRE_CORTINA)).fetchone()
     summary["fee_reconciled_rows"] = fee_rows

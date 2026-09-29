@@ -7,6 +7,7 @@ import pytest
 
 from avalanche_research import derived, nodes
 from avalanche_research.catalog import DataError, load_catalog
+from test_derived import make_run
 from test_derived import root as derived_root  # noqa: F401  the fixture with the four Snowflake runs
 
 
@@ -56,3 +57,17 @@ def test_rejects_fetch_and_build(tmp_path):
         nodes.capture(nodes.DATASET_ID, tmp_path / "x")
     with pytest.raises(DataError):
         nodes.build(nodes.DATASET_ID, tmp_path / "c", tmp_path / "d")
+
+
+def test_an_auto_renewed_validator_counts_its_cycles_and_runs_to_the_latest(derived_root):  # noqa: F811
+    # Three cycles of v1, the last ending after the validator capture time of 2026-09-19.
+    make_run(derived_root, "cycles", "derived.p-chain-staking-cycles", "p-chain-staking-cycles",
+             "SELECT 'v1' AS validator_transaction_hash, 'NodeID-1' AS node_id, i AS cycle, TIMESTAMP '2026-01-01' + INTERVAL (i) DAY AS start_time,"
+             " TIMESTAMP '2026-12-01' + INTERVAL (i) DAY AS end_time FROM range(1, 4) t(i)", "2026-09-19T10:04:00Z")
+    derived.derive(derived.DATASET_ID, derived_root / "staking-periods", None, derived_root)
+    output = derived_root / "node-table"
+    nodes.derive(nodes.DATASET_ID, output, None, derived_root)
+    node = duckdb.connect().execute("SELECT periods, active, last_end FROM read_parquet(?) WHERE node_id = 'NodeID-1'",
+                                    [str(output / "dataset" / "node-table.parquet")]).fetchone()
+    assert node[0] == 3 and node[1] is True and str(node[2]) == "2026-12-04 00:00:00"
+    assert nodes.check(output / "capture", output / "dataset", None, derived_root)["status"] == "pass"
