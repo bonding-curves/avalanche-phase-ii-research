@@ -371,11 +371,11 @@ class StakingCohorts(pm.Parameterized):
             width=220,
         )
         quantities = pn.widgets.CheckButtonGroup.from_param(
-            self.param.metrics, orientation="vertical", variant="outline", color="default", width=190,
+            self.param.metrics, orientation="vertical", variant="outline", color="primary", width=190,
         )
         denominators = pn.widgets.CheckButtonGroup.from_param(
             self.param.views, options=denominator_options(self.periodic_denominator),
-            orientation="vertical", variant="outline", color="default", width=220,
+            orientation="vertical", variant="outline", color="primary", width=220,
         )
         self.param.watch(lambda event: setattr(denominators, "options", denominator_options(event.new)),
                          "periodic_denominator")
