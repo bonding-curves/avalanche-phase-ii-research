@@ -12,7 +12,7 @@ The repository holds two Jupyter notebooks in `notebooks/`. Both read the built 
 
 ## Validator rewards article
 
-`validator-rewards-article.ipynb` rebuilds the evidence, data, and results of the article published on April 28, 2026, and keeps each assumption and open gap in view. The notebook is a work in progress. The article itself is on [How Do Avalanche Validators Actually Think About Staking Rewards?](/Phase-II/Wiki/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/).
+`validator-rewards-article.ipynb` rebuilds the evidence, data, and results of the article published on April 28, 2026, and keeps each assumption and open gap in view. The notebook is a work in progress. The article itself is on [How Do Avalanche Validators Actually Think About Staking Rewards?](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/).
 
 The notebook has these parts, in order:
 

@@ -21,7 +21,7 @@ The [Phase II overview](/Phase-II/) lists every deliverable with its own status.
 
 ## Where to start
 
-1. **The latest brief.** [Avalanche economic modeling, 25 September 2026](/Phase-II/Wiki/Briefs/2026-09-25/), as submitted in Notion.
+1. **The latest brief.** [Avalanche economic modeling, 25 September 2026](/Phase-II/Wiki/Briefs/2026-09-25-sprint-8/), as submitted in Notion.
 2. **The data.** [Data](/Phase-II/Wiki/Reference/Data) explains the 35 datasets, where each comes from, and how every number traces to a checked run. Deliverables [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) and [1.2](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) list them in full.
 3. **The notebooks.** [Notebooks](/Phase-II/Wiki/Reference/Notebooks) describes the two notebooks you can run: the evidence behind *How Do Avalanche Validators Actually Think About Staking Rewards?*, and every staking commitment since genesis.
 4. **The vocabulary.** [Glossary and Notation](/Phase-II/Wiki/Reference/Glossary-and-Notation) defines every term and symbol the site uses.
@@ -32,4 +32,4 @@ This site, the notebooks, the code, and the data all come from one repository. `
 
 ## Earlier work
 
-[Phase I](/Phase-I/) is the 2025 research, as delivered. The [Essential Readings](/Phase-II/Wiki/Essential-Readings/) are the six Foundation articles and sources the Phase II research builds on.
+[Phase I](/Phase-I/) is the 2025 research, as delivered. The [Essential Readings](/Phase-II/Wiki/Collections/Essential-Readings/) are the six Foundation articles and sources the Phase II research builds on.

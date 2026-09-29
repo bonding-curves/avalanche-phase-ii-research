@@ -1,6 +1,6 @@
 ---
 title: Wiki
-description: "The research as it is communicated: the Foundation's Essential Readings, one memo per finding, one brief per call, and the reference pages every memo relies on."
+description: "The research as it is communicated: the Foundation's Essential Readings, one memo per finding, one brief per call, and the reference pages every memo relies on, and the source collections."
 ---
 
 | Section | What it holds |
@@ -8,6 +8,6 @@ description: "The research as it is communicated: the Foundation's Essential Rea
 | [Briefs](/Phase-II/Wiki/Briefs/) | One brief per call with the Foundation: takeaways, discussion items with a question for the Foundation, and next steps. Each is what goes into Notion before the call |
 | [Memos](/Phase-II/Wiki/Memos/) | One finding each, chart first, with its number, unit, source run, and what it means for a decision |
 | [Reference](/Phase-II/Wiki/Reference/) | What every memo relies on: the data, the measures, the model and its assumptions, the validation standard, the glossary and notation, and the notebooks |
-| [Essential Readings](/Phase-II/Wiki/Essential-Readings/) | The nine Foundation sources the research reproduces and builds on |
+| [Collections](/Phase-II/Wiki/Collections/) | Curated sources the research reproduces and builds on, starting with the nine Essential Readings |
 
 Memos and briefs are written in their `drafts` folders and move up one level when they are submitted to the Foundation.

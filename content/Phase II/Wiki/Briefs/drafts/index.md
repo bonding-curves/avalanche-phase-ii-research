@@ -1,5 +1,5 @@
 ---
-title: Brief drafts
+title: Drafts
 description: "Briefs in preparation. Each moves up to Briefs when it is submitted."
 ---
 
