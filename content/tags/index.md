@@ -23,7 +23,7 @@ Every page in the [collections](/Phase-II/Wiki/Collections/) is filed under one 
 | [distributional effects](/tags/distributional-effects) | Who pays for emissions and who gains from rewards and the fee burn | 2 |
 | [mechanism design](/tags/mechanism-design) | Proposed rule changes and how to evaluate them | 2 |
 | [protocol governance](/tags/protocol-governance) | How protocol parameters change: proposals, validator voting, phased activation, and rules against discretion | 2 |
-| [market conditions](/tags/market-conditions) | Bull and bear markets, shocks, and how volatility changes choices | 0 |
+| market conditions | Bull and bear markets, shocks, and how volatility changes choices | 0 |
 
 ## Research method
 

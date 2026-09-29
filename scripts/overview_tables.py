@@ -124,14 +124,17 @@ ECONOMICS = 14  # the first 14 topics are about Avalanche's economics, the rest 
 
 
 def topic_index() -> str:
-    """The all-topics page: each topic, what it covers, and how many sources carry it."""
+    """The all-topics page: each topic, what it covers, and how many sources carry it.
+
+    Quartz builds a topic's page only once a source carries it, so a topic with no sources is listed without a link.
+    """
     counts = {slug: 0 for slug in TOPICS}
     for path in overview_pages():
         for slug in frontmatter(path.read_text(encoding="utf-8"))[0].get("tags", []):
             counts[slug] = counts.get(slug, 0) + 1
     def rows(slugs: list[str]) -> list[str]:
         return ["| Topic | What it covers | Sources |", "| --- | --- | ---: |",
-                *(f"| [{TOPICS[s][0]}](/tags/{s}) | {TOPICS[s][1]} | {counts[s]} |" for s in slugs)]
+                *(f"| {f'[{TOPICS[s][0]}](/tags/{s})' if counts[s] else TOPICS[s][0]} | {TOPICS[s][1]} | {counts[s]} |" for s in slugs)]
     slugs = list(TOPICS)
     return "\n".join([
         "---", 'title: "Topics"', 'description: "Every source in the collections, filed by topic: Avalanche economics and research method."', 'cssclasses: ["topics-index"]', "---", "",
