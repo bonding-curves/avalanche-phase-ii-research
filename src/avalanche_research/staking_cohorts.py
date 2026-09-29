@@ -591,11 +591,11 @@ class StakingCohorts(pm.Parameterized):
             parameters.append(self.param.normalization)
         grouping = pn.Column(*(pn.widgets.Select.from_param(parameter, width=220)
                                for parameter in parameters), width=220)
-        dates = pn.widgets.DateRangePicker.from_param(
+        dates = pn.widgets.DateRangeSlider.from_param(
             self.param.date_range, start=self.param.date_range.bounds[0],
-            end=self.param.date_range.bounds[1], width=220,
+            end=self.param.date_range.bounds[1], step=1, format="%Y-%m-%d",
+            throttled=True, width=660,
         )
-        grouping.append(dates)
         quantities = pn.widgets.CheckButtonGroup.from_param(
             self.param.metrics, orientation="vertical", variant="outline", color="primary", width=190,
         )
@@ -605,11 +605,14 @@ class StakingCohorts(pm.Parameterized):
         )
         self.param.watch(lambda event: setattr(denominators, "options", denominator_options(event.new)),
                          "periodic_denominator")
-        return pn.Row(
-            grouping, pn.Spacer(width=16),
-            pn.Column(pn.pane.Markdown("Quantities", margin=(0, 0, 4, 0)), quantities, width=190),
-            pn.Spacer(width=16),
-            pn.Column(pn.pane.Markdown("Denominators", margin=(0, 0, 4, 0)), denominators, width=220),
+        return pn.Column(
+            pn.Row(
+                grouping, pn.Spacer(width=16),
+                pn.Column(pn.pane.Markdown("Quantities", margin=(0, 0, 4, 0)), quantities, width=190),
+                pn.Spacer(width=16),
+                pn.Column(pn.pane.Markdown("Denominators", margin=(0, 0, 4, 0)), denominators, width=220),
+            ),
+            dates,
         )
 
     def panel(self):

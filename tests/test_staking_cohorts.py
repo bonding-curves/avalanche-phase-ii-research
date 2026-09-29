@@ -290,15 +290,16 @@ def test_chart_uses_table_controls_and_only_per_measures(cohorts, monkeypatch):
                               views=["Total", "Per Commitment"], normalization="Mean")
     chart = explorer.chart()
     assert chart is explorer.chart()
-    group_by_widget = explorer.panel()[0][0][0]
+    group_by_widget = explorer.panel()[0][0][0][0]
     group_by_widget.value = "Week"
     assert explorer.time_grain == "Week"
-    chart_group_by_widget = chart[0][0][0]
+    chart_group_by_widget = chart[0][0][0][0]
     assert chart_group_by_widget.value == "Week"
     chart_group_by_widget.value = "Day"
     assert group_by_widget.value == "Day"
     assert explorer.date_range == (pd.Timestamp("2026-09-21").date(), pd.Timestamp("2026-09-24").date())
-    assert chart[0][0][-1].value == explorer.panel()[0][0][-1].value
+    assert chart[0][1].value == explorer.panel()[0][1].value
+    assert isinstance(chart[0][1], pn.widgets.DateRangeSlider)
     frame = explorer._plot_frame()
     assert frame["Measure"].unique().tolist() == ["Stake per Commitment (AVAX)"]
     assert frame["Index"].mean() == pytest.approx(1)
@@ -320,9 +321,13 @@ def test_chart_uses_table_controls_and_only_per_measures(cohorts, monkeypatch):
     filtered = {grain: cohort_table(daily, cutoffs, grain, window=window)
                 for grain in StakingCohorts.param.time_grain.objects}
     monkeypatch.setattr(staking_cohorts, "_selected_tables", lambda run, start, end: filtered)
-    chart[0][0][-1].value = (window[0].date(), window[0].date())
+    slider = chart[0][1]
+    slider.value = (window[0].date(), window[0].date())
+    assert explorer.date_range != slider.value
+    with pm.edit_constant(slider):
+        slider.value_throttled = slider.value
     assert explorer.date_range == (window[0].date(), window[0].date())
-    assert explorer.panel()[0][0][-1].value == explorer.date_range
+    assert explorer.panel()[0][1].value == explorer.date_range
     assert explorer._selected_table()["Total Commitments"].sum() == 1
     assert explorer.panel()[1].value["Total Stake (AVAX)"].tolist() == [500]
     assert len(explorer._plot_frame()) == 1
