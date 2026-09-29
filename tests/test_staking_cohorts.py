@@ -175,14 +175,25 @@ def test_metric_and_view_selections_keep_context_and_filter_families(cohorts):
     table = rates_per(for_population(cohort_table(*cohorts, "All"), "Validators"), "Week")
     visible = selected_columns(table, ["Duration", "Rewards"], ["Total", "Per Node per Calendar Unit"], "Week")
     assert visible.columns.tolist() == [
-        "Reporting Interval", "Start (UTC)", "End (UTC)", "Role", "Total Weeks", "Total Nodes",
-        "Total Validator Reward Addresses", "Total Commitments", "Commitments / Node / Week",
+        "Reporting Interval", "Start (UTC)", "End (UTC)", "Role", "Total Weeks",
         "Total Committed Duration (commitment-days)",
         "Committed Duration / Node / Week (commitment-days/node/week)",
         "Total Rewards (AVAX)", "Rewards / Node / Week (AVAX)", "Reward Outcomes",
     ]
     context = selected_columns(table, [], [], "Week")
-    assert context.columns.tolist() == visible.columns.tolist()[:8]
+    assert context.columns.tolist() == visible.columns.tolist()[:5]
+
+
+def test_count_quantities_control_existing_columns(cohorts):
+    table = rates_per(for_population(cohort_table(*cohorts, "All"), "Validators"), "Week")
+    visible = selected_columns(table, ["Nodes", "Addresses", "Commitments"],
+                               ["Total", "Per Calendar Unit"], "Week")
+    assert visible.columns.tolist() == [
+        "Reporting Interval", "Start (UTC)", "End (UTC)", "Role", "Total Weeks", "Total Nodes",
+        "Total Validator Reward Addresses", "Total Commitments", "Commitments / Week",
+    ]
+    assert "Total Nodes" not in selected_columns(table, ["Commitments"], [], "Week")
+    assert "Total Commitments" not in selected_columns(table, ["Nodes"], [], "Week")
 
 
 def test_denominator_labels_follow_rate_unit_without_changing_view_keys():
@@ -204,7 +215,7 @@ def test_panel_keeps_one_table_when_selections_change(monkeypatch):
 
     panel = explorer.panel()
     table = panel[1]
-    assert table.value.loc[0, "Quantity count"] == 4
+    assert table.value.loc[0, "Quantity count"] == 7
     explorer.metrics = ["Stake"]
     assert panel[1] is table
     assert table.value.loc[0, "Quantity count"] == 1

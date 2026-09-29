@@ -41,6 +41,7 @@ METRIC_SOURCES = {
     "Stake-duration": "stake_duration_avax_days",
     "Rewards": "observed_rewards_avax",
 }
+QUANTITIES = ("Nodes", "Addresses", "Commitments", *METRIC_SOURCES)
 METRIC_COLUMNS = {
     "Stake": {
         "Total": "Total Stake (AVAX)",
@@ -298,13 +299,20 @@ def for_population(table: pd.DataFrame, population: str) -> pd.DataFrame:
 
 def selected_columns(table: pd.DataFrame, metrics: list[str], views: list[str], period: str) -> pd.DataFrame:
     """Keep cohort context and show only the selected metric and view intersections."""
-    columns = list(table.columns[:table.columns.get_loc("Total Commitments") + 1])
+    columns = list(table.columns[:table.columns.get_loc("Total Nodes")])
+    if "Nodes" in metrics:
+        columns.append("Total Nodes")
+    if "Addresses" in metrics:
+        columns.extend(column for column in ("Total Addresses", *IDENTITY_COLUMNS[1:]) if column in table.columns)
+    if "Commitments" in metrics:
+        columns.append("Total Commitments")
     commitment_views = {
         "Per Calendar Unit": f"Commitments / {period}",
         "Per Node": "Commitments / Node",
         "Per Node per Calendar Unit": f"Commitments / Node / {period}",
     }
-    columns.extend(commitment_views[view] for view in VIEWS if view in views and view in commitment_views)
+    if "Commitments" in metrics:
+        columns.extend(commitment_views[view] for view in VIEWS if view in views and view in commitment_views)
     columns.extend(_metric_column(metric, view, period)
                    for metric in METRIC_SOURCES if metric in metrics for view in VIEWS if view in views)
     if "Rewards" in metrics:
@@ -318,7 +326,7 @@ class StakingCohorts(pm.Parameterized):
     time_grain = pm.Selector(default="Era", objects=["Day", "Week", "Year", "Era", "All"], label="Group by")
     population = pm.Selector(default="Validators", objects=["Validators", "Delegators", "Both"])
     periodic_denominator = pm.Selector(default="Day", objects=["Day", "Week", "Year"], label="Rate Unit")
-    metrics = pm.ListSelector(default=list(METRIC_SOURCES), objects=list(METRIC_SOURCES), label="Quantities")
+    metrics = pm.ListSelector(default=list(QUANTITIES), objects=list(QUANTITIES), label="Quantities")
     views = pm.ListSelector(default=["Total", "Per Calendar Unit", "Per Commitment"], objects=list(VIEWS),
                             label="Denominators")
 
