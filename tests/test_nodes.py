@@ -71,3 +71,11 @@ def test_an_auto_renewed_validator_counts_its_cycles_and_runs_to_the_latest(deri
                                     [str(output / "dataset" / "node-table.parquet")]).fetchone()
     assert node[0] == 3 and node[1] is True and str(node[2]) == "2026-12-04 00:00:00"
     assert nodes.check(output / "capture", output / "dataset", None, derived_root)["status"] == "pass"
+
+
+def test_periods_stay_an_integer_column(root):
+    output = root / "node-table"
+    nodes.derive(nodes.DATASET_ID, output, None, root)
+    kinds = dict(duckdb.connect().execute("SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_parquet(?))",
+                                          [str(output / "dataset" / "node-table.parquet")]).fetchall())
+    assert kinds["periods"] == "BIGINT"

@@ -109,7 +109,7 @@ SELECT p.node_id,
        min(p.start_time) AS first_start,
        max(p.end_time) AS last_end,
        max(p.end_time) > ?::TIMESTAMP AS active,
-       sum(p.cycles) AS periods,
+       sum(p.cycles)::BIGINT AS periods,
        count(*) FILTER (WHERE p.rewarded_at IS NOT NULL) AS closed_periods,
        count(*) FILTER (WHERE p.rewarded_at IS NOT NULL AND p.realized_reward_navax = 0) AS failed_periods,
        any_value(s.streaks) AS streaks,
@@ -385,7 +385,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                     path = str(inputs["staking-periods"]).replace("'", "''")
                     stamp = receipt["as_of"].replace("Z", "")
                     nodes, periods, rewards = connection.execute(
-                        f"SELECT count(DISTINCT node_id), sum(cycles), round(coalesce(sum(realized_reward_navax), 0) / 1e9, 6) FROM (SELECT *{cycles_of(path)} FROM read_parquet('{path}')) WHERE role = 'validator' AND start_time < ?::TIMESTAMP", [stamp]
+                        f"SELECT count(DISTINCT node_id), sum(cycles)::BIGINT, round(coalesce(sum(realized_reward_navax), 0) / 1e9, 6) FROM (SELECT *{cycles_of(path)} FROM read_parquet('{path}')) WHERE role = 'validator' AND start_time < ?::TIMESTAMP", [stamp]
                     ).fetchone()
                     summary.update({"log_validator_nodes": nodes, "log_validator_periods": periods, "log_validator_rewards_avax": rewards})
                     if nodes != summary["rows"]:
