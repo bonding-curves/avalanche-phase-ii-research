@@ -80,12 +80,13 @@ def test_a_failed_capture_keeps_its_lines_and_resumes(tmp_path):
     hub = FakeHub(["NodeID-a", "NodeID-b", "NodeID-c"], end, fail={"NodeID-c"})
     output = tmp_path / "day1" / "capture"
     with pytest.raises(DataError, match="resumes"):
-        builderhub.capture(builderhub.DATASET_ID, output, 5, {"previous": "none", "workers": "1"}, request=hub, root=tmp_path, sleep=lambda _: None)
+        builderhub.capture(builderhub.DATASET_ID, output, 5, {"previous": "none", "workers": "1", "unavailable_limit": "0"}, request=hub, root=tmp_path,
+                           sleep=lambda _: None)
     partial = tmp_path / "day1" / ".capture.partial"
     assert len((partial / builderhub.DETAIL_RAW).read_bytes().splitlines()) == 2
     hub.fail.clear()
     hub.calls.clear()
-    builderhub.capture(builderhub.DATASET_ID, output, 5, {"previous": "none"}, request=hub, root=tmp_path, sleep=lambda _: None)
+    builderhub.capture(builderhub.DATASET_ID, output, 5, {"previous": "none", "unavailable_limit": "0"}, request=hub, root=tmp_path, sleep=lambda _: None)
     assert hub.calls == [f"{LIST}/NodeID-c"]
     assert json.loads((output / "capture.json").read_text())["details"] == 3
     assert not partial.exists()
@@ -153,3 +154,13 @@ def test_one_check_runs_continuity_and_the_node_set(tmp_path):
     assert {"BC6 agreement", "BC7 node set"} <= set(result["checked"])
     assert [finding[:3] for finding in result["findings"]] == ["BC7"]
     assert (result["summary"]["only_rpc"], result["summary"]["only_builder_hub"]) == (1, 1)
+
+
+def test_a_node_the_source_cannot_serve_does_not_stop_the_day(tmp_path):
+    hub = FakeHub(["NodeID-a", "NodeID-b", "NodeID-broken"], END, fail={"NodeID-broken"})
+    directory = run(tmp_path, "day1", hub, workers="1")
+    receipt = json.loads((directory / "capture" / "capture.json").read_text())
+    assert receipt["details"] == 2 and [item["node_id"] for item in receipt["unavailable"]] == ["NodeID-broken"]
+    result = builderhub.check(directory / "capture", directory / "dataset")
+    # BC9 is attention, not the lost history of BC1.
+    assert [finding[:3] for finding in result["findings"]] == ["BC9"]

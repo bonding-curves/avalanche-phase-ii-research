@@ -50,6 +50,10 @@ LIST_RAW = "raw/validators.json"
 DETAIL_RAW = "raw/validator-details.jsonl"
 USER_AGENT = "avalanche-phase-ii-research/0.1"
 ATTEMPTS = 6
+# A node Builder Hub still answers with a server error after every retry is recorded as unavailable and the capture goes
+# on, so one node it cannot serve does not cost every other node's hours. More than this many is an outage: the capture
+# stops, keeps its lines, and resumes the next hour.
+UNAVAILABLE_LIMIT = 3
 RETRY_SECONDS = 5.0
 MAX_WORKERS = 8
 AGREEMENT_FLOOR = 0.99
@@ -80,17 +84,19 @@ def _request(url: str, timeout: float) -> tuple[bytes, dict[str, Any]]:
 
 def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
     values = dict(parameters or {})
-    unknown = sorted(set(values) - {"workers", "limit", "previous", "import"})
+    unknown = sorted(set(values) - {"workers", "limit", "previous", "import", "unavailable_limit"})
     if unknown:
         raise DataError(f"unknown parameters for {DATASET_ID}: {', '.join(unknown)}")
     try:
         workers = int(values.get("workers", 4))
         limit = int(values["limit"]) if "limit" in values else None
+        unavailable_limit = int(values.get("unavailable_limit", UNAVAILABLE_LIMIT))
     except ValueError as error:
-        raise DataError(f"workers and limit must be integers: {error}") from error
+        raise DataError(f"workers, limit, and unavailable_limit must be integers: {error}") from error
     if not 1 <= workers <= MAX_WORKERS:
         raise DataError(f"workers must be between 1 and {MAX_WORKERS}")
-    return {"workers": workers, "limit": limit, "previous": values.get("previous", "auto"), "import": values.get("import")}
+    return {"workers": workers, "limit": limit, "previous": values.get("previous", "auto"), "import": values.get("import"),
+            "unavailable_limit": unavailable_limit}
 
 
 def _previous(choice: str, root: Path | None) -> dict[str, Any] | None:
@@ -127,6 +133,7 @@ def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | 
         "dataset_id": DATASET_ID, "source_id": SOURCE_ID, "output": str(output),
         "list_endpoint": _endpoint(catalog, LIST_ENDPOINT), "detail_endpoint": _endpoint(catalog, DETAIL_ENDPOINT),
         "workers": values["workers"], "limit": values["limit"], "previous": values["previous"], "import": values["import"],
+        "unavailable_limit": values["unavailable_limit"],
         "resumes": partial.is_dir(), "partial": str(partial), "writes": [LIST_RAW, DETAIL_RAW, "capture.json"], "overwrite": False,
     }
 
@@ -202,16 +209,23 @@ def capture(
             (temporary / LIST_RAW).write_bytes(body)
             listed = {item["node_id"] for item in listing}
             ended = sorted(set(previous["nodes"]) - listed) if previous else []
-            state = {"started_at": now(), "previous": {key: previous[key] for key in ("run", "capture_id")} if previous else None, "ended": ended}
+            state = {"started_at": now(), "previous": {key: previous[key] for key in ("run", "capture_id")} if previous else None, "ended": ended,
+                     "unavailable": []}
             state_path.write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
         wanted = [(node, "listed") for node in _listed_nodes(temporary)] + [(node, "ended-since-previous") for node in state["ended"]]
         if preview["limit"] is not None:
             wanted = wanted[: preview["limit"]]
-        done = {line["node_id"] for line in _read_lines(temporary / DETAIL_RAW)}
+        state.setdefault("unavailable", [])
+        done = {line["node_id"] for line in _read_lines(temporary / DETAIL_RAW)} | {item["node_id"] for item in state["unavailable"]}
         todo = [item for item in wanted if item[0] not in done]
 
-        def one(item: tuple[str, str]) -> tuple[str, str, bytes, dict[str, Any], int]:
-            body, meta, retried = _fetch_counted(request, f"{preview['detail_endpoint']}/{item[0]}", timeout, sleep)
+        def one(item: tuple[str, str]) -> tuple[str, str, bytes | None, dict[str, Any], int]:
+            try:
+                body, meta, retried = _fetch_counted(request, f"{preview['detail_endpoint']}/{item[0]}", timeout, sleep)
+            except DataError as error:
+                if "HTTP Error 5" not in str(error):
+                    raise
+                return item[0], item[1], None, {"error": str(error)}, ATTEMPTS - 1
             return item[0], item[1], body, meta, retried
 
         with (temporary / DETAIL_RAW).open("ab") as handle, ThreadPoolExecutor(max_workers=preview["workers"]) as pool:
@@ -225,6 +239,17 @@ def capture(
                     handle.flush()
                     raise DataError(f"{error}; lines kept at {temporary}, the next capture into {output} resumes") from error
                 retries += retried
+                if body is None:
+                    state["unavailable"].append({"node_id": node, "requested_because": because, "error": meta["error"]})
+                    state_path.write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
+                    if len(state["unavailable"]) > preview["unavailable_limit"]:
+                        # An outage: the next capture asks these nodes again.
+                        count, state["unavailable"] = len(state["unavailable"]), []
+                        state_path.write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
+                        handle.flush()
+                        raise DataError(f"Builder Hub could not serve {count} nodes, an outage; lines kept at {temporary},"
+                                        f" the next capture into {output} resumes")
+                    continue
                 value = json.loads(body)
                 if not isinstance(value, dict) or value.get("node_id") != node:
                     raise DataError(f"Builder Hub answered {value.get('node_id') if isinstance(value, dict) else 'a non-object'} for {node}; lines kept at {temporary}")
@@ -249,6 +274,7 @@ def capture(
         "nodes_ended_requested": len(state["ended"]),
         "details": len(lines),
         "fallback_answers": sum(line.get("x_data_source") == "error-fallback-cache" for line in lines),
+        "unavailable": state.get("unavailable", []),
         "retries": retries,
         "responses": [
             {"endpoint_id": LIST_ENDPOINT, "path": LIST_RAW, "bytes": len(listing_body), "sha256": sha256(listing_body)},
@@ -412,7 +438,8 @@ def _verify_outputs(dataset_dir: Path, receipt: dict[str, Any], findings: list[s
 
 
 def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | list[Path] | tuple[Path, ...] | None = None) -> dict[str, Any]:
-    """Finding codes: ``BC1`` completeness, ``BC2`` identity, ``BC3`` series shape, ``BC4`` fallback answers, and with
+    """Finding codes: ``BC1`` completeness, ``BC2`` identity, ``BC3`` series shape, ``BC4`` fallback answers, ``BC9`` nodes
+    the source could not serve, and with
     ``--against`` a previous capture's dataset ``BC5`` continuity and ``BC6`` agreement, and a same-day
     ``p-chain-rpc.current-validators`` dataset ``BC7`` node set. ``--against`` repeats, so one check runs all three. A
     finding under BC1, BC2, BC3, or BC5 means the day's history is incomplete. The runner treats those as failure and the others as attention."""
@@ -422,7 +449,9 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | li
     findings: list[str] = []
     checked = ["capture hashes", "BC1 completeness", "BC2 identity", "BC3 series shape", "BC4 fallback answers"]
     by_node = {line["node_id"]: line for line in lines}
-    missing = [item["node_id"] for item in listing if item["node_id"] not in by_node or by_node[item["node_id"]].get("http_status") != 200]
+    unavailable = {item["node_id"] for item in receipt.get("unavailable", [])}
+    missing = [item["node_id"] for item in listing
+               if item["node_id"] not in unavailable and (item["node_id"] not in by_node or by_node[item["node_id"]].get("http_status") != 200)]
     if missing:
         findings.append(f"BC1 {len(missing)} listed nodes have no detail, first {missing[0]}")
     if len(by_node) != len(lines):
@@ -440,6 +469,9 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | li
             shape += 1
     if shape:
         findings.append(f"BC3 {shape} nodes have uptime series that are not unique whole hours in order, within 0 to 100, before the capture")
+    if unavailable:
+        checked.append("BC9 source availability")
+        findings.append(f"BC9 Builder Hub could not serve {len(unavailable)} nodes after every retry: {', '.join(sorted(unavailable))}")
     fallback = receipt.get("fallback_answers", 0)
     if fallback:
         findings.append(f"BC4 {fallback} details were answered from Builder Hub's cache after an upstream failure")
