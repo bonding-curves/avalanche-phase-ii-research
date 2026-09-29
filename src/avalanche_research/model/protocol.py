@@ -554,6 +554,123 @@ def over_delegated(
     return peak + delegation_weight_navax > weight_limit_navax
 
 
+# Admission rejections, named as the AvalancheGo errors in vms/platformvm/txs/executor
+ERR_WEIGHT_TOO_SMALL = "ErrWeightTooSmall"
+ERR_WEIGHT_TOO_LARGE = "ErrWeightTooLarge"
+ERR_INSUFFICIENT_DELEGATION_FEE = "ErrInsufficientDelegationFee"
+ERR_STAKE_TOO_SHORT = "ErrStakeTooShort"
+ERR_STAKE_TOO_LONG = "ErrStakeTooLong"
+ERR_PERIOD_MISMATCH = "ErrPeriodMismatch"
+ERR_OVER_DELEGATED = "ErrOverDelegated"
+ERR_HELICON_NOT_ACTIVE = "errHeliconUpgradeNotActive"
+
+
+def validator_admission_error(
+    weight_navax: int,
+    delegation_fee_shares: int,
+    start: datetime,
+    end: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """First parameter rule a Primary Network validator breaks, or None. ``start`` is the effective start: the
+    chain time of verification from Durango, the requested start before it.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L562-L581
+    (AddPermissionlessValidatorTx) and L121-L141 (AddValidatorTx), in that order: stake minimum, stake maximum,
+    delegation fee floor, minimum duration (ACP-273 from Helicon), maximum duration.
+    """
+    duration = as_utc(end) - as_utc(start)
+    if weight_navax < config.min_validator_stake_navax:
+        return ERR_WEIGHT_TOO_SMALL
+    if weight_navax > config.max_validator_stake_navax:
+        return ERR_WEIGHT_TOO_LARGE
+    if delegation_fee_shares < config.min_delegation_fee_shares:
+        return ERR_INSUFFICIENT_DELEGATION_FEE
+    if duration < timedelta(seconds=min_stake_duration_seconds(start, config, upgrades)):
+        return ERR_STAKE_TOO_SHORT
+    if duration > timedelta(seconds=config.max_stake_duration_seconds):
+        return ERR_STAKE_TOO_LONG
+    return None
+
+
+def auto_renewed_validator_admission_error(
+    weight_navax: int,
+    delegation_fee_shares: int,
+    period_seconds: int,
+    chain_time: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """First rule an AddAutoRenewedValidatorTx breaks, or None.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L882-L925: Helicon must be active,
+    then the validator rules in the same order, with the period in whole seconds.
+    """
+    if not upgrades.activated("helicon", chain_time):
+        return ERR_HELICON_NOT_ACTIVE
+    start = as_utc(chain_time)
+    return validator_admission_error(
+        weight_navax, delegation_fee_shares, start, start + timedelta(seconds=period_seconds), config, upgrades)
+
+
+def auto_renewed_config_error(
+    period_seconds: int,
+    chain_time: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """First rule a SetAutoRenewedValidatorConfigTx period breaks, or None. A period of 0 requests exit.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L967-L969 and L1010-L1015.
+    """
+    if not upgrades.activated("helicon", chain_time):
+        return ERR_HELICON_NOT_ACTIVE
+    if 0 < period_seconds < min_stake_duration_seconds(chain_time, config, upgrades):
+        return ERR_STAKE_TOO_SHORT
+    if period_seconds > config.max_stake_duration_seconds:
+        return ERR_STAKE_TOO_LONG
+    return None
+
+
+def delegator_admission_error(
+    weight_navax: int,
+    start: datetime,
+    end: datetime,
+    chain_time: datetime,
+    validator_start: datetime,
+    validator_end: datetime,
+    validator_weight_navax: int,
+    delegations: Iterable[tuple[datetime, datetime, int]],
+    delegation_multiplier: int = ACP247_CURRENT_DELEGATION_MULTIPLIER,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """First rule a Primary Network delegation breaks, or None. ``start`` is the effective start.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L694-L757
+    (AddPermissionlessDelegatorTx): stake minimum, 14-day minimum, maximum duration, containment in the validator
+    period, peak weight. Before Durango AddDelegatorTx checks the durations before the stake (L425-L437). The
+    pre-Durango start-time rule and a missing validator are outside this function.
+    """
+    duration = as_utc(end) - as_utc(start)
+    too_small = weight_navax < config.min_delegator_stake_navax
+    too_short = duration < timedelta(seconds=min_stake_duration_seconds(chain_time, config, upgrades, role="delegator"))
+    too_long = duration > timedelta(seconds=config.max_stake_duration_seconds)
+    checks = [(too_small, ERR_WEIGHT_TOO_SMALL), (too_short, ERR_STAKE_TOO_SHORT), (too_long, ERR_STAKE_TOO_LONG)]
+    if not upgrades.activated("durango", chain_time):
+        checks = checks[1:] + checks[:1]
+    for failed, error in checks:
+        if failed:
+            return error
+    if not delegation_within_validator_period(start, end, validator_start, validator_end):
+        return ERR_PERIOD_MISMATCH
+    limit = delegation_weight_limit_navax(validator_weight_navax, chain_time, delegation_multiplier, config, upgrades)
+    if over_delegated(validator_weight_navax, delegations, weight_navax, start, end, limit):
+        return ERR_OVER_DELEGATED
+    return None
+
+
 def describe(config: StakingConfig = MAINNET, upgrades: UpgradeSchedule = MAINNET_UPGRADES) -> dict[str, Any]:
     return {
         "staking": {

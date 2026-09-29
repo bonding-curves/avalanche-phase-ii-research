@@ -474,3 +474,82 @@ def test_auto_renew_next_cycle_recomputes_reward_on_the_ramp():
     assert later_reward < reward
     with pytest.raises(ModelError):
         protocol.auto_renew_next_cycle(HELICON_MAINNET, 0, weight, supply)
+
+
+# KG6 admission checks
+# staker_tx_verification_test.go TestVerifyAddPermissionlessValidatorTx rules: stake 1 to 2, duration 3s to 4s, fee 5
+TRANSFORM_RULES = replace(protocol.MAINNET, min_validator_stake_navax=1, max_validator_stake_navax=2,
+                          min_stake_duration_seconds=3, helicon_min_stake_duration_seconds=3,
+                          max_stake_duration_seconds=4, min_delegation_fee_shares=5)
+
+
+@pytest.mark.parametrize("weight, shares, duration, expected", [
+    (0, 20_000, 3, protocol.ERR_WEIGHT_TOO_SMALL),  # weight too low
+    (3, 20_000, 3, protocol.ERR_WEIGHT_TOO_LARGE),  # weight too high
+    (2, 4, 3, protocol.ERR_INSUFFICIENT_DELEGATION_FEE),  # insufficient delegation fee
+    (2, 5, 2, protocol.ERR_STAKE_TOO_SHORT),  # duration too short
+    (2, 5, 5, protocol.ERR_STAKE_TOO_LONG),  # duration too long
+    (1, 20_000, 3, None),  # success
+    (2, 5, 4, None),
+])
+def test_validator_admission_matches_avalanchego_cases(weight, shares, duration, expected):
+    start = HELICON_MAINNET + timedelta(days=1)
+    end = start + timedelta(seconds=duration)
+    assert protocol.validator_admission_error(weight, shares, start, end, TRANSFORM_RULES) == expected
+
+
+# standard_tx_executor_test.go executor environment: stake 5 mAVAX to 500 mAVAX, fee 2%, 24h, Helicon 12h, 365 days
+EXECUTOR_RULES = replace(protocol.MAINNET, min_validator_stake_navax=5 * MILLI, max_validator_stake_navax=500 * MILLI,
+                         min_delegator_stake_navax=MILLI, min_stake_duration_seconds=DAY,
+                         helicon_min_stake_duration_seconds=12 * 3_600)
+
+
+@pytest.mark.parametrize("chain_offset, weight, shares, period, expected", [
+    # TestStandardExecutorAddAutoRenewedValidatorTxErrors
+    (-1, 5 * MILLI, 20_000, DAY, protocol.ERR_HELICON_NOT_ACTIVE),  # invalid_upgrade
+    (0, 5 * MILLI - 1, 20_000, DAY, protocol.ERR_WEIGHT_TOO_SMALL),
+    (0, 500 * MILLI + 1, 20_000, DAY, protocol.ERR_WEIGHT_TOO_LARGE),
+    (0, 5 * MILLI, 19_999, DAY, protocol.ERR_INSUFFICIENT_DELEGATION_FEE),
+    (0, 5 * MILLI, 20_000, 12 * 3_600 - 1, protocol.ERR_STAKE_TOO_SHORT),
+    (0, 5 * MILLI, 20_000, 365 * DAY + 1, protocol.ERR_STAKE_TOO_LONG),
+    (0, 5 * MILLI, 20_000, 12 * 3_600, None),
+])
+def test_auto_renewed_admission_matches_avalanchego_cases(chain_offset, weight, shares, period, expected):
+    chain_time = HELICON_MAINNET + timedelta(seconds=chain_offset)
+    assert protocol.auto_renewed_validator_admission_error(weight, shares, period, chain_time, EXECUTOR_RULES) == expected
+
+
+@pytest.mark.parametrize("chain_offset, period, expected", [
+    # TestStandardExecutorSetAutoRenewedValidatorConfigTx and its Errors test
+    (-1, 30 * DAY, protocol.ERR_HELICON_NOT_ACTIVE),
+    (0, 30 * DAY, None),  # updated period
+    (0, 0, None),  # period 0, exit requested
+    (0, 12 * 3_600 - 1, protocol.ERR_STAKE_TOO_SHORT),
+    (0, 365 * DAY + 1, protocol.ERR_STAKE_TOO_LONG),
+])
+def test_auto_renewed_config_matches_avalanchego_cases(chain_offset, period, expected):
+    chain_time = HELICON_MAINNET + timedelta(seconds=chain_offset)
+    assert protocol.auto_renewed_config_error(period, chain_time, EXECUTOR_RULES) == expected
+
+
+def test_delegator_admission_order_and_rules():
+    chain = HELICON_MAINNET + timedelta(days=1)
+    validator_start, validator_end = chain - timedelta(days=1), chain + timedelta(days=60)
+    fourteen = chain + timedelta(days=14)
+
+    def check(weight, start, end, delegations=(), validator_weight=2 * KILO, at=chain):
+        return protocol.delegator_admission_error(weight, start, end, at, validator_start, validator_end,
+                                                  validator_weight, list(delegations))
+
+    assert check(25 * protocol.NAVAX_PER_AVAX, chain, fourteen) is None
+    assert check(25 * protocol.NAVAX_PER_AVAX - 1, chain, fourteen) == protocol.ERR_WEIGHT_TOO_SMALL
+    assert check(25 * protocol.NAVAX_PER_AVAX, chain, fourteen - timedelta(seconds=1)) == protocol.ERR_STAKE_TOO_SHORT
+    assert check(25 * protocol.NAVAX_PER_AVAX, chain, chain + timedelta(days=61)) == protocol.ERR_PERIOD_MISMATCH
+    assert check(8 * KILO, chain, fourteen) is None
+    assert check(8 * KILO + 1, chain, fourteen) == protocol.ERR_OVER_DELEGATED
+    assert check(KILO, chain, fourteen, [(chain, fourteen, 7 * KILO + 1)]) == protocol.ERR_OVER_DELEGATED
+    # both a small stake and a short duration: Durango reports the stake first, AddDelegatorTx the duration first
+    short_small = (25 * protocol.NAVAX_PER_AVAX - 1, chain, chain + timedelta(days=1))
+    assert check(*short_small) == protocol.ERR_WEIGHT_TOO_SMALL
+    pre_durango = protocol.MAINNET_UPGRADES.time("durango") - timedelta(days=1)
+    assert check(short_small[0], pre_durango, pre_durango + timedelta(days=1), at=pre_durango) == protocol.ERR_STAKE_TOO_SHORT
