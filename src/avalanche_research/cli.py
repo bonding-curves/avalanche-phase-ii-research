@@ -27,6 +27,7 @@ from . import metrics
 from . import monetary
 from . import nodes
 from . import operators
+from . import pblocks
 from . import pchain
 from . import ptx
 from . import snowflake
@@ -54,6 +55,7 @@ MODULES = {
     defillama.DATASET_ID: defillama,
     pchain.DATASET_ID: pchain,
     ptx.DATASET_ID: ptx,
+    pblocks.DATASET_ID: pblocks,
     catx.DATASET_ID: catx,
     yields.DATASET_ID: yields,
     treasury.DATASET_ID: treasury,
