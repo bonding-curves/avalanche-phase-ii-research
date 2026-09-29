@@ -242,12 +242,15 @@ def capture(
                 if body is None:
                     state["unavailable"].append({"node_id": node, "requested_because": because, "error": meta["error"]})
                     state_path.write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
-                    if len(state["unavailable"]) > preview["unavailable_limit"]:
+                    # Nodes that ended since the previous capture are asked on the chance their last hours remain; Builder Hub
+                    # has answered a server error for most of them since 2026-09-27, so only listed nodes count toward an outage.
+                    if sum(item["requested_because"] == "listed" for item in state["unavailable"]) > preview["unavailable_limit"]:
                         # An outage: the next capture asks these nodes again.
-                        count, state["unavailable"] = len(state["unavailable"]), []
+                        count = sum(item["requested_because"] == "listed" for item in state["unavailable"])
+                        state["unavailable"] = [item for item in state["unavailable"] if item["requested_because"] != "listed"]
                         state_path.write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
                         handle.flush()
-                        raise DataError(f"Builder Hub could not serve {count} nodes, an outage; lines kept at {temporary},"
+                        raise DataError(f"Builder Hub could not serve {count} listed nodes, an outage; lines kept at {temporary},"
                                         f" the next capture into {output} resumes")
                     continue
                 value = json.loads(body)

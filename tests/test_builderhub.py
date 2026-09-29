@@ -164,3 +164,12 @@ def test_a_node_the_source_cannot_serve_does_not_stop_the_day(tmp_path):
     result = builderhub.check(directory / "capture", directory / "dataset")
     # BC9 is attention, not the lost history of BC1.
     assert [finding[:3] for finding in result["findings"]] == ["BC9"]
+
+
+def test_ended_nodes_the_source_cannot_serve_never_count_as_an_outage(tmp_path):
+    run(tmp_path, "day1", FakeHub(["NodeID-a"] + [f"NodeID-gone{index}" for index in range(5)], END))
+    hub = FakeHub(["NodeID-a"], END + timedelta(hours=24), fail={f"NodeID-gone{index}" for index in range(5)})
+    directory = tmp_path / "day2"
+    receipt = builderhub.capture(builderhub.DATASET_ID, directory / "capture", 5, {"workers": "1"}, request=hub, root=tmp_path, sleep=lambda _: None)
+    assert receipt["details"] == 1 and len(receipt["unavailable"]) == 5
+    assert {item["requested_because"] for item in receipt["unavailable"]} == {"ended-since-previous"}
