@@ -362,3 +362,52 @@ def test_peak_weight_counts_changes_at_both_interval_bounds():
     assert protocol.peak_validator_weight_navax(100, [(at_second(0), at_second(5), 50)], start, end) == 100
     with pytest.raises(ModelError):
         protocol.peak_validator_weight_navax(100, [], end, start)
+
+
+# KG3 uptime pass or fail and forfeiture
+ACP267_TEST_HELICON = datetime(2026, 4, 1, tzinfo=HELICON_MAINNET.tzinfo)
+
+
+@pytest.mark.parametrize("helicon_scheduled, start_offset, uptime, prefers_commit", [
+    # block/executor/block_test.go TestBlockOptionsACP267UptimeRequirement
+    (True, timedelta(seconds=-1), 0.85, True),  # pre_helicon
+    (True, timedelta(0), 0.85, False),  # at_helicon
+    (True, timedelta(hours=1), 0.9, True),  # post_helicon
+    (False, timedelta(hours=1), 0.85, True),  # without_helicon
+])
+def test_uptime_outcome_matches_acp267_block_options(helicon_scheduled, start_offset, uptime, prefers_commit):
+    helicon = ACP267_TEST_HELICON if helicon_scheduled else datetime(9999, 1, 1, tzinfo=HELICON_MAINNET.tzinfo)
+    upgrades = UpgradeSchedule((Upgrade("helicon", helicon),))
+    assert protocol.uptime_passes(uptime, ACP267_TEST_HELICON + start_offset, upgrades=upgrades) is prefers_commit
+
+
+def test_uptime_fraction_matches_uptime_manager():
+    # snow/uptime/manager_test.go TestCalculateUptimePercentageDivBy0 and TestCalculateUptimePercentage
+    assert protocol.uptime_fraction(0, 0) == 1.0
+    assert protocol.uptime_fraction(0, 1) == 0.0
+    # ACP-267 leaves 4.8 hours of downtime on a 48-hour cycle
+    window = 48 * 3_600
+    assert protocol.uptime_passes(protocol.uptime_fraction(window - 17_280, window), HELICON_MAINNET)
+    assert not protocol.uptime_passes(protocol.uptime_fraction(window - 17_281, window), HELICON_MAINNET)
+    with pytest.raises(ModelError):
+        protocol.uptime_fraction(-1, 10)
+
+
+def test_failed_uptime_forfeits_reward_but_pays_deferred_fees():
+    # reward_validator_test.go TestRewardValidatorTxExecuteOnCommit and OnAbort; rewardValidatorTx pays the
+    # accrued delegatee reward on abort too.
+    assert protocol.validator_rewards_at_end(1_000, 50, passed=True) == (1_000, 50)
+    assert protocol.validator_rewards_at_end(1_000, 50, passed=False) == (0, 50)
+
+
+def test_delegation_reward_follows_validator_outcome():
+    # reward_validator_test.go TestRewardDelegatorTxExecuteOnCommitPreDelegateeDeferral: reward 1,000,000 with a
+    # 25% delegation fee; TestRewardDelegatorTxExecuteOnAbort: neither side is paid.
+    delegator, fee = protocol.delegator_rewards_at_end(1_000_000, protocol.PERCENT_DENOMINATOR // 4, passed=True)
+    assert (delegator, fee) == (750_000, 250_000)
+    assert fee < delegator and delegator + fee == 1_000_000
+    assert protocol.delegator_rewards_at_end(1_000_000, protocol.PERCENT_DENOMINATOR // 4, passed=False) == (0, 0)
+    # a delegation starting after Helicon on a validator that started before it is judged at 80%
+    validator_start = HELICON_MAINNET - timedelta(days=10)
+    assert protocol.uptime_passes(0.85, validator_start)
+    assert not protocol.uptime_passes(0.85, HELICON_MAINNET)

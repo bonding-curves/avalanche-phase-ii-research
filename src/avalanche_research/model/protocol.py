@@ -337,6 +337,62 @@ def uptime_requirement(
     return config.uptime_requirement
 
 
+def uptime_fraction(up_seconds: int, since_validator_start_seconds: int) -> float:
+    """Uptime as the node's up time over the time since its validator period started, 1 for an empty window.
+
+    AvalancheGo 70bd6d0 snow/uptime/manager.go L176-L187 CalculateUptimePercentFrom, which divides the two
+    durations as float64 nanosecond counts. The protocol keeps only the pass or fail result.
+    """
+    if up_seconds < 0 or since_validator_start_seconds < 0:
+        raise ModelError("up time and window must be non-negative")
+    if since_validator_start_seconds == 0:
+        return 1.0
+    return float(up_seconds * NANOSECONDS_PER_SECOND) / float(since_validator_start_seconds * NANOSECONDS_PER_SECOND)
+
+
+def uptime_passes(
+    uptime: float,
+    validator_start: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> bool:
+    """Whether a stake ending now is rewarded: uptime at or above the requirement for the validator's start.
+
+    AvalancheGo 70bd6d0 vms/platformvm/block/executor/options.go L146-L194 prefersCommit. A delegation is judged
+    on its node's Primary Network validator: the validator's start time sets the threshold (80%, or 90% from
+    Helicon under ACP-267) and its uptime from that start decides, whenever the delegation itself started.
+    """
+    return uptime >= uptime_requirement(validator_start, config, upgrades)
+
+
+def validator_rewards_at_end(potential_reward_navax: int, delegatee_reward_navax: int, passed: bool) -> tuple[int, int]:
+    """(validation reward paid, delegation fees paid) when a non-renewing validator ends.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L522-L603 rewardValidatorTx. A failed
+    uptime check forfeits the potential reward (and undoes its supply mint, supply_after_stake_end), but the
+    deferred delegation fees in ``delegatee_reward_navax`` are paid on both branches because they were earned by
+    delegations that already succeeded. The stake itself is returned on both branches.
+    """
+    if potential_reward_navax < 0 or delegatee_reward_navax < 0:
+        raise ModelError("rewards must be non-negative")
+    return (potential_reward_navax if passed else 0), delegatee_reward_navax
+
+
+def delegator_rewards_at_end(potential_reward_navax: int, delegation_fee_shares: int, passed: bool) -> tuple[int, int]:
+    """(delegator reward, validator fee) when a delegation ends, judged on its validator's uptime.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L605-L661 rewardDelegatorTx: the
+    commit branch splits the potential reward by the validator's delegation shares (split_reward). The abort branch
+    pays neither, and the potential reward leaves the supply (L394). The fee is paid now or deferred (L667-L708).
+    """
+    if not passed:
+        if potential_reward_navax < 0:
+            raise ModelError("rewards must be non-negative")
+        return 0, 0
+    fee, delegator = split_reward(potential_reward_navax, delegation_fee_shares)
+    return delegator, fee
+
+
 def max_validator_weight_navax(
     self_stake_navax: int,
     delegation_multiplier: int = ACP247_CURRENT_DELEGATION_MULTIPLIER,
