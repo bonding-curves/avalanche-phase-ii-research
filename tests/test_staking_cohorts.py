@@ -5,7 +5,7 @@ import pytest
 import duckdb
 
 from avalanche_research.staking_cohorts import (
-    cohort_table, distinct_identities, for_population, rates_per, selected_columns,
+    cohort_table, denominator_options, distinct_identities, for_population, rates_per, selected_columns,
 )
 
 
@@ -42,16 +42,16 @@ def test_all_keeps_roles_separate_and_reports_per_commitment_values(cohorts):
     assert table.loc["Validator", "Reward Outcomes"] == "1/3"
     assert table.loc["Validator", "Total Rewards (AVAX)"] == 4
     assert table.loc["Validator", "Rewards / Commitment (AVAX)"] == 4
-    assert list(table.columns[:3]) == ["Period", "Start (UTC)", "End (UTC)"]
+    assert list(table.columns[:3]) == ["Reporting Interval", "Start (UTC)", "End (UTC)"]
 
 
 def test_day_includes_zero_commitment_intervals_and_partial_day_rates(cohorts):
     table = cohort_table(*cohorts, "Day")
-    empty = table[(table["Role"] == "Validator") & (table["Period"] == "2026-09-22")].iloc[0]
+    empty = table[(table["Role"] == "Validator") & (table["Reporting Interval"] == "2026-09-22")].iloc[0]
     assert empty["Total Commitments"] == 0
     assert empty["Reward Outcomes"] == "0/0"
     assert pd.isna(empty["Duration / Commitment (days)"])
-    first = table[(table["Role"] == "Validator") & (table["Period"] == "2026-09-21")].iloc[0]
+    first = table[(table["Role"] == "Validator") & (table["Reporting Interval"] == "2026-09-21")].iloc[0]
     assert first["Commitments / Day"] == pytest.approx(4)
     assert first["Stake / Day (AVAX)"] == pytest.approx(600)
     assert first["Rewards / Day (AVAX)"] == pytest.approx(8)
@@ -59,11 +59,11 @@ def test_day_includes_zero_commitment_intervals_and_partial_day_rates(cohorts):
 
 def test_era_uses_upgrade_instant_and_role_specific_cutoffs(cohorts):
     table = cohort_table(*cohorts, "Era")
-    helicon = table[(table["Role"] == "Validator") & (table["Period"] == "Helicon")].iloc[0]
+    helicon = table[(table["Role"] == "Validator") & (table["Reporting Interval"] == "Helicon")].iloc[0]
     assert helicon["Start (UTC)"] == pd.Timestamp("2026-09-22 15:00:00")
     assert helicon["End (UTC)"] == pd.Timestamp("2026-09-24 12:00:00")
     assert helicon["Total Commitments"] == 1
-    assert not ((table["Role"] == "Delegator") & (table["Period"] == "Helicon")).any()
+    assert not ((table["Role"] == "Delegator") & (table["Reporting Interval"] == "Helicon")).any()
 
 
 def test_each_grain_preserves_population(cohorts):
@@ -171,9 +171,9 @@ def test_population_selection_shows_only_applicable_address_count():
 
 def test_metric_and_view_selections_keep_context_and_filter_families(cohorts):
     table = rates_per(for_population(cohort_table(*cohorts, "All"), "Validators"), "Week")
-    visible = selected_columns(table, ["Duration", "Rewards"], ["Total", "/ Node / Period"], "Week")
+    visible = selected_columns(table, ["Duration", "Rewards"], ["Total", "Per Node per Calendar Unit"], "Week")
     assert visible.columns.tolist() == [
-        "Period", "Start (UTC)", "End (UTC)", "Role", "Total Weeks", "Total Nodes",
+        "Reporting Interval", "Start (UTC)", "End (UTC)", "Role", "Total Weeks", "Total Nodes",
         "Total Validator Reward Addresses", "Total Commitments", "Commitments / Node / Week",
         "Total Committed Duration (commitment-days)",
         "Committed Duration / Node / Week (commitment-days/node/week)",
@@ -181,3 +181,12 @@ def test_metric_and_view_selections_keep_context_and_filter_families(cohorts):
     ]
     context = selected_columns(table, [], [], "Week")
     assert context.columns.tolist() == visible.columns.tolist()[:8]
+
+
+def test_denominator_labels_follow_rate_unit_without_changing_view_keys():
+    daily = denominator_options("Day")
+    weekly = denominator_options("Week")
+    assert list(daily.values()) == list(weekly.values())
+    assert "Per Day" in daily and "Per Node per Day" in daily
+    assert weekly["Per Week"] == "Per Calendar Unit"
+    assert weekly["Per Node per Week"] == "Per Node per Calendar Unit"

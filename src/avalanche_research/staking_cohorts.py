@@ -21,7 +21,20 @@ MEASURES = (
     "duration_days", "observed_rewards_avax", "reward_outcomes",
 )
 IDENTITY_COLUMNS = ("Total Nodes", "Total Validator Reward Addresses", "Total Delegator Funding Addresses")
-VIEWS = ("Total", "/ Period", "/ Commitment", "/ Node", "/ Node / Period")
+VIEWS = ("Total", "Per Calendar Unit", "Per Commitment", "Per Node", "Per Node per Calendar Unit")
+
+
+def denominator_options(rate_unit: str) -> dict[str, str]:
+    """Show the selected calendar unit without changing the underlying view keys."""
+    return {
+        "Total": "Total",
+        f"Per {rate_unit}": "Per Calendar Unit",
+        "Per Commitment": "Per Commitment",
+        "Per Node": "Per Node",
+        f"Per Node per {rate_unit}": "Per Node per Calendar Unit",
+    }
+
+
 METRIC_SOURCES = {
     "Stake": "stake_avax",
     "Duration": "duration_days",
@@ -31,31 +44,31 @@ METRIC_SOURCES = {
 METRIC_COLUMNS = {
     "Stake": {
         "Total": "Total Stake (AVAX)",
-        "/ Period": "Stake / {period} (AVAX)",
-        "/ Commitment": "Stake / Commitment (AVAX)",
-        "/ Node": "Stake / Node (AVAX)",
-        "/ Node / Period": "Stake / Node / {period} (AVAX)",
+        "Per Calendar Unit": "Stake / {period} (AVAX)",
+        "Per Commitment": "Stake / Commitment (AVAX)",
+        "Per Node": "Stake / Node (AVAX)",
+        "Per Node per Calendar Unit": "Stake / Node / {period} (AVAX)",
     },
     "Duration": {
         "Total": "Total Committed Duration (commitment-days)",
-        "/ Period": "Committed Duration / {period} (commitment-days/{period_unit})",
-        "/ Commitment": "Duration / Commitment (days)",
-        "/ Node": "Committed Duration / Node (commitment-days/node)",
-        "/ Node / Period": "Committed Duration / Node / {period} (commitment-days/node/{period_unit})",
+        "Per Calendar Unit": "Committed Duration / {period} (commitment-days/{period_unit})",
+        "Per Commitment": "Duration / Commitment (days)",
+        "Per Node": "Committed Duration / Node (commitment-days/node)",
+        "Per Node per Calendar Unit": "Committed Duration / Node / {period} (commitment-days/node/{period_unit})",
     },
     "Stake-duration": {
         "Total": "Total Stake-duration (AVAX-days)",
-        "/ Period": "Stake-duration / {period} (AVAX-days)",
-        "/ Commitment": "Stake-duration / Commitment (AVAX-days)",
-        "/ Node": "Stake-duration / Node (AVAX-days)",
-        "/ Node / Period": "Stake-duration / Node / {period} (AVAX-days)",
+        "Per Calendar Unit": "Stake-duration / {period} (AVAX-days)",
+        "Per Commitment": "Stake-duration / Commitment (AVAX-days)",
+        "Per Node": "Stake-duration / Node (AVAX-days)",
+        "Per Node per Calendar Unit": "Stake-duration / Node / {period} (AVAX-days)",
     },
     "Rewards": {
         "Total": "Total Rewards (AVAX)",
-        "/ Period": "Rewards / {period} (AVAX)",
-        "/ Commitment": "Rewards / Commitment (AVAX)",
-        "/ Node": "Rewards / Node (AVAX)",
-        "/ Node / Period": "Rewards / Node / {period} (AVAX)",
+        "Per Calendar Unit": "Rewards / {period} (AVAX)",
+        "Per Commitment": "Rewards / Commitment (AVAX)",
+        "Per Node": "Rewards / Node (AVAX)",
+        "Per Node per Calendar Unit": "Rewards / Node / {period} (AVAX)",
     },
 }
 
@@ -200,7 +213,7 @@ def cohort_table(daily: pd.DataFrame, cutoffs: Mapping[str, pd.Timestamp], grain
             intervals = [(era, era.title(), a, b) for era, a, b in _era_intervals(start, end)]
         else:
             intervals = [(key, label, a, b) for key, label, a, b in _calendar_starts(start, end, grain)]
-        rows.extend({"role": role, "bucket": key, "Period": label, "Start (UTC)": a, "End (UTC)": b}
+        rows.extend({"role": role, "bucket": key, "Reporting Interval": label, "Start (UTC)": a, "End (UTC)": b}
                     for key, label, a, b in intervals)
     spine = pd.DataFrame(rows)
     if grain == "Day":
@@ -237,14 +250,14 @@ def cohort_table(daily: pd.DataFrame, cutoffs: Mapping[str, pd.Timestamp], grain
     for metric, source in METRIC_SOURCES.items():
         total = result[source]
         result[_metric_column(metric, "Total")] = total
-        result[_metric_column(metric, "/ Period")] = total / days
-        result[_metric_column(metric, "/ Commitment")] = total / (outcome_count if metric == "Rewards" else count)
-        result[_metric_column(metric, "/ Node")] = total / nodes
-        result[_metric_column(metric, "/ Node / Period")] = total / nodes / days
+        result[_metric_column(metric, "Per Calendar Unit")] = total / days
+        result[_metric_column(metric, "Per Commitment")] = total / (outcome_count if metric == "Rewards" else count)
+        result[_metric_column(metric, "Per Node")] = total / nodes
+        result[_metric_column(metric, "Per Node per Calendar Unit")] = total / nodes / days
     result["Reward Outcomes"] = result["reward_outcomes"].astype(str) + "/" + result["commitments"].astype(str)
     result["Role"] = result["role"].str.title()
     result = result.rename(columns={"commitments": "Total Commitments"})
-    columns = ["Period", "Start (UTC)", "End (UTC)", "Role", "Total Days", "Total Nodes",
+    columns = ["Reporting Interval", "Start (UTC)", "End (UTC)", "Role", "Total Days", "Total Nodes",
                "Total Validator Reward Addresses", "Total Delegator Funding Addresses", "Total Commitments",
                "Commitments / Day", "Commitments / Node", "Commitments / Node / Day"]
     columns.extend(_metric_column(metric, view) for metric in METRIC_SOURCES for view in VIEWS)
@@ -260,13 +273,13 @@ def rates_per(table: pd.DataFrame, denominator: str) -> pd.DataFrame:
     result["Total Days"] = result["Total Days"] / factor
     rate_columns = ["Commitments / Day", "Commitments / Node / Day"]
     rate_columns.extend(_metric_column(metric, view) for metric in METRIC_SOURCES
-                        for view in ("/ Period", "/ Node / Period"))
+                        for view in ("Per Calendar Unit", "Per Node per Calendar Unit"))
     result[rate_columns] = result[rate_columns] * factor
     names = {"Total Days": f"Total {denominator}s",
              "Commitments / Day": f"Commitments / {denominator}",
              "Commitments / Node / Day": f"Commitments / Node / {denominator}"}
     names.update({_metric_column(metric, view): _metric_column(metric, view, denominator)
-                  for metric in METRIC_SOURCES for view in ("/ Period", "/ Node / Period")})
+                  for metric in METRIC_SOURCES for view in ("Per Calendar Unit", "Per Node per Calendar Unit")})
     return result.rename(columns=names)
 
 
@@ -287,9 +300,9 @@ def selected_columns(table: pd.DataFrame, metrics: list[str], views: list[str], 
     """Keep cohort context and show only the selected metric and view intersections."""
     columns = list(table.columns[:table.columns.get_loc("Total Commitments") + 1])
     commitment_views = {
-        "/ Period": f"Commitments / {period}",
-        "/ Node": "Commitments / Node",
-        "/ Node / Period": f"Commitments / Node / {period}",
+        "Per Calendar Unit": f"Commitments / {period}",
+        "Per Node": "Commitments / Node",
+        "Per Node per Calendar Unit": f"Commitments / Node / {period}",
     }
     columns.extend(commitment_views[view] for view in VIEWS if view in views and view in commitment_views)
     columns.extend(_metric_column(metric, view, period)
@@ -302,11 +315,12 @@ def selected_columns(table: pd.DataFrame, metrics: list[str], views: list[str], 
 class StakingCohorts(pm.Parameterized):
     """Fast notebook view of one checked staking-period release."""
 
-    time_grain = pm.Selector(default="Era", objects=["Day", "Week", "Year", "Era", "All"])
+    time_grain = pm.Selector(default="Era", objects=["Day", "Week", "Year", "Era", "All"], label="Group by")
     population = pm.Selector(default="Validators", objects=["Validators", "Delegators", "Both"])
-    periodic_denominator = pm.Selector(default="Day", objects=["Day", "Week", "Year"])
-    metrics = pm.ListSelector(default=list(METRIC_SOURCES), objects=list(METRIC_SOURCES))
-    views = pm.ListSelector(default=["Total", "/ Period", "/ Commitment"], objects=list(VIEWS))
+    periodic_denominator = pm.Selector(default="Day", objects=["Day", "Week", "Year"], label="Rate Unit")
+    metrics = pm.ListSelector(default=list(METRIC_SOURCES), objects=list(METRIC_SOURCES), label="Quantities")
+    views = pm.ListSelector(default=["Total", "Per Calendar Unit", "Per Commitment"], objects=list(VIEWS),
+                            label="Denominators")
 
     def __init__(self, run: str, **params):
         super().__init__(**params)
@@ -345,9 +359,30 @@ class StakingCohorts(pm.Parameterized):
                 "all reward-owner addresses; delegator funding addresses count the largest funder per delegation, "
                 "not unique people. "
                 "Total Committed Duration sums each new commitment's duration; it is not the row's elapsed time. "
-                "Rows group commitments by acceptance time, so periodic rewards are cohort-normalized, not payout flows. "
+                "Reporting intervals group commitments by acceptance time. Rate Unit changes only the calendar-time "
+                "denominator, so reward rates are cohort-normalized, not payout flows. "
                 "Year rates use 365.2425 days. Start is inclusive; End is exclusive.")
-        controls = pn.Param(self, parameters=["time_grain", "population", "periodic_denominator", "metrics", "views"],
-                            widgets={"metrics": pn.widgets.MultiChoice, "views": pn.widgets.MultiChoice}, show_name=False)
+        grouping = pn.Column(
+            *(pn.widgets.Select.from_param(parameter, width=220)
+              for parameter in (self.param.time_grain, self.param.population,
+                                self.param.periodic_denominator)),
+            width=220,
+        )
+        quantities = pn.widgets.CheckButtonGroup.from_param(
+            self.param.metrics, orientation="vertical", variant="outline", color="primary", width=190,
+        )
+        denominators = pn.widgets.CheckButtonGroup.from_param(
+            self.param.views, options=denominator_options(self.periodic_denominator),
+            orientation="vertical", variant="outline", color="primary", width=220,
+        )
+        self.param.watch(lambda event: setattr(denominators, "options", denominator_options(event.new)),
+                         "periodic_denominator")
+        controls = pn.Row(
+            grouping,
+            pn.Spacer(width=16),
+            pn.Column(pn.pane.Markdown("**Quantities**"), quantities, width=190),
+            pn.Spacer(width=16),
+            pn.Column(pn.pane.Markdown("**Denominators**"), denominators, width=220),
+        )
         return pn.Column(controls,
                          self.view, pn.pane.Markdown(note), sizing_mode="stretch_width")
