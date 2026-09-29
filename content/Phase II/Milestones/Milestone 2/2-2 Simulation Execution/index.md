@@ -1,6 +1,6 @@
 ---
 title: "2.2 Simulation Execution"
-description: "Contract deliverable 2.2: Simulation Execution."
+description: "More than 50,000 simulated trajectories across the space of governance settings and environments."
 status: not started
 source: signed-grant-agreement
 tags: ["parameter-selection-under-uncertainty", "market-conditions"]

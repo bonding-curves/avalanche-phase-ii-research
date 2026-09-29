@@ -1,6 +1,6 @@
 ---
 title: "2.1 PSUU Infrastructure"
-description: "Contract deliverable 2.1: PSUU Infrastructure."
+description: "The pipeline that sweeps governance parameters across environmental scenarios, run on cloud compute."
 status: not started
 source: signed-grant-agreement
 tags: ["parameter-selection-under-uncertainty"]

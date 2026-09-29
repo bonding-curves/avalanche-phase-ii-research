@@ -11,7 +11,7 @@ Proposed rule changes and how to evaluate them. For how a change is proposed and
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) | BCRG |  | Contract deliverable 2.8: Collaborative Mechanism Design. |
+| [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) | BCRG |  | Evaluation of alternative reward mechanisms proposed by the Foundation or external teams, such as node-age weighting and activity multipliers. |
 
 ## Memos
 

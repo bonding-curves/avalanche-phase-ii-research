@@ -1,6 +1,6 @@
 ---
 title: "1.2 Data Manifest"
-description: "Contract deliverable 1.2: Data Manifest."
+description: "Where every dataset comes from, how it is transformed, and how its quality is checked, so any number traces to its run."
 status: delivered
 source: signed-grant-agreement
 tags: ["issuance-and-rewards", "staking-duration-and-liquidity", "fees-and-value-capture"]

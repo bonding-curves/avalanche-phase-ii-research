@@ -11,10 +11,10 @@ The reward formula, consumption rates, the issuance schedule, inflation, and the
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [1.1 Data Ingestion](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | BCRG |  | Contract deliverable 1.1: Data Ingestion. |
-| [1.2 Data Manifest](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) | BCRG |  | Contract deliverable 1.2: Data Manifest. |
-| [1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | BCRG |  | Contract deliverable 1.3: Staking Model Spec. |
-| [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) | BCRG |  | Contract deliverable 2.8: Collaborative Mechanism Design. |
+| [1.1 Data Ingestion](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | BCRG |  | The historical staking data the research runs on: validator and delegator flows, rewards, and durations, each from a checked run. |
+| [1.2 Data Manifest](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) | BCRG |  | Where every dataset comes from, how it is transformed, and how its quality is checked, so any number traces to its run. |
+| [1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | BCRG |  | The specification of a simplified model of the staking subsystem, with behavioral state variables. |
+| [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) | BCRG |  | Evaluation of alternative reward mechanisms proposed by the Foundation or external teams, such as node-age weighting and activity multipliers. |
 
 ## Reference
 

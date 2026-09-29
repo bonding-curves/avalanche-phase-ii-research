@@ -1,6 +1,6 @@
 ---
 title: "Preliminary Validation Report"
-description: "Milestone 1 success criterion: Preliminary Validation Report."
+description: "Milestone 1's success criterion: a first goodness-of-fit assessment of the model against history, for the Foundation's approval."
 status: not started
 source: signed-grant-agreement
 tags: ["model-validation"]

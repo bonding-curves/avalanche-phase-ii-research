@@ -1,6 +1,6 @@
 ---
 title: "3.3 Open Source Release"
-description: "Contract deliverable 3.3: Open Source Release."
+description: "The full model code with its documentation."
 status: not started
 source: signed-grant-agreement
 tags: ["model-structure"]

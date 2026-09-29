@@ -1,6 +1,6 @@
 ---
 title: "2.5 Sensitivity Analysis"
-description: "Contract deliverable 2.5: Sensitivity Analysis."
+description: "Decision trees and correlation matrices that show which parameters drive each KPI."
 status: not started
 source: signed-grant-agreement
 tags: ["sensitivity-analysis", "kpis-and-goals"]

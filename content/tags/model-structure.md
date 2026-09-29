@@ -11,9 +11,9 @@ Specifying an economic system as states, actions, and update rules. For whether 
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | BCRG |  | Contract deliverable 1.3: Staking Model Spec. |
-| [2.7 Workshop 1](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/) | BCRG |  | Contract deliverable 2.7: Workshop 1. |
-| [3.3 Open Source Release](/Phase-II/Milestones/Milestone-3/3-3-Open-Source-Release/) | BCRG |  | Contract deliverable 3.3: Open Source Release. |
+| [1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | BCRG |  | The specification of a simplified model of the staking subsystem, with behavioral state variables. |
+| [2.7 Workshop 1](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/) | BCRG |  | A walkthrough of the model and a review of preliminary findings with the Foundation. |
+| [3.3 Open Source Release](/Phase-II/Milestones/Milestone-3/3-3-Open-Source-Release/) | BCRG |  | The full model code with its documentation. |
 
 ## Essential Readings
 

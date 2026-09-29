@@ -11,9 +11,9 @@ Bull and bear markets, shocks, and how volatility changes choices.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [2.2 Simulation Execution](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | BCRG |  | Contract deliverable 2.2: Simulation Execution. |
-| [2.6 Risk Surface Map](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | BCRG |  | Contract deliverable 2.6: Risk Surface Map. |
-| [3.2 Scenario Playbook](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) | BCRG |  | Contract deliverable 3.2: Scenario Playbook. |
+| [2.2 Simulation Execution](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | BCRG |  | More than 50,000 simulated trajectories across the space of governance settings and environments. |
+| [2.6 Risk Surface Map](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | BCRG |  | The regions of parameter space where staking incentives fail. |
+| [3.2 Scenario Playbook](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) | BCRG |  | Guidance of the form: if a given market condition holds, adjust a given parameter this way. |
 
 ## Essential Readings
 

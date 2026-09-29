@@ -1,6 +1,6 @@
 ---
 title: "3.1 Parameter Recommendation Report"
-description: "Contract deliverable 3.1: Parameter Recommendation Report."
+description: "Actionable parameter guidance, with the decision framework behind it."
 status: not started
 source: signed-grant-agreement
 tags: ["parameter-selection-under-uncertainty", "kpis-and-goals"]

@@ -34,18 +34,9 @@ For the C-Chain from January 2025 to March 2026 the article finds three phases. 
 
 The C-Chain is mostly a financial intermediation economy. Lending and DEXs account for "well over 80%" of protocol revenue since January 2025 and for most of the decline. Lending, which includes Benqi and Aave, was the largest source, and its real index fell 68% after the October 2025 peak. Real-world assets rose more than 7x by November 2025, driven by BlackRock BUIDL, and stood about 1.6x the base in March 2026. Over the full history from February 2021, the 2021 decline was 87% and the current cycle 69% from the April 2025 peak. The active token basket shrank from 227 tokens to 102. The article concludes that uses whose revenue does not depend on token price cycles would make GCP more resilient.
 
-```mermaid
-flowchart LR
-  E["On-chain flows per token: contract events, ERC-20 transfers, gas"] --> P["Onchain profit: revenue less payments to suppliers"]
-  E --> T["Transaction fees"]
-  P --> V["Value added: onchain profit plus transaction fees"]
-  T --> V
-  V --> N["Nominal GCP: at current token prices"]
-  V --> R["Real GCP: Fisher chain index over about 700 tokens, January 2025 = 100"]
-  R --> K["Törnqvist contributions by protocol and category"]
-```
+![Figure 1 of the article: real and nominal GCP indices, January 2025 to March 2026](/Phase-II/Wiki/Collections/Essential-Readings/Measuring-Blockchain-Economies-Introducing-Gross-Chain-Product/raw/assets/figure-01.png)
 
-*How the article builds gross chain product. Value added is summed across protocols and then read two ways: at current prices, which move with the market, and at constant prices, which isolate activity. The article's figures are not reproduced here, so this diagram is drawn from Part 2 of its text.*
+*Figure 1 of the article. Both lines start at 100 in January 2025. The solid red line is real GCP, output with token price changes removed. The dashed blue line is nominal GCP, output in dollars at the prices of the day. The two spikes are the April 2025 tariff crash, when one day of GMX liquidation fees lifted real GCP to 238, and the October 2025 flash crash. By March 2026 real GCP stood at 75 while nominal GCP had fallen 60%: the gap between the lines is the part of the fall caused by lower token prices rather than less activity.*
 
 ## How it relates to our research
 

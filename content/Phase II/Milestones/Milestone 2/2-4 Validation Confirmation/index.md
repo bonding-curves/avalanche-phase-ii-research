@@ -1,6 +1,6 @@
 ---
 title: "2.4 Validation Confirmation"
-description: "Contract deliverable 2.4: Validation Confirmation."
+description: "The final goodness-of-fit test of the model against history, with the agreement's target of above 90% correlation."
 status: not started
 source: signed-grant-agreement
 tags: ["model-validation"]

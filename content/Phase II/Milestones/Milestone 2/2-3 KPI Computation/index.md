@@ -1,6 +1,6 @@
 ---
 title: "2.3 KPI Computation"
-description: "Contract deliverable 2.3: KPI Computation."
+description: "Automated computation of every KPI for every simulated trajectory."
 status: not started
 source: signed-grant-agreement
 tags: ["kpis-and-goals"]

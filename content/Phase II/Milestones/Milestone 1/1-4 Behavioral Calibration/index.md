@@ -1,6 +1,6 @@
 ---
 title: "1.4 Behavioral Calibration"
-description: "Contract deliverable 1.4: Behavioral Calibration."
+description: "Fitted response functions for staking, unstaking, and restaking, with confidence intervals."
 status: in progress
 source: signed-grant-agreement
 tags: ["structural-estimation", "staking-duration-and-liquidity"]

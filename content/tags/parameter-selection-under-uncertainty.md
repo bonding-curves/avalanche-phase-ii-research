@@ -11,12 +11,12 @@ Choosing parameters and policies that perform well across futures that cannot be
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [2.1 PSUU Infrastructure](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/) | BCRG |  | Contract deliverable 2.1: PSUU Infrastructure. |
-| [2.2 Simulation Execution](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | BCRG |  | Contract deliverable 2.2: Simulation Execution. |
-| [2.6 Risk Surface Map](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | BCRG |  | Contract deliverable 2.6: Risk Surface Map. |
-| [3.1 Parameter Recommendation Report](/Phase-II/Milestones/Milestone-3/3-1-Parameter-Recommendation-Report/) | BCRG |  | Contract deliverable 3.1: Parameter Recommendation Report. |
-| [3.2 Scenario Playbook](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) | BCRG |  | Contract deliverable 3.2: Scenario Playbook. |
-| [3.4 Workshop 2](/Phase-II/Milestones/Milestone-3/3-4-Workshop-2/) | BCRG |  | Contract deliverable 3.4: Workshop 2. |
+| [2.1 PSUU Infrastructure](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/) | BCRG |  | The pipeline that sweeps governance parameters across environmental scenarios, run on cloud compute. |
+| [2.2 Simulation Execution](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | BCRG |  | More than 50,000 simulated trajectories across the space of governance settings and environments. |
+| [2.6 Risk Surface Map](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | BCRG |  | The regions of parameter space where staking incentives fail. |
+| [3.1 Parameter Recommendation Report](/Phase-II/Milestones/Milestone-3/3-1-Parameter-Recommendation-Report/) | BCRG |  | Actionable parameter guidance, with the decision framework behind it. |
+| [3.2 Scenario Playbook](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) | BCRG |  | Guidance of the form: if a given market condition holds, adjust a given parameter this way. |
+| [3.4 Workshop 2](/Phase-II/Milestones/Milestone-3/3-4-Workshop-2/) | BCRG |  | Training for the Foundation team on running scenarios and interpreting the results. |
 
 ## Research papers
 

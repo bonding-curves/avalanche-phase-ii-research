@@ -1,6 +1,6 @@
 ---
 title: "1.3 Staking Model Spec"
-description: "Contract deliverable 1.3: Staking Model Spec."
+description: "The specification of a simplified model of the staking subsystem, with behavioral state variables."
 status: in progress
 source: signed-grant-agreement
 tags: ["model-structure", "staking-duration-and-liquidity", "issuance-and-rewards"]

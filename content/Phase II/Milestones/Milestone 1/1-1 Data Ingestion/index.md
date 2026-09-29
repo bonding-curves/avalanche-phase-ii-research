@@ -1,6 +1,6 @@
 ---
 title: "1.1 Data Ingestion"
-description: "Contract deliverable 1.1: Data Ingestion."
+description: "The historical staking data the research runs on: validator and delegator flows, rewards, and durations, each from a checked run."
 status: delivered
 source: signed-grant-agreement
 tags: ["staking-duration-and-liquidity", "issuance-and-rewards", "delegation-market"]

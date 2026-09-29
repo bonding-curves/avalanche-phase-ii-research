@@ -106,7 +106,7 @@ def render(catalog: dict[str, Any], runs: dict[str, dict[str, Any]]) -> dict[str
     built = sum(1 for item in datasets if item["id"] in runs)
 
     ingestion = [
-        "---", 'title: "1.1 Data Ingestion"', 'description: "Contract deliverable 1.1: Data Ingestion."',
+        "---", 'title: "1.1 Data Ingestion"', 'description: "The historical staking data the research runs on: validator and delegator flows, rewards, and durations, each from a checked run."',
         "status: delivered", "source: signed-grant-agreement", 'tags: ["staking-duration-and-liquidity", "issuance-and-rewards", "delegation-market"]', "---", "", MARKER, "",
         "## Contract requirement", "", "Ingest Avalanche-provided historical data (validator/delegator flows, rewards, durations)", "",
         "## Evidence status", "",
@@ -131,7 +131,7 @@ def render(catalog: dict[str, Any], runs: dict[str, dict[str, Any]]) -> dict[str
                   "[Signed Grant Agreement](/Phase-II/Milestones/Milestone-0/Signed-Grant-Agreement)", ""]
 
     manifest = [
-        "---", 'title: "1.2 Data Manifest"', 'description: "Contract deliverable 1.2: Data Manifest."',
+        "---", 'title: "1.2 Data Manifest"', 'description: "Where every dataset comes from, how it is transformed, and how its quality is checked, so any number traces to its run."',
         "status: delivered", "source: signed-grant-agreement", 'tags: ["issuance-and-rewards", "staking-duration-and-liquidity", "fees-and-value-capture"]', "---", "", MARKER, "",
         "## Contract requirement", "", "Documentation of sources, transformations, quality metrics", "",
         "## Evidence status", "",

@@ -11,8 +11,8 @@ Which parameters and inputs drive each result.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [2.5 Sensitivity Analysis](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) | BCRG |  | Contract deliverable 2.5: Sensitivity Analysis. |
-| [2.7 Workshop 1](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/) | BCRG |  | Contract deliverable 2.7: Workshop 1. |
+| [2.5 Sensitivity Analysis](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) | BCRG |  | Decision trees and correlation matrices that show which parameters drive each KPI. |
+| [2.7 Workshop 1](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/) | BCRG |  | A walkthrough of the model and a review of preliminary findings with the Foundation. |
 
 ## Research papers
 

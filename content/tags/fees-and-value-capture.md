@@ -11,7 +11,7 @@ Gas pricing, the fee burn, fee revenue, and mechanisms that capture value for AV
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [1.2 Data Manifest](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) | BCRG |  | Contract deliverable 1.2: Data Manifest. |
+| [1.2 Data Manifest](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) | BCRG |  | Where every dataset comes from, how it is transformed, and how its quality is checked, so any number traces to its run. |
 
 ## Reference
 

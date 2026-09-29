@@ -1,6 +1,6 @@
 ---
 title: "3.2 Scenario Playbook"
-description: "Contract deliverable 3.2: Scenario Playbook."
+description: "Guidance of the form: if a given market condition holds, adjust a given parameter this way."
 status: not started
 source: signed-grant-agreement
 tags: ["market-conditions", "parameter-selection-under-uncertainty"]

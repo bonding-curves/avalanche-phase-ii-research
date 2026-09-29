@@ -11,7 +11,7 @@ Recovering preferences from observed choices and fitting a model to data.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [1.4 Behavioral Calibration](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) | BCRG |  | Contract deliverable 1.4: Behavioral Calibration. |
+| [1.4 Behavioral Calibration](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) | BCRG |  | Fitted response functions for staking, unstaking, and restaking, with confidence intervals. |
 
 ## Reference
 

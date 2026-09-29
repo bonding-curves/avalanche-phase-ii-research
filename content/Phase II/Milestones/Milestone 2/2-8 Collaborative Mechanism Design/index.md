@@ -1,6 +1,6 @@
 ---
 title: "2.8 Collaborative Mechanism Design"
-description: "Contract deliverable 2.8: Collaborative Mechanism Design."
+description: "Evaluation of alternative reward mechanisms proposed by the Foundation or external teams, such as node-age weighting and activity multipliers."
 status: not started
 source: signed-grant-agreement
 tags: ["mechanism-design", "issuance-and-rewards"]

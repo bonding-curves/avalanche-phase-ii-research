@@ -11,8 +11,8 @@ Tests that decide whether a model can be trusted for policy. For how a model is 
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [Preliminary Validation Report](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/) | BCRG |  | Milestone 1 success criterion: Preliminary Validation Report. |
-| [2.4 Validation Confirmation](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) | BCRG |  | Contract deliverable 2.4: Validation Confirmation. |
+| [Preliminary Validation Report](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/) | BCRG |  | Milestone 1's success criterion: a first goodness-of-fit assessment of the model against history, for the Foundation's approval. |
+| [2.4 Validation Confirmation](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) | BCRG |  | The final goodness-of-fit test of the model against history, with the agreement's target of above 90% correlation. |
 
 ## Research papers
 

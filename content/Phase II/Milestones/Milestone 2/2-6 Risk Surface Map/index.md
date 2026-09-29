@@ -1,6 +1,6 @@
 ---
 title: "2.6 Risk Surface Map"
-description: "Contract deliverable 2.6: Risk Surface Map."
+description: "The regions of parameter space where staking incentives fail."
 status: not started
 source: signed-grant-agreement
 tags: ["parameter-selection-under-uncertainty", "kpis-and-goals", "market-conditions"]
