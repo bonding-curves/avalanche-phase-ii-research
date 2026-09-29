@@ -131,6 +131,7 @@ class DiagramPanZoom {
 }
 
 const cssVars = [
+  "--bodyFont",
   "--secondary",
   "--tertiary",
   "--gray",
@@ -185,7 +186,7 @@ document.addEventListener("nav", async () => {
       securityLevel: "strict",
       theme: darkMode ? "dark" : "base",
       themeVariables: {
-        fontFamily: computedStyleMap["--codeFont"],
+        fontFamily: computedStyleMap["--bodyFont"],
         primaryColor: computedStyleMap["--light"],
         primaryTextColor: computedStyleMap["--darkgray"],
         primaryBorderColor: computedStyleMap["--tertiary"],

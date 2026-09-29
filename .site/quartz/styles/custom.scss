@@ -128,3 +128,7 @@ footer { font-size: 11px; padding-top: 22px; border-top: 1px solid var(--lightgr
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: 0ms !important; }
 }
+
+// Mermaid 11 wraps each label in a <p>. The article's paragraph color and the code font must not override the diagram's own label color and font.
+pre:has(> code.mermaid) { font-family: var(--bodyFont); }
+pre:has(> code.mermaid) :is(p, span, div) { color: inherit; font-family: inherit; }
