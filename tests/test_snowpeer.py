@@ -78,6 +78,7 @@ def test_catalog_schema_and_references_are_valid():
         "snowflake.c-chain-evm-burn-daily",
         "snowflake.primary-burn-daily",
         "snowflake.c-chain-block-gaps",
+        "snowflake.subnet-validator-transactions",
         "coingecko.avax-market-daily",
         "binance.avax-usdt-daily",
         "defillama.avax-price-daily",
@@ -107,6 +108,7 @@ def test_catalog_schema_and_references_are_valid():
         "derived.helicon-commitments",
         "etf-issuers.avax-fund-snapshot",
         "etf-issuers.avax-fund-history",
+        "derived.subnet-validation",
     ]
 
 

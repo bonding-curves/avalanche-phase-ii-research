@@ -932,6 +932,34 @@
             "A short block is present with fewer distinct receipts than BLOCKTRANSACTIONLEN; every receipt of 2023-10-06 and about a third of those of 2023-12-13 and 2023-12-14 are missing this way",
             "Blocks the share loaded twice are read once by height"
           ]
+        },
+        {
+          "id": "subnet-validator-transactions",
+          "sql": "queries/subnet-validator-transactions.sql",
+          "relations": [
+            "P_TRANSACTIONS"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-10",
+              "meaning": "inclusive lower UTC transaction date"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC transaction date"
+            }
+          ],
+          "observed_semantics": [
+            "AddSubnetValidatorTx carries NODE_ID, SUBNET_ID, START_TIME, and END_TIME, and REMOVAL_TIME when a RemoveSubnetValidatorTx ended the period early",
+            "RemoveSubnetValidatorTx carries SUBNET_ID but no NODE_ID",
+            "ConvertSubnetToL1Tx repeats its hash once per initial L1 validator, each row with that validator's NODE_ID and L1_VALIDATOR_WEIGHT",
+            "RegisterL1ValidatorTx and DisableL1ValidatorTx carry NODE_ID, SUBNET_ID, and L1_VALIDATOR_WEIGHT",
+            "No AddPermissionlessValidatorTx names a Subnet other than the Primary Network (checked 2026-09-29)"
+          ]
         }
       ]
     },
@@ -1118,6 +1146,11 @@
           "id": "defillama-daily",
           "dataset_id": "defillama.avax-price-daily",
           "role": "AVAX USD price and volatility, the named alternative"
+        },
+        {
+          "id": "subnet-transactions",
+          "dataset_id": "snowflake.subnet-validator-transactions",
+          "role": "Subnet and L1 validator transactions of the P-Chain"
         }
       ]
     },
@@ -2127,6 +2160,85 @@
           "type": "integer",
           "unit": "receipts",
           "derivation": "distinct receipt transaction hashes of a short block; null for an absent block"
+        }
+      ]
+    },
+    {
+      "id": "snowflake.subnet-validator-transactions",
+      "name": "Subnet and L1 validator transactions",
+      "source_id": "avalanche-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per P-Chain transaction that adds, removes, converts, registers, or disables a Subnet or L1 validator, and one row per initial validator of each ConvertSubnetToL1Tx. The input for splitting validator exits by Subnet role and L1 conversion under ACP-77.",
+      "query_ids": [
+        "subnet-validator-transactions"
+      ],
+      "fields": [
+        {
+          "name": "tx_type",
+          "type": "string",
+          "unit": "transaction type",
+          "derivation": "P_TRANSACTIONS.TYPE"
+        },
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "P_TRANSACTIONS.TRANSACTION_HASH"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "P_TRANSACTIONS.TIMESTAMP"
+        },
+        {
+          "name": "block_height",
+          "type": "integer",
+          "unit": "P-Chain block height",
+          "derivation": "P_TRANSACTIONS.BLOCK_HEIGHT"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "P_TRANSACTIONS.NODE_ID, null for RemoveSubnetValidatorTx"
+        },
+        {
+          "name": "subnet_id",
+          "type": "string",
+          "unit": "Subnet ID",
+          "derivation": "P_TRANSACTIONS.SUBNET_ID"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "Subnet validation start, AddSubnetValidatorTx only"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "Subnet validation end, AddSubnetValidatorTx only"
+        },
+        {
+          "name": "removal_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "early end by RemoveSubnetValidatorTx, as recorded on the AddSubnetValidatorTx row"
+        },
+        {
+          "name": "l1_validator_weight",
+          "type": "integer",
+          "unit": "L1 validator weight",
+          "derivation": "P_TRANSACTIONS.L1_VALIDATOR_WEIGHT, L1 transactions only"
         }
       ]
     },
@@ -5308,6 +5420,110 @@
           "type": "boolean",
           "unit": "flag",
           "derivation": "true when avax_held is computed rather than reported, false when reported, null when avax_held is null"
+        }
+      ]
+    },
+    {
+      "id": "derived.subnet-validation",
+      "name": "Subnet and L1 validation by node",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per node and Subnet: the node's Subnet validator periods, its Subnet's conversion to an L1 under ACP-77, the node's own L1 registration and disable, and its Primary Network span. Splits the fall in active validators after Etna by whether a node validated a Subnet and when that Subnet converted. The build summary recomputes the protocol mechanism catalog's exploratory counts and records any difference.",
+      "input_ids": [
+        "subnet-transactions",
+        "staking-periods"
+      ],
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "validator node"
+        },
+        {
+          "name": "subnet_id",
+          "type": "string",
+          "unit": "Subnet ID",
+          "derivation": "Subnet or L1"
+        },
+        {
+          "name": "subnet_periods",
+          "type": "integer",
+          "unit": "count",
+          "derivation": "AddSubnetValidatorTx periods of this node on this Subnet"
+        },
+        {
+          "name": "first_subnet_start",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "earliest Subnet period start"
+        },
+        {
+          "name": "last_subnet_end",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "latest Subnet period end, the removal time when a period was ended early"
+        },
+        {
+          "name": "removed_early",
+          "type": "integer",
+          "unit": "count",
+          "derivation": "Subnet periods ended by RemoveSubnetValidatorTx"
+        },
+        {
+          "name": "l1_converted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the Subnet's first ConvertSubnetToL1Tx, null when it never converted"
+        },
+        {
+          "name": "initial_l1_validator",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "the node is one of the conversion's initial L1 validators"
+        },
+        {
+          "name": "l1_registered_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the node's first L1 validator role on this Subnet, by conversion or RegisterL1ValidatorTx"
+        },
+        {
+          "name": "l1_disabled_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the node's latest DisableL1ValidatorTx on this Subnet"
+        },
+        {
+          "name": "subnet_periods_after_conversion",
+          "type": "integer",
+          "unit": "count",
+          "derivation": "Subnet periods starting at or after the Subnet's conversion, which the protocol forbids"
+        },
+        {
+          "name": "primary_first_start",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the node's first Primary Network validator period start, from the staking-period log"
+        },
+        {
+          "name": "primary_last_end",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the node's last Primary Network validator period end"
+        },
+        {
+          "name": "subnet_periods_outside_primary",
+          "type": "integer",
+          "unit": "count",
+          "derivation": "Subnet periods not spanned by one Primary Network validator period of the node, which the pre-Etna rule forbids"
         }
       ]
     }

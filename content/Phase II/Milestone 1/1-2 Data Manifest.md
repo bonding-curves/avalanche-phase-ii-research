@@ -49,6 +49,7 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `snowflake.c-chain-evm-burn-daily` | `avalanche-snowflake` | `queries/c-chain-evm-burn-daily.sql` | 16 | How Do Avalanche Validators Actually Think About Staking Rewards? |
 | `snowflake.primary-burn-daily` | `avalanche-snowflake` | `queries/primary-burn-daily.sql` | 12 | How Do Avalanche Validators Actually Think About Staking Rewards? |
 | `snowflake.c-chain-block-gaps` | `avalanche-snowflake` | `queries/c-chain-block-gaps.sql` | 5 | How Do Avalanche Validators Actually Think About Staking Rewards? |
+| `snowflake.subnet-validator-transactions` | `avalanche-snowflake` | `queries/subnet-validator-transactions.sql` | 10 | How Do Avalanche Validators Actually Think About Staking Rewards? |
 | `coingecko.avax-market-daily` | `coingecko` | 1 request to `https://api.coingecko.com/api/v3/coins/avalanche-2/market_chart` | 8 | How Do Avalanche Validators Actually Think About Staking Rewards?; Value Accrual as Equilibrium: How We Think About AVAX Tokenomics |
 | `binance.avax-usdt-daily` | `binance-public-data` | 2 requests to `https://data.binance.vision/data/spot/monthly/klines/AVAXUSDT/1d/` | 10 | How Do Avalanche Validators Actually Think About Staking Rewards?; Value Accrual as Equilibrium: How We Think About AVAX Tokenomics |
 | `defillama.avax-price-daily` | `defillama` | 5 requests to `https://coins.llama.fi/chart/coingecko:avalanche-2` | 7 | How Do Avalanche Validators Actually Think About Staking Rewards?; Value Accrual as Equilibrium: How We Think About AVAX Tokenomics |
@@ -78,6 +79,7 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `derived.helicon-commitments` | `derived` | derived from `derived.staking-periods`, `p-chain-rpc.current-validators` | 15 | How Do Avalanche Validators Actually Think About Staking Rewards? |
 | `etf-issuers.avax-fund-snapshot` | `etf-issuers` | 8 requests to `https://bavaetf.com/` | 14 |  |
 | `etf-issuers.avax-fund-history` | `etf-issuers` | 5 requests to `https://bavaetf.com/` | 13 |  |
+| `derived.subnet-validation` | `derived` | derived from `derived.staking-periods`, `snowflake.subnet-validator-transactions` | 14 | How Do Avalanche Validators Actually Think About Staking Rewards? |
 
 ### Latest runs
 
@@ -92,11 +94,12 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `snowflake.c-chain-evm-burn-daily` | 2026-09-23T19:05:56Z | `capture:avalanche-snowflake:2026-09-23T19:05:56Z:16a07bde68f4` | `136923319074` | n/a | attention, 16 checks, 2 findings | 1 rows do not connect to adjacent C block days; 25 rows have absent C blocks, to read from the Data API block record |
 | `snowflake.primary-burn-daily` | 2026-09-23T18:02:06Z | `capture:avalanche-snowflake:2026-09-23T18:02:06Z:ca935c033f10` | `e78fdab0ca66` | 4408 | attention, 11 checks, 1 findings | 2 rows carry unresolved burns to settle from the Data API transaction record |
 | `snowflake.c-chain-block-gaps` | 2026-09-23T19:11:21Z | `capture:avalanche-snowflake:2026-09-23T19:11:21Z:df476c5856ee` | `550643755fdb` | 14627 | pass, 7 checks, 0 findings | none recorded |
+| `snowflake.subnet-validator-transactions` | 2026-09-29T10:09:40Z | `capture:avalanche-snowflake:2026-09-29T10:09:40Z:71f3255c6a75` | `62a9898197c6` | 6530 | pass, 9 checks, 0 findings | none recorded |
 | `coingecko.avax-market-daily` | 2026-09-21T23:05:57Z | `capture:coingecko:2026-09-21T23:05:57Z:d9c1c02dcf69` | `3afdf1310c0d` | 366 | pass, 11 checks, 0 findings | partial day rows: 1; rows without volatility: 30 |
 | `binance.avax-usdt-daily` | 2026-09-26T23:16:18Z | `capture:binance-public-data:2026-09-26T23:16:18Z:cb65b6215e13` | `` | 2195 | pass, 6 checks, 0 findings | none recorded |
 | `defillama.avax-price-daily` | 2026-09-21T23:06:02Z | `capture:defillama:2026-09-21T23:06:02Z:c16a49471fcd` | `152843f0c690, cdda7c86a7c4 ...` | 2188 | pass, 9 checks, 0 findings | dates with two observations: 344; rows without volatility: 30; skipped dates: 346 |
 | `c-chain-rpc.receipt-gap-repairs` | 2026-09-21T23:11:27Z | `capture:avalanche-c-chain-rpc:2026-09-21T23:11:27Z:539af6d13fa7` | `e1897ce73ba2, b3da2328b942 ...` | n/a | pass, 6 checks, 0 findings | none recorded |
-| `p-chain-rpc.current-validators` | 2026-09-28T16:15:03Z | `capture:avalanche-p-chain-rpc:2026-09-28T16:15:03Z:8f01e8e75c20` | `64f7cb519527` | 606 | pass, 10 checks, 0 findings | none recorded |
+| `p-chain-rpc.current-validators` | 2026-09-29T00:15:01Z | `capture:avalanche-p-chain-rpc:2026-09-29T00:15:01Z:d250bfb0522f` | `74c84d29c02a` | 601 | pass, 10 checks, 0 findings | none recorded |
 | `p-chain-rpc.transactions` | 2026-09-23T18:04:31Z | `capture:avalanche-p-chain-rpc:2026-09-23T18:04:31Z:3044b620af14` | `19f3a076999f, 56bf7c47cea8 ...` | 24 | pass, 5 checks, 0 findings | none recorded |
 | `c-chain-rpc.atomic-transactions` | 2026-09-23T23:56:27Z | `capture:avalanche-c-chain-rpc:2026-09-23T23:56:27Z:e8bc4b007fdb` | `12b197058ea0, dca37282a1fa ...` | 5 | pass, 6 checks, 0 findings | none recorded |
 | `defillama.pool-yields` | 2026-09-21T23:05:56Z | `capture:defillama:2026-09-21T23:05:56Z:9e02c655fbfd` | `fe69c18f2011` | 333 | pass, 8 checks, 0 findings | pools flagged outlier: 57 |
@@ -104,9 +107,9 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `metrics-api.primary-staking-daily` | 2026-09-19T11:04:32Z | `capture:avalanche-metrics-api:2026-09-19T11:04:32Z:a23febb62f64` | `6912c7805ee1, 60bdb1f27928 ...` | 2058 | attention, 10 checks, 5 findings | 9 rows follow a gap of more than one day; 823 of 2058 days differ from the Snowflake validator count by more than 2%; 437 of 2058 days differ from the Snowflake validator weight by more than 2%; 1571 of 2058 days differ from the Snowflake delegator count by more than 2%; 1269 of 2058 days differ from the Snowflake delegator weight by more than 2%; skipped dates: 9 |
 | `metrics-api.c-chain-activity-daily` | 2026-09-19T11:04:34Z | `capture:avalanche-metrics-api:2026-09-19T11:04:34Z:84448c350671` | `f91849cccb43, a5cf17db4254 ...` | 2087 | attention, 9 checks, 1 findings | 3 rows lack one of the series before the last complete day; days with a missing series: 6 |
 | `data-api.avax-supply` | 2026-09-21T23:05:55Z | `capture:avalanche-data-api:2026-09-21T23:05:55Z:fc492294cb4a` | `9ac47a3b64f2` | 1 | pass, 9 checks, 0 findings | none recorded |
-| `data-api.validators-active` | 2026-09-28T16:15:36Z | `capture:avalanche-data-api:2026-09-28T16:15:36Z:d928e813a3ff` | `5b103371ffdc` | 606 | pass, 11 checks, 0 findings | none recorded |
+| `data-api.validators-active` | 2026-09-29T00:15:36Z | `capture:avalanche-data-api:2026-09-29T00:15:36Z:3c7e3cd40830` | `49ed82559cc7` | 601 | pass, 11 checks, 0 findings | none recorded |
 | `data-api.validators-completed` | 2026-09-22T18:59:07Z | `capture:avalanche-data-api:2026-09-22T18:59:07Z:542f433b59ba` | `8fd45ff87ae7` | 56963 | attention, 9 checks, 1 findings | reward differs from the Snowflake capture on 1 validations |
-| `data-api.validators-completed-recent` | 2026-09-28T16:16:46Z | `capture:avalanche-data-api:2026-09-28T16:16:46Z:edc39497776d` | `a245dd8821ee` | 1500 | pass, 10 checks, 0 findings | none recorded |
+| `data-api.validators-completed-recent` | 2026-09-29T00:16:33Z | `capture:avalanche-data-api:2026-09-29T00:16:33Z:8cd2d53ddbe0` | `f405584dd56d` | 1500 | pass, 10 checks, 0 findings | none recorded |
 | `data-api.c-chain-atomic-burn` | 2026-09-23T23:47:41Z | `capture:avalanche-data-api:2026-09-23T23:47:41Z:251f7ff8f6d4` | `6c29038c8715, b2991b909f66 ...` | 1171886 | pass, 7 checks, 0 findings | none recorded |
 | `data-api.c-chain-block-fees` | 2026-09-25T14:42:28Z | `capture:avalanche-data-api:2026-09-25T14:42:28Z:dd584b3a946f` | `3db3d9498d4c` | 65710 | pass, 6 checks, 0 findings | none recorded |
 | `c-chain-rpc.block-receipt-fees` | 2026-09-25T14:14:02Z | `capture:tenderly-c-chain-rpc:2026-09-25T14:14:02Z:fcc957b3bf27` | `6818309f788e` | 127977 | pass, 6 checks, 0 findings | none recorded |
@@ -118,9 +121,10 @@ The manifest is machine-readable: `data/data-catalog.json` declares every source
 | `derived.avax-monetary-daily` | 2026-09-26T20:58:32Z | `capture:derived:2026-09-26T20:58:32Z:07d41cf92552` | `dc007119c86c, a638fe421c6a ...` | 2204 | attention, 9 checks, 2 findings | Data API rewards at 2026-09-19T11:00:18.236000 differs from the ledger by 2,527,926.793 AVAX beyond the 1.0 AVAX allowance; Data API total_supply at 2026-09-19T11:00:18.236000 differs from the ledger by 2,531,690.670 AVAX beyond the 1.0 AVAX allowance |
 | `builder-hub.validator-uptime` | 2026-09-27T00:45:38Z | `capture:avalanche-builder-hub:2026-09-27T00:45:38Z:08e5e453ef7a` | `e2e6a7bbd78e, e85818656ce8` | 193973 | pass, 8 checks, 0 findings | none recorded |
 | `derived.validator-uptime-hourly` | 2026-09-27T00:45:58Z | `capture:derived:2026-09-27T00:45:58Z:90b581a3fdcd` | `ae25fd37b2e8, 9cd850ca31d5 ...` | 234220 | pass, 3 checks, 0 findings | none recorded |
-| `derived.helicon-commitments` | 2026-09-28T19:53:03Z | `capture:derived:2026-09-28T19:53:03Z:ca93f90a343c` | `d37d01974ccf, ab19028b62d6 ...` | 73 | pass, 8 checks, 0 findings | none recorded |
+| `derived.helicon-commitments` | 2026-09-29T00:15:08Z | `capture:derived:2026-09-29T00:15:08Z:2dbd0def715c` | `d37d01974ccf, ab19028b62d6 ...` | 78 | pass, 8 checks, 0 findings | none recorded |
 | `etf-issuers.avax-fund-snapshot` | 2026-09-28T20:06:52Z | `capture:etf-issuers:2026-09-28T20:06:52Z:7c19a5ef7348` | `7c1faa62b986, 4c8c547a60f5 ...` | 6 | pass, 11 checks, 0 findings | none recorded |
 | `etf-issuers.avax-fund-history` | 2026-09-28T20:06:57Z | `capture:etf-issuers:2026-09-28T20:06:57Z:916a8e99e83f` | `7c1faa62b986, 29151f92cce7 ...` | 4619 | pass, 9 checks, 0 findings | none recorded |
+| `derived.subnet-validation` | 2026-09-29T10:09:56Z | `capture:derived:2026-09-29T10:09:56Z:8fda5ac21955` | `58ebc07eed09, d37d01974ccf` | 4257 | pass, 8 checks, 0 findings | none recorded |
 
 Units are preserved as served and converted once where the catalog says so. Internal review-ready evidence; not Avalanche acceptance.
 

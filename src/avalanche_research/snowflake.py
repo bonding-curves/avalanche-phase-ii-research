@@ -574,9 +574,55 @@ C_CHAIN_BLOCK_GAPS = DatasetSpec(
     summary_keys=("rows", "absent_blocks", "short_blocks", "missing_receipts", "days", "first_date", "last_date"),
 )
 
+SUBNET_TYPES = ("AddSubnetValidatorTx", "RemoveSubnetValidatorTx", "ConvertSubnetToL1Tx", "RegisterL1ValidatorTx",
+                "DisableL1ValidatorTx")
+
+SUBNET_VALIDATOR_TRANSACTIONS = DatasetSpec(
+    dataset_id="snowflake.subnet-validator-transactions",
+    query_id="subnet-validator-transactions",
+    tx_types=(),
+    raw_types={
+        "tx_type": "VARCHAR", "transaction_hash": "VARCHAR", "accepted_at": "TIMESTAMP", "block_height": "BIGINT",
+        "node_id": "VARCHAR", "subnet_id": "VARCHAR", "start_time": "TIMESTAMP", "end_time": "TIMESTAMP",
+        "removal_time": "TIMESTAMP", "l1_validator_weight": "BIGINT",
+    },
+    table_columns={
+        "tx_type": "VARCHAR", "transaction_hash": "VARCHAR", "accepted_at": "TIMESTAMP", "block_height": "BIGINT",
+        "node_id": "VARCHAR", "subnet_id": "VARCHAR", "start_time": "TIMESTAMP", "end_time": "TIMESTAMP",
+        "removal_time": "TIMESTAMP", "l1_validator_weight": "BIGINT",
+    },
+    transform_sql="SELECT * FROM capture ORDER BY accepted_at, transaction_hash, node_id",
+    validity_sql=f"""
+        COUNT_IF(tx_type IS NULL OR tx_type NOT IN ({", ".join(repr(t) for t in SUBNET_TYPES)})
+                 OR transaction_hash IS NULL OR accepted_at IS NULL OR subnet_id IS NULL),
+        COUNT_IF(tx_type <> 'RemoveSubnetValidatorTx' AND node_id IS NULL)""",
+    validity_labels=("miss an identity or have an unexpected type", "add, convert, register, or disable without a node"),
+    check_names=("unique transaction and node", "acceptance window", "Subnet periods ordered", "early removals inside their period"),
+    check_sql="""
+        COUNT(*) - COUNT(DISTINCT transaction_hash || ':' || COALESCE(node_id, '')),
+        COUNT_IF(accepted_at::DATE < ?::DATE OR accepted_at::DATE >= ?::DATE),
+        COUNT_IF(tx_type = 'AddSubnetValidatorTx' AND (start_time IS NULL OR end_time IS NULL OR end_time <= start_time)),
+        COUNT_IF(removal_time IS NOT NULL AND (removal_time < start_time OR removal_time > end_time))""",
+    check_labels=(
+        "repeat a transaction and node", "were accepted outside the requested window",
+        "are Subnet additions without an ordered period", "were removed outside their period",
+    ),
+    check_params=lambda window: [window["start"], window["end"]],
+    summary_sql="""
+        COUNT(*), MIN(accepted_at), MAX(accepted_at),
+        COUNT_IF(tx_type = 'AddSubnetValidatorTx'), COUNT_IF(tx_type = 'RemoveSubnetValidatorTx'),
+        COUNT(DISTINCT CASE WHEN tx_type = 'ConvertSubnetToL1Tx' THEN subnet_id END),
+        COUNT_IF(tx_type = 'RegisterL1ValidatorTx'), COUNT_IF(tx_type = 'DisableL1ValidatorTx'),
+        COUNT(DISTINCT node_id), COUNT(DISTINCT subnet_id)""",
+    summary_keys=(
+        "rows", "accepted_from", "accepted_to", "subnet_additions", "subnet_removals", "converted_subnets",
+        "l1_registrations", "l1_disables", "nodes", "subnets",
+    ),
+)
+
 SPECS = {spec.dataset_id: spec for spec in (
     VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS, STAKING_SUPPLY,
-    PRIMARY_BURN_EVENTS, C_CHAIN_EVM_BURN_DAILY, PRIMARY_BURN_DAILY, C_CHAIN_BLOCK_GAPS,
+    PRIMARY_BURN_EVENTS, C_CHAIN_EVM_BURN_DAILY, PRIMARY_BURN_DAILY, C_CHAIN_BLOCK_GAPS, SUBNET_VALIDATOR_TRANSACTIONS,
 )}
 DATASET_IDS = tuple(SPECS)
 DATASET_ID = VALIDATOR_STAKES.dataset_id

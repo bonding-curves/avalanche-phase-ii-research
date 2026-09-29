@@ -15,50 +15,53 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 
 ## Evidence status
 
-38 of 38 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
+40 of 40 declared datasets have a built run. Each resolves to a source contract in `data/data-catalog.json`, an immutable capture receipt, a typed Parquet build, and a persisted check result. Internal review-ready evidence; not Avalanche acceptance.
 
 ### Coverage by contract quantity
 
 | Quantity | Dataset | Coverage | Rows | Checks |
 | --- | --- | --- | ---: | --- |
 | validator flows | `snowflake.primary-validator-stakes` | 2020-09-10 to 2026-09-22 | 57560 | pass, 13 checks, 0 findings |
-| validator flows | `p-chain-rpc.current-validators` | snapshot 2026-09-28T16:15:03 | 606 | pass, 10 checks, 0 findings |
+| validator flows | `snowflake.subnet-validator-transactions` | 2020-10-25 to 2026-09-22 | 6530 | pass, 9 checks, 0 findings |
+| validator flows | `p-chain-rpc.current-validators` | snapshot 2026-09-29T00:15:01 | 601 | pass, 10 checks, 0 findings |
 | validator flows | `metrics-api.primary-staking-daily` | 2021-01-01 to 2026-08-31 | 2058 | attention, 10 checks, 5 findings |
-| validator flows | `data-api.validators-active` | snapshot 2026-09-28T16:15:36 | 606 | pass, 11 checks, 0 findings |
+| validator flows | `data-api.validators-active` | snapshot 2026-09-29T00:15:36 | 601 | pass, 11 checks, 0 findings |
 | validator flows | `data-api.validators-completed` | snapshot 2026-09-22T18:59:07 | 56963 | attention, 9 checks, 1 findings |
-| validator flows | `data-api.validators-completed-recent` | snapshot 2026-09-28T16:16:46 | 1500 | pass, 10 checks, 0 findings |
+| validator flows | `data-api.validators-completed-recent` | snapshot 2026-09-29T00:16:33 | 1500 | pass, 10 checks, 0 findings |
 | validator flows | `derived.staking-periods` | 2020-09-10 to 2026-09-22 | 7114358 | pass, 8 checks, 0 findings |
 | validator flows | `derived.node-table` | n/a | 7644 | pass, 7 checks, 0 findings |
 | validator flows | `builder-hub.validator-uptime` | n/a | 193973 | pass, 8 checks, 0 findings |
 | validator flows | `derived.validator-uptime-hourly` | n/a | 234220 | pass, 3 checks, 0 findings |
-| validator flows | `derived.helicon-commitments` | n/a | 73 | pass, 8 checks, 0 findings |
+| validator flows | `derived.helicon-commitments` | n/a | 78 | pass, 8 checks, 0 findings |
+| validator flows | `derived.subnet-validation` | n/a | 4257 | pass, 8 checks, 0 findings |
 | delegator flows | `snowflake.primary-delegator-stakes` | 2020-09-22 to 2026-09-21 | 7056798 | pass, 12 checks, 0 findings |
 | delegator flows | `metrics-api.primary-staking-daily` | 2021-01-01 to 2026-08-31 | 2058 | attention, 10 checks, 5 findings |
-| delegator flows | `data-api.validators-active` | snapshot 2026-09-28T16:15:36 | 606 | pass, 11 checks, 0 findings |
+| delegator flows | `data-api.validators-active` | snapshot 2026-09-29T00:15:36 | 601 | pass, 11 checks, 0 findings |
 | delegator flows | `derived.staking-periods` | 2020-09-10 to 2026-09-22 | 7114358 | pass, 8 checks, 0 findings |
 | delegator flows | `derived.node-table` | n/a | 7644 | pass, 7 checks, 0 findings |
 | rewards | `snowflake.primary-staking-rewards` | 2020-10-06 to 2026-09-21 | 7080343 | pass, 12 checks, 0 findings |
 | rewards | `snowflake.primary-staking-supply` | 2020-09-10 to 2026-09-21 | 7114342 | pass, 9 checks, 0 findings |
 | rewards | `data-api.validators-completed` | snapshot 2026-09-22T18:59:07 | 56963 | attention, 9 checks, 1 findings |
-| rewards | `data-api.validators-completed-recent` | snapshot 2026-09-28T16:16:46 | 1500 | pass, 10 checks, 0 findings |
+| rewards | `data-api.validators-completed-recent` | snapshot 2026-09-29T00:16:33 | 1500 | pass, 10 checks, 0 findings |
 | rewards | `derived.staking-periods` | 2020-09-10 to 2026-09-22 | 7114358 | pass, 8 checks, 0 findings |
 | rewards | `derived.node-table` | n/a | 7644 | pass, 7 checks, 0 findings |
 | durations | `snowflake.primary-validator-stakes` | 2020-09-10 to 2026-09-22 | 57560 | pass, 13 checks, 0 findings |
 | durations | `snowflake.primary-delegator-stakes` | 2020-09-22 to 2026-09-21 | 7056798 | pass, 12 checks, 0 findings |
 | durations | `derived.staking-periods` | 2020-09-10 to 2026-09-22 | 7114358 | pass, 8 checks, 0 findings |
 | durations | `derived.node-table` | n/a | 7644 | pass, 7 checks, 0 findings |
-| durations | `derived.helicon-commitments` | n/a | 73 | pass, 8 checks, 0 findings |
+| durations | `derived.helicon-commitments` | n/a | 78 | pass, 8 checks, 0 findings |
 | context | `snowpeer.network-summary` | n/a | n/a | pass, 7 checks, 0 findings |
 | context | `snowflake.primary-staking-supply` | 2020-09-10 to 2026-09-21 | 7114342 | pass, 9 checks, 0 findings |
 | context | `snowflake.primary-burn-events` | 2026-09-16 to 2026-09-16 | 2938 | pass, 8 checks, 0 findings |
 | context | `snowflake.c-chain-evm-burn-daily` | n/a | n/a | attention, 16 checks, 2 findings |
 | context | `snowflake.primary-burn-daily` | n/a | 4408 | attention, 11 checks, 1 findings |
 | context | `snowflake.c-chain-block-gaps` | n/a | 14627 | pass, 7 checks, 0 findings |
+| context | `snowflake.subnet-validator-transactions` | 2020-10-25 to 2026-09-22 | 6530 | pass, 9 checks, 0 findings |
 | context | `coingecko.avax-market-daily` | 2025-09-22 to 2026-09-21 | 366 | pass, 11 checks, 0 findings |
 | context | `binance.avax-usdt-daily` | n/a | 2195 | pass, 6 checks, 0 findings |
 | context | `defillama.avax-price-daily` | 2020-09-23 to 2026-09-21 | 2188 | pass, 9 checks, 0 findings |
 | context | `c-chain-rpc.receipt-gap-repairs` | n/a | n/a | pass, 6 checks, 0 findings |
-| context | `p-chain-rpc.current-validators` | snapshot 2026-09-28T16:15:03 | 606 | pass, 10 checks, 0 findings |
+| context | `p-chain-rpc.current-validators` | snapshot 2026-09-29T00:15:01 | 601 | pass, 10 checks, 0 findings |
 | context | `p-chain-rpc.transactions` | n/a | 24 | pass, 5 checks, 0 findings |
 | context | `c-chain-rpc.atomic-transactions` | n/a | 5 | pass, 6 checks, 0 findings |
 | context | `defillama.pool-yields` | snapshot 2026-09-21T23:05:56 | 333 | pass, 8 checks, 0 findings |
@@ -74,6 +77,7 @@ Ingest Avalanche-provided historical data (validator/delegator flows, rewards, d
 | context | `derived.avax-monetary-daily` | n/a | 2204 | attention, 9 checks, 2 findings |
 | context | `etf-issuers.avax-fund-snapshot` | n/a | 6 | pass, 11 checks, 0 findings |
 | context | `etf-issuers.avax-fund-history` | n/a | 4619 | pass, 9 checks, 0 findings |
+| context | `derived.subnet-validation` | n/a | 4257 | pass, 8 checks, 0 findings |
 
 ### Known gaps
 

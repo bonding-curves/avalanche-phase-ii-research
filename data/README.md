@@ -42,6 +42,8 @@ This directory defines the machine-readable contracts for research data used in 
 | `derived.market-weeks` | One Parquet row per week of the same window: the unstaked supply stock at the Monday cutoff, the week's delegated volume by stratum, the concentrated address's share, and the AVAX price and 30-day volatility at the cutoff | Implemented, tested, and derived on 2026-09-27: 313 weeks |
 | `derived.validator-uptime-hourly` | One Parquet row per validator per hour across every Builder Hub capture, with the number of captures that held the hour and whether they disagreed | Implemented, tested, and derived daily; the only record of hourly uptime percentages outside Ava Labs, and it exists only from the captures on |
 | `derived.helicon-commitments` | One Parquet row per validation cycle started at or after Helicon's activation, with its duration and bin, whether the node validated before Helicon, the change from the node's previous period, and whether the transaction auto-renewed | Implemented, tested, and derived daily from 2026-09-28 over every validator snapshot: 73 cycles on 67 nodes on the first run |
+| `snowflake.subnet-validator-transactions` | One Parquet row per P-Chain transaction that adds, removes, converts, registers, or disables a Subnet or L1 validator, one per initial validator of each conversion | Implemented, tested, and captured on 2026-09-29: 6,530 rows, 329 converted Subnets |
+| `derived.subnet-validation` | One Parquet row per node and Subnet: Subnet periods, the Subnet's L1 conversion, the node's L1 registration, and its Primary Network span | Implemented, tested, and derived on 2026-09-29: 4,257 rows on 3,946 nodes, reproducing the catalog's ACP-77 counts |
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
@@ -307,6 +309,22 @@ uv run --locked avalanche data check derived.helicon-commitments --capture data/
 ```
 
 The check verifies the input runs still hash as recorded, one row per cycle, that every cycle starts at or after activation and lasts at least 48 hours, and that every renewal starts where the transaction's previous cycle ended with the next cycle number. It then rebuilds the table from the recorded inputs and requires the same rows. A cycle is seen only if a snapshot falls inside it, so the summary reports the longest wait between snapshots since activation. Above 48 hours a minimum-length cycle can pass unseen. The daily validator capture derives and checks a new run after each snapshot. On the 2026-09-28 run it builds 73 cycles from nine snapshots in a few seconds.
+
+## Split validator exits by Subnet role
+
+`snowflake.subnet-validator-transactions` holds every P-Chain transaction that adds, removes, converts, registers, or disables a Subnet or L1 validator: 6,530 rows on the 2026-09-29 capture, 2,375 Subnet validator periods, 329 Subnets converted to L1s under ACP-77, 2,176 L1 registrations, and 583 disables. A `ConvertSubnetToL1Tx` has one row per initial L1 validator, so its hash repeats. `RemoveSubnetValidatorTx` names no node, and the Subnet addition it ended carries the early end as `removal_time`.
+
+`derived.subnet-validation` joins those transactions to the staking-period log: one row per node and Subnet, with the node's Subnet periods, the Subnet's conversion time, the node's own L1 registration and disable, and its Primary Network span. It splits the fall in active validators after Etna by whether a node validated a Subnet and when that Subnet became an L1. Its build summary recomputes the protocol mechanism catalog's counts from these recorded inputs: of 1,555 validators active at 12:00 UTC on 2024-12-15, 1,036 never validated again after 2025-12-31, 296 had a Subnet period overlapping 2024-06-01 to Etna, and 270 of those exited, 133 more than the prior year's 46.2% rate would give. The monetary ledger's 1,567 for the same day counts validators active at 23:59:59, and the staking-period log gives 1,567 at that instant too.
+
+```bash
+uv run --locked --extra snowflake avalanche data fetch snowflake.subnet-validator-transactions --output data/runs/subnet-validator-transactions-example/capture --timeout 600
+uv run --locked --extra snowflake avalanche data build snowflake.subnet-validator-transactions --from data/runs/subnet-validator-transactions-example/capture --output data/runs/subnet-validator-transactions-example/dataset
+uv run --locked --extra snowflake avalanche data check snowflake.subnet-validator-transactions --capture data/runs/subnet-validator-transactions-example/capture --dataset data/runs/subnet-validator-transactions-example/dataset
+uv run --locked avalanche data derive derived.subnet-validation --output data/runs/subnet-validation-example
+uv run --locked avalanche data check derived.subnet-validation --capture data/runs/subnet-validation-example/capture --dataset data/runs/subnet-validation-example/dataset
+```
+
+The capture check requires one row per transaction and node, an ordered period for every Subnet addition, and early removals inside their period. The derived check requires one row per node and Subnet, no Subnet period starting after its Subnet converted, and every Subnet period inside a Primary Network period of the same node, the rule before Etna, then rebuilds the table from the recorded inputs. Both hold with no finding on the 2026-09-29 runs. Operators may register L1 validators under new node IDs, so the table is a lower bound on a node's continuity after conversion.
 
 ## Capture the AVAX exchange-traded products
 

@@ -30,6 +30,7 @@ from . import pchain
 from . import ptx
 from . import snowflake
 from . import snowpeer
+from . import subnets
 from . import treasury
 from . import validators_api
 from . import weeks
@@ -58,6 +59,7 @@ MODULES = {
     derived.DATASET_ID: derived,
     nodes.DATASET_ID: nodes,
     helicon.DATASET_ID: helicon,
+    subnets.DATASET_ID: subnets,
     monetary.DATASET_ID: monetary,
     **{dataset_id: metrics for dataset_id in metrics.DATASET_IDS},
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},

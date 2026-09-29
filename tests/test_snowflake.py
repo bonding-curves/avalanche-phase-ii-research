@@ -279,7 +279,7 @@ def make_capture(tmp_path: Path, rows=ROWS, parameters=None, spec=snowflake.VALI
 def test_catalog_declares_each_snowflake_query_dataset(spec):
     catalog = load_catalog()
     query = snowflake.query_definition(catalog, spec.dataset_id)
-    assert len(query["relations"]) in (2, 3)
+    assert len(query["relations"]) >= 1
     assert "%(start)s" in snowflake.read_sql(query) and "%(end)s" in snowflake.read_sql(query)
     definition = next(item for item in catalog["datasets"] if item["id"] == spec.dataset_id)
     assert [field["name"] for field in definition["fields"]] == list(spec.table_columns)
@@ -480,6 +480,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "derived.helicon-commitments",
         "etf-issuers.avax-fund-snapshot",
         "etf-issuers.avax-fund-history",
+        "derived.subnet-validation",
     ]
 
 
