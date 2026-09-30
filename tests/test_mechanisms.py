@@ -1,19 +1,24 @@
 """Each reward mechanism reproduces the chain at its neutral settings and keeps the required properties."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 import pytest
 
-from avalanche_research.mechanisms import ACP285Ramp, ChainReward, QuadraticReward, TenureBoost
+from avalanche_research.mechanisms import (
+    ACP285Ramp,
+    ChainReward,
+    QuadraticReward,
+    TenureBoost,
+)
 from avalanche_research.model.protocol import primary_network_reward
 from avalanche_research.model.types import SECONDS_PER_DAY
 
 AVAX = 10**9
 SUPPLY = 470_000_000 * AVAX
-HELICON = datetime(2026, 9, 22, 15, tzinfo=timezone.utc)
+HELICON = datetime(2026, 9, 22, 15, tzinfo=UTC)
 STARTS = [
-    datetime(2025, 6, 1, tzinfo=timezone.utc),
+    datetime(2025, 6, 1, tzinfo=UTC),
     HELICON,
     HELICON + timedelta(days=45),
     HELICON + timedelta(days=120),
@@ -47,7 +52,7 @@ def test_acp285_defaults_are_the_chain_and_other_settings_differ_after_helicon()
     assert slower.potential_reward_navax(2_000 * AVAX, 14 * SECONDS_PER_DAY, SUPPLY, mid_ramp) > ChainReward().potential_reward_navax(
         2_000 * AVAX, 14 * SECONDS_PER_DAY, SUPPLY, mid_ramp
     )
-    before = datetime(2025, 6, 1, tzinfo=timezone.utc)
+    before = datetime(2025, 6, 1, tzinfo=UTC)
     assert ACP285Ramp(target_min_rate=0.05).potential_reward_navax(2_000 * AVAX, 14 * SECONDS_PER_DAY, SUPPLY, before) == ChainReward().potential_reward_navax(
         2_000 * AVAX, 14 * SECONDS_PER_DAY, SUPPLY, before
     )

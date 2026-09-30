@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import datetime
+from itertools import pairwise
 
 import pandas as pd
 import param
@@ -123,7 +124,7 @@ class RewardMechanism(param.Parameterized):
         """Failures of the properties every reward rule must keep."""
         failures = []
         rates = self.curve(supply_navax, start)["annual_rate"].tolist()
-        if any(later < earlier - 1e-12 for earlier, later in zip(rates, rates[1:])):
+        if any(later < earlier - 1e-12 for earlier, later in pairwise(rates)):
             failures.append("annual rate falls as duration rises")
         if any(rate < 0 for rate in rates):
             failures.append("negative rate")

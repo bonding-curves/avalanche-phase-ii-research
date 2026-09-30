@@ -4,6 +4,12 @@ Each mechanism wraps or replaces a protocol function. The chain's own rule is th
 alternative reproduces it at its default or neutral settings.
 """
 
-from .reward import ACP285Ramp, ChainReward, QuadraticReward, RewardMechanism, TenureBoost
+from .reward import (
+    ACP285Ramp,
+    ChainReward,
+    QuadraticReward,
+    RewardMechanism,
+    TenureBoost,
+)
 
 __all__ = ["ACP285Ramp", "ChainReward", "QuadraticReward", "RewardMechanism", "TenureBoost"]
