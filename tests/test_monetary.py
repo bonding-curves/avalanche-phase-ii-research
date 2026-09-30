@@ -66,7 +66,7 @@ def root(tmp_path: Path, monkeypatch) -> Path:
     make_run(runs, "rewards", "snowflake.primary-staking-rewards", "primary-staking-rewards",
              f"SELECT * FROM (VALUES ('r1', TIMESTAMP '2020-09-11 05:00:00', 1, 's1', 'AddValidatorTx', 'NodeID-1', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-11 00:00:00', TRUE, 50 * {BIG}, 50.0, 50 * {BIG}, 50.0, 0, 0.0, 1), ('r2', TIMESTAMP '2020-09-13 23:00:00', 2, 's2', 'AddDelegatorTx', 'NodeID-1', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-13 00:00:00', TRUE, 20 * {BIG}, 20.0, 19 * {BIG}, 19.0, -{BIG}, -1.0, 1)) AS t(reward_transaction_hash, rewarded_at, block_height, staking_transaction_hash, staking_tx_type, node_id, period_start_time, period_end_time, rewarded, potential_reward_navax, potential_reward_avax, realized_reward_navax, realized_reward_avax, fee_transfer_navax, fee_transfer_avax, reward_utxo_count)",
              "2026-09-23T18:10:00Z", window("2020-09-10", "2026-09-24"))
-    periods = f"SELECT * FROM (VALUES ('s1', 'validator', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-13 12:00:00', 2000 * {BIG}, 50 * {BIG}, TIMESTAMP '2020-09-11 05:00:00', NULL, TRUE, 'genesis', 0), ('s2', 'delegator', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-11 00:00:00', TIMESTAMP '2020-09-20 00:00:00', 25 * {BIG}, 20 * {BIG}, TIMESTAMP '2020-09-13 23:00:00', 's1', TRUE, 'genesis', -{BIG}), ('s3', 'validator', TIMESTAMP '2020-09-12 00:00:00', TIMESTAMP '2020-09-12 00:00:00', TIMESTAMP '2021-09-12 00:00:00', 3000 * {BIG}, 100 * {BIG}, NULL::TIMESTAMP, NULL, NULL, 'genesis', 0)) AS t(transaction_hash, role, accepted_at, start_time, end_time, stake_navax, potential_reward_navax, rewarded_at, validator_transaction_hash, rewarded, regime, fee_transfer_navax)"
+    periods = f"SELECT * FROM (VALUES ('s1', 'validator', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-13 12:00:00', 2000 * {BIG}, 50 * {BIG}, TIMESTAMP '2020-09-11 05:00:00', NULL, TRUE, 'genesis', 0, NULL::TIMESTAMP), ('s2', 'delegator', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-11 00:00:00', TIMESTAMP '2020-09-20 00:00:00', 25 * {BIG}, 20 * {BIG}, TIMESTAMP '2020-09-13 23:00:00', 's1', TRUE, 'genesis', -{BIG}, NULL::TIMESTAMP), ('s3', 'validator', TIMESTAMP '2020-09-12 00:00:00', TIMESTAMP '2020-09-12 00:00:00', TIMESTAMP '2021-09-12 00:00:00', 3000 * {BIG}, 100 * {BIG}, NULL::TIMESTAMP, NULL, NULL, 'genesis', 0, NULL::TIMESTAMP)) AS t(transaction_hash, role, accepted_at, start_time, end_time, stake_navax, potential_reward_navax, rewarded_at, validator_transaction_hash, rewarded, regime, fee_transfer_navax, last_cycle_end_time)"
     make_run(runs, "periods", "derived.staking-periods", "staking-periods", periods, "2026-09-23T18:12:00Z",
              {"inputs": [{"input_id": "validator-stakes", "captured_at": "2026-09-23T08:00:00Z"}, {"input_id": "delegator-stakes", "captured_at": "2026-09-23T08:30:00Z"}]})
     make_run(runs, "staking-supply", "snowflake.primary-staking-supply", "primary-staking-supply",
@@ -286,3 +286,20 @@ def test_a_gap_after_the_api_drift_began_is_reported_not_a_finding(root):
     assert not [finding for finding in checked["findings"] if "rewards" in finding]
     assert checked["summary"]["reported"] == [
         "Data API rewards at 2026-09-29T11:00:16 differ from the reconciliation by 9 AVAX (14.8148%); reported, not a finding, from 2026-09-20"]
+
+
+def test_an_auto_renewed_validator_stays_active_through_its_latest_cycle(root):
+    # From Helicon one AddAutoRenewedValidatorTx keeps one period row: end_time closes its first cycle, and
+    # last_cycle_end_time the latest. A validator whose first cycle ended on 09-12 and whose latest ends on 09-14 is active on 09-13.
+    earlier = root / "periods" / "dataset" / "staking-periods.parquet"
+    make_run(root, "periods-renewed", "derived.staking-periods", "staking-periods",
+             f"SELECT * FROM read_parquet('{earlier}') UNION ALL SELECT 'a1', 'validator', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-10 00:00:00',"
+             f" TIMESTAMP '2020-09-12 12:00:00', 7 * {BIG}, 0, NULL::TIMESTAMP, NULL, NULL, 'genesis', 0, TIMESTAMP '2020-09-14 12:00:00'",
+             "2026-09-23T18:12:30Z",
+             {"inputs": [{"input_id": "validator-stakes", "captured_at": "2026-09-23T08:00:00Z"}, {"input_id": "delegator-stakes", "captured_at": "2026-09-23T08:30:00Z"}]})
+    output = root / "ledger"
+    monetary.derive(monetary.DATASET_ID, output, {"derived.staking-periods": "periods-renewed"}, root)
+    relation = duckdb.sql(f"SELECT date_utc::VARCHAR, active_validators FROM read_parquet('{output / 'dataset' / 'avax-monetary-daily.parquet'}') ORDER BY 1")
+    active = dict(relation.fetchall())
+    # 09-12 counts s1, s3, and a1, and 09-13 counts s3 and a1. Under its first cycle's end a1 would have left at 09-12 12:00.
+    assert (active["2020-09-12"], active["2020-09-13"]) == (3, 2)

@@ -310,7 +310,10 @@ stake AS (
            count(*) FILTER (WHERE p.role = 'validator') AS validators,
            count(*) FILTER (WHERE p.role = 'delegator') AS delegations
     FROM calendar c
-    LEFT JOIN staking_periods p ON p.start_time <= c.date_utc + INTERVAL '{instant}' AND p.end_time > c.date_utc + INTERVAL '{instant}'
+    -- An auto-renewed validator (from Helicon) keeps one row whose end_time closes its first cycle; it stays active to the
+    -- end of its latest cycle.
+    LEFT JOIN staking_periods p ON p.start_time <= c.date_utc + INTERVAL '{instant}'
+         AND greatest(p.end_time, coalesce(p.last_cycle_end_time, p.end_time)) > c.date_utc + INTERVAL '{instant}'
     GROUP BY 1
 ),
 days AS (
