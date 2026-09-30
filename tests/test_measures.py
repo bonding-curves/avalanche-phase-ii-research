@@ -30,8 +30,8 @@ def ledger(connection: duckdb.DuckDBPyConnection, name: str, extra: str = "") ->
 
 
 def test_the_registered_measures_match_the_catalog():
-    # The eighteen definitions of the data scientist's table of 2026-09-30 15:28.
-    assert len(measures.REGISTRY) == 18 and {"same-node-renewal-7d", "combined-staked-share", "node-address-pairs"} <= set(measures.REGISTRY)
+    # The eighteen definitions of the data scientist's table of 2026-09-30 15:28 and the five Helicon forecast quantities.
+    assert len(measures.REGISTRY) == 23 and {"same-node-renewal-7d", "combined-staked-share", "node-address-pairs"} <= set(measures.REGISTRY)
     for measure in measures.REGISTRY.values():
         assert measures.check_datasets(measure, load_catalog()) == [], measure.id
     with pytest.raises(DataError, match="already registered"):
@@ -131,3 +131,34 @@ def test_node_address_pairs_expand_reward_lists_and_keep_roles_apart():
     assert [(role, value) for _, _, role, value in pairs] == [("delegator", 2), ("validator", 2)]
     addresses = measures.compute(measures.REGISTRY["validator-reward-addresses"], connection, {"validators": "validators"}, interval).fetchall()
     assert addresses[0][2:] == (2, 3, 1)
+
+
+def test_the_helicon_forecast_quantities_score_only_the_window():
+    connection = duckdb.connect()
+    # Commit at 09-30 00:00, scoring date 10-22. c0 starts before the commit and is not scored; c5 starts on 10-23.
+    connection.execute("""CREATE TABLE cycles AS SELECT * FROM (VALUES
+        ('N0', 't0', TIMESTAMP '2026-09-29 12:00', 3.0, 1, 'returning', TRUE),
+        ('N1', 't1', TIMESTAMP '2026-10-01 00:00', 3.0, 1, 'returning', TRUE),
+        ('N1', 't1', TIMESTAMP '2026-10-04 00:00', 3.0, 2, 'returning', FALSE),
+        ('N2', 't2', TIMESTAMP '2026-10-02 00:00', 30.0, 1, 'returning', FALSE),
+        ('N3', 't3', TIMESTAMP '2026-10-22 23:00', 14.0, 1, 'new', NULL),
+        ('N3', 't3', TIMESTAMP '2026-11-05 23:00', 14.0, 2, 'new', NULL),
+        ('N4', 't4', TIMESTAMP '2026-10-23 00:00', 2.0, 1, 'returning', TRUE))
+        AS t(node_id, transaction_hash, cycle_start, duration_days, cycle_number, node_status, lowered)""")
+    connection.execute("""CREATE TABLE ledger AS SELECT * FROM (VALUES
+        (DATE '2026-10-21', 590::BIGINT, 160::BIGINT, 40::BIGINT, 500::BIGINT, TRUE),
+        (DATE '2026-10-22', 588::BIGINT, 150::BIGINT, 50::BIGINT, 400::BIGINT, TRUE))
+        AS t(date_utc, active_validators, active_validator_stake_wei, active_delegated_stake_wei, total_supply_close_wei, complete)""")
+    window = {"window_start": utc(2026, 9, 30), "scoring_date": utc(2026, 10, 22).date()}
+
+    def score(measure, alias):
+        return measures.compute(measure, connection, {alias: alias}, window).fetchall()[0][2:]
+
+    # Cycles scored: t1 twice, t2, t3's first. Two of four are under 7 days.
+    assert score(measures.F1_SHORT_CYCLES, "cycles") == (0.5, 4, 2)
+    # Transactions first seen in the window: t1, t2, t3. Only t1 renewed by 10-22; t3's renewal on 11-05 is too late.
+    assert score(measures.F2_AUTO_RENEWED, "cycles") == (1 / 3, 3, 1)
+    # Returning cycles with a previous period: t1 twice and t2. One lowered, on one of two nodes.
+    assert score(measures.F3_LOWERED, "cycles") == (1 / 3, 3, 1, 2, 1)
+    assert score(measures.F4_ACTIVE_VALIDATORS, "ledger") == (588,)
+    assert score(measures.F5_STAKING_RATIO, "ledger") == (0.5,)

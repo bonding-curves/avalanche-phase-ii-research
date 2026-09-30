@@ -365,3 +365,81 @@ NODE_ADDRESS_PAIRS = register(Measure(
     coverage="both relations cover the whole interval: the seamed stake tables of one day's derivation",
     window="distinct over the interval", weighting="one per distinct pair", citation="cohort explorer incidence queries",
 ))
+
+# The Helicon forecast quantities F1 to F5 of the validation protocol (section 5, scoring in section 7.1). Each is scored
+# over (window_start, end of scoring_date]: window_start is the forecast file's commit time, and only cycles that start
+# after it count. The scoring date is a UTC date and counts whole, matching the ledger's stock at 23:59:59.
+HELICON = "derived.helicon-commitments"
+FORECAST = {"window_start": "timestamp", "scoring_date": "date"}
+FORECAST_COMPUTED = {"window_start": "the window_start parameter", "scoring_date": "the scoring_date parameter"}
+SCORED = "cycle_start > $window_start AND cycle_start < $scoring_date::TIMESTAMP + INTERVAL 1 DAY"
+CYCLES = Relation("cycles", {"node_id": "string", "transaction_hash": "string", "cycle_start": "timestamp", "duration_days": "number",
+                             "cycle_number": "integer", "node_status": "string", "lowered": "boolean"}, HELICON)
+_FORECAST_CITATION = "validation protocol, section 5 and 7.1 (modeling lead)"
+
+F1_SHORT_CYCLES = register(Measure(
+    id="helicon-short-cycle-share", name="F1: share of new validation cycles under 7 days",
+    definition="Share of validation cycles started in the scoring window whose duration is under 7 days.",
+    unit="share", grain=("window_start", "scoring_date"), relations=(CYCLES,), computed=FORECAST_COMPUTED, parameters=FORECAST,
+    counts=("cycles", "short_cycles"),
+    sql=f"""SELECT $window_start AS window_start, $scoring_date AS scoring_date,
+               count(*) FILTER (WHERE duration_days < 7)::DOUBLE / nullif(count(*), 0) AS value,
+               count(*) AS cycles, count(*) FILTER (WHERE duration_days < 7) AS short_cycles
+            FROM (SELECT DISTINCT transaction_hash, cycle_start, duration_days FROM cycles WHERE {SCORED})""",
+    owner="modeling", nulls="a cycle is a distinct transaction and start; no cycle in the window gives a null value",
+    window="cycles started after window_start and by the end of scoring_date", weighting="one per cycle", citation=_FORECAST_CITATION,
+))
+F2_AUTO_RENEWED = register(Measure(
+    id="helicon-auto-renewed-share", name="F2: share of transactions auto-renewed at least once",
+    definition="Share of validation transactions whose first cycle started in the scoring window that began a second cycle by the "
+               "end of the scoring date.",
+    unit="share", grain=("window_start", "scoring_date"), relations=(CYCLES,), computed=FORECAST_COMPUTED, parameters=FORECAST,
+    counts=("transactions", "renewed_transactions"),
+    sql=f"""WITH first AS (SELECT DISTINCT transaction_hash FROM cycles WHERE cycle_number = 1 AND {SCORED}),
+                 renewed AS (SELECT DISTINCT transaction_hash FROM cycles WHERE cycle_number > 1 AND {SCORED})
+            SELECT $window_start AS window_start, $scoring_date AS scoring_date,
+                   count(r.transaction_hash)::DOUBLE / nullif(count(*), 0) AS value,
+                   count(*) AS transactions, count(r.transaction_hash) AS renewed_transactions
+            FROM first f LEFT JOIN renewed r USING (transaction_hash)""",
+    owner="modeling", nulls="a renewal after the scoring date does not count, whatever the auto_renewed flag of a later build says; "
+                             "no transaction in the window gives a null value",
+    window="first cycles started after window_start and by the end of scoring_date", weighting="one per transaction", citation=_FORECAST_CITATION,
+))
+F3_LOWERED = register(Measure(
+    id="helicon-lowered-share", name="F3: share of returning nodes' new cycles more than 1 day shorter",
+    definition="Share of cycles started in the scoring window by returning nodes that are shorter than the node's previous period "
+               "by more than 1 day, the tracker's lowered rule.",
+    unit="share", grain=("window_start", "scoring_date"), relations=(CYCLES,), computed=FORECAST_COMPUTED, parameters=FORECAST,
+    counts=("cycles", "lowered_cycles", "nodes", "lowered_nodes"),
+    sql=f"""SELECT $window_start AS window_start, $scoring_date AS scoring_date,
+               count(*) FILTER (WHERE lowered)::DOUBLE / nullif(count(*), 0) AS value,
+               count(*) AS cycles, count(*) FILTER (WHERE lowered) AS lowered_cycles,
+               count(DISTINCT node_id) AS nodes, count(DISTINCT node_id) FILTER (WHERE lowered) AS lowered_nodes
+            FROM cycles WHERE node_status = 'returning' AND lowered IS NOT NULL AND {SCORED}""",
+    owner="modeling", nulls="a cycle without a previous period has a null lowered flag and is left out; the node counts beside the "
+                             "value give the per-node share the origin benchmark used",
+    window="cycles started after window_start and by the end of scoring_date", weighting="one per cycle", citation=_FORECAST_CITATION,
+))
+_AT_SCORING_DATE = "WHERE date_utc = $scoring_date AND complete AND $window_start < $scoring_date::TIMESTAMP + INTERVAL 1 DAY"
+F4_ACTIVE_VALIDATORS = register(Measure(
+    id="helicon-active-validators", name="F4: active validators at the scoring date",
+    definition="Validators active at 23:59:59 UTC on the scoring date.",
+    unit="count", grain=("window_start", "scoring_date"),
+    relations=(Relation("ledger", {"date_utc": "date", "active_validators": "integer", "complete": "boolean"}, LEDGER),),
+    computed=FORECAST_COMPUTED, parameters=FORECAST,
+    sql=f"SELECT $window_start AS window_start, $scoring_date AS scoring_date, active_validators AS value FROM ledger {_AT_SCORING_DATE}",
+    owner="modeling", nulls="no row unless the ledger holds the scoring date as a complete day", window="the scoring date",
+    weighting="daily stock", citation=_FORECAST_CITATION,
+))
+F5_STAKING_RATIO = register(Measure(
+    id="helicon-staking-ratio", name="F5: staking ratio at the scoring date",
+    definition="Active validator plus delegated stake over total supply at the close of the scoring date.",
+    unit="share", grain=("window_start", "scoring_date"),
+    relations=(Relation("ledger", {**LEDGER_STAKE, "active_delegated_stake_wei": "integer"}, LEDGER),),
+    computed=FORECAST_COMPUTED, parameters=FORECAST,
+    sql=f"""SELECT $window_start AS window_start, $scoring_date AS scoring_date,
+               (active_validator_stake_wei + active_delegated_stake_wei)::DOUBLE / total_supply_close_wei AS value
+            FROM ledger {_AT_SCORING_DATE} AND total_supply_close_wei > 0""",
+    owner="modeling", nulls="no row unless the ledger holds the scoring date as a complete day with positive supply",
+    window="the scoring date", weighting="daily stock", citation=_FORECAST_CITATION,
+))
