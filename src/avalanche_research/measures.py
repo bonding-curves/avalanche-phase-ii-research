@@ -315,9 +315,11 @@ VALIDATOR_STAKES = Relation("validators", {"accepted_at": "timestamp", "node_id"
                             "derived.seamed-validator-stakes")
 DELEGATOR_STAKES = Relation("delegators", {"accepted_at": "timestamp", "node_id": "string", "delegator_address": "string"},
                             "derived.seamed-delegator-stakes")
-# The validator side's normalized address relation: one row per commitment and reward-owner address.
-VALIDATOR_ADDRESSES = ("SELECT accepted_at, node_id, unnest(from_json(reward_addresses, '[\"VARCHAR\"]')) AS address FROM validators"
-                       f" WHERE {IN_INTERVAL} AND reward_addresses IS NOT NULL")
+# The validator side's normalized address relation. Each commitment's reward list is parsed once and keeps only usable
+# addresses, so a SQL null, a JSON null, an empty list, and a list of nulls or empty strings all leave no address.
+VALIDATOR_LISTS = (f"SELECT accepted_at, node_id, list_filter(coalesce(from_json(reward_addresses, '[\"VARCHAR\"]'), []::VARCHAR[]),"
+                   f" x -> x IS NOT NULL AND x <> '') AS addresses FROM validators WHERE {IN_INTERVAL}")
+VALIDATOR_ADDRESSES = f"SELECT accepted_at, node_id, unnest(addresses) AS address FROM ({VALIDATOR_LISTS})"
 
 COHORT_NODES = register(Measure(
     id="cohort-nodes", name="Cohort nodes", definition="Count of distinct NodeIDs receiving commitments in the interval, by role.",
@@ -336,9 +338,10 @@ VALIDATOR_REWARD_ADDRESSES = register(Measure(
     counts=("commitments", "commitments_without_addresses"),
     sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end,
                (SELECT count(DISTINCT address) FROM ({VALIDATOR_ADDRESSES})) AS value, count(*) AS commitments,
-               count(*) FILTER (WHERE reward_addresses IS NULL) AS commitments_without_addresses
-            FROM validators WHERE {IN_INTERVAL}""",
-    owner="data-science", nulls="address lists are expanded before the distinct count; a commitment without one is left out and counted",
+               count(*) FILTER (WHERE len(addresses) = 0) AS commitments_without_addresses
+            FROM ({VALIDATOR_LISTS})""",
+    owner="data-science", nulls="address lists are normalized before the distinct count; a commitment with no usable address, "
+                             "including an empty list, is left out and counted",
     window="distinct over the interval", weighting="one per distinct address", citation="validator receipt and cohort explorer",
 ))
 DELEGATOR_FUNDING_ADDRESSES = register(Measure(
@@ -346,10 +349,10 @@ DELEGATOR_FUNDING_ADDRESSES = register(Measure(
     definition="Count of distinct recorded funding addresses of delegations accepted in the interval, not reward addresses or persons.",
     unit="count", grain=("interval_start", "interval_end"), relations=(DELEGATOR_STAKES,), computed=INTERVAL_COMPUTED, parameters=INTERVAL,
     counts=("commitments", "commitments_without_addresses"),
-    sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end, count(DISTINCT delegator_address) AS value,
-               count(*) AS commitments, count(*) FILTER (WHERE delegator_address IS NULL) AS commitments_without_addresses
+    sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end, count(DISTINCT nullif(delegator_address, '')) AS value,
+               count(*) AS commitments, count(*) FILTER (WHERE nullif(delegator_address, '') IS NULL) AS commitments_without_addresses
             FROM delegators WHERE {IN_INTERVAL}""",
-    owner="data-science", nulls="a delegation without a recorded address is left out of the distinct count and counted",
+    owner="data-science", nulls="a delegation with a null or empty address is left out of the distinct count and counted",
     window="distinct over the interval", weighting="one per distinct address", citation="delegator receipt and cohort explorer",
 ))
 NODE_ADDRESS_PAIRS = register(Measure(
@@ -359,7 +362,7 @@ NODE_ADDRESS_PAIRS = register(Measure(
     computed={**INTERVAL_COMPUTED, "role": "validator or delegator, from the relation"}, parameters=INTERVAL,
     sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end, role, count(DISTINCT (node_id, address)) AS value
             FROM (SELECT 'validator' AS role, node_id, address FROM ({VALIDATOR_ADDRESSES})
-                  UNION ALL SELECT 'delegator', node_id, delegator_address FROM delegators WHERE {IN_INTERVAL})
+                  UNION ALL SELECT 'delegator', node_id, nullif(delegator_address, '') FROM delegators WHERE {IN_INTERVAL})
             WHERE node_id IS NOT NULL AND address IS NOT NULL
             GROUP BY ALL ORDER BY role""",
     owner="data-science", nulls="known identities only: a pair with a null node or a null address, after list expansion, is not counted",

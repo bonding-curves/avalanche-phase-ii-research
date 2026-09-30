@@ -173,3 +173,18 @@ def test_a_pair_with_an_unknown_node_or_address_is_not_counted():
     interval = {"interval_start": utc(2026, 9, 1), "interval_end": utc(2026, 10, 1)}
     pairs = measures.compute(measures.NODE_ADDRESS_PAIRS, connection, {"validators": "validators", "delegators": "delegators"}, interval).fetchall()
     assert pairs == []
+
+
+def test_a_commitment_with_no_usable_address_is_counted_as_missing():
+    # MR2 of the data scientist's 15:59 review: four of five commitments have no usable address.
+    connection = duckdb.connect()
+    connection.execute("""CREATE TABLE validators AS SELECT * FROM (VALUES
+        (TIMESTAMP '2026-09-02', 'N1', '["v"]'), (TIMESTAMP '2026-09-02', 'N2', '[null]'), (TIMESTAMP '2026-09-02', 'N3', '[]'),
+        (TIMESTAMP '2026-09-02', 'N4', 'null'), (TIMESTAMP '2026-09-02', 'N5', NULL)) AS t(accepted_at, node_id, reward_addresses)""")
+    interval = {"interval_start": utc(2026, 9, 1), "interval_end": utc(2026, 10, 1)}
+    ((_, _, value, commitments, missing),) = measures.compute(measures.VALIDATOR_REWARD_ADDRESSES, connection, {"validators": "validators"}, interval).fetchall()
+    assert (value, commitments, missing) == (1, 5, 4)
+    connection.execute("""CREATE TABLE delegators AS SELECT * FROM (VALUES
+        (TIMESTAMP '2026-09-02', 'N1', 'd'), (TIMESTAMP '2026-09-02', 'N1', ''), (TIMESTAMP '2026-09-02', 'N1', NULL)) AS t(accepted_at, node_id, delegator_address)""")
+    ((_, _, value, commitments, missing),) = measures.compute(measures.DELEGATOR_FUNDING_ADDRESSES, connection, {"delegators": "delegators"}, interval).fetchall()
+    assert (value, commitments, missing) == (1, 3, 2)
