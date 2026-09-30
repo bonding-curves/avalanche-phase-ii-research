@@ -254,7 +254,7 @@ Standardizes the format for requesting Warp signatures through the AppRequest pr
 
 **[Reduce C-Chain Minimum Base Fee](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/125-reduce-c-chain-minimum-base-fee.md)** | Activated: Etna (Dec 2024)
 
-Reduced the minimum base fee on the C-Chain from 25 nAVAX to 1 nAVAX—a 96% reduction. The previous minimum was artificially constraining network usage above market demand. Post-activation, average transaction fees dropped from \~$0.25 to ~$0.01. See [Fee Dynamics analysis](/Phase-I/milestone2/Subsystem_Analysis_and_MultiGraph.md#3-fee-dynamics-subsystem).
+Reduced the minimum base fee on the C-Chain from 25 nAVAX to 1 nAVAX—a 96% reduction. The previous minimum was artificially constraining network usage above market demand. Post-activation, average transaction fees dropped from \~\$0.25 to ~\$0.01. See [Fee Dynamics analysis](/Phase-I/milestone2/Subsystem_Analysis_and_MultiGraph.md#3-fee-dynamics-subsystem).
 
 ### ACP-131
 

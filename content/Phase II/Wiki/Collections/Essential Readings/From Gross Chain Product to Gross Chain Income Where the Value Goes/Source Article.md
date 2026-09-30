@@ -47,7 +47,7 @@ Stacking the three levels for every month gives the shape of the whole income sy
 
 ![gci article nested levels](/Phase-II/Wiki/Collections/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/raw/assets/figure-03.png)
 
-In the latest full month (June 2026), on-chain production was $3.1M of NGCP (Nominal GCP). Holder yield added $2.7M to reach $5.8M of NGCI (Nominal GCI). Issuer reserve income then added $6.9M to reach $12.7M of NGCI-general. The single-month issuer increment alone was larger than all of on-chain NGCP. Over the full history, the ecosystem has produced roughly $954.8M of NGCP, channeled $32.3M of holder yield, and generated $242.8M of issuer reserve income.
+In the latest full month (June 2026), on-chain production was \$3.1M of NGCP (Nominal GCP). Holder yield added \$2.7M to reach \$5.8M of NGCI (Nominal GCI). Issuer reserve income then added \$6.9M to reach \$12.7M of NGCI-general. The single-month issuer increment alone was larger than all of on-chain NGCP. Over the full history, the ecosystem has produced roughly \$954.8M of NGCP, channeled \$32.3M of holder yield, and generated \$242.8M of issuer reserve income.
 
 The thin dark line on the chart is the one piece of this value that AVAX already captures, and it is the subject of the rest of this article.
 
@@ -67,7 +67,7 @@ Capturing more of it is possible but delicate, especially if we want the value c
 
 ### Resident income: GCI
 
-The step from GCP to GCI adds holder yield, income earned outside the on-chain economy that accrues directly to Avalanche-resident users. Across the 7 entities that distribute it, holder yield totals $32.3M to date, led by Avant (savUSD + savBTC) at $12.4M, BlackRock (BUIDL) at $9.0M, Janus Henderson (JAAA) at $6.7M.
+The step from GCP to GCI adds holder yield, income earned outside the on-chain economy that accrues directly to Avalanche-resident users. Across the 7 entities that distribute it, holder yield totals \$32.3M to date, led by Avant (savUSD + savBTC) at \$12.4M, BlackRock (BUIDL) at \$9.0M, Janus Henderson (JAAA) at \$6.7M.
 
 Almost none of this layer is captured for AVAX today. Some of it, the yield paid out as an explicit distribution, at least touches the chain. But a large share of holder returns arrives through appreciation of the underlying token: the holder's asset is simply worth more over time, generating no on-chain fee and touching AVAX only indirectly, if at all. Under current mechanisms, this income enriches the holder without routing any share to the network. GCI makes the size of that flow visible, which is the first requirement for ever capturing part of it.
 
@@ -85,7 +85,7 @@ Two properties make this layer strategically important. The first is stability. 
 
 That steadiness is exactly what a token economy dominated by a volatile production base lacks. A sustainable claim on even part of this layer would provide downside protection denominated in fiat, income that keeps arriving when on-chain activity is depressed.
 
-The second property is that, today, capture of this layer is zero. The reserve income accrues off-chain, to the issuers, and never touches Avalanche at all. The ecosystem supplies the demand (the float that must be backed) but receives none of the yield that demand generates. Reserve income is concentrated: the two largest issuers alone account for about 96% of it ($173.2M and $59.7M to date).
+The second property is that, today, capture of this layer is zero. The reserve income accrues off-chain, to the issuers, and never touches Avalanche at all. The ecosystem supplies the demand (the float that must be backed) but receives none of the yield that demand generates. Reserve income is concentrated: the two largest issuers alone account for about 96% of it (\$173.2M and \$59.7M to date).
 
 [ACP-67](https://github.com/avalanche-foundation/ACPs/discussions/293) lays out a promising path to capturing this layer through a **protocol-owned stablecoin**, which has spurred many constructive discussions too: if the float is backed by reserves the protocol controls, the reserve yield accrues to the network rather than to a third-party issuer, converting the largest and steadiest income layer from an external flow into a captured one. The hard part is not the mechanism but the adoption.
 

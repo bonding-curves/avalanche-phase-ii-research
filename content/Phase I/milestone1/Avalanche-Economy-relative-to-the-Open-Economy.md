@@ -620,7 +620,7 @@ The ultimate question for Avalanche's economic model is whether it can achieve s
 
 The Etna upgrade (December 2024) fundamentally improved Avalanche's competitive position:
 
-* **ACP-77**: Reduced L1 validator costs by 99.9% ($70,000 stake → $53/month fee)
+* **ACP-77**: Reduced L1 validator costs by 99.9% (\$70,000 stake → \$53/month fee)
 * **ACP-125**: Reduced C-Chain base fees by 96% (25 nAVAX → 1 nAVAX)
 * **Result**: Burn rate tripled in 2025; network activity at all-time highs
 
