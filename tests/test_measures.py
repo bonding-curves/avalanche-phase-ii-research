@@ -25,7 +25,7 @@ def ledger(connection: duckdb.DuckDBPyConnection, name: str, extra: str = "") ->
         (DATE '2026-09-01', 150::BIGINT, 50::BIGINT, 400::BIGINT, TRUE{extra}),
         (DATE '2026-09-02', 160::BIGINT, 40::BIGINT, 500::BIGINT, TRUE{extra}),
         (DATE '2026-09-03', 170::BIGINT, 30::BIGINT, 600::BIGINT, FALSE{extra}),
-        (DATE '2026-09-04', 0::BIGINT, 0::BIGINT, NULL::BIGINT, TRUE{extra}))
+        (DATE '2026-09-04', 0::BIGINT, 0::BIGINT, NULL::BIGINT, FALSE{extra}))
         AS t(date_utc, active_validator_stake_wei, active_delegated_stake_wei, total_supply_close_wei, complete{", run_id" if extra else ""})""")
 
 
@@ -56,7 +56,7 @@ def test_a_chain_table_and_a_run_table_give_the_same_answer_on_complete_positive
     ledger(connection, "chain")
     ledger(connection, "run", ", 'run-1'")
     chain = measures.compute(SHARE, connection, {"ledger": "chain"}).fetchall()
-    # 09-03 is incomplete and 09-04 has no supply, so neither has a row.
+    # 09-03 and 09-04 are incomplete, so neither has a row.
     assert [(str(day), value) for day, value in chain] == [("2026-09-01", 0.5), ("2026-09-02", 0.4)]
     assert measures.compute(SHARE, connection, {"ledger": "run"}).fetchall() == chain
 
@@ -211,3 +211,26 @@ def test_am2_refuses_invalid_input_and_keeps_its_horizon_fixed():
         run([*good, ("z1", "validator", "Z", "2024-03-05", "2024-03-05")])
     with pytest.raises(DataError, match="a cohort whose end does not follow its start"):
         run(good, parameters={**window, "cohort_end": utc(2024, 2, 1)})
+
+
+def test_every_ledger_measure_refuses_a_complete_day_missing_its_values():
+    # MR4 of the data scientist's 15:59 review: the stocks and ratios share one complete support or refuse the input.
+    # On 09-02 validator stake and issuance are missing, and a zero supply makes the ratios refuse; supply itself is a value.
+    connection = duckdb.connect()
+    connection.execute("""CREATE TABLE ledger AS SELECT * FROM (VALUES
+        (DATE '2026-09-01', 150::BIGINT, 50::BIGINT, 400::BIGINT, 10::BIGINT, 1::BIGINT, 600::BIGINT, TRUE),
+        (DATE '2026-09-02', NULL::BIGINT, 40::BIGINT, 0::BIGINT, NULL::BIGINT, 1::BIGINT, 600::BIGINT, TRUE))
+        AS t(date_utc, active_validator_stake_wei, active_delegated_stake_wei, total_supply_close_wei, issued_rewards_wei, burned_wei,
+             active_validators, complete)""")
+    refused = {"validator-staked-share", "combined-staked-share", "active-validator-stake", "realized-issuance",
+               "helicon-staking-ratio"}
+    window = {"window_start": utc(2026, 8, 1), "scoring_date": utc(2026, 9, 2).date()}
+    for measure in measures.REGISTRY.values():
+        if [relation.alias for relation in measure.relations] != ["ledger"]:
+            continue
+        parameters = window if measure.parameters else None
+        if measure.id in refused:
+            with pytest.raises(DataError, match="complete ledger days missing a required value"):
+                measures.compute(measure, connection, {"ledger": "ledger"}, parameters)
+        else:
+            assert measures.compute(measure, connection, {"ledger": "ledger"}, parameters).fetchall(), measure.id

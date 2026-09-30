@@ -181,6 +181,13 @@ LEDGER = "derived.avax-monetary-daily"
 PERIODS = "derived.staking-periods"
 LEDGER_STAKE = {"date_utc": "date", "active_validator_stake_wei": "integer", "total_supply_close_wei": "integer", "complete": "boolean"}
 
+
+def complete_support(*columns: str, positive: str | None = None) -> tuple[str, str]:
+    """A ledger day marked complete must carry every value a measure reads, so all ledger measures share one support."""
+    missing = " OR ".join(f"{column} IS NULL" for column in columns) + (f" OR {positive} <= 0" if positive else "")
+    return ("complete ledger days missing a required value" + (f" or with {positive} not positive" if positive else ""),
+            f"SELECT count(*) FROM ledger WHERE complete AND ({missing})")
+
 # The first definitions from the data scientist's table of 2026-09-30 15:28, in their words where they give them.
 VALIDATOR_STAKED_SHARE = register(Measure(
     id="validator-staked-share",
@@ -192,7 +199,8 @@ VALIDATOR_STAKED_SHARE = register(Measure(
     sql="SELECT date_utc, active_validator_stake_wei::DOUBLE / total_supply_close_wei AS value FROM ledger"
         " WHERE complete AND total_supply_close_wei > 0 ORDER BY date_utc",
     owner="data-science",
-    nulls="complete days with positive supply only; an incomplete day or a missing supply has no row",
+    nulls="complete days only; a complete day missing a value or with supply not positive refuses the input",
+    validations=(complete_support("active_validator_stake_wei", "total_supply_close_wei", positive="total_supply_close_wei"),),
     window="same complete day",
     weighting="unweighted across days for a time mean",
     citation="measurement atlas",
@@ -207,7 +215,9 @@ COMBINED_STAKED_SHARE = register(Measure(
     sql="SELECT date_utc, (active_validator_stake_wei + active_delegated_stake_wei)::DOUBLE / total_supply_close_wei AS value"
         " FROM ledger WHERE complete AND total_supply_close_wei > 0 ORDER BY date_utc",
     owner="data-science",
-    nulls="complete days with positive supply only; an incomplete day or a missing supply has no row",
+    nulls="complete days only; a complete day missing a value or with supply not positive refuses the input",
+    validations=(complete_support("active_validator_stake_wei", "active_delegated_stake_wei", "total_supply_close_wei",
+                                  positive="total_supply_close_wei"),),
     window="same complete day",
     weighting="compute the daily ratio before reducing",
     citation="measurement atlas",
@@ -317,7 +327,8 @@ def _ledger(measure_id: str, name: str, definition: str, column: str, weighting:
         id=measure_id, name=name, definition=definition, unit="AVAX", grain=("date_utc",),
         relations=(Relation("ledger", {"date_utc": "date", column: "integer", "complete": "boolean"}, LEDGER),),
         sql=f"SELECT date_utc, {column}::DOUBLE / 1e18 AS value FROM ledger WHERE complete AND {column} IS NOT NULL ORDER BY date_utc",
-        owner="data-science", nulls=_LEDGER_NULLS + f", and a day without {column} has no row", window="UTC day",
+        owner="data-science", nulls=_LEDGER_NULLS + f"; a complete day without {column} refuses the input",
+        validations=(complete_support(column),), window="UTC day",
         weighting=weighting, citation=citation,
     ))
 
@@ -460,7 +471,8 @@ F4_ACTIVE_VALIDATORS = register(Measure(
     relations=(Relation("ledger", {"date_utc": "date", "active_validators": "integer", "complete": "boolean"}, LEDGER),),
     computed=FORECAST_COMPUTED, parameters=FORECAST,
     sql=f"SELECT $window_start AS window_start, $scoring_date AS scoring_date, active_validators AS value FROM ledger {_AT_SCORING_DATE}",
-    owner="modeling", nulls="no row unless the ledger holds the scoring date as a complete day", window="the scoring date",
+    owner="modeling", nulls="no row unless the ledger holds the scoring date as a complete day; a complete day without the count refuses the input",
+    validations=(complete_support("active_validators"),), window="the scoring date",
     weighting="daily stock", citation=_FORECAST_CITATION,
 ))
 F5_STAKING_RATIO = register(Measure(
@@ -472,6 +484,9 @@ F5_STAKING_RATIO = register(Measure(
     sql=f"""SELECT $window_start AS window_start, $scoring_date AS scoring_date,
                (active_validator_stake_wei + active_delegated_stake_wei)::DOUBLE / total_supply_close_wei AS value
             FROM ledger {_AT_SCORING_DATE} AND total_supply_close_wei > 0""",
-    owner="modeling", nulls="no row unless the ledger holds the scoring date as a complete day with positive supply",
+    owner="modeling", nulls="no row unless the ledger holds the scoring date as a complete day; a complete day missing a value or "
+                             "with supply not positive refuses the input",
+    validations=(complete_support("active_validator_stake_wei", "active_delegated_stake_wei", "total_supply_close_wei",
+                                  positive="total_supply_close_wei"),),
     window="the scoring date", weighting="daily stock", citation=_FORECAST_CITATION,
 ))
