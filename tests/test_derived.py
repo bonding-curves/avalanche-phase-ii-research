@@ -153,3 +153,15 @@ def test_ended_periods_are_counted_up_to_the_latest_reward_not_the_build_clock(r
     # The latest reward is v2's at 2025-06-01 00:01; the fixture's inputs were captured on 2026-09-19.
     assert derived.reward_horizon(connection) == "2025-06-01 00:01:00"
     assert summary["gap_ended_without_reward_row"] == 0 and summary["open_periods"] == 1
+
+
+def test_the_reward_row_settles_a_flag_the_stake_row_lacks(root):
+    # The share stopped before d1 ended, so its stake row carries no flag; the backup's reward row does.
+    earlier = root / "delegators" / "dataset" / "primary-delegator-stakes.parquet"
+    make_run(root, "delegators-later", "snowflake.primary-delegator-stakes", "primary-delegator-stakes",
+             f"SELECT * REPLACE (NULL::BOOLEAN AS rewarded) FROM read_parquet('{earlier}')", "2026-09-19T11:00:00Z")
+    output = root / "staking-periods"
+    derived.derive(derived.DATASET_ID, output, {"snowflake.primary-delegator-stakes": "delegators-later"}, root)
+    flags = duckdb.connect().execute("SELECT transaction_hash, rewarded FROM read_parquet(?) ORDER BY transaction_hash",
+                                     [str(output / "dataset" / "staking-periods.parquet")]).fetchall()
+    assert flags == [("d1", True), ("d2", None), ("v1", True), ("v2", False)]

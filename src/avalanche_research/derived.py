@@ -78,7 +78,8 @@ WITH unioned AS (
            potential_reward_navax, potential_reward_avax, rewarded, NULL::DOUBLE
     FROM delegators
 )
-SELECT s.*,
+-- The reward row settles the outcome. A stake row from the share cannot know it once the share stopped.
+SELECT s.* REPLACE (coalesce(r.rewarded, s.rewarded) AS rewarded),
        coalesce(g.regime, 'genesis') AS regime,
        CASE WHEN s.start_time > s.accepted_at THEN 'pending' ELSE 'immediate' END AS start_kind,
        r.rewarded_at, r.realized_reward_navax, r.realized_reward_avax, r.fee_transfer_navax,

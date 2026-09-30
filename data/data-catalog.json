@@ -4950,7 +4950,7 @@
           "name": "rewarded",
           "type": "boolean",
           "unit": "flag",
-          "derivation": "whether the period ended with a reward, from the stake row"
+          "derivation": "whether the period ended with a reward, from the reward row where one exists and otherwise the stake row, which a share row cannot know after the share stopped"
         },
         {
           "name": "delegation_fee_rate",
