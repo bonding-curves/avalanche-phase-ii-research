@@ -49,3 +49,19 @@ def test_entry_rate_is_recovered_by_its_log_prob():
     assert draws.mean() == pytest.approx(6.5, abs=0.15)
     scores = {rate: Entry(rate_per_day=rate).log_prob({}, draws) for rate in (5.5, 6.5, 7.5)}
     assert max(scores, key=scores.get) == 6.5
+
+
+def test_origin_inputs_arrive_in_a_fixed_order():
+    from datetime import date
+
+    from avalanche_research import datasets
+    from avalanche_research.catalog import DataError
+    from avalanche_research.model.lifecycle import origin_inputs
+
+    try:
+        path = str(datasets.parquet_path("derived.staking-periods"))
+    except (DataError, StopIteration, FileNotFoundError):
+        pytest.skip("no built staking-periods run in this checkout")
+    first, second = origin_inputs(path, date(2024, 3, 6)), origin_inputs(path, date(2024, 3, 6))
+    for key in ("initial_stakes", "initial_days_left", "draw_durations", "draw_stakes"):
+        assert (first[key] == second[key]).all()

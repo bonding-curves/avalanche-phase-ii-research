@@ -139,7 +139,7 @@ def origin_inputs(periods_parquet: str, origin: date) -> dict:
                    lag(epoch_us(end_time)) OVER (PARTITION BY node_id ORDER BY start_time) AS prev_e
             FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL
         )
-        SELECT stake_navax, s, e, prev_e FROM v WHERE s <= {cutoff_us}
+        SELECT node_id, stake_navax, s, e, prev_e FROM v WHERE s <= {cutoff_us} ORDER BY s, e, node_id, stake_navax
     """
     rows = duckdb.execute(query, [periods_parquet]).df()
     open_now = rows[rows["e"] > cutoff_us]

@@ -64,5 +64,6 @@ def load_periods(parquet_path: str) -> pd.DataFrame:
         SELECT role, node_id, start_time, accepted_at, duration_days, stake_navax
         FROM read_parquet(?)
         WHERE accepted_at < TIMESTAMP '2025-11-19 16:00:00'
+        ORDER BY start_time, node_id, role, stake_navax
     """
     return duckdb.execute(query, [parquet_path]).df()
