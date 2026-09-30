@@ -163,3 +163,14 @@ def test_origin_inputs_measure_renewal_and_supply_before_the_origin():
     assert 0.70 < banff["renewal_probability"] < 0.80
     fortuna = origin_inputs(path, date(2025, 4, 8))
     assert fortuna["supply0_navax"] == pytest.approx(456_800_000 * 10**9, rel=1e-3)
+
+
+def test_two_settings_of_one_mechanism_label_stay_separate_in_a_sweep():
+    from avalanche_research.mechanisms import TenureBoost
+    from avalanche_research.model.engine import sweep
+
+    table = sweep(model(timesteps=2, runs=1), {"mechanism": [TenureBoost(boost_max=0.1), TenureBoost(boost_max=0.3)]})
+    labels = set(table["mechanism"])
+    assert len(labels) == 2 and all(label.startswith("Tenure boost [") for label in labels)
+    single = sweep(model(timesteps=2, runs=1), {"mechanism": [TenureBoost(boost_max=0.1)], "renewal_probability": [0.7, 0.8]})
+    assert set(single["mechanism"]) == {"Tenure boost"}

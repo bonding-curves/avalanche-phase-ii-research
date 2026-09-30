@@ -112,6 +112,23 @@ def _digest(value: Any) -> str | None:
     return hashlib.sha256(body).hexdigest()[:16]
 
 
+def _column_value(value: Any, models: list[SimulationModel], key: str) -> Any:
+    """A setting as a table cell. A Param object shows its label, with a short settings hash when another
+    object in the same sweep shares the label but not the settings, so their rows never merge."""
+    if not isinstance(value, param.Parameterized):
+        return value
+    label = getattr(value, "label", type(value).__name__)
+    plain = json.dumps(_plain(value), sort_keys=True, default=str)
+    rivals = {
+        json.dumps(_plain(other), sort_keys=True, default=str)
+        for other in (m.settings().get(key) for m in models)
+        if isinstance(other, param.Parameterized) and getattr(other, "label", type(other).__name__) == label
+    }
+    if len(rivals) <= 1:
+        return label
+    return f"{label} [{hashlib.sha256(plain.encode()).hexdigest()[:6]}]"
+
+
 def _execute(models: list[SimulationModel]) -> pd.DataFrame:
     from cadCAD.configuration import Experiment
     from cadCAD.configuration.utils import config_sim
@@ -138,7 +155,7 @@ def _long_table(raw: pd.DataFrame, models: list[SimulationModel]) -> pd.DataFram
     rows = raw[raw["substep"] == last]
     variables = models[0].state_variables()
     table = rows.melt(id_vars=INDEX, value_vars=variables, var_name="variable", value_name="value")
-    settings = pd.DataFrame([{**{k: (v.label if hasattr(v, "label") else v) if isinstance(v, param.Parameterized) else v for k, v in model.settings().items()}, "specification": model.specification_hash()} for model in models])
+    settings = pd.DataFrame([{**{k: _column_value(v, models, k) for k, v in model.settings().items()}, "specification": model.specification_hash()} for model in models])
     settings.index.name = "simulation"
     table = table.merge(settings.reset_index(), on="simulation", how="left")
     table["time"] = table["timestep"] * table["dt"]

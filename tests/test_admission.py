@@ -60,3 +60,10 @@ def test_curve_and_sybil_parity():
     assert list(curve.columns) == ["mechanism", "duration_days", "min_stake_avax", "stake_days"]
     assert curve["duration_days"].min() == 2 and curve["duration_days"].max() == 365
     assert frontier.below_sybil_parity() == [d for d in curve["duration_days"] if frontier.min_stake_avax(d) * d < 28_000]
+
+
+def test_a_flat_frontier_admits_exactly_what_the_chain_admits_after_helicon():
+    flat = BoundedHarmonicFrontier(s_short_avax=2_000, s_floor_avax=2_000, d_min_days=2, d_max_days=365)
+    for stake_avax in (1_999, 2_000, 2_500):
+        for days in (2, 3, 14, 90, 365):
+            assert flat.admits(stake_avax * AVAX, days * SECONDS_PER_DAY, AFTER) == ChainAdmission().admits(stake_avax * AVAX, days * SECONDS_PER_DAY, AFTER)
