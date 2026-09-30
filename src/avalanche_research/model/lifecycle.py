@@ -177,3 +177,12 @@ def score(table: pd.DataFrame, actual: pd.DataFrame, origin: date, horizons=(30,
                 "model_abs_error": abs(draws.mean() - realized), "persistence_abs_error": abs(start - realized),
             })
     return pd.DataFrame(rows)
+
+
+def actual_path(events: pd.DataFrame) -> pd.DataFrame:
+    """Active validators and validator stake by day, accumulated from the replay's daily events."""
+    return pd.DataFrame({
+        "date_utc": events["date_utc"],
+        "active_validators": events["d_validators"].cumsum(),
+        "active_validator_stake_navax": events["d_validator_stake"].cumsum(),
+    })
