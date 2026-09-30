@@ -68,6 +68,14 @@ class ValidatorLifecycle(SimulationModel):
     initial_periods_done = param.Array(default=None, allow_None=True, precedence=-1, doc="Completed commitments on each open commitment's node before it")
     inputs_source = param.String(default="", doc="The staking-periods run the inputs came from")
     mechanism = param.ClassSelector(class_=RewardMechanism, default=ChainReward(), doc="The reward rule that prices each new commitment")
+    renewal_response = param.Number(
+        default=0.0, bounds=(-2.0, 2.0), metadata={"source": "assumed", "evidence": "Not identified from history, swept (path forward section 4.2)"},
+        doc="Shift in the log-odds of renewal per percentage point of annual rate above the chain's, at 30 days",
+    )
+    entry_response = param.Number(
+        default=0.0, bounds=(-2.0, 2.0), metadata={"source": "assumed", "evidence": "Not identified from history, swept (path forward section 4.2)"},
+        doc="Proportional change in the entry rate, as a log, per percentage point of annual rate above the chain's, at 30 days",
+    )
     supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="Current supply at the origin, nAVAX")
 
     def state_variables(self):
@@ -86,9 +94,19 @@ class ValidatorLifecycle(SimulationModel):
             "issued_navax": 0,
         }
 
+    def yield_gap_pp(self) -> float:
+        """The mechanism's annual rate minus the chain's, in percentage points, for a 30-day stake at the origin."""
+        start = datetime.combine(self.origin + timedelta(days=1), time(12), tzinfo=UTC)
+        ours = self.mechanism.annual_rate(30, self.supply0_navax, start, completed_periods=4)
+        chain = ChainReward().annual_rate(30, self.supply0_navax, start, completed_periods=4)
+        return (ours - chain) * 100
+
     def blocks(self):
-        renewal = Renewal(probability=self.renewal_probability)
-        entry = Entry(rate_per_day=self.entry_rate_per_day)
+        gap = self.yield_gap_pp()
+        base = min(max(self.renewal_probability, 1e-9), 1 - 1e-9)
+        shifted = 1 / (1 + np.exp(-(np.log(base / (1 - base)) + self.renewal_response * gap)))
+        renewal = Renewal(probability=float(shifted))
+        entry = Entry(rate_per_day=min(100.0, self.entry_rate_per_day * float(np.exp(self.entry_response * gap))))
         durations = np.asarray(self.draw_durations, dtype=np.int64)
         entry_stakes = np.asarray(self.draw_stakes, dtype=np.int64)
         seed = self.seed

@@ -104,3 +104,18 @@ def test_two_equal_mechanism_objects_give_one_specification_hash():
 
     assert model(mechanism=QuadraticReward(exponent=1.5)).specification_hash() == model(mechanism=QuadraticReward(exponent=1.5)).specification_hash()
     assert model(mechanism=QuadraticReward(exponent=1.5)).specification_hash() != model(mechanism=QuadraticReward(exponent=2.0)).specification_hash()
+
+
+def test_responses_move_behaviour_only_when_the_mechanism_changes_the_yield():
+    from avalanche_research.mechanisms import ChainReward, TenureBoost
+
+    base = {"renewal_probability": 0.8, "entry_rate_per_day": 2.0, "timesteps": 60, "runs": 3, "supply0_navax": 440_000_000 * 10**9,
+            "initial_stakes": np.full(40, 2_000 * 10**9), "initial_days_left": np.arange(1, 41), "initial_periods_done": np.full(40, 4),
+            "draw_stakes": np.array([2_000 * 10**9]), "draw_durations": np.array([14])}
+    chain_neutral = run(model(mechanism=ChainReward(), renewal_response=0.0, **base))
+    chain_responsive = run(model(mechanism=ChainReward(), renewal_response=1.0, entry_response=1.0, **base))
+    boost_responsive = run(model(mechanism=TenureBoost(boost_max=0.5), renewal_response=1.0, entry_response=1.0, **base))
+    assert model(mechanism=ChainReward()).yield_gap_pp() == 0.0
+    assert path(chain_neutral, "active_validators") == path(chain_responsive, "active_validators")
+    last = lambda table: table[(table["variable"] == "active_validators") & (table["timestep"] == 60)]["value"].mean()
+    assert last(boost_responsive) > last(chain_responsive)
