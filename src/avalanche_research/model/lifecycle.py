@@ -72,6 +72,9 @@ class ValidatorLifecycle(SimulationModel):
     draw_durations = param.Array(default=None, allow_None=True, precedence=-1, doc="Durations, whole days, of commitments started in the year before the origin")
     draw_stakes = param.Array(default=None, allow_None=True, precedence=-1, doc="Stakes, nAVAX, of non-renewal commitments started in the year before the origin")
     initial_periods_done = param.Array(default=None, allow_None=True, precedence=-1, doc="Completed commitments on each open commitment's node before it")
+    scheduled_start_day = param.Array(default=None, allow_None=True, precedence=-1, doc="Day after the origin on which each commitment accepted by the origin but not yet started begins")
+    scheduled_stakes = param.Array(default=None, allow_None=True, precedence=-1, doc="Stake of each scheduled commitment, nAVAX")
+    scheduled_days = param.Array(default=None, allow_None=True, precedence=-1, doc="Duration of each scheduled commitment, whole days")
     inputs_source = param.String(default="", doc="The staking-periods run the inputs came from")
     mechanism = param.ClassSelector(class_=RewardMechanism, default=ChainReward(), doc="The reward rule that prices each new commitment")
     renewal_response = param.Number(
@@ -83,7 +86,7 @@ class ValidatorLifecycle(SimulationModel):
         doc="Change in the log of the entry rate per percentage point of annual rate above the chain's, for a 30-day stake started that day by a new validator, with no tenure",
     )
     renewal_tenure = param.Integer(default=4, bounds=(0, 100), doc="Completed commitments at which the renewal response prices the yield gap: the typical tenure of a renewing validator")
-    supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="Current supply at the origin, nAVAX")
+    supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="The P-Chain reward counter at the origin, nAVAX: genesis plus rewards paid plus open potential rewards, with no burns. The reward formula reads it. It is not the realized supply")
 
     def state_variables(self):
         return ["active_validators", "active_validator_stake_navax", "supply_navax", "issued_navax", "yield_gap_pp"]
@@ -148,6 +151,9 @@ class ValidatorLifecycle(SimulationModel):
         seed = self.seed
         mechanism = self.mechanism
         origin = self.origin
+        sched_day = np.asarray(self.scheduled_start_day if self.scheduled_start_day is not None else [], dtype=np.int64)
+        sched_stakes = np.asarray(self.scheduled_stakes if self.scheduled_stakes is not None else [], dtype=np.int64)
+        sched_days = np.asarray(self.scheduled_days if self.scheduled_days is not None else [], dtype=np.int64)
 
         def p_lifecycle(params, substep, history, state):
             rng = np.random.default_rng([seed, state["run"], state["timestep"]])
@@ -170,10 +176,11 @@ class ValidatorLifecycle(SimulationModel):
                 mechanism.potential_reward_navax(int(stake), int(days) * 86_400, state["supply_navax"], start, int(periods))
                 for stake, days, periods in started
             )
+            due = sched_day == state["timestep"] + 1
             return {
-                "stakes": np.concatenate([stakes[~ending], renewed_stakes, new_stakes]),
-                "days_left": np.concatenate([days_left[~ending], renewed_days, new_days]),
-                "periods_done": np.concatenate([done[~ending], renewed_done, np.zeros(n_new, dtype=np.int64)]),
+                "stakes": np.concatenate([stakes[~ending], renewed_stakes, new_stakes, sched_stakes[due]]),
+                "days_left": np.concatenate([days_left[~ending], renewed_days, new_days, sched_days[due]]),
+                "periods_done": np.concatenate([done[~ending], renewed_done, np.zeros(n_new + int(due.sum()), dtype=np.int64)]),
                 "issued_navax": int(issued),
                 "yield_gap_pp": float(gap),
             }
@@ -220,7 +227,10 @@ def _day(value: date) -> int:
 def origin_inputs(periods_parquet: str, origin: date) -> dict:
     """Inputs for a run from ``origin``, read only from staking periods started at or before the origin's end.
 
-    The renewal probability is the seven-day same-node renewal share of validator commitments that ended in
+    Before Durango a stake could be accepted up to 11.7 days before it started. Commitments accepted by the
+    origin that start after it enter as scheduled commitments on their start day, already minted. Rows
+    without a recorded supply are skipped when the supply is read. The renewal probability is the seven-day
+    same-node renewal share of validator commitments that ended in
     the year before the origin with a full seven days of follow-up before it. The supply is the P-Chain
     supply recorded at the last stake start before the origin's end, the supply the reward formula uses.
     An origin inside the validation lockbox is refused.
@@ -233,16 +243,27 @@ def origin_inputs(periods_parquet: str, origin: date) -> dict:
         WITH v AS (
             SELECT node_id, stake_navax,
                    epoch_us(start_time) AS s, epoch_us(end_time) AS e,
-                   lag(epoch_us(end_time)) OVER (PARTITION BY node_id ORDER BY start_time) AS prev_e,
-                   lead(epoch_us(start_time)) OVER (PARTITION BY node_id ORDER BY start_time) AS next_s,
-                   row_number() OVER (PARTITION BY node_id ORDER BY start_time) - 1 AS done
+                   lag(epoch_us(end_time)) OVER (PARTITION BY node_id ORDER BY start_time, transaction_hash) AS prev_e,
+                   lead(epoch_us(start_time)) OVER (PARTITION BY node_id ORDER BY start_time, transaction_hash) AS next_s,
+                   row_number() OVER (PARTITION BY node_id ORDER BY start_time, transaction_hash) - 1 AS done
             FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL
               AND start_time <= make_timestamp({cutoff_us})
         )
         SELECT node_id, stake_navax, s, e, prev_e, next_s, done FROM v ORDER BY s, e, node_id, stake_navax
     """
     rows = duckdb.execute(query, [periods_parquet]).df()
+    if rows["node_id"].isna().any():
+        raise ValueError("a validator period has no node_id, so its renewals and tenure cannot be counted")
     open_now = rows[rows["e"] > cutoff_us]
+    pending = duckdb.execute(
+        f"""SELECT stake_navax, epoch_us(start_time) AS s, epoch_us(end_time) AS e FROM read_parquet(?)
+            WHERE role = 'validator' AND stake_navax IS NOT NULL
+              AND accepted_at <= make_timestamp({cutoff_us}) AND start_time > make_timestamp({cutoff_us})
+            ORDER BY start_time, transaction_hash""",
+        [periods_parquet],
+    ).df()
+    pending_enter = (pending["s"] - INSTANT_US + US_PER_DAY - 1) // US_PER_DAY
+    pending_leave = (pending["e"] - INSTANT_US + US_PER_DAY - 1) // US_PER_DAY
     enter_day = (rows["s"] - INSTANT_US + US_PER_DAY - 1) // US_PER_DAY
     leave_day = (rows["e"] - INSTANT_US + US_PER_DAY - 1) // US_PER_DAY
     open_leave = leave_day[open_now.index]
@@ -268,6 +289,9 @@ def origin_inputs(periods_parquet: str, origin: date) -> dict:
         "renewal_probability": float(renewed.mean()),
         "renewal_tenure": int(np.median(ended.loc[renewed, "done"])) + 1 if renewed.any() else 1,
         "supply0_navax": int(supply),
+        "scheduled_start_day": (pending_enter - day).to_numpy(dtype=np.int64),
+        "scheduled_stakes": pending["stake_navax"].to_numpy(dtype=np.int64),
+        "scheduled_days": (pending_leave - pending_enter).to_numpy(dtype=np.int64),
     }
 
 

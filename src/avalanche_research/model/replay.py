@@ -34,7 +34,7 @@ EVENTS_SQL = f"""
 WITH p AS (
     SELECT role, stake_navax,
            (epoch_us(start_time) - {INSTANT_US} + {US_PER_DAY} - 1) // {US_PER_DAY} AS enter_day,
-           (epoch_us(end_time) - {INSTANT_US} + {US_PER_DAY} - 1) // {US_PER_DAY} AS leave_day
+           (epoch_us(greatest(end_time, coalesce(last_cycle_end_time, end_time))) - {INSTANT_US} + {US_PER_DAY} - 1) // {US_PER_DAY} AS leave_day
     FROM read_parquet(?)
     WHERE start_time IS NOT NULL AND end_time IS NOT NULL AND stake_navax IS NOT NULL
 ),

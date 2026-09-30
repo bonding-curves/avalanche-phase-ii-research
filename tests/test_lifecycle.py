@@ -174,3 +174,11 @@ def test_two_settings_of_one_mechanism_label_stay_separate_in_a_sweep():
     assert len(labels) == 2 and all(label.startswith("Tenure boost [") for label in labels)
     single = sweep(model(timesteps=2, runs=1), {"mechanism": [TenureBoost(boost_max=0.1)], "renewal_probability": [0.7, 0.8]})
     assert set(single["mechanism"]) == {"Tenure boost"}
+
+
+def test_scheduled_commitments_join_on_their_start_day_without_minting_again():
+    table = run(model(timesteps=4, runs=1, initial_days_left=np.array([10, 10, 10, 10]), scheduled_start_day=np.array([2]),
+                      scheduled_stakes=np.array([50]), scheduled_days=np.array([30])))
+    assert path(table, "active_validators") == [4, 4, 5, 5, 5]
+    assert path(table, "active_validator_stake_navax") == [100, 100, 150, 150, 150]
+    assert set(path(table, "issued_navax")) == {0}
