@@ -30,8 +30,8 @@ def ledger(connection: duckdb.DuckDBPyConnection, name: str, extra: str = "") ->
 
 
 def test_the_registered_measures_match_the_catalog():
-    # The eighteen definitions of the data scientist's table of 2026-09-30 15:28 and the five Helicon forecast quantities.
-    assert len(measures.REGISTRY) == 23 and {"same-node-renewal-7d", "combined-staked-share", "node-address-pairs"} <= set(measures.REGISTRY)
+    # The eighteen definitions of the data scientist's table of 2026-09-30 15:28 and the five Helicon forecast quantities, with AM2's fourteen-day sensitivity.
+    assert len(measures.REGISTRY) == 24 and {"same-node-renewal-7d", "combined-staked-share", "node-address-pairs"} <= set(measures.REGISTRY)
     for measure in measures.REGISTRY.values():
         assert measures.check_datasets(measure, load_catalog()) == [], measure.id
     with pytest.raises(DataError, match="already registered"):
@@ -91,7 +91,7 @@ def test_am2_pairs_before_selecting_endings_and_counts_what_it_excludes():
         ('x1', 'delegator', 'A', TIMESTAMP '2024-03-01', TIMESTAMP '2024-03-05'))
         AS t(transaction_hash, role, node_id, start_time, end_time)""")
     # March endings: a1 renews at exactly seven days, b1 after eight, c1 overlaps its successor, and d1 has no full follow-up.
-    parameters = {"cohort_start": utc(2024, 3, 1), "cohort_end": utc(2024, 4, 1), "observed_through": utc(2024, 4, 5), "days": 7}
+    parameters = {"cohort_start": utc(2024, 3, 1), "cohort_end": utc(2024, 4, 1), "observed_through": utc(2024, 4, 5)}
     ((start, end, value, cohort, eligible, renewed, censored, overlapping),) = measures.compute(AM2, connection, {"periods": "periods"}, parameters).fetchall()
     assert (start, end, value, cohort, eligible, renewed, censored, overlapping) == (
         utc(2024, 3, 1), utc(2024, 4, 1), 0.5, 4, 2, 1, 1, 1)
@@ -188,3 +188,26 @@ def test_a_commitment_with_no_usable_address_is_counted_as_missing():
         (TIMESTAMP '2026-09-02', 'N1', 'd'), (TIMESTAMP '2026-09-02', 'N1', ''), (TIMESTAMP '2026-09-02', 'N1', NULL)) AS t(accepted_at, node_id, delegator_address)""")
     ((_, _, value, commitments, missing),) = measures.compute(measures.DELEGATOR_FUNDING_ADDRESSES, connection, {"delegators": "delegators"}, interval).fetchall()
     assert (value, commitments, missing) == (1, 3, 2)
+
+
+def test_am2_refuses_invalid_input_and_keeps_its_horizon_fixed():
+    # MR3 of the data scientist's 15:59 review.
+    window = {"cohort_start": utc(2024, 3, 1), "cohort_end": utc(2024, 4, 1), "observed_through": utc(2024, 6, 1)}
+    good = [("a1", "validator", "A", "2024-01-01", "2024-03-01"), ("a2", "validator", "A", "2024-03-11", "2024-06-01")]
+
+    def run(rows, measure=AM2, parameters=window):
+        connection = duckdb.connect()
+        values = ", ".join(f"({t!r}, {r!r}, {'NULL' if n is None else repr(n)}, TIMESTAMP {s!r}, TIMESTAMP {e!r})" for t, r, n, s, e in rows)
+        connection.execute(f"CREATE TABLE periods AS SELECT * FROM (VALUES {values}) AS t(transaction_hash, role, node_id, start_time, end_time)")
+        return measures.compute(measure, connection, {"periods": "periods"}, parameters).fetchall()
+
+    # A ten-day gap renews under the fourteen-day sensitivity and not under AM2.
+    assert run(good)[0][2] == 0.0 and run(good, measures.SAME_NODE_RENEWAL_14D)[0][2] == 1.0
+    with pytest.raises(DataError, match="1 validator commitments with a null transaction, node"):
+        run([("n1", "validator", None, "2024-01-01", "2024-03-01"), *good])
+    with pytest.raises(DataError, match="1 validator transactions listed more than once"):
+        run([*good, good[0]])
+    with pytest.raises(DataError, match="end at or before their start"):
+        run([*good, ("z1", "validator", "Z", "2024-03-05", "2024-03-05")])
+    with pytest.raises(DataError, match="a cohort whose end does not follow its start"):
+        run(good, parameters={**window, "cohort_end": utc(2024, 2, 1)})

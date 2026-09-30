@@ -63,6 +63,7 @@ class Measure:
     counts: tuple[str, ...] = ()
     parameters: dict[str, str] = field(default_factory=dict)
     coverage: str | None = None
+    validations: tuple[tuple[str, str], ...] = ()
     window: str | None = None
     weighting: str | None = None
     citation: str | None = None
@@ -104,6 +105,9 @@ class Measure:
         for name in self.parameters:
             if f"${name}" not in self.sql:
                 found.append(f"the SQL does not use parameter ${name}")
+        for message, query in self.validations:
+            if not message or not query.lstrip().upper().startswith("SELECT"):
+                found.append("each validation is a message and a SELECT that counts violations")
         return found
 
 
@@ -157,6 +161,11 @@ def compute(measure: Measure, connection: Any, tables: dict[str, str], parameter
                 raise DataError(f"measure {measure.id}: {table}.{name} is {described[name]}, the measure reads {kind}")
         if table != relation.alias:
             connection.execute(f'CREATE OR REPLACE TEMP VIEW "{relation.alias}" AS SELECT * FROM "{table}"')
+    for message, query in measure.validations:
+        used = {name: value for name, value in parameters.items() if f"${name}" in query}
+        violations = connection.execute(query, used or None).fetchone()[0]
+        if violations:
+            raise DataError(f"measure {measure.id}: {violations} {message}")
     result = connection.sql(measure.sql, params=parameters or None)
     expected = [*measure.grain, "value", *measure.counts]
     if result.columns != expected:
@@ -204,42 +213,61 @@ COMBINED_STAKED_SHARE = register(Measure(
     citation="measurement atlas",
 ))
 # AM2. Successive commitments on a node are paired before endings are selected, as in client 7ca051e.
-SAME_NODE_RENEWAL_7D = register(Measure(
-    id="same-node-renewal-7d",
-    name="Same-node renewal within seven days (AM2)",
-    definition="Share of fully followed-up ending validator commitments whose next same-node commitment starts between "
-               "the end and seven days after it, both boundaries included.",
-    unit="share",
-    grain=("cohort_start", "cohort_end"),
-    relations=(Relation("periods", {"transaction_hash": "string", "role": "string", "node_id": "string", "start_time": "timestamp",
-                                    "end_time": "timestamp"}, PERIODS),),
-    computed={"cohort_start": "the cohort_start parameter", "cohort_end": "the cohort_end parameter"},
-    counts=("cohort_ends", "eligible_ends", "renewed_ends", "censored_ends", "overlapping_ends"),
-    parameters={"cohort_start": "timestamp", "cohort_end": "timestamp", "observed_through": "timestamp", "days": "integer"},
-    sql="""
-        WITH paired AS (
-            SELECT end_time, epoch(lead(start_time) OVER (PARTITION BY node_id ORDER BY start_time, transaction_hash) - end_time) / 86400.0 AS gap_days
-            FROM periods WHERE role = 'validator'
-        ), cohort AS (
-            SELECT gap_days, end_time + to_days($days) <= $observed_through AS complete, coalesce(gap_days < 0, FALSE) AS overlapping
-            FROM paired WHERE end_time >= $cohort_start AND end_time < $cohort_end
-        )
-        SELECT $cohort_start AS cohort_start, $cohort_end AS cohort_end,
-               count(*) FILTER (WHERE complete AND NOT overlapping AND gap_days BETWEEN 0 AND $days)::DOUBLE
-                   / nullif(count(*) FILTER (WHERE complete AND NOT overlapping), 0) AS value,
-               count(*) AS cohort_ends,
-               count(*) FILTER (WHERE complete AND NOT overlapping) AS eligible_ends,
-               count(*) FILTER (WHERE complete AND NOT overlapping AND gap_days BETWEEN 0 AND $days) AS renewed_ends,
-               count(*) FILTER (WHERE NOT complete) AS censored_ends,
-               count(*) FILTER (WHERE complete AND overlapping) AS overlapping_ends
-        FROM cohort""",
-    owner="data-science",
-    nulls="an ending without a later commitment on its node is not renewed; an ending without the full follow-up is censored "
-          "and counted; a successor that starts before the end is excluded and counted; no eligible ending gives a null value",
-    window="endings in [cohort_start, cohort_end), follow-up of days after each end, observed through the input's last acceptance",
-    weighting="one equal observation per ending commitment, not per node",
-    citation="client 7ca051e, staking_renewal.renewal_summary",
-))
+RENEWAL_CHECKS = (
+    ("validator commitments with a null transaction, node, start, or end",
+     "SELECT count(*) FROM periods WHERE role = 'validator' AND (transaction_hash IS NULL OR node_id IS NULL OR start_time IS NULL OR end_time IS NULL)"),
+    ("validator transactions listed more than once", "SELECT count(*) - count(DISTINCT transaction_hash) FROM periods WHERE role = 'validator'"),
+    ("validator commitments that end at or before their start", "SELECT count(*) FROM periods WHERE role = 'validator' AND end_time <= start_time"),
+    ("a cohort whose end does not follow its start", "SELECT ($cohort_end <= $cohort_start)::INTEGER"),
+)
+
+
+def _renewal(days: int, measure_id: str, name: str, notes: tuple[str, ...] = ()) -> Measure:
+    """Same-node renewal within a fixed horizon. Successive commitments on a node are paired before endings are selected."""
+    return register(Measure(
+        id=measure_id, name=name,
+        definition=f"Share of fully followed-up ending validator commitments whose next same-node commitment starts between "
+                   f"the end and {days} days after it, both boundaries included.",
+        unit="share",
+        grain=("cohort_start", "cohort_end"),
+        relations=(Relation("periods", {"transaction_hash": "string", "role": "string", "node_id": "string", "start_time": "timestamp",
+                                        "end_time": "timestamp"}, PERIODS),),
+        computed={"cohort_start": "the cohort_start parameter", "cohort_end": "the cohort_end parameter"},
+        counts=("cohort_ends", "eligible_ends", "renewed_ends", "censored_ends", "overlapping_ends"),
+        parameters={"cohort_start": "timestamp", "cohort_end": "timestamp", "observed_through": "timestamp"},
+        validations=RENEWAL_CHECKS,
+        sql=f"""
+            WITH paired AS (
+                SELECT end_time, epoch(lead(start_time) OVER (PARTITION BY node_id ORDER BY start_time, transaction_hash) - end_time) / 86400.0 AS gap_days
+                FROM periods WHERE role = 'validator'
+            ), cohort AS (
+                SELECT gap_days, end_time + INTERVAL {days} DAY <= $observed_through AS complete, coalesce(gap_days < 0, FALSE) AS overlapping
+                FROM paired WHERE end_time >= $cohort_start AND end_time < $cohort_end
+            )
+            SELECT $cohort_start AS cohort_start, $cohort_end AS cohort_end,
+                   count(*) FILTER (WHERE complete AND NOT overlapping AND gap_days BETWEEN 0 AND {days})::DOUBLE
+                       / nullif(count(*) FILTER (WHERE complete AND NOT overlapping), 0) AS value,
+                   count(*) AS cohort_ends,
+                   count(*) FILTER (WHERE complete AND NOT overlapping) AS eligible_ends,
+                   count(*) FILTER (WHERE complete AND NOT overlapping AND gap_days BETWEEN 0 AND {days}) AS renewed_ends,
+                   count(*) FILTER (WHERE NOT complete) AS censored_ends,
+                   count(*) FILTER (WHERE complete AND overlapping) AS overlapping_ends
+            FROM cohort""",
+        owner="data-science",
+        nulls="an ending without a later commitment on its node is not renewed; an ending without the full follow-up is censored "
+              "and counted; a successor that starts before the end is excluded and counted; no eligible ending gives a null value; "
+              "a null identity, a repeated transaction, or a commitment that does not end after it starts refuses the input",
+        window=f"endings in [cohort_start, cohort_end), follow-up of {days} days after each end, observed through the input's last acceptance",
+        weighting="one equal observation per ending commitment, not per node",
+        citation="client 7ca051e, staking_renewal.renewal_summary",
+        notes=notes,
+    ))
+
+
+# AM2 is fixed at seven days. Fourteen days is a sensitivity with its own identity, never AM2 under another horizon.
+SAME_NODE_RENEWAL_7D = _renewal(7, "same-node-renewal-7d", "Same-node renewal within seven days (AM2)")
+SAME_NODE_RENEWAL_14D = _renewal(14, "same-node-renewal-14d", "Same-node renewal within fourteen days, a sensitivity of AM2",
+                                 ("A sensitivity of AM2, not a moment of its own.",))
 
 # Daily cohorts on the acceptance clock, one row per acceptance date and role, from the period log.
 COHORT_GRAIN = ("acceptance_date", "role")
