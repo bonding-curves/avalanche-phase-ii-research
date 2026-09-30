@@ -86,4 +86,16 @@ def test_an_instance_value_needs_its_own_source():
     check_sources([labelled])
     assert Renewal().sources()["probability"]["source"] == "observed moment"
     with pytest.raises(ValueError):
-        Renewal(provenance={"probability": {"source": "guess", "evidence": "x"}})
+        Renewal(provenance={"probability": {"source": "guess", "evidence": "x", "value": 0.5}})
+    with pytest.raises(ValueError):
+        Renewal(provenance={"probability": {"source": "fitted", "evidence": "x"}})
+
+
+def test_a_label_does_not_follow_a_changed_value():
+    block = Renewal().with_value("probability", 0.5, "fitted", "fit-half")
+    block.probability = 0.9
+    assert block.sources()["probability"]["source"] == "unlabelled"
+    with pytest.raises(ValueError):
+        check_sources([block])
+    block.probability = 0.5
+    assert block.sources()["probability"]["source"] == "fitted"

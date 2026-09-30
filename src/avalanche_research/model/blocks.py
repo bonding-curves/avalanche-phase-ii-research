@@ -43,20 +43,21 @@ class BehaviourBlock(param.Parameterized):
         super().__init__(**params)
         self._provenance = {name: dict(meta) for name, meta in (provenance or {}).items()}
         for meta in self._provenance.values():
-            if meta.get("source") not in SOURCES or not meta.get("evidence"):
-                raise ValueError(f"provenance needs a source from {SOURCES} and its evidence, not {meta}")
+            if meta.get("source") not in SOURCES or not meta.get("evidence") or "value" not in meta:
+                raise ValueError(f"provenance needs a source from {SOURCES}, its evidence, and the value it labels, not {meta}")
 
     def with_value(self, name: str, value: float, source: str, evidence: str) -> BehaviourBlock:
         """A copy with one parameter set, carrying that value's own source and evidence."""
         current = {k: v for k, v in self.param.values().items() if k != "name"}
-        provenance = {**self._provenance, name: {"source": source, "evidence": evidence}}
+        provenance = {**self._provenance, name: {"source": source, "evidence": evidence, "value": value}}
         return type(self)(provenance=provenance, **{**current, name: value})
 
     def sources(self) -> dict[str, dict[str, Any]]:
         """Each behavioural parameter with its value, bounds, source, and evidence.
 
         The class metadata describes the default only. An instance value is labelled by ``with_value``, and
-        a value set any other way is reported with source ``unlabelled``.
+        the label holds only while the value is the one it was given for. A value set any other way, or
+        changed after labelling, is reported with source ``unlabelled``.
         """
         out = {}
         for name, parameter in self.param.objects().items():
@@ -64,8 +65,9 @@ class BehaviourBlock(param.Parameterized):
             if "source" not in meta:
                 continue
             value = getattr(self, name)
-            if name in self._provenance:
-                label = self._provenance[name]
+            labelled = self._provenance.get(name)
+            if labelled is not None and labelled["value"] == value:
+                label = {"source": labelled["source"], "evidence": labelled["evidence"]}
             elif value == parameter.default:
                 label = meta
             else:
