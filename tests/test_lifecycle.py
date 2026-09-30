@@ -133,3 +133,33 @@ def test_a_ramp_that_starts_at_the_origin_widens_the_daily_yield_gap():
     gaps = path(table, "yield_gap_pp")[1:]
     assert gaps[0] < 0 and gaps[0] > gaps[45] > gaps[95]
     assert gaps[95] == pytest.approx(gaps[99])
+
+
+def test_the_specification_hash_changes_with_the_input_tables():
+    assert model().specification_hash() != model(initial_stakes=np.array([10, 20, 30, 41])).specification_hash()
+
+
+def test_an_origin_inside_the_lockbox_is_refused():
+    from datetime import date
+
+    from avalanche_research.model.lifecycle import origin_inputs
+
+    with pytest.raises(ValueError):
+        origin_inputs("unused.parquet", date(2025, 11, 19))
+
+
+def test_origin_inputs_measure_renewal_and_supply_before_the_origin():
+    from datetime import date
+
+    from avalanche_research import datasets
+    from avalanche_research.catalog import DataError
+    from avalanche_research.model.lifecycle import origin_inputs
+
+    try:
+        path = str(datasets.parquet_path("derived.staking-periods"))
+    except (DataError, StopIteration, FileNotFoundError):
+        pytest.skip("no built staking-periods run in this checkout")
+    banff = origin_inputs(path, date(2022, 10, 18))
+    assert 0.70 < banff["renewal_probability"] < 0.80
+    fortuna = origin_inputs(path, date(2025, 4, 8))
+    assert fortuna["supply0_navax"] == pytest.approx(456_800_000 * 10**9, rel=1e-3)

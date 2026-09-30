@@ -77,6 +77,7 @@ class SimulationModel(param.Parameterized):
     def specification(self) -> dict[str, Any]:
         """Everything that decides the result: the model class, run controls, and settings."""
         values = {key: _plain(value) for key, value in self.param.values().items() if key != "name" and not self._is_input(key)}
+        values["inputs_sha256"] = {key: _digest(value) for key, value in self.param.values().items() if self._is_input(key)}
         return {"model": f"{type(self).__module__}.{type(self).__qualname__}", **values}
 
     def specification_hash(self) -> str:
@@ -95,6 +96,20 @@ def _plain(value: Any) -> Any:
         settings = {k: _plain(v) for k, v in value.param.values().items() if k != "name"}
         return {"class": f"{type(value).__module__}.{type(value).__qualname__}", **settings}
     return value
+
+
+def _digest(value: Any) -> str | None:
+    """A content hash of an input table or array, so the specification hash changes when the inputs do."""
+    if value is None:
+        return None
+    if isinstance(value, pd.DataFrame):
+        body = pd.util.hash_pandas_object(value, index=True).to_numpy().tobytes()
+    else:
+        import numpy as np
+
+        array = np.ascontiguousarray(value)
+        body = str(array.dtype).encode() + str(array.shape).encode() + array.tobytes()
+    return hashlib.sha256(body).hexdigest()[:16]
 
 
 def _execute(models: list[SimulationModel]) -> pd.DataFrame:

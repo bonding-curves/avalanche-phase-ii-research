@@ -60,7 +60,12 @@ FROM read_parquet(?) ORDER BY date_utc
 
 
 def daily_events(periods_parquet: str, through: date = LOCKBOX_FIRST_DAY) -> pd.DataFrame:
-    """One row per UTC day before ``through``: stake and count changes by role, and rewards paid."""
+    """One row per UTC day before ``through``: stake and count changes by role, and rewards paid.
+
+    ``through`` may not pass the first day of the validation lockbox.
+    """
+    if through > LOCKBOX_FIRST_DAY:
+        raise ValueError(f"through {through} reaches into the validation lockbox, which starts 2025-11-19 16:00 UTC")
     events = duckdb.execute(EVENTS_SQL, [periods_parquet]).fetchall()
     rewards = duckdb.execute(REWARDS_SQL, [periods_parquet]).fetchall()
     first = min(min(row[0] for row in events), min(row[0] for row in rewards))

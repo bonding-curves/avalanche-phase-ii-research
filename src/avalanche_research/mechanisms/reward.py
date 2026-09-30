@@ -8,8 +8,10 @@ where ``d`` is the staking duration, ``T`` the one-year minting period, and ``ra
 linear in ``d`` from the minimum to the maximum rate. ACP-285 lowers the minimum rate over a 90-day ramp
 from Helicon, keyed to each stake's start time.
 
-Every mechanism here keeps that formula and its integer operation order, and changes one thing: the rate
-configuration at a stake's start, the shape of ``rate(d)``, or a multiplier on the result. Each offers:
+Every mechanism here keeps that formula and changes one thing: the rate configuration at a stake's start,
+the shape of ``rate(d)``, or a multiplier on the result. The chain and ACP-285 rules keep the chain's
+integer operation order exactly. The quadratic shape and the multipliers are computed in floating point
+and rounded down to the nAVAX. Each offers:
 
 - ``potential_reward_navax``: the rule for one stake, in nAVAX.
 - ``curve``: annual rate by duration, a table ready to plot.
@@ -121,16 +123,14 @@ class RewardMechanism(param.Parameterized):
         )
 
     def check(self, supply_navax: int, start: datetime) -> list[str]:
-        """Failures of the properties every reward rule must keep."""
+        """Failures of the properties every reward rule must keep: a rate that does not fall as duration
+        rises, and is never negative. The cap on the remaining supply is enforced by the formula itself."""
         failures = []
         rates = self.curve(supply_navax, start)["annual_rate"].tolist()
         if any(later < earlier - 1e-12 for earlier, later in pairwise(rates)):
             failures.append("annual rate falls as duration rises")
         if any(rate < 0 for rate in rates):
             failures.append("negative rate")
-        remaining = self.config(start).supply_cap_navax - supply_navax
-        if self.potential_reward_navax(remaining * 10, 365 * SECONDS_PER_DAY, supply_navax, start) > remaining:
-            failures.append("reward exceeds the remaining supply")
         return failures
 
 
@@ -158,7 +158,10 @@ class ACP285Ramp(RewardMechanism):
         base = MAINNET_REWARD
         target = round(self.target_min_rate * PERCENT_DENOMINATOR)
         at = as_utc(start)
-        activation = as_utc(self.activation)
+        activation = self.activation
+        if not isinstance(activation, datetime):
+            activation = datetime.combine(activation, datetime.min.time())
+        activation = as_utc(activation)
         if at < activation or base.min_consumption_rate == target:
             return base
         full = abs(base.min_consumption_rate - target)

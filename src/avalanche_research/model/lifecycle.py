@@ -21,6 +21,7 @@ import param
 from avalanche_research.mechanisms import ChainReward, RewardMechanism
 from avalanche_research.model.blocks import BehaviourBlock, Renewal, behavioural
 from avalanche_research.model.engine import SimulationModel
+from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
 
 US_PER_DAY = 86_400_000_000
 INSTANT_US = 86_399_000_000
@@ -75,12 +76,13 @@ class ValidatorLifecycle(SimulationModel):
     mechanism = param.ClassSelector(class_=RewardMechanism, default=ChainReward(), doc="The reward rule that prices each new commitment")
     renewal_response = param.Number(
         default=0.0, bounds=(-2.0, 2.0), metadata={"source": "assumed", "evidence": "Not identified from history, swept (path forward section 4.2)"},
-        doc="Shift in the log-odds of renewal per percentage point of annual rate above the chain's, for a 30-day stake halfway through the run",
+        doc="Shift in the log-odds of renewal per percentage point of annual rate above the chain's, for a 30-day stake started that day by a node at the typical tenure of renewing validators",
     )
     entry_response = param.Number(
         default=0.0, bounds=(-2.0, 2.0), metadata={"source": "assumed", "evidence": "Not identified from history, swept (path forward section 4.2)"},
-        doc="Change in the log of the entry rate per percentage point of annual rate above the chain's, for a 30-day stake halfway through the run",
+        doc="Change in the log of the entry rate per percentage point of annual rate above the chain's, for a 30-day stake started that day by a new validator, with no tenure",
     )
+    renewal_tenure = param.Integer(default=4, bounds=(0, 100), doc="Completed commitments at which the renewal response prices the yield gap: the typical tenure of a renewing validator")
     supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="Current supply at the origin, nAVAX")
 
     def state_variables(self):
@@ -100,37 +102,47 @@ class ValidatorLifecycle(SimulationModel):
             "yield_gap_pp": 0.0,
         }
 
-    def yield_gap_pp(self, day: date | None = None) -> float:
+    def yield_gap_pp(self, day: date | None = None, completed_periods: int | None = None) -> float:
         """The mechanism's annual rate minus the chain's, in percentage points, for a 30-day stake started on ``day``.
 
-        Without a day, halfway through the run. The run itself uses each day's own gap, so a mechanism that
-        changes over time, such as a ramp, moves behaviour as its rate moves.
+        Priced at ``completed_periods`` of tenure, the renewal tenure by default. Without a day, halfway through
+        the run. The run uses each day's own gap, at the renewal tenure for renewal and at no tenure for entry,
+        so a mechanism that changes over time, such as a ramp, moves behaviour as its rate moves, and a reward
+        for tenure does not draw in new validators who would not receive it.
         """
         day = day or self.origin + timedelta(days=max(1, self.timesteps // 2))
+        periods = self.renewal_tenure if completed_periods is None else completed_periods
         start = datetime.combine(day, time(12), tzinfo=UTC)
-        ours = self.mechanism.annual_rate(30, self.supply0_navax, start, completed_periods=4)
-        chain = ChainReward().annual_rate(30, self.supply0_navax, start, completed_periods=4)
+        ours = self.mechanism.annual_rate(30, self.supply0_navax, start, completed_periods=periods)
+        chain = ChainReward().annual_rate(30, self.supply0_navax, start, completed_periods=periods)
         return (ours - chain) * 100
 
-    def _blocks_for(self, gap: float) -> tuple[Renewal, Entry]:
-        base = min(max(self.renewal_probability, 1e-9), 1 - 1e-9)
-        shifted = 1 / (1 + np.exp(-(np.log(base / (1 - base)) + self.renewal_response * gap)))
-        renewal = Renewal().with_value(
-            "probability", float(shifted),
-            "observed moment" if shifted == Renewal().probability else "assumed",
-            f"renewal_probability {self.renewal_probability} shifted by renewal_response {self.renewal_response} times a yield gap of {gap:.4f} points",
-        )
+    def _blocks_for(self, renewal_gap: float, entry_gap: float) -> tuple[Renewal, Entry]:
+        if self.renewal_response * renewal_gap == 0:
+            renewal = Renewal().with_value(
+                "probability", self.renewal_probability, "observed moment",
+                f"renewal_probability {self.renewal_probability}, from {self.inputs_source or 'the given inputs'}",
+            )
+        else:
+            base = min(max(self.renewal_probability, 1e-9), 1 - 1e-9)
+            shifted = 1 / (1 + np.exp(-(np.log(base / (1 - base)) + self.renewal_response * renewal_gap)))
+            renewal = Renewal().with_value(
+                "probability", float(shifted), "assumed",
+                f"renewal_probability {self.renewal_probability} shifted by renewal_response {self.renewal_response} times a yield gap of {renewal_gap:.4f} points",
+            )
+        scaled = self.entry_response * entry_gap != 0
         entry = Entry().with_value(
-            "rate_per_day", min(100.0, self.entry_rate_per_day * float(np.exp(self.entry_response * gap))),
-            "observed moment" if self.entry_response * gap == 0 else "assumed",
-            f"{self.inputs_source or 'given'} rate {self.entry_rate_per_day:.4f} a day, scaled by entry_response {self.entry_response} times a yield gap of {gap:.4f} points",
+            "rate_per_day", min(100.0, self.entry_rate_per_day * float(np.exp(self.entry_response * entry_gap))),
+            "assumed" if scaled else "observed moment",
+            f"{self.inputs_source or 'given'} rate {self.entry_rate_per_day:.4f} a day" + (f", scaled by entry_response {self.entry_response} times a yield gap of {entry_gap:.4f} points" if scaled else ""),
         )
         return renewal, entry
 
     def blocks(self):
-        gaps = [self.yield_gap_pp(self.origin + timedelta(days=t + 1)) for t in range(self.timesteps)]
-        by_gap = {round(gap, 9): self._blocks_for(gap) for gap in set(gaps)}
-        daily = [(gap, *by_gap[round(gap, 9)]) for gap in gaps]
+        days = [self.origin + timedelta(days=t + 1) for t in range(self.timesteps)]
+        gaps = [(self.yield_gap_pp(day), self.yield_gap_pp(day, completed_periods=0)) for day in days]
+        by_gap = {(round(r, 9), round(e, 9)): self._blocks_for(r, e) for r, e in set(gaps)}
+        daily = [(r, *by_gap[(round(r, 9), round(e, 9))]) for r, e in gaps]
         durations = np.asarray(self.draw_durations, dtype=np.int64)
         entry_stakes = np.asarray(self.draw_stakes, dtype=np.int64)
         seed = self.seed
@@ -205,11 +217,16 @@ def _day(value: date) -> int:
     return (pd.Timestamp(value) - pd.Timestamp(0)).days
 
 
-def origin_inputs(periods_parquet: str, origin: date, ledger_parquet: str | None = None) -> dict:
-    """Inputs for a run from ``origin``, read only from commitments started at or before the origin's end.
+def origin_inputs(periods_parquet: str, origin: date) -> dict:
+    """Inputs for a run from ``origin``, read only from staking periods started at or before the origin's end.
 
-    With ``ledger_parquet``, the supply at the origin is the ledger's closing supply on that day.
+    The renewal probability is the seven-day same-node renewal share of validator commitments that ended in
+    the year before the origin with a full seven days of follow-up before it. The supply is the P-Chain
+    supply recorded at the last stake start before the origin's end, the supply the reward formula uses.
+    An origin inside the validation lockbox is refused.
     """
+    if origin >= LOCKBOX_FIRST_DAY:
+        raise ValueError(f"origin {origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
     day = _day(origin)
     cutoff_us = day * US_PER_DAY + INSTANT_US
     query = f"""
@@ -217,10 +234,12 @@ def origin_inputs(periods_parquet: str, origin: date, ledger_parquet: str | None
             SELECT node_id, stake_navax,
                    epoch_us(start_time) AS s, epoch_us(end_time) AS e,
                    lag(epoch_us(end_time)) OVER (PARTITION BY node_id ORDER BY start_time) AS prev_e,
+                   lead(epoch_us(start_time)) OVER (PARTITION BY node_id ORDER BY start_time) AS next_s,
                    row_number() OVER (PARTITION BY node_id ORDER BY start_time) - 1 AS done
             FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL
+              AND start_time <= make_timestamp({cutoff_us})
         )
-        SELECT node_id, stake_navax, s, e, prev_e, done FROM v WHERE s <= {cutoff_us} ORDER BY s, e, node_id, stake_navax
+        SELECT node_id, stake_navax, s, e, prev_e, next_s, done FROM v ORDER BY s, e, node_id, stake_navax
     """
     rows = duckdb.execute(query, [periods_parquet]).df()
     open_now = rows[rows["e"] > cutoff_us]
@@ -230,20 +249,26 @@ def origin_inputs(periods_parquet: str, origin: date, ledger_parquet: str | None
     year = rows[(enter_day > day - 365) & (enter_day <= day)]
     renewal = year["prev_e"].notna() & (year["s"] >= year["prev_e"]) & (year["s"] <= year["prev_e"] + RENEWAL_DAYS * US_PER_DAY)
     durations = ((year["e"] - year["s"]) / US_PER_DAY).round().clip(lower=1).astype(np.int64)
-    inputs = {
+    follow = RENEWAL_DAYS * US_PER_DAY
+    ended = rows[(rows["e"] > cutoff_us - 365 * US_PER_DAY - follow) & (rows["e"] <= cutoff_us - follow)]
+    ended = ended[ended["next_s"].isna() | (ended["next_s"] >= ended["e"])]
+    renewed = ended["next_s"].notna() & (ended["next_s"] <= ended["e"] + follow)
+    supply = duckdb.execute(
+        f"SELECT supply_before_navax FROM read_parquet(?) WHERE start_time <= make_timestamp({cutoff_us}) "
+        "AND supply_before_navax IS NOT NULL ORDER BY start_time DESC, transaction_hash LIMIT 1",
+        [periods_parquet],
+    ).fetchone()[0]
+    return {
         "initial_stakes": open_now["stake_navax"].to_numpy(dtype=np.int64),
         "initial_days_left": (open_leave - day).to_numpy(dtype=np.int64),
+        "initial_periods_done": open_now["done"].to_numpy(dtype=np.int64),
         "draw_durations": durations.to_numpy(),
         "draw_stakes": year.loc[~renewal, "stake_navax"].to_numpy(dtype=np.int64),
         "entry_rate_per_day": float((~renewal).sum()) / 365.0,
-        "initial_periods_done": open_now["done"].to_numpy(dtype=np.int64),
+        "renewal_probability": float(renewed.mean()),
+        "renewal_tenure": int(np.median(ended.loc[renewed, "done"])) + 1 if renewed.any() else 1,
+        "supply0_navax": int(supply),
     }
-    if ledger_parquet is not None:
-        wei = duckdb.execute(
-            "SELECT total_supply_close_wei::VARCHAR FROM read_parquet(?) WHERE date_utc = ?", [ledger_parquet, origin]
-        ).fetchone()[0]
-        inputs["supply0_navax"] = int(wei) // 10**9
-    return inputs
 
 
 def score(table: pd.DataFrame, actual: pd.DataFrame, origin: date, horizons=(30, 90)) -> pd.DataFrame:

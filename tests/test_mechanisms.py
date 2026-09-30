@@ -118,3 +118,10 @@ def test_acp285_can_activate_at_any_scenario_date():
     assert early.config(halfway).min_consumption_rate == 87_500
     assert early.config(origin + timedelta(days=200)).min_consumption_rate == 75_000
     assert early.potential_reward_navax(2_000 * AVAX, 14 * SECONDS_PER_DAY, SUPPLY, halfway) < chain.potential_reward_navax(2_000 * AVAX, 14 * SECONDS_PER_DAY, SUPPLY, halfway)
+
+
+def test_acp285_activation_accepts_a_plain_date():
+    from datetime import date
+
+    ramp = ACP285Ramp(activation=date(2025, 4, 8))
+    assert ramp.config(datetime(2025, 5, 23, tzinfo=UTC)).min_consumption_rate == 87_500
