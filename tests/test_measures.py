@@ -30,7 +30,8 @@ def ledger(connection: duckdb.DuckDBPyConnection, name: str, extra: str = "") ->
 
 
 def test_the_registered_measures_match_the_catalog():
-    assert set(measures.REGISTRY) == {"validator-staked-share", "combined-staked-share", "same-node-renewal-7d"}
+    # The eighteen definitions of the data scientist's table of 2026-09-30 15:28.
+    assert len(measures.REGISTRY) == 18 and {"same-node-renewal-7d", "combined-staked-share", "node-address-pairs"} <= set(measures.REGISTRY)
     for measure in measures.REGISTRY.values():
         assert measures.check_datasets(measure, load_catalog()) == [], measure.id
     with pytest.raises(DataError, match="already registered"):
@@ -96,3 +97,37 @@ def test_am2_pairs_before_selecting_endings_and_counts_what_it_excludes():
         utc(2024, 3, 1), utc(2024, 4, 1), 0.5, 4, 2, 1, 1, 1)
     with pytest.raises(DataError, match="takes parameters"):
         measures.compute(AM2, connection, {"periods": "periods"}, {"days": 7})
+
+
+def test_a_cohort_sum_keeps_a_recorded_zero_apart_from_a_missing_outcome():
+    connection = duckdb.connect()
+    connection.execute("""CREATE TABLE periods AS SELECT * FROM (VALUES
+        ('t1', 'validator', TIMESTAMP '2026-09-01 01:00', 2000.0, 14.0, 5.0),
+        ('t2', 'validator', TIMESTAMP '2026-09-01 02:00', 3000.0, 28.0, 0.0),
+        ('t3', 'validator', TIMESTAMP '2026-09-01 03:00', 1000.0, 14.0, NULL),
+        ('t4', 'delegator', TIMESTAMP '2026-09-01 04:00', 25.0, 14.0, NULL))
+        AS t(transaction_hash, role, accepted_at, stake_avax, duration_days, realized_reward_avax)""")
+    def rows(measure_id):
+        return measures.compute(measures.REGISTRY[measure_id], connection, {"periods": "periods"}).fetchall()
+    day = utc(2026, 9, 1).date()
+    assert rows("commitments-accepted") == [(day, "delegator", 1), (day, "validator", 3)]
+    assert rows("committed-stake-duration") == [(day, "delegator", 350.0), (day, "validator", 2000 * 14 + 3000 * 28 + 1000 * 14.0)]
+    # t2's zero is a known outcome; t3 and t4 have none, so the delegator cohort has no reward row at all.
+    assert rows("cohort-realized-rewards") == [(day, "validator", 5.0)]
+    assert rows("cohort-reward-outcomes") == [(day, "delegator", 0), (day, "validator", 2)]
+
+
+def test_node_address_pairs_expand_reward_lists_and_keep_roles_apart():
+    connection = duckdb.connect()
+    connection.execute("""CREATE TABLE validators AS SELECT * FROM (VALUES
+        (TIMESTAMP '2026-09-02', 'N1', '["a", "b"]'), (TIMESTAMP '2026-09-03', 'N1', '["a"]'), (TIMESTAMP '2026-09-04', 'N2', NULL),
+        (TIMESTAMP '2026-10-02', 'N3', '["z"]')) AS t(accepted_at, node_id, reward_addresses)""")
+    connection.execute("""CREATE TABLE delegators AS SELECT * FROM (VALUES
+        (TIMESTAMP '2026-09-02', 'N1', 'a'), (TIMESTAMP '2026-09-05', 'N2', 'a'), (TIMESTAMP '2026-09-06', 'N2', NULL))
+        AS t(accepted_at, node_id, delegator_address)""")
+    interval = {"interval_start": utc(2026, 9, 1), "interval_end": utc(2026, 10, 1)}
+    tables = {"validators": "validators", "delegators": "delegators"}
+    pairs = measures.compute(measures.REGISTRY["node-address-pairs"], connection, tables, interval).fetchall()
+    assert [(role, value) for _, _, role, value in pairs] == [("delegator", 2), ("validator", 2)]
+    addresses = measures.compute(measures.REGISTRY["validator-reward-addresses"], connection, {"validators": "validators"}, interval).fetchall()
+    assert addresses[0][2:] == (2, 3, 1)

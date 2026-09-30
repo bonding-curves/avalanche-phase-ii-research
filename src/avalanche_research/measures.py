@@ -240,3 +240,128 @@ SAME_NODE_RENEWAL_7D = register(Measure(
     weighting="one equal observation per ending commitment, not per node",
     citation="client 7ca051e, staking_renewal.renewal_summary",
 ))
+
+# Daily cohorts on the acceptance clock, one row per acceptance date and role, from the period log.
+COHORT_GRAIN = ("acceptance_date", "role")
+COHORT_COMPUTED = {"acceptance_date": "the UTC date of accepted_at"}
+COHORT_NULLS = "a date and role with no accepted commitment has no row; a zero amount is kept"
+
+
+def _cohort(measure_id: str, name: str, definition: str, unit: str, columns: dict[str, str], value: str, weighting: str,
+            citation: str, where: str = "TRUE", nulls: str = COHORT_NULLS) -> Measure:
+    return register(Measure(
+        id=measure_id, name=name, definition=definition, unit=unit, grain=COHORT_GRAIN,
+        relations=(Relation("periods", {"accepted_at": "timestamp", "role": "string", **columns}, PERIODS),),
+        computed=COHORT_COMPUTED,
+        sql=f"SELECT accepted_at::DATE AS acceptance_date, role, {value} AS value FROM periods WHERE {where} GROUP BY ALL ORDER BY ALL",
+        owner="data-science", nulls=nulls, window="acceptance window", weighting=weighting, citation=citation,
+    ))
+
+
+COMMITMENTS_ACCEPTED = _cohort(
+    "commitments-accepted", "Commitments accepted", "Count of distinct accepted commitment transactions, separated by role.",
+    "count", {"transaction_hash": "string"}, "count(DISTINCT transaction_hash)", "one vote per commitment", "SP contract and cohort explorer")
+ENTRY_STAKE = _cohort(
+    "entry-stake", "Entry stake", "Sum of the stake of commitments accepted in the window, not concurrent active stake.",
+    "AVAX", {"stake_avax": "number"}, "sum(stake_avax)", "additive entry amounts", "measurement primitives and cohort explorer")
+COMMITTED_DURATION = _cohort(
+    "committed-duration", "Committed duration", "Sum of full scheduled commitment durations, including duration after the acceptance window ends.",
+    "commitment-days", {"duration_days": "number"}, "sum(duration_days)", "sum of full durations", "measurement atlas and cohort explorer")
+COMMITTED_STAKE_DURATION = _cohort(
+    "committed-stake-duration", "Committed stake-duration", "Sum of entry stake multiplied by full commitment duration.",
+    "AVAX-days", {"stake_avax": "number", "duration_days": "number"}, "sum(stake_avax * duration_days)", "additive commitment exposure",
+    "measurement primitives and cohort explorer")
+COHORT_REALIZED_REWARDS = _cohort(
+    "cohort-realized-rewards", "Cohort realized rewards", "Sum of known realized reward outcomes of commitments accepted in the window.",
+    "AVAX", {"realized_reward_avax": "number"}, "sum(realized_reward_avax)", "known outcomes only, never impute missing rewards",
+    "SP reward contract and cohort explorer", where="realized_reward_avax IS NOT NULL",
+    nulls="a commitment without a reward outcome is left out, not counted as zero; a recorded zero is kept; outcome coverage is cohort-reward-outcomes")
+COHORT_REWARD_OUTCOMES = _cohort(
+    "cohort-reward-outcomes", "Cohort reward outcomes", "Count of accepted commitments with a known realized reward, including a recorded zero.",
+    "count", {"realized_reward_avax": "number"}, "count(realized_reward_avax)", "known-outcome denominator", "cohort explorer")
+
+# Daily stocks and flows from the ledger, complete days only, converted from integer wei.
+_LEDGER_NULLS = "complete days only; an incomplete day has no row"
+
+
+def _ledger(measure_id: str, name: str, definition: str, column: str, weighting: str, citation: str = "monetary ledger contract") -> Measure:
+    return register(Measure(
+        id=measure_id, name=name, definition=definition, unit="AVAX", grain=("date_utc",),
+        relations=(Relation("ledger", {"date_utc": "date", column: "integer", "complete": "boolean"}, LEDGER),),
+        sql=f"SELECT date_utc, {column}::DOUBLE / 1e18 AS value FROM ledger WHERE complete AND {column} IS NOT NULL ORDER BY date_utc",
+        owner="data-science", nulls=_LEDGER_NULLS + f", and a day without {column} has no row", window="UTC day",
+        weighting=weighting, citation=citation,
+    ))
+
+
+ACTIVE_VALIDATOR_STAKE = _ledger("active-validator-stake", "Active validator stake", "Validator self-stake active at 23:59:59 UTC.",
+                                 "active_validator_stake_wei", "daily stock, never summed across days")
+ACTIVE_DELEGATED_STAKE = _ledger("active-delegated-stake", "Active delegated stake", "Delegated stake active at 23:59:59 UTC.",
+                                 "active_delegated_stake_wei", "daily stock, never summed across days")
+REALIZED_TOTAL_SUPPLY = _ledger(
+    "realized-total-supply", "Realized total supply",
+    "Genesis allocation plus realized issuance less burns at the UTC day's close, not circulating supply or the reserved-reward counter.",
+    "total_supply_close_wei", "daily stock, never summed across days", "monetary ledger contract and source audit")
+REALIZED_ISSUANCE = _ledger("realized-issuance", "Realized issuance", "Rewards issued during the UTC date, not cohort rewards.",
+                            "issued_rewards_wei", "payout clock, additive flow")
+REALIZED_BURN = _ledger("realized-burn", "Realized burn", "P-, X-, and C-Chain AVAX burned during the UTC date.",
+                        "burned_wei", "burn clock, additive flow; source-component coverage stays in the ledger")
+
+# Distinct identities over one reporting interval [interval_start, interval_end), never summed across intervals.
+INTERVAL = {"interval_start": "timestamp", "interval_end": "timestamp"}
+INTERVAL_COMPUTED = {"interval_start": "the interval_start parameter", "interval_end": "the interval_end parameter"}
+IN_INTERVAL = "accepted_at >= $interval_start AND accepted_at < $interval_end"
+VALIDATOR_STAKES = Relation("validators", {"accepted_at": "timestamp", "node_id": "string", "reward_addresses": "string"},
+                            "derived.seamed-validator-stakes")
+DELEGATOR_STAKES = Relation("delegators", {"accepted_at": "timestamp", "node_id": "string", "delegator_address": "string"},
+                            "derived.seamed-delegator-stakes")
+# The validator side's normalized address relation: one row per commitment and reward-owner address.
+VALIDATOR_ADDRESSES = ("SELECT accepted_at, node_id, unnest(from_json(reward_addresses, '[\"VARCHAR\"]')) AS address FROM validators"
+                       f" WHERE {IN_INTERVAL} AND reward_addresses IS NOT NULL")
+
+COHORT_NODES = register(Measure(
+    id="cohort-nodes", name="Cohort nodes", definition="Count of distinct NodeIDs receiving commitments in the interval, by role.",
+    unit="count", grain=("interval_start", "interval_end", "role"),
+    relations=(Relation("periods", {"accepted_at": "timestamp", "role": "string", "node_id": "string"}, PERIODS),),
+    computed=INTERVAL_COMPUTED, parameters=INTERVAL,
+    sql=f"SELECT $interval_start AS interval_start, $interval_end AS interval_end, role, count(DISTINCT node_id) AS value"
+        f" FROM periods WHERE {IN_INTERVAL} GROUP BY ALL ORDER BY ALL",
+    owner="data-science", nulls="a role with no commitment in the interval has no row",
+    window="distinct over the whole interval, not a sum of daily counts", weighting="one per distinct node", citation="cohort explorer identity queries",
+))
+VALIDATOR_REWARD_ADDRESSES = register(Measure(
+    id="validator-reward-addresses", name="Validator reward addresses",
+    definition="Count of distinct addresses in the reward-owner lists of validator commitments accepted in the interval, not operators.",
+    unit="count", grain=("interval_start", "interval_end"), relations=(VALIDATOR_STAKES,), computed=INTERVAL_COMPUTED, parameters=INTERVAL,
+    counts=("commitments", "commitments_without_addresses"),
+    sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end,
+               (SELECT count(DISTINCT address) FROM ({VALIDATOR_ADDRESSES})) AS value, count(*) AS commitments,
+               count(*) FILTER (WHERE reward_addresses IS NULL) AS commitments_without_addresses
+            FROM validators WHERE {IN_INTERVAL}""",
+    owner="data-science", nulls="address lists are expanded before the distinct count; a commitment without one is left out and counted",
+    window="distinct over the interval", weighting="one per distinct address", citation="validator receipt and cohort explorer",
+))
+DELEGATOR_FUNDING_ADDRESSES = register(Measure(
+    id="delegator-funding-addresses", name="Delegator funding addresses",
+    definition="Count of distinct recorded funding addresses of delegations accepted in the interval, not reward addresses or persons.",
+    unit="count", grain=("interval_start", "interval_end"), relations=(DELEGATOR_STAKES,), computed=INTERVAL_COMPUTED, parameters=INTERVAL,
+    counts=("commitments", "commitments_without_addresses"),
+    sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end, count(DISTINCT delegator_address) AS value,
+               count(*) AS commitments, count(*) FILTER (WHERE delegator_address IS NULL) AS commitments_without_addresses
+            FROM delegators WHERE {IN_INTERVAL}""",
+    owner="data-science", nulls="a delegation without a recorded address is left out of the distinct count and counted",
+    window="distinct over the interval", weighting="one per distinct address", citation="delegator receipt and cohort explorer",
+))
+NODE_ADDRESS_PAIRS = register(Measure(
+    id="node-address-pairs", name="Node and address pairs",
+    definition="Count of distinct linked NodeID and address pairs in the interval, separately for each role.",
+    unit="count", grain=("interval_start", "interval_end", "role"), relations=(VALIDATOR_STAKES, DELEGATOR_STAKES),
+    computed={**INTERVAL_COMPUTED, "role": "validator or delegator, from the relation"}, parameters=INTERVAL,
+    sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end, role, count(DISTINCT (node_id, address)) AS value
+            FROM (SELECT 'validator' AS role, node_id, address FROM ({VALIDATOR_ADDRESSES})
+                  UNION ALL SELECT 'delegator', node_id, delegator_address FROM delegators WHERE {IN_INTERVAL} AND delegator_address IS NOT NULL)
+            GROUP BY ALL ORDER BY role""",
+    owner="data-science", nulls="known identities only; a commitment without an address adds no pair",
+    coverage="both relations cover the whole interval: the seamed stake tables of one day's derivation",
+    window="distinct over the interval", weighting="one per distinct pair", citation="cohort explorer incidence queries",
+))
