@@ -5,6 +5,8 @@ import pytest
 
 pytest.importorskip("cadCAD")
 
+from datetime import UTC
+
 from avalanche_research.model.engine import run
 from avalanche_research.model.lifecycle import Entry, ValidatorLifecycle
 
@@ -65,3 +67,40 @@ def test_origin_inputs_arrive_in_a_fixed_order():
     first, second = origin_inputs(path, date(2024, 3, 6)), origin_inputs(path, date(2024, 3, 6))
     for key in ("initial_stakes", "initial_days_left", "draw_durations", "draw_stakes"):
         assert (first[key] == second[key]).all()
+
+
+def test_each_started_commitment_is_priced_by_the_mechanism_and_minted_into_supply():
+    from datetime import date, datetime
+
+    from avalanche_research.mechanisms import ChainReward
+
+    m = model(renewal_probability=1.0, timesteps=3, runs=1, origin=date(2024, 3, 6), supply0_navax=440_000_000 * 10**9,
+              initial_stakes=np.array([2_000 * 10**9]), initial_days_left=np.array([1]), initial_periods_done=np.array([3]))
+    table = run(m)
+    issued = path(table, "issued_navax")
+    supply = path(table, "supply_navax")
+    start = datetime(2024, 3, 7, 12, tzinfo=UTC)
+    expected = ChainReward().potential_reward_navax(2_000 * 10**9, 5 * 86_400, 440_000_000 * 10**9, start, 4)
+    assert issued[1] == expected
+    assert supply == [440_000_000 * 10**9 + sum(issued[: i + 1]) for i in range(len(issued))]
+
+
+def test_a_neutral_mechanism_gives_the_chain_path_and_a_different_one_does_not():
+    from avalanche_research.mechanisms import ChainReward, QuadraticReward, TenureBoost
+
+    stochastic = {
+        "renewal_probability": 0.8, "entry_rate_per_day": 2.0, "timesteps": 20, "runs": 2, "supply0_navax": 440_000_000 * 10**9,
+        "initial_stakes": np.full(4, 2_000 * 10**9), "initial_periods_done": np.array([0, 2, 5, 9]), "draw_stakes": np.array([2_000 * 10**9]),
+    }
+    chain = run(model(mechanism=ChainReward(), **stochastic))
+    linear = run(model(mechanism=QuadraticReward(exponent=1.0), **stochastic))
+    boosted = run(model(mechanism=TenureBoost(boost_max=0.5), **stochastic))
+    assert path(chain, "supply_navax") == path(linear, "supply_navax")
+    assert path(boosted, "supply_navax")[-1] > path(chain, "supply_navax")[-1]
+
+
+def test_two_equal_mechanism_objects_give_one_specification_hash():
+    from avalanche_research.mechanisms import QuadraticReward
+
+    assert model(mechanism=QuadraticReward(exponent=1.5)).specification_hash() == model(mechanism=QuadraticReward(exponent=1.5)).specification_hash()
+    assert model(mechanism=QuadraticReward(exponent=1.5)).specification_hash() != model(mechanism=QuadraticReward(exponent=2.0)).specification_hash()

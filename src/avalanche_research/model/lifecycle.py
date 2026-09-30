@@ -11,13 +11,14 @@ empirical draws. Fitted blocks replace them through the same interface.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 import duckdb
 import numpy as np
 import pandas as pd
 import param
 
+from avalanche_research.mechanisms import ChainReward, RewardMechanism
 from avalanche_research.model.blocks import BehaviourBlock, Renewal, behavioural
 from avalanche_research.model.engine import SimulationModel
 
@@ -64,18 +65,25 @@ class ValidatorLifecycle(SimulationModel):
     initial_days_left = param.Array(default=None, allow_None=True, precedence=-1, doc="Days until each open commitment ends")
     draw_durations = param.Array(default=None, allow_None=True, precedence=-1, doc="Durations, whole days, of commitments started in the year before the origin")
     draw_stakes = param.Array(default=None, allow_None=True, precedence=-1, doc="Stakes, nAVAX, of non-renewal commitments started in the year before the origin")
+    initial_periods_done = param.Array(default=None, allow_None=True, precedence=-1, doc="Completed commitments on each open commitment's node before it")
     inputs_source = param.String(default="", doc="The staking-periods run the inputs came from")
+    mechanism = param.ClassSelector(class_=RewardMechanism, default=ChainReward(), doc="The reward rule that prices each new commitment")
+    supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="Current supply at the origin, nAVAX")
 
     def state_variables(self):
-        return ["active_validators", "active_validator_stake_navax"]
+        return ["active_validators", "active_validator_stake_navax", "supply_navax", "issued_navax"]
 
     def initial_state(self):
         stakes = np.asarray(self.initial_stakes, dtype=np.int64)
+        done = self.initial_periods_done
         return {
             "stakes": stakes,
             "days_left": np.asarray(self.initial_days_left, dtype=np.int64),
+            "periods_done": np.zeros(len(stakes), dtype=np.int64) if done is None else np.asarray(done, dtype=np.int64),
             "active_validators": len(stakes),
             "active_validator_stake_navax": int(stakes.sum()),
+            "supply_navax": int(self.supply0_navax),
+            "issued_navax": 0,
         }
 
     def blocks(self):
@@ -84,19 +92,35 @@ class ValidatorLifecycle(SimulationModel):
         durations = np.asarray(self.draw_durations, dtype=np.int64)
         entry_stakes = np.asarray(self.draw_stakes, dtype=np.int64)
         seed = self.seed
+        mechanism = self.mechanism
+        origin = self.origin
 
         def p_lifecycle(params, substep, history, state):
             rng = np.random.default_rng([seed, state["run"], state["timestep"]])
+            day = origin + timedelta(days=state["timestep"] + 1)
+            start = datetime.combine(day, time(12), tzinfo=UTC)
             days_left = state["days_left"] - 1
-            stakes = state["stakes"]
+            stakes, done = state["stakes"], state["periods_done"]
             ending = days_left <= 0
             renews = renewal.sample({"ending_commitments": stakes[ending]}, rng)
-            kept_stakes = np.concatenate([stakes[~ending], stakes[ending][renews]])
-            kept_days = np.concatenate([days_left[~ending], rng.choice(durations, size=int(renews.sum()))])
+            renewed_stakes = stakes[ending][renews]
+            renewed_days = rng.choice(durations, size=len(renewed_stakes))
+            renewed_done = done[ending][renews] + 1
             n_new = int(entry.sample({}, rng))
             new_stakes = rng.choice(entry_stakes, size=n_new)
             new_days = rng.choice(durations, size=n_new)
-            return {"stakes": np.concatenate([kept_stakes, new_stakes]), "days_left": np.concatenate([kept_days, new_days])}
+            started = zip(np.concatenate([renewed_stakes, new_stakes]), np.concatenate([renewed_days, new_days]),
+                          np.concatenate([renewed_done, np.zeros(n_new, dtype=np.int64)]))
+            issued = sum(
+                mechanism.potential_reward_navax(int(stake), int(days) * 86_400, state["supply_navax"], start, int(periods))
+                for stake, days, periods in started
+            )
+            return {
+                "stakes": np.concatenate([stakes[~ending], renewed_stakes, new_stakes]),
+                "days_left": np.concatenate([days_left[~ending], renewed_days, new_days]),
+                "periods_done": np.concatenate([done[~ending], renewed_done, np.zeros(n_new, dtype=np.int64)]),
+                "issued_navax": int(issued),
+            }
 
         def s_copy(name):
             return lambda params, substep, history, state, signal: (name, signal[name])
@@ -107,11 +131,17 @@ class ValidatorLifecycle(SimulationModel):
         def s_stake(params, substep, history, state, signal):
             return "active_validator_stake_navax", int(signal["stakes"].sum())
 
+        def s_supply(params, substep, history, state, signal):
+            return "supply_navax", state["supply_navax"] + signal["issued_navax"]
+
         return [{
             "policies": {"lifecycle": p_lifecycle},
             "variables": {
                 "stakes": s_copy("stakes"),
                 "days_left": s_copy("days_left"),
+                "periods_done": s_copy("periods_done"),
+                "issued_navax": s_copy("issued_navax"),
+                "supply_navax": s_supply,
                 "active_validators": s_count,
                 "active_validator_stake_navax": s_stake,
             },
@@ -121,6 +151,8 @@ class ValidatorLifecycle(SimulationModel):
         return [
             ("stakes non-negative", lambda state: bool((state["stakes"] >= 0).all())),
             ("stake total matches the commitments", lambda state: state["active_validator_stake_navax"] == int(state["stakes"].sum())),
+            ("supply within the cap", lambda state: state["supply_navax"] <= 720_000_000 * 10**9),
+            ("stake within supply", lambda state: state["active_validator_stake_navax"] <= state["supply_navax"]),
         ]
 
 
@@ -128,18 +160,22 @@ def _day(value: date) -> int:
     return (pd.Timestamp(value) - pd.Timestamp(0)).days
 
 
-def origin_inputs(periods_parquet: str, origin: date) -> dict:
-    """Inputs for a run from ``origin``, read only from commitments started at or before the origin's end."""
+def origin_inputs(periods_parquet: str, origin: date, ledger_parquet: str | None = None) -> dict:
+    """Inputs for a run from ``origin``, read only from commitments started at or before the origin's end.
+
+    With ``ledger_parquet``, the supply at the origin is the ledger's closing supply on that day.
+    """
     day = _day(origin)
     cutoff_us = day * US_PER_DAY + INSTANT_US
     query = f"""
         WITH v AS (
             SELECT node_id, stake_navax,
                    epoch_us(start_time) AS s, epoch_us(end_time) AS e,
-                   lag(epoch_us(end_time)) OVER (PARTITION BY node_id ORDER BY start_time) AS prev_e
+                   lag(epoch_us(end_time)) OVER (PARTITION BY node_id ORDER BY start_time) AS prev_e,
+                   row_number() OVER (PARTITION BY node_id ORDER BY start_time) - 1 AS done
             FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL
         )
-        SELECT node_id, stake_navax, s, e, prev_e FROM v WHERE s <= {cutoff_us} ORDER BY s, e, node_id, stake_navax
+        SELECT node_id, stake_navax, s, e, prev_e, done FROM v WHERE s <= {cutoff_us} ORDER BY s, e, node_id, stake_navax
     """
     rows = duckdb.execute(query, [periods_parquet]).df()
     open_now = rows[rows["e"] > cutoff_us]
@@ -149,13 +185,20 @@ def origin_inputs(periods_parquet: str, origin: date) -> dict:
     year = rows[(enter_day > day - 365) & (enter_day <= day)]
     renewal = year["prev_e"].notna() & (year["s"] >= year["prev_e"]) & (year["s"] <= year["prev_e"] + RENEWAL_DAYS * US_PER_DAY)
     durations = ((year["e"] - year["s"]) / US_PER_DAY).round().clip(lower=1).astype(np.int64)
-    return {
+    inputs = {
         "initial_stakes": open_now["stake_navax"].to_numpy(dtype=np.int64),
         "initial_days_left": (open_leave - day).to_numpy(dtype=np.int64),
         "draw_durations": durations.to_numpy(),
         "draw_stakes": year.loc[~renewal, "stake_navax"].to_numpy(dtype=np.int64),
         "entry_rate_per_day": float((~renewal).sum()) / 365.0,
+        "initial_periods_done": open_now["done"].to_numpy(dtype=np.int64),
     }
+    if ledger_parquet is not None:
+        wei = duckdb.execute(
+            "SELECT total_supply_close_wei::VARCHAR FROM read_parquet(?) WHERE date_utc = ?", [ledger_parquet, origin]
+        ).fetchone()[0]
+        inputs["supply0_navax"] = int(wei) // 10**9
+    return inputs
 
 
 def score(table: pd.DataFrame, actual: pd.DataFrame, origin: date, horizons=(30, 90)) -> pd.DataFrame:

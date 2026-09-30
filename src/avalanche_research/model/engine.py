@@ -76,7 +76,7 @@ class SimulationModel(param.Parameterized):
 
     def specification(self) -> dict[str, Any]:
         """Everything that decides the result: the model class, run controls, and settings."""
-        values = {key: value for key, value in self.param.values().items() if key != "name" and not self._is_input(key)}
+        values = {key: _plain(value) for key, value in self.param.values().items() if key != "name" and not self._is_input(key)}
         return {"model": f"{type(self).__module__}.{type(self).__qualname__}", **values}
 
     def specification_hash(self) -> str:
@@ -87,6 +87,14 @@ class SimulationModel(param.Parameterized):
         """A new instance with some settings changed. Param validates every value on construction."""
         current = {key: value for key, value in self.param.values().items() if key != "name"}
         return type(self)(**{**current, **values})
+
+
+def _plain(value: Any) -> Any:
+    """A setting as plain data. A Param object becomes its class and settings, without its generated name."""
+    if isinstance(value, param.Parameterized):
+        settings = {k: _plain(v) for k, v in value.param.values().items() if k != "name"}
+        return {"class": f"{type(value).__module__}.{type(value).__qualname__}", **settings}
+    return value
 
 
 def _execute(models: list[SimulationModel]) -> pd.DataFrame:
@@ -115,7 +123,7 @@ def _long_table(raw: pd.DataFrame, models: list[SimulationModel]) -> pd.DataFram
     rows = raw[raw["substep"] == last]
     variables = models[0].state_variables()
     table = rows.melt(id_vars=INDEX, value_vars=variables, var_name="variable", value_name="value")
-    settings = pd.DataFrame([{**model.settings(), "specification": model.specification_hash()} for model in models])
+    settings = pd.DataFrame([{**{k: (v.label if hasattr(v, "label") else v) if isinstance(v, param.Parameterized) else v for k, v in model.settings().items()}, "specification": model.specification_hash()} for model in models])
     settings.index.name = "simulation"
     table = table.merge(settings.reset_index(), on="simulation", how="left")
     table["time"] = table["timestep"] * table["dt"]
