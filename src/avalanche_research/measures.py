@@ -359,9 +359,10 @@ NODE_ADDRESS_PAIRS = register(Measure(
     computed={**INTERVAL_COMPUTED, "role": "validator or delegator, from the relation"}, parameters=INTERVAL,
     sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end, role, count(DISTINCT (node_id, address)) AS value
             FROM (SELECT 'validator' AS role, node_id, address FROM ({VALIDATOR_ADDRESSES})
-                  UNION ALL SELECT 'delegator', node_id, delegator_address FROM delegators WHERE {IN_INTERVAL} AND delegator_address IS NOT NULL)
+                  UNION ALL SELECT 'delegator', node_id, delegator_address FROM delegators WHERE {IN_INTERVAL})
+            WHERE node_id IS NOT NULL AND address IS NOT NULL
             GROUP BY ALL ORDER BY role""",
-    owner="data-science", nulls="known identities only; a commitment without an address adds no pair",
+    owner="data-science", nulls="known identities only: a pair with a null node or a null address, after list expansion, is not counted",
     coverage="both relations cover the whole interval: the seamed stake tables of one day's derivation",
     window="distinct over the interval", weighting="one per distinct pair", citation="cohort explorer incidence queries",
 ))

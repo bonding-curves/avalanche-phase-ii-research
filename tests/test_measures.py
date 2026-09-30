@@ -162,3 +162,14 @@ def test_the_helicon_forecast_quantities_score_only_the_window():
     assert score(measures.F3_LOWERED, "cycles") == (1 / 3, 3, 1, 2, 1)
     assert score(measures.F4_ACTIVE_VALIDATORS, "ledger") == (588,)
     assert score(measures.F5_STAKING_RATIO, "ledger") == (0.5,)
+
+
+def test_a_pair_with_an_unknown_node_or_address_is_not_counted():
+    # MR1 of the data scientist's 15:59 review: every pair below has a null side, so no role has a pair.
+    connection = duckdb.connect()
+    connection.execute("""CREATE TABLE validators AS SELECT * FROM (VALUES
+        (TIMESTAMP '2026-09-02', NULL, '["v"]'), (TIMESTAMP '2026-09-03', 'N1', '[null]')) AS t(accepted_at, node_id, reward_addresses)""")
+    connection.execute("CREATE TABLE delegators AS SELECT TIMESTAMP '2026-09-02' AS accepted_at, NULL::VARCHAR AS node_id, 'd' AS delegator_address")
+    interval = {"interval_start": utc(2026, 9, 1), "interval_end": utc(2026, 10, 1)}
+    pairs = measures.compute(measures.NODE_ADDRESS_PAIRS, connection, {"validators": "validators", "delegators": "delegators"}, interval).fetchall()
+    assert pairs == []
