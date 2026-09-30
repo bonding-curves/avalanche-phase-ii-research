@@ -35,6 +35,7 @@ from . import operators
 from . import pblocks
 from . import pburns
 from . import pchain
+from . import pins
 from . import pstakers
 from . import pstaking
 from . import ptx
@@ -287,6 +288,30 @@ def list_runs(dataset_id: str | None, as_json: bool) -> None:
     items = [f"{item['dataset_id']} | {item['run']} | captured {item['captured_at']} | rows {item['rows']}" for item in records]
     serializable = [{key: (str(value) if isinstance(value, Path) else value) for key, value in item.items()} for item in records]
     finish(envelope("data runs", "pass", {"text": f"{len(records)} runs"}, items=items, records=serializable), as_json)
+
+
+@data.command("pin")
+@click.argument("name")
+@click.argument("dataset_ids", nargs=-1, required=True)
+@click.option("--run", "chosen", multiple=True, metavar="DATASET=RUN", help="Pin this run instead of the newest; repeatable.")
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def data_pin(name: str, dataset_ids: tuple[str, ...], chosen: tuple[str, ...], as_json: bool) -> None:
+    """Write data/pins/NAME.json: one checked run per dataset, with its capture ID and Parquet hash."""
+    runs_by_dataset = dict(item.split("=", 1) for item in chosen)
+    value = pins.pin(name, list(dataset_ids), runs_by_dataset)
+    items = [f"{entry['dataset_id']} | {entry['run']} | {entry['sha256'][:12]}" for entry in value["runs"]]
+    finish(envelope("data pin", "pass", {"text": f"{name}: {len(value['runs'])} runs pinned"}, items=items, pins=value), as_json)
+
+
+@data.command("pin-check")
+@click.argument("path", type=click.Path(path_type=Path))
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def data_pin_check(path: Path, as_json: bool) -> None:
+    """Confirm every run a pin file names still exists, is unchanged, and still passes its check."""
+    findings = pins.verify(path)
+    count = len(pins.read(path)["runs"])
+    finish(envelope("data pin-check", "pass" if not findings else "attention", {"text": f"{path.name}: {count} runs; {len(findings)} findings"},
+                    findings=findings), as_json)
 
 
 @data.command()

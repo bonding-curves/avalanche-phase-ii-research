@@ -448,6 +448,24 @@ db.execute("SELECT COUNT(*) FROM delegator_stakes JOIN validator_stakes ON valid
 
 `datasets.runs(dataset_id)` lists the built runs with capture time and row count; pass `run="<directory name>"` to any call to pin one. View names drop the source prefix and the `primary-` prefix: `validator_stakes`, `delegator_stakes`, `staking_rewards`, `staking_supply`, `staking_periods`, `avax_monetary_daily`, `avax_market_daily`, `avax_price_daily`, `network_summary`. The same listing is available as `avalanche data runs [dataset_id]`.
 
+## Pin an input set
+
+A study or model that must be rebuilt from exactly its inputs reads a pin file instead of the newest runs. `pin` takes each dataset's newest run, or the one named with `--run`, refuses any run whose check has not passed, and writes `data/pins/<name>.json` with each run's capture ID and Parquet sha256. `pin-check` reports a pinned run that is missing, changed, or no longer passes its check.
+
+```bash
+uv run --locked avalanche data pin milestone-2 derived.avax-monetary-daily derived.staking-periods --run derived.staking-periods=staking-periods-2026-09-30
+uv run --locked avalanche data pin-check data/pins/milestone-2.json
+```
+
+```python
+from pathlib import Path
+
+from avalanche_research import datasets, pins
+
+pinned = pins.runs(Path("data/pins/milestone-2.json"))                     # dataset ID -> run
+ledger = datasets.load("derived.avax-monetary-daily", run=pinned["derived.avax-monetary-daily"])
+```
+
 ## Inspect the contract
 
 ```bash
