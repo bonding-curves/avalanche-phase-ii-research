@@ -84,7 +84,7 @@ class ValidatorLifecycle(SimulationModel):
     supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="Current supply at the origin, nAVAX")
 
     def state_variables(self):
-        return ["active_validators", "active_validator_stake_navax", "supply_navax", "issued_navax"]
+        return ["active_validators", "active_validator_stake_navax", "supply_navax", "issued_navax", "yield_gap_pp"]
 
     def initial_state(self):
         stakes = np.asarray(self.initial_stakes, dtype=np.int64)
@@ -97,20 +97,22 @@ class ValidatorLifecycle(SimulationModel):
             "active_validator_stake_navax": int(stakes.sum()),
             "supply_navax": int(self.supply0_navax),
             "issued_navax": 0,
+            "yield_gap_pp": 0.0,
         }
 
-    def yield_gap_pp(self) -> float:
-        """The mechanism's annual rate minus the chain's, in percentage points, for a 30-day stake started halfway through the run.
+    def yield_gap_pp(self, day: date | None = None) -> float:
+        """The mechanism's annual rate minus the chain's, in percentage points, for a 30-day stake started on ``day``.
 
-        v0 holds one gap for the whole run. Halfway represents a mechanism that changes over time, such as a ramp.
+        Without a day, halfway through the run. The run itself uses each day's own gap, so a mechanism that
+        changes over time, such as a ramp, moves behaviour as its rate moves.
         """
-        start = datetime.combine(self.origin + timedelta(days=max(1, self.timesteps // 2)), time(12), tzinfo=UTC)
+        day = day or self.origin + timedelta(days=max(1, self.timesteps // 2))
+        start = datetime.combine(day, time(12), tzinfo=UTC)
         ours = self.mechanism.annual_rate(30, self.supply0_navax, start, completed_periods=4)
         chain = ChainReward().annual_rate(30, self.supply0_navax, start, completed_periods=4)
         return (ours - chain) * 100
 
-    def blocks(self):
-        gap = self.yield_gap_pp()
+    def _blocks_for(self, gap: float) -> tuple[Renewal, Entry]:
         base = min(max(self.renewal_probability, 1e-9), 1 - 1e-9)
         shifted = 1 / (1 + np.exp(-(np.log(base / (1 - base)) + self.renewal_response * gap)))
         renewal = Renewal().with_value(
@@ -123,6 +125,12 @@ class ValidatorLifecycle(SimulationModel):
             "observed moment" if self.entry_response * gap == 0 else "assumed",
             f"{self.inputs_source or 'given'} rate {self.entry_rate_per_day:.4f} a day, scaled by entry_response {self.entry_response} times a yield gap of {gap:.4f} points",
         )
+        return renewal, entry
+
+    def blocks(self):
+        gaps = [self.yield_gap_pp(self.origin + timedelta(days=t + 1)) for t in range(self.timesteps)]
+        by_gap = {round(gap, 9): self._blocks_for(gap) for gap in set(gaps)}
+        daily = [(gap, *by_gap[round(gap, 9)]) for gap in gaps]
         durations = np.asarray(self.draw_durations, dtype=np.int64)
         entry_stakes = np.asarray(self.draw_stakes, dtype=np.int64)
         seed = self.seed
@@ -131,6 +139,7 @@ class ValidatorLifecycle(SimulationModel):
 
         def p_lifecycle(params, substep, history, state):
             rng = np.random.default_rng([seed, state["run"], state["timestep"]])
+            gap, renewal, entry = daily[state["timestep"]]
             day = origin + timedelta(days=state["timestep"] + 1)
             start = datetime.combine(day, time(12), tzinfo=UTC)
             days_left = state["days_left"] - 1
@@ -154,6 +163,7 @@ class ValidatorLifecycle(SimulationModel):
                 "days_left": np.concatenate([days_left[~ending], renewed_days, new_days]),
                 "periods_done": np.concatenate([done[~ending], renewed_done, np.zeros(n_new, dtype=np.int64)]),
                 "issued_navax": int(issued),
+                "yield_gap_pp": float(gap),
             }
 
         def s_copy(name):
@@ -175,6 +185,7 @@ class ValidatorLifecycle(SimulationModel):
                 "days_left": s_copy("days_left"),
                 "periods_done": s_copy("periods_done"),
                 "issued_navax": s_copy("issued_navax"),
+                "yield_gap_pp": s_copy("yield_gap_pp"),
                 "supply_navax": s_supply,
                 "active_validators": s_count,
                 "active_validator_stake_navax": s_stake,

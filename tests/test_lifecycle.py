@@ -119,3 +119,17 @@ def test_responses_move_behaviour_only_when_the_mechanism_changes_the_yield():
     assert path(chain_neutral, "active_validators") == path(chain_responsive, "active_validators")
     last = lambda table: table[(table["variable"] == "active_validators") & (table["timestep"] == 60)]["value"].mean()
     assert last(boost_responsive) > last(chain_responsive)
+
+
+def test_a_ramp_that_starts_at_the_origin_widens_the_daily_yield_gap():
+    from datetime import UTC, date, datetime
+
+    from avalanche_research.mechanisms import ACP285Ramp
+
+    origin = date(2025, 4, 8)
+    ramp = model(mechanism=ACP285Ramp(activation=datetime(2025, 4, 8, 16, tzinfo=UTC)), origin=origin, timesteps=100, runs=1,
+                 supply0_navax=440_000_000 * 10**9)
+    table = run(ramp)
+    gaps = path(table, "yield_gap_pp")[1:]
+    assert gaps[0] < 0 and gaps[0] > gaps[45] > gaps[95]
+    assert gaps[95] == pytest.approx(gaps[99])
