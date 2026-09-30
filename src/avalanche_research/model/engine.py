@@ -21,6 +21,10 @@ import pandas as pd
 import param
 
 RUN_CONTROLS = ("name", "timesteps", "runs")
+
+
+class InvariantError(RuntimeError):
+    """A state broke one of its model's invariants."""
 INDEX = ["simulation", "run", "timestep"]
 
 
@@ -32,8 +36,16 @@ class SimulationModel(param.Parameterized):
     runs = param.Integer(default=1, bounds=(1, None), doc="Monte Carlo runs per setting combination")
 
     def settings(self) -> dict[str, Any]:
-        """The values block functions read, without the run controls."""
-        return {key: value for key, value in self.param.values().items() if key not in RUN_CONTROLS}
+        """The values block functions read, without the run controls or input tables.
+
+        A parameter with negative precedence is an input, such as a table of exogenous events. Blocks read
+        it from the model instance, and a companion string setting names its source.
+        """
+        return {key: value for key, value in self.param.values().items() if key not in RUN_CONTROLS and not self._is_input(key)}
+
+    def _is_input(self, key: str) -> bool:
+        precedence = self.param[key].precedence
+        return precedence is not None and precedence < 0
 
     def initial_state(self) -> dict[str, float]:
         raise NotImplementedError
@@ -44,9 +56,27 @@ class SimulationModel(param.Parameterized):
     def state_variables(self) -> list[str]:
         return list(self.initial_state())
 
+    def invariants(self) -> list[tuple[str, Any]]:
+        """Named checks on each new state. The engine stops the run at the first one that fails."""
+        return []
+
+    def checked_blocks(self) -> list[dict[str, dict]]:
+        """The model's blocks, followed by one that checks every invariant on the state they produced."""
+        checks = self.invariants()
+        if not checks:
+            return self.blocks()
+
+        def p_invariants(params, substep, history, state):
+            for name, holds in checks:
+                if not holds(state):
+                    raise InvariantError(f"invariant {name} fails at timestep {state['timestep']}")
+            return {}
+
+        return [*self.blocks(), {"policies": {"invariants": p_invariants}, "variables": {}}]
+
     def specification(self) -> dict[str, Any]:
         """Everything that decides the result: the model class, run controls, and settings."""
-        values = {key: value for key, value in self.param.values().items() if key != "name"}
+        values = {key: value for key, value in self.param.values().items() if key != "name" and not self._is_input(key)}
         return {"model": f"{type(self).__module__}.{type(self).__qualname__}", **values}
 
     def specification_hash(self) -> str:
@@ -68,7 +98,7 @@ def _execute(models: list[SimulationModel]) -> pd.DataFrame:
     for model in models:
         experiment.append_configs(
             initial_state=model.initial_state(),
-            partial_state_update_blocks=model.blocks(),
+            partial_state_update_blocks=model.checked_blocks(),
             sim_configs=config_sim({
                 "N": model.runs,
                 "T": range(model.timesteps),
