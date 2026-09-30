@@ -44,11 +44,16 @@ class Entry(BehaviourBlock):
         return rng.poisson(self.rate_per_day)
 
     def log_prob(self, inputs, decisions):
-        counts = np.asarray(decisions)
-        lam = max(self.rate_per_day, 1e-12)
+        """The exact Poisson log-likelihood of daily counts, minus infinity for a count a zero rate rules out."""
         from math import lgamma
 
-        return float(sum(k * np.log(lam) - lam - lgamma(k + 1) for k in counts))
+        counts = np.asarray(decisions)
+        if counts.ndim != 1 or (counts < 0).any() or not np.equal(np.mod(counts, 1), 0).all():
+            raise ValueError("decisions must be a one-dimensional array of non-negative whole counts")
+        lam = self.rate_per_day
+        if lam == 0.0:
+            return float("-inf") if counts.any() else 0.0
+        return float(sum(k * np.log(lam) - lam - lgamma(int(k) + 1) for k in counts))
 
 
 class ValidatorLifecycle(SimulationModel):
@@ -108,8 +113,16 @@ class ValidatorLifecycle(SimulationModel):
         gap = self.yield_gap_pp()
         base = min(max(self.renewal_probability, 1e-9), 1 - 1e-9)
         shifted = 1 / (1 + np.exp(-(np.log(base / (1 - base)) + self.renewal_response * gap)))
-        renewal = Renewal(probability=float(shifted))
-        entry = Entry(rate_per_day=min(100.0, self.entry_rate_per_day * float(np.exp(self.entry_response * gap))))
+        renewal = Renewal().with_value(
+            "probability", float(shifted),
+            "observed moment" if shifted == Renewal().probability else "assumed",
+            f"renewal_probability {self.renewal_probability} shifted by renewal_response {self.renewal_response} times a yield gap of {gap:.4f} points",
+        )
+        entry = Entry().with_value(
+            "rate_per_day", min(100.0, self.entry_rate_per_day * float(np.exp(self.entry_response * gap))),
+            "observed moment" if self.entry_response * gap == 0 else "assumed",
+            f"{self.inputs_source or 'given'} rate {self.entry_rate_per_day:.4f} a day, scaled by entry_response {self.entry_response} times a yield gap of {gap:.4f} points",
+        )
         durations = np.asarray(self.draw_durations, dtype=np.int64)
         entry_stakes = np.asarray(self.draw_stakes, dtype=np.int64)
         seed = self.seed

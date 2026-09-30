@@ -49,7 +49,7 @@ def test_entry_rate_is_recovered_by_its_log_prob():
     rng = np.random.default_rng(3)
     draws = np.array([Entry(rate_per_day=6.5).sample({}, rng) for _ in range(5_000)])
     assert draws.mean() == pytest.approx(6.5, abs=0.15)
-    scores = {rate: Entry(rate_per_day=rate).log_prob({}, draws) for rate in (5.5, 6.5, 7.5)}
+    scores = {rate: Entry().with_value("rate_per_day", rate, "assumed", "grid").log_prob({}, draws) for rate in (5.5, 6.5, 7.5)}
     assert max(scores, key=scores.get) == 6.5
 
 

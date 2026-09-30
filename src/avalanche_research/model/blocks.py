@@ -6,7 +6,9 @@ observed decisions for the estimator, so both use one definition. Swapping a fix
 or an interview range means swapping one class.
 
 Every behavioural parameter carries a source from one list: fitted, prior, interview, assumed, or
-observed moment. A parameter without one cannot be declared.
+observed moment. A parameter without one cannot be declared. The class declares the source of its
+default. A value set on an instance needs its own source and evidence, given through ``with_value``; an
+instance value without one is reported as unlabelled and refused by ``check_sources``.
 """
 
 from __future__ import annotations
@@ -37,13 +39,38 @@ class BehaviourBlock(param.Parameterized):
     writes: tuple[str, ...] = ()
     decision = "abstract"
 
+    def __init__(self, provenance: Mapping[str, Mapping[str, str]] | None = None, **params: Any):
+        super().__init__(**params)
+        self._provenance = {name: dict(meta) for name, meta in (provenance or {}).items()}
+        for meta in self._provenance.values():
+            if meta.get("source") not in SOURCES or not meta.get("evidence"):
+                raise ValueError(f"provenance needs a source from {SOURCES} and its evidence, not {meta}")
+
+    def with_value(self, name: str, value: float, source: str, evidence: str) -> BehaviourBlock:
+        """A copy with one parameter set, carrying that value's own source and evidence."""
+        current = {k: v for k, v in self.param.values().items() if k != "name"}
+        provenance = {**self._provenance, name: {"source": source, "evidence": evidence}}
+        return type(self)(provenance=provenance, **{**current, name: value})
+
     def sources(self) -> dict[str, dict[str, Any]]:
-        """Each behavioural parameter with its value, bounds, source, and evidence."""
+        """Each behavioural parameter with its value, bounds, source, and evidence.
+
+        The class metadata describes the default only. An instance value is labelled by ``with_value``, and
+        a value set any other way is reported with source ``unlabelled``.
+        """
         out = {}
         for name, parameter in self.param.objects().items():
             meta = getattr(parameter, "metadata", None) or {}
-            if "source" in meta:
-                out[name] = {"value": getattr(self, name), "bounds": parameter.bounds, **meta}
+            if "source" not in meta:
+                continue
+            value = getattr(self, name)
+            if name in self._provenance:
+                label = self._provenance[name]
+            elif value == parameter.default:
+                label = meta
+            else:
+                label = {"source": "unlabelled", "evidence": ""}
+            out[name] = {"value": value, "bounds": parameter.bounds, **label}
         return out
 
     def observed_range(self) -> Mapping[str, tuple[float, float]]:
@@ -88,9 +115,24 @@ class Renewal(BehaviourBlock):
         return rng.random(len(inputs["ending_commitments"])) < self.probability
 
     def log_prob(self, inputs, decisions):
-        decisions = np.asarray(decisions, dtype=bool)
-        p = min(max(self.probability, 1e-12), 1 - 1e-12)
-        return float(decisions.sum() * np.log(p) + (~decisions).sum() * np.log1p(-p))
+        """The exact Bernoulli log-likelihood, minus infinity for an outcome the probability rules out."""
+        decisions = _outcomes(decisions, len(inputs["ending_commitments"]))
+        renewed = int(decisions.sum())
+        left = len(decisions) - renewed
+        p = self.probability
+        if (p == 0.0 and renewed) or (p == 1.0 and left):
+            return float("-inf")
+        return float((renewed * np.log(p) if renewed else 0.0) + (left * np.log1p(-p) if left else 0.0))
+
+
+def _outcomes(decisions: Any, expected: int) -> np.ndarray:
+    """Observed yes or no decisions, one per input row. Anything else is refused."""
+    values = np.asarray(decisions)
+    if values.ndim != 1 or len(values) != expected:
+        raise ValueError(f"expected {expected} decisions, one per input row, not shape {values.shape}")
+    if values.dtype != bool and not np.isin(values, (0, 1)).all():
+        raise ValueError("decisions must be booleans or 0 and 1")
+    return values.astype(bool)
 
 
 def check_writers(blocks: Iterable[BehaviourBlock]) -> None:
@@ -102,8 +144,11 @@ def check_writers(blocks: Iterable[BehaviourBlock]) -> None:
 
 
 def check_sources(blocks: Iterable[BehaviourBlock]) -> None:
-    """Refuse a block with a numeric parameter that has no declared source."""
+    """Refuse a block with a numeric parameter that has no declared source, or an unlabelled instance value."""
     for block in blocks:
+        sources = block.sources()
         for name, parameter in block.param.objects().items():
-            if isinstance(parameter, param.Number) and name not in block.sources():
+            if isinstance(parameter, param.Number) and name not in sources:
                 raise ValueError(f"{type(block).__name__}.{name} has no declared source")
+            if name in sources and sources[name]["source"] not in SOURCES:
+                raise ValueError(f"{type(block).__name__}.{name} = {sources[name]['value']} has no source for that value")
