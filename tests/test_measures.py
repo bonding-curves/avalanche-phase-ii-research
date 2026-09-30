@@ -128,7 +128,7 @@ def test_node_address_pairs_expand_reward_lists_and_keep_roles_apart():
     interval = {"interval_start": utc(2026, 9, 1), "interval_end": utc(2026, 10, 1)}
     tables = {"validators": "validators", "delegators": "delegators"}
     pairs = measures.compute(measures.REGISTRY["node-address-pairs"], connection, tables, interval).fetchall()
-    assert [(role, value) for _, _, role, value in pairs] == [("delegator", 2), ("validator", 2)]
+    assert [(role, value) for _, _, role, value, _, _ in pairs] == [("delegator", 2), ("validator", 2)]
     addresses = measures.compute(measures.REGISTRY["validator-reward-addresses"], connection, {"validators": "validators"}, interval).fetchall()
     assert addresses[0][2:] == (2, 3, 1)
 
@@ -173,6 +173,18 @@ def test_a_pair_with_an_unknown_node_or_address_is_not_counted():
     interval = {"interval_start": utc(2026, 9, 1), "interval_end": utc(2026, 10, 1)}
     pairs = measures.compute(measures.NODE_ADDRESS_PAIRS, connection, {"validators": "validators", "delegators": "delegators"}, interval).fetchall()
     assert pairs == []
+
+
+def test_the_pair_count_carries_its_own_linked_denominators():
+    # MR5 of the data scientist's 15:59 review: N1 is linked to a, N2 has no address. Addresses per node on known links is 1, not 1 / 2.
+    connection = duckdb.connect()
+    connection.execute("""CREATE TABLE validators AS SELECT * FROM (VALUES
+        (TIMESTAMP '2026-09-02', 'N1', '["a"]'), (TIMESTAMP '2026-09-03', 'N2', '[]')) AS t(accepted_at, node_id, reward_addresses)""")
+    connection.execute("CREATE TABLE delegators AS SELECT TIMESTAMP '2026-09-02' AS accepted_at, 'N9' AS node_id, NULL::VARCHAR AS delegator_address")
+    interval = {"interval_start": utc(2026, 9, 1), "interval_end": utc(2026, 10, 1)}
+    ((_, _, role, pairs, nodes, addresses),) = measures.compute(
+        measures.NODE_ADDRESS_PAIRS, connection, {"validators": "validators", "delegators": "delegators"}, interval).fetchall()
+    assert (role, pairs, nodes, addresses) == ("validator", 1, 1, 1)
 
 
 def test_a_commitment_with_no_usable_address_is_counted_as_missing():

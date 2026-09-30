@@ -399,7 +399,9 @@ NODE_ADDRESS_PAIRS = register(Measure(
     definition="Count of distinct linked NodeID and address pairs in the interval, separately for each role.",
     unit="count", grain=("interval_start", "interval_end", "role"), relations=(VALIDATOR_STAKES, DELEGATOR_STAKES),
     computed={**INTERVAL_COMPUTED, "role": "validator or delegator, from the relation"}, parameters=INTERVAL,
-    sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end, role, count(DISTINCT (node_id, address)) AS value
+    counts=("linked_nodes", "linked_addresses"),
+    sql=f"""SELECT $interval_start AS interval_start, $interval_end AS interval_end, role, count(DISTINCT (node_id, address)) AS value,
+                   count(DISTINCT node_id) AS linked_nodes, count(DISTINCT address) AS linked_addresses
             FROM (SELECT 'validator' AS role, node_id, address FROM ({VALIDATOR_ADDRESSES})
                   UNION ALL SELECT 'delegator', node_id, nullif(delegator_address, '') FROM delegators WHERE {IN_INTERVAL})
             WHERE node_id IS NOT NULL AND address IS NOT NULL
@@ -407,6 +409,8 @@ NODE_ADDRESS_PAIRS = register(Measure(
     owner="data-science", nulls="known identities only: a pair with a null node or a null address, after list expansion, is not counted",
     coverage="both relations cover the whole interval: the seamed stake tables of one day's derivation",
     window="distinct over the interval", weighting="one per distinct pair", citation="cohort explorer incidence queries",
+    notes=(("Addresses per node divides value by linked_nodes, and nodes per address by linked_addresses, both from the same known "
+            "pairs. cohort-nodes counts nodes with or without a known address and is not their denominator."),),
 ))
 
 # The Helicon forecast quantities F1 to F5 of the validation protocol (section 5, scoring in section 7.1). Each is scored
