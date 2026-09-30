@@ -63,3 +63,20 @@ def test_duplicate_missing_and_invalid_records_are_rejected():
     rows.loc[0, "end_time"] = rows.loc[0, "start_time"]
     with pytest.raises(ValueError, match="positive"):
         renewal_events(rows)
+
+
+@pytest.mark.parametrize("index", range(3))
+@pytest.mark.parametrize("missing", [None, pd.NaT, ""])
+def test_missing_cohort_bounds_or_followup_cutoff_are_rejected(index, missing):
+    bounds = ["2025-01-01", "2025-02-01", "2025-03-01"]
+    bounds[index] = missing
+    with pytest.raises(ValueError, match="timestamps must be present"):
+        renewal_summary(renewal_events(periods()), *bounds)
+
+
+@pytest.mark.parametrize("column", ["start_time", "end_time"])
+def test_empty_source_timestamp_is_rejected_after_parsing(column):
+    rows = periods()
+    rows.loc[0, column] = ""
+    with pytest.raises(ValueError, match="timestamps must be present"):
+        renewal_events(rows)

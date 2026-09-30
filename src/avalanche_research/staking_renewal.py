@@ -22,6 +22,8 @@ def renewal_events(commitments: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("renewal requires complete, unique validator commitments")
     rows["start_time"] = pd.to_datetime(rows.start_time, utc=True).dt.as_unit("ns")
     rows["end_time"] = pd.to_datetime(rows.end_time, utc=True).dt.as_unit("ns")
+    if rows[["start_time", "end_time"]].isna().any().any():
+        raise ValueError("commitment timestamps must be present")
     if (rows.end_time <= rows.start_time).any() or (rows.stake_avax <= 0).any():
         raise ValueError("commitment duration and stake must be positive")
     rows = rows.sort_values(["node_id", "start_time", "transaction_hash"])
@@ -45,6 +47,8 @@ def renewal_summary(events: pd.DataFrame, start, end, observed_through,
     start, end, cutoff = (pd.Timestamp(value).tz_convert("UTC")
                           if pd.Timestamp(value).tzinfo else pd.Timestamp(value).tz_localize("UTC")
                           for value in (start, end, observed_through))
+    if any(pd.isna(value) for value in (start, end, cutoff)):
+        raise ValueError("renewal window timestamps must be present")
     if end <= start:
         raise ValueError("renewal cohort end must follow its start")
     cohort = events.loc[events.end_time.ge(start) & events.end_time.lt(end)]
