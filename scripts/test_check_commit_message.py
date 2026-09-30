@@ -1,11 +1,10 @@
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 from check_commit_message import coauthor_lines
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,14 +27,14 @@ class CommitMessageTest(unittest.TestCase):
             message = Path(temporary) / "message"
             message.write_bytes(b"\xff")
             for args in ([], [str(message)], [str(message.with_name("missing"))]):
-                result = subprocess.run(["python3", str(ROOT / "scripts/check_commit_message.py"), *args], capture_output=True, text=True)
+                result = subprocess.run(["python3", str(ROOT / "scripts/check_commit_message.py"), *args], capture_output=True, text=True, check=False)
                 self.assertEqual(result.returncode, 2)
 
     def test_real_git_hook_rejects_bad_message_and_allows_focused_commit(self):
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
             def git(*args):
-                return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True)
+                return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=False)
             self.assertEqual(git("init", "-q").returncode, 0)
             git("config", "user.name", "Guard Test")
             git("config", "user.email", "guard@example.test")

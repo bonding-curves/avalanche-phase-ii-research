@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Reject co-author trailers without exposing the commit message."""
-from pathlib import Path
 import re
 import sys
-
+from pathlib import Path
 
 COAUTHOR = re.compile(r"^[ \t]*Co-Authored-By[ \t]*:", re.IGNORECASE)
 
