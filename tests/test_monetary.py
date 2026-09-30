@@ -270,3 +270,19 @@ def test_check_reports_a_rewards_snapshot_that_stops_reconciling(root):
     findings = monetary.check(output / "capture", output / "dataset", root=root)["findings"]
     assert [finding for finding in findings if "rewards" in finding or "total_supply" in finding] == [
         "Data API rewards at 2020-09-11T12:00:00 differ from rewards paid plus held fees plus earned open shares by 9 AVAX (14.8148%), beyond 0.02%"]
+
+
+def test_a_gap_after_the_api_drift_began_is_reported_not_a_finding(root):
+    make_run(root, "supply-2020-09-11", "data-api.avax-supply", "avax-supply",
+             "SELECT TIMESTAMP '2020-09-11 12:00:00' AS observed_at, 360000000.0 AS total_supply_avax, 0.0 AS circulating_supply_avax, 0.0 AS total_staked_avax, 0.0 AS total_locked_avax, 60.0 AS total_rewards_avax, 0.0 AS total_p_burned_avax, 0.0 AS total_x_burned_avax, 0.0 AS total_c_burned_avax, 0.0 AS l1_validator_fees_avax, 360000000.0 AS genesis_unlock_avax, 0.0 AS supply_identity_gap_avax",
+             "2026-09-23T18:25:00Z")
+    output = root / "ledger"
+    monetary.derive(monetary.DATASET_ID, output, None, root)
+    build = json.loads((output / "dataset" / "build.json").read_text())
+    point = next(item for item in build["summary"]["checkpoints"] if item["observed_at"].startswith("2020-09-11"))
+    point["observed_at"] = "2026-09-29T11:00:16"
+    (output / "dataset" / "build.json").write_bytes(canonical_bytes(build))
+    checked = monetary.check(output / "capture", output / "dataset", root=root)
+    assert not [finding for finding in checked["findings"] if "rewards" in finding]
+    assert checked["summary"]["reported"] == [
+        "Data API rewards at 2026-09-29T11:00:16 differ from the reconciliation by 9 AVAX (14.8148%); reported, not a finding, from 2026-09-20"]

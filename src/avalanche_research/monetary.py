@@ -45,6 +45,10 @@ COUNTER_TOLERANCE = 0.0005
 # Cortina), plus each open period's potential reward times the share of its duration elapsed (data/monetary-source-audit.md,
 # F5). The fit was 0.0014% on 2026-09-19 and 0.014% on 2026-09-21, so a snapshot fails beyond this share of totalRewards.
 REWARDS_RECONCILIATION_TOLERANCE = 0.0002
+# From about this instant the API's totalRewards grows some 11,000 AVAX a day slower than the reconciliation, while its
+# totalStaked still equals the chain's and the P-Chain supply counter confirms the ledger's periods and rewards
+# (data/monetary-source-audit.md, F5). The provider has not said why, so from here a gap is reported, not a finding.
+REWARDS_API_DRIFT_FROM = "2026-09-20"  # UTC, compared with the snapshot's ISO time
 
 # One built run each, the newest or the one pinned with --input.
 SINGLE_INPUTS = {
@@ -665,7 +669,11 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                             findings.append(f"Data API {name} at {point['observed_at']} differs from the ledger by {result['gap_avax']:,.3f} AVAX beyond the {CHECKPOINT_TOLERANCE_AVAX} AVAX allowance")
                         elif result["within"] is None and point["ledger_complete_through_that_day"] is not False and not point.get("after_ledger_supply"):
                             findings.append(f"Data API {name} at {point['observed_at']} cannot be bracketed: the ledger has no supply through that day")
-                    if reconciled and reconciled["within"] is False:
+                    if reconciled and reconciled["within"] is False and point["observed_at"] >= REWARDS_API_DRIFT_FROM:
+                        summary.setdefault("reported", []).append(
+                            f"Data API rewards at {point['observed_at']} differ from the reconciliation by {reconciled['gap_avax']:,.0f} AVAX "
+                            f"({reconciled['gap_share']:.4%}); reported, not a finding, from {REWARDS_API_DRIFT_FROM}")
+                    elif reconciled and reconciled["within"] is False:
                         findings.append(f"Data API rewards at {point['observed_at']} differ from rewards paid plus held fees plus earned open shares by "
                                         f"{reconciled['gap_avax']:,.0f} AVAX ({reconciled['gap_share']:.4%}), beyond {REWARDS_RECONCILIATION_TOLERANCE:.2%}")
                 sources = summary.get("gap_fee_sources", {})
