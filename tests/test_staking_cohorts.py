@@ -355,6 +355,58 @@ def test_chart_uses_table_controls_and_only_per_measures(cohorts, monkeypatch):
     assert hv.render(explorer.plot()).select(BoxAnnotation)
 
 
+@pytest.mark.parametrize("period", ["Day", "Week", "Year"])
+def test_quantity_colors_cover_every_supported_column(cohorts, period):
+    from avalanche_research.palette import QUANTITY_COLORS
+
+    table = rates_per(for_population(cohort_table(*cohorts, "All"), "Both"), period)
+    colors = staking_cohorts.quantity_colors(period)
+    for quantity in staking_cohorts.QUANTITIES:
+        selected = display_columns(selected_columns(table, [quantity], list(staking_cohorts.VIEWS), period))
+        measures = [name for name in selected if name not in (*staking_cohorts.CONTEXT_COLUMNS,
+                    f"Total {period}s", "Reward Outcomes")]
+        assert measures
+        assert {colors[name] for name in measures} == {
+            QUANTITY_COLORS[quantity.lower().replace("-", "_")],
+        }
+
+
+def test_quantity_colors_survive_controls_and_selection_order(cohorts, monkeypatch):
+    from avalanche_research.palette import QUANTITY_COLORS
+
+    hv.extension("bokeh")
+    daily, cutoffs = cohorts
+    tables = {grain: cohort_table(daily, cutoffs, grain)
+              for grain in StakingCohorts.param.time_grain.objects}
+    monkeypatch.setattr(staking_cohorts, "_cohort_data",
+                        lambda run: (tables, cutoffs, pd.Timestamp("2026-09-24"), daily, ()))
+    explorer = StakingCohorts("fixture", metrics=["Stake", "Duration", "Rewards"],
+                              views=["Per Calendar Unit", "Per Commitment"])
+    for grain, period, population, normalization in (
+        ("Day", "Day", "Validators", "Mean"),
+        ("Week", "Week", "Delegators", "Median"),
+        ("Era", "Year", "Both", "First nonzero"),
+        ("All", "Day", "Validators", "None"),
+    ):
+        explorer.param.update(time_grain=grain, periodic_denominator=period,
+                              population=population, normalization=normalization)
+        explorer.metrics = list(reversed(explorer.metrics))
+        for element in explorer.plot():
+            if isinstance(element, (hv.Curve, hv.Scatter)):
+                label = element.label.split(": ")[-1]
+                quantity = label.split(" per ")[0].replace("Committed ", "").lower().replace("-", "_")
+                assert hv.Store.lookup_options("bokeh", element, "style").kwargs["color"] == QUANTITY_COLORS[quantity]
+    # A filtered subset retains the same hue as the multi-series chart.
+    explorer.metrics = ["Stake"]
+    explorer.time_grain = "Day"
+    explorer.date_range = (pd.Timestamp("2026-09-23").date(), pd.Timestamp("2026-09-23").date())
+    monkeypatch.setattr(staking_cohorts, "_window_table", lambda *args: cohort_table(
+        daily, cutoffs, "Day", window=(pd.Timestamp("2026-09-23"), pd.Timestamp("2026-09-24")),
+    ))
+    assert all(hv.Store.lookup_options("bokeh", element, "style").kwargs["color"] == QUANTITY_COLORS["stake"]
+               for element in explorer.plot() if isinstance(element, (hv.Curve, hv.Scatter)))
+
+
 def test_address_denominators_follow_population_and_rate_unit(cohorts):
     identities = pd.DataFrame([
         {"role": "validator", "grain": "All", "bucket": "All", "Total Nodes": 2,

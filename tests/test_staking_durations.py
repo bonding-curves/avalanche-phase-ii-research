@@ -84,6 +84,10 @@ def test_shared_population_and_inclusive_dates_do_not_change_other_choices(owner
 def test_plot_preserves_gaps_units_hover_and_line_identities(owner):
     hv.extension("bokeh")
     comparison = StakingDurations(cohorts=owner)
+    assert DURATION_SERIES == {
+        "Mean duration (days)": {"color": "#1f77b4", "line_dash": "solid"},
+        "Stake-weighted mean duration (days)": {"color": "#b85c00", "line_dash": "dashed"},
+    }
     overlay = comparison.plot()
     curves = [element for element in overlay if isinstance(element, hv.Curve)]
     assert len(curves) == 2
@@ -91,6 +95,7 @@ def test_plot_preserves_gaps_units_hover_and_line_identities(owner):
         assert curve.label == measure
         assert pd.isna(curve.dimension_values(measure)[-1])
         assert hv.Store.lookup_options("bokeh", curve, "style").kwargs["line_dash"] == style["line_dash"]
+        assert hv.Store.lookup_options("bokeh", curve, "style").kwargs["color"] == style["color"]
     figure = hv.render(overlay)
     assert figure.yaxis[0].axis_label == "Mean commitment duration (days)"
     assert figure.above and figure.select(BoxAnnotation)

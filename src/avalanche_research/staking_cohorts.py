@@ -15,6 +15,7 @@ from bokeh.models import DatetimeAxis, FixedTicker
 
 from . import datasets
 from .model.protocol import MAINNET_UPGRADES
+from .palette import QUANTITY_COLORS
 
 
 DAY = timedelta(days=1)
@@ -420,9 +421,29 @@ def selected_columns(table: pd.DataFrame, metrics: list[str], views: list[str], 
     return table[columns]
 
 
+def display_column(column: str) -> str:
+    """Translate an internal heading without changing its meaning or units."""
+    return column.replace(" / ", " per ").replace("/", " per ")
+
+
 def display_columns(table: pd.DataFrame) -> pd.DataFrame:
     """Use readable headings without changing measure keys or units."""
-    return table.rename(columns=lambda column: column.replace(" / ", " per ").replace("/", " per "))
+    return table.rename(columns=display_column)
+
+
+def quantity_colors(period: str) -> dict[str, str]:
+    """Resolve plotted columns from quantity definitions, independent of draw order."""
+    columns = {quantity: [_metric_column(quantity, view, period) for view in VIEWS]
+               for quantity in METRIC_SOURCES}
+    columns.update({
+        "Nodes": ["Total Nodes", "Nodes per Address"],
+        "Addresses": ["Total Addresses", *IDENTITY_COLUMNS[1:], "Addresses per Node"],
+        "Commitments": ["Total Commitments", f"Commitments / {period}", "Commitments / Node",
+                        f"Commitments / Node / {period}", "Commitments / Address",
+                        f"Commitments / Address / {period}"],
+    })
+    return {display_column(column): QUANTITY_COLORS[quantity.lower().replace("-", "_")]
+            for quantity, names in columns.items() for column in names}
 
 
 def _upgrade_axis(plot, element):
@@ -557,12 +578,13 @@ class StakingCohorts(pm.Parameterized):
                                                                           frame["End (UTC)"].max()))
                  if index % 2]
         curves = []
+        colors = quantity_colors(self.periodic_denominator)
         for (role, measure), values in frame.groupby(["Role", "Measure"], sort=False):
             label = f"{role}: {measure}" if self.population == "Both" else measure
             element = hv.Scatter if len(values) == 1 else hv.Curve
             values = values.assign(Title=label, DisplayValue=values["Value"].map(_hover_number),
                                    DisplayIndex=values["Index"].map(_hover_number))
-            style = {"tools": ["hover"], "muted_alpha": 0.08,
+            style = {"color": colors[measure], "tools": ["hover"], "muted_alpha": 0.08,
                      "hover_tooltips": [("Measure", "@Title"), ("Date", "@Date{%F}"),
                                         ("Value", "@DisplayValue"), ("Chart value", "@DisplayIndex")],
                      "hover_formatters": {"@Date": "datetime"}}
