@@ -4,6 +4,9 @@ A source is stale when its newest record is more than ``STALE_HOURS`` old, and a
 counts as not fresh. The Snowflake share stopped loading on 2026-09-22 and nothing said so for a week; this is the
 check that says so the same day. It reads no key: the Snowflake connection is the named one, and the Data API is read
 on its keyless host.
+
+A source in ``KNOWN_STOPPED`` has stopped at a recorded time. While its newest record is still that one it is reported
+as known stale and does not fail the check, so the check fails only on a new stop. A newer record makes it fresh again.
 """
 
 from __future__ import annotations
@@ -38,6 +41,15 @@ METRICS_SERIES = {
     "validator count": f"{METRICS}/networks/mainnet/metrics/validatorCount?timeInterval=day&pageSize=1",
 }
 WALKS = {"p-chain-rpc.blocks": "block_time"}
+# Sources that stopped and are known to have, with the newest record they stopped at and why.
+SHARE_STOP = "the Snowflake share stopped loading on 2026-09-22"
+KNOWN_STOPPED = {
+    "snowflake P_TRANSACTIONS": ("2026-09-22T08:35:40Z", SHARE_STOP),
+    "snowflake P_BLOCKS": ("2026-09-22T07:49:27Z", SHARE_STOP),
+    "snowflake X_TRANSACTIONS": ("2026-09-22T08:28:04Z", SHARE_STOP),
+    "snowflake C_BLOCKS": ("2026-09-21T23:59:59Z", SHARE_STOP),
+    "metrics api validator count": ("2026-09-01T00:00:00Z", "the Metrics API's staking metrics have no point after 2026-08-31"),
+}
 
 
 def _utc(seconds: float) -> datetime:
@@ -145,9 +157,10 @@ def probes(timeout: float) -> dict[str, Callable[[], datetime | Exception]]:
 
 
 def measure(sources: dict[str, Callable[[], datetime | Exception]], clock: datetime | None = None,
-            stale_hours: float = STALE_HOURS) -> dict[str, Any]:
-    """One row per source: its newest record, its age in hours, and fresh, stale, or error."""
+            stale_hours: float = STALE_HOURS, known: dict[str, tuple[str, str]] | None = None) -> dict[str, Any]:
+    """One row per source: its newest record, its age in hours, and fresh, stale, known stale, or error."""
     clock = datetime.now(UTC) if clock is None else clock
+    known = KNOWN_STOPPED if known is None else known
     rows = []
     for name, probe in sources.items():
         value = probe()
@@ -155,11 +168,14 @@ def measure(sources: dict[str, Callable[[], datetime | Exception]], clock: datet
             rows.append({"source": name, "status": "error", "newest": None, "age_hours": None, "error": str(value)[:300]})
             continue
         age = (clock - value).total_seconds() / 3600
-        rows.append({"source": name, "status": "stale" if age > stale_hours else "fresh",
-                     "newest": value.strftime("%Y-%m-%dT%H:%M:%SZ"), "age_hours": round(age, 1)})
+        newest = value.strftime("%Y-%m-%dT%H:%M:%SZ")
+        row = {"source": name, "status": "stale" if age > stale_hours else "fresh", "newest": newest, "age_hours": round(age, 1)}
+        if row["status"] == "stale" and name in known and newest <= known[name][0]:
+            row.update(status="known stale", error=known[name][1])
+        rows.append(row)
     return {
         "measured_at": clock.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "stale_hours": stale_hours,
-        "status": "pass" if all(row["status"] == "fresh" for row in rows) else "attention",
+        "status": "pass" if all(row["status"] in ("fresh", "known stale") for row in rows) else "attention",
         "sources": rows,
     }

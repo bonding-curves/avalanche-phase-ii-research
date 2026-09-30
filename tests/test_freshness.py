@@ -24,6 +24,17 @@ def test_stale_fresh_and_unreadable_sources():
     ]
 
 
+def test_a_known_stop_passes_until_a_new_stop():
+    known = {"share": ("2026-09-22T08:35:40Z", "stopped")}
+    stopped = lambda: datetime(2026, 9, 22, 8, 35, 40, tzinfo=UTC)
+    result = freshness.measure({"share": stopped}, clock=CLOCK, known=known)
+    assert result["status"] == "pass" and result["sources"][0]["status"] == "known stale"
+    # A newer record that is again stale is a new stop, and so is a source that has stopped without being known.
+    later = lambda: datetime(2026, 9, 25, tzinfo=UTC)
+    assert freshness.measure({"share": later}, clock=CLOCK, known=known)["status"] == "attention"
+    assert freshness.measure({"other": stopped}, clock=CLOCK, known=known)["status"] == "attention"
+
+
 def test_all_fresh_passes():
     assert freshness.measure({"node": lambda: CLOCK}, clock=CLOCK)["status"] == "pass"
 
