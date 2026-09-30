@@ -8,7 +8,7 @@ import holoviews as hv
 import pandas as pd
 import panel as pn
 import param as pm
-from bokeh.models import NumeralTickFormatter
+from bokeh.models import DateFormatter, NumberFormatter, NumeralTickFormatter
 
 from . import datasets
 from .palette import QUANTITY_COLORS
@@ -157,8 +157,8 @@ class StakingState(pm.Parameterized):
         dates = pn.widgets.DateRangeSlider.from_param(self.param.date_range, sizing_mode="stretch_width", format="%Y-%m-%d")
         table = pn.widgets.Tabulator(self.table(), show_index=False, disabled=True, pagination="local", page_size=10,
                                      sizing_mode="stretch_width", layout="fit_columns",
-                                     formatters={"Date (UTC)": {"type": "datetime", "format": "yyyy-MM-dd"},
-                                                 **{column: {"type": "number", "format": "0,0.00"}
+                                     formatters={"Date (UTC)": DateFormatter(format="%Y-%m-%d"),
+                                                 **{column: NumberFormatter(format="0,0.00")
                                                     for column in self._daily.columns
                                                     if column not in ["Date (UTC)", "Complete days", "Observed days"]}})
         self.param.watch(lambda event: setattr(table, "value", self.table()),

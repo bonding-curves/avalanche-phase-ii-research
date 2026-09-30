@@ -5,7 +5,14 @@ from datetime import date
 import holoviews as hv
 import pandas as pd
 import pytest
-from bokeh.models import BoxAnnotation, GlyphRenderer, HoverTool, Line
+from bokeh.models import (
+    BoxAnnotation,
+    DateFormatter,
+    GlyphRenderer,
+    HoverTool,
+    Line,
+    NumberFormatter,
+)
 
 from avalanche_research import staking_state
 from avalanche_research.staking_state import StakingState, daily_state, summarize_state
@@ -77,6 +84,8 @@ def test_filters_population_and_era_boundary(state):
 def test_rendering_and_stable_table_updates(state):
     panel = state.panel()
     table = panel[3]
+    assert isinstance(table.formatters["Date (UTC)"], DateFormatter)
+    assert isinstance(table.formatters["Validator stake (AVAX)"], NumberFormatter)
     state.quantity = "Staking ratio"
     state.population = "Validators"
     assert panel[3] is table
@@ -86,5 +95,6 @@ def test_rendering_and_stable_table_updates(state):
     lines = [r.glyph for r in figure.select(GlyphRenderer) if isinstance(r.glyph, Line)]
     assert len(lines) == 1 and lines[0].line_color == staking_state.QUANTITY_COLORS["stake"]
     assert figure.yaxis[0].axis_label == "Staking ratio (%)"
+    assert figure.title.text == "Mean staking ratio by week"
     assert figure.above and figure.select(BoxAnnotation)
     assert any(label == "Measure" for tool in figure.select(HoverTool) for label, _ in tool.tooltips)
