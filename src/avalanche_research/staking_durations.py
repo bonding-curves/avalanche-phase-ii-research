@@ -8,7 +8,7 @@ import panel as pn
 import param as pm
 from bokeh.models import NumeralTickFormatter
 
-from .palette import DURATION_COMPARISON_COLORS
+from .palette import DURATION_COMPARISON_COLORS, WEIGHTING_LINE_DASH
 from .staking_cohorts import (
     DAY,
     NETWORK_START,
@@ -21,8 +21,10 @@ from .staking_cohorts import (
 )
 
 DURATION_SERIES = {
-    "Mean duration (days)": {"color": DURATION_COMPARISON_COLORS["commitment_weighted"], "line_dash": "solid"},
-    "Stake-weighted mean duration (days)": {"color": DURATION_COMPARISON_COLORS["stake_weighted"], "line_dash": "dashed"},
+    "Mean duration (days)": {"color": DURATION_COMPARISON_COLORS["commitment_weighted"],
+                             "line_dash": WEIGHTING_LINE_DASH["commitment_weighted"]},
+    "Stake-weighted mean duration (days)": {"color": DURATION_COMPARISON_COLORS["stake_weighted"],
+                                          "line_dash": WEIGHTING_LINE_DASH["stake_weighted"]},
 }
 CHART_HEIGHT = 500
 LINE_WIDTH = 3

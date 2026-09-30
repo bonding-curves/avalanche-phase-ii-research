@@ -1,4 +1,4 @@
-"""Light-chart quantity colours and explicitly scoped comparison colours."""
+"""Stable light-chart quantity hues with stroke patterns for duration weighting."""
 
 QUANTITY_COLORS = {
     "nodes": "#3566a3",
@@ -11,6 +11,8 @@ QUANTITY_COLORS = {
 }
 
 DURATION_COMPARISON_COLORS = {
-    "commitment_weighted": "#1f77b4",
-    "stake_weighted": "#b85c00",
+    "commitment_weighted": QUANTITY_COLORS["duration"],
+    "stake_weighted": QUANTITY_COLORS["duration"],
 }
+
+WEIGHTING_LINE_DASH = {"commitment_weighted": "solid", "stake_weighted": "dashed"}

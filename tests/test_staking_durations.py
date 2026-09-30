@@ -6,9 +6,10 @@ import holoviews as hv
 import pandas as pd
 import panel as pn
 import pytest
-from bokeh.models import BoxAnnotation, HoverTool
+from bokeh.models import BoxAnnotation, GlyphRenderer, HoverTool, Line, Scatter
 
 from avalanche_research import staking_cohorts
+from avalanche_research.palette import QUANTITY_COLORS, WEIGHTING_LINE_DASH
 from avalanche_research.staking_cohorts import StakingCohorts, cohort_table
 from avalanche_research.staking_durations import (
     DURATION_SERIES,
@@ -85,7 +86,7 @@ def test_plot_preserves_gaps_units_hover_and_line_identities(owner):
     hv.extension("bokeh")
     comparison = StakingDurations(cohorts=owner)
     assert DURATION_SERIES == {
-        "Mean duration (days)": {"color": "#1f77b4", "line_dash": "solid"},
+        "Mean duration (days)": {"color": "#b85c00", "line_dash": "solid"},
         "Stake-weighted mean duration (days)": {"color": "#b85c00", "line_dash": "dashed"},
     }
     overlay = comparison.plot()
@@ -103,3 +104,26 @@ def test_plot_preserves_gaps_units_hover_and_line_identities(owner):
     assert any("Duration (days)" == label for tool in figure.select(HoverTool) for label, _ in tool.tooltips)
     owner.population = "Both"
     assert sum(isinstance(element, hv.Curve) for element in comparison.plot()) == 4
+
+
+def test_rendered_charts_share_duration_identity_without_changing_data(owner):
+    comparison = StakingDurations(cohorts=owner)
+    before = comparison.table()
+    owner.param.update(metrics=["Duration"], views=["Per Commitment"], time_grain="Week")
+    figures = [hv.render(owner.plot()), hv.render(comparison.plot())]
+    lines = [[renderer.glyph for renderer in figure.select(GlyphRenderer)
+              if isinstance(renderer.glyph, (Line, Scatter))]
+             for figure in figures]
+    duration_lines = [glyph for glyph in lines[1] if isinstance(glyph, Line)]
+    assert lines[0] and len(duration_lines) == 2
+    assert {glyph.line_color for glyphs in lines for glyph in glyphs} == {QUANTITY_COLORS["duration"]}
+    assert {tuple(glyph.line_dash) for glyph in duration_lines} == {(), (6,)}
+    assert WEIGHTING_LINE_DASH == {"commitment_weighted": "solid", "stake_weighted": "dashed"}
+    pd.testing.assert_frame_equal(before, comparison.table())
+
+    for population in ("Delegators", "Both", "Validators"):
+        owner.population = population
+        rendered = hv.render(comparison.plot())
+        glyphs = [renderer.glyph for renderer in rendered.select(GlyphRenderer)
+                  if isinstance(renderer.glyph, (Line, Scatter))]
+        assert {glyph.line_color for glyph in glyphs} == {QUANTITY_COLORS["duration"]}
