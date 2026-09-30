@@ -23,7 +23,7 @@ Recovering preferences from observed choices and fitting a model to data.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [How Do Avalanche Validators Actually Think About Staking Rewards?](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/) | Siyu (Eric) Lu | April 28, 2026 | Eric Lu estimates from 278 weeks of P-Chain data that Avalanche validators choose commitments by annualized yield, so lowering the reward floor, not shortening the minimum commitment, is the lever that lengthens them. |
+| [How Do Avalanche Validators Actually Think About Staking Rewards?](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/) | Siyu (Eric) Lu | April 28, 2026 | Eric Lu estimates from 278 weeks of P-Chain data that Avalanche validators choose commitments by annualized yield, so lowering the minimum consumption rate, not shortening the minimum commitment, is the lever that lengthens them. |
 
 ## Research papers
 

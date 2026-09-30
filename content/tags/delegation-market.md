@@ -30,7 +30,7 @@ Delegator choice, validator fees, and competition for delegation. For concentrat
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
 | [Why Avalanche Validator Economics Need a Redesign](/Phase-II/Wiki/Collections/Essential-Readings/Why-Avalanche-Validator-Economics-Need-a-Redesign/) | Matias Antonio | April 2, 2026 | Matias Antonio argues that Avalanche validator economics, funded almost entirely by issuance, will not keep the network secure as it matures, and proposes fee revenue and rewards for performance and tenure as directions to research. |
-| [How Do Avalanche Validators Actually Think About Staking Rewards?](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/) | Siyu (Eric) Lu | April 28, 2026 | Eric Lu estimates from 278 weeks of P-Chain data that Avalanche validators choose commitments by annualized yield, so lowering the reward floor, not shortening the minimum commitment, is the lever that lengthens them. |
+| [How Do Avalanche Validators Actually Think About Staking Rewards?](/Phase-II/Wiki/Collections/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/) | Siyu (Eric) Lu | April 28, 2026 | Eric Lu estimates from 278 weeks of P-Chain data that Avalanche validators choose commitments by annualized yield, so lowering the minimum consumption rate, not shortening the minimum commitment, is the lever that lengthens them. |
 
 ## Economic ACPs
 
