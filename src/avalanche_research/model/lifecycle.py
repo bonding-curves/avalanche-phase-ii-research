@@ -70,11 +70,11 @@ class ValidatorLifecycle(SimulationModel):
     mechanism = param.ClassSelector(class_=RewardMechanism, default=ChainReward(), doc="The reward rule that prices each new commitment")
     renewal_response = param.Number(
         default=0.0, bounds=(-2.0, 2.0), metadata={"source": "assumed", "evidence": "Not identified from history, swept (path forward section 4.2)"},
-        doc="Shift in the log-odds of renewal per percentage point of annual rate above the chain's, at 30 days",
+        doc="Shift in the log-odds of renewal per percentage point of annual rate above the chain's, for a 30-day stake halfway through the run",
     )
     entry_response = param.Number(
         default=0.0, bounds=(-2.0, 2.0), metadata={"source": "assumed", "evidence": "Not identified from history, swept (path forward section 4.2)"},
-        doc="Proportional change in the entry rate, as a log, per percentage point of annual rate above the chain's, at 30 days",
+        doc="Change in the log of the entry rate per percentage point of annual rate above the chain's, for a 30-day stake halfway through the run",
     )
     supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="Current supply at the origin, nAVAX")
 
@@ -95,8 +95,11 @@ class ValidatorLifecycle(SimulationModel):
         }
 
     def yield_gap_pp(self) -> float:
-        """The mechanism's annual rate minus the chain's, in percentage points, for a 30-day stake at the origin."""
-        start = datetime.combine(self.origin + timedelta(days=1), time(12), tzinfo=UTC)
+        """The mechanism's annual rate minus the chain's, in percentage points, for a 30-day stake started halfway through the run.
+
+        v0 holds one gap for the whole run. Halfway represents a mechanism that changes over time, such as a ramp.
+        """
+        start = datetime.combine(self.origin + timedelta(days=max(1, self.timesteps // 2)), time(12), tzinfo=UTC)
         ours = self.mechanism.annual_rate(30, self.supply0_navax, start, completed_periods=4)
         chain = ChainReward().annual_rate(30, self.supply0_navax, start, completed_periods=4)
         return (ours - chain) * 100

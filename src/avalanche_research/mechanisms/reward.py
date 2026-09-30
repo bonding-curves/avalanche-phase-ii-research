@@ -148,16 +148,21 @@ class ACP285Ramp(RewardMechanism):
         step=0.0025,
         doc="Minimum consumption rate the ramp reaches, as a fraction. Mainnet: 0.075",
     )
-    ramp_days = param.Integer(default=ACP285_RAMP_SECONDS // SECONDS_PER_DAY, bounds=(1, 730), doc="Days from Helicon to the target. Mainnet: 90")
+    ramp_days = param.Integer(default=ACP285_RAMP_SECONDS // SECONDS_PER_DAY, bounds=(1, 730), doc="Days from activation to the target. Mainnet: 90")
+    activation = param.Date(
+        default=MAINNET_UPGRADES.time("helicon"),
+        doc="When the ramp starts. Mainnet: Helicon, 2026-09-22 15:00 UTC. A scenario can start it at any origin",
+    )
 
     def config(self, start: datetime) -> RewardConfig:
         base = MAINNET_REWARD
         target = round(self.target_min_rate * PERCENT_DENOMINATOR)
         at = as_utc(start)
-        if not MAINNET_UPGRADES.activated("helicon", at) or base.min_consumption_rate == target:
+        activation = as_utc(self.activation)
+        if at < activation or base.min_consumption_rate == target:
             return base
         full = abs(base.min_consumption_rate - target)
-        elapsed_ns = int((at - MAINNET_UPGRADES.time("helicon")).total_seconds()) * NANOSECONDS_PER_SECOND
+        elapsed_ns = int((at - activation).total_seconds()) * NANOSECONDS_PER_SECOND
         ramp_ns = self.ramp_days * SECONDS_PER_DAY * NANOSECONDS_PER_SECOND
         change = full * elapsed_ns // ramp_ns if elapsed_ns < ramp_ns else full
         minimum = base.min_consumption_rate + change if base.min_consumption_rate < target else base.min_consumption_rate - change

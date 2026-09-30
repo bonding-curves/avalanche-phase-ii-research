@@ -106,3 +106,15 @@ def test_settings_outside_bounds_raise():
         QuadraticReward(exponent=0.5)
     with pytest.raises(ValueError):
         TenureBoost(boost_max=-0.1)
+
+
+def test_acp285_can_activate_at_any_scenario_date():
+    origin = datetime(2025, 4, 8, tzinfo=UTC)
+    early = ACP285Ramp(activation=origin)
+    halfway = origin + timedelta(days=45)
+    before = origin - timedelta(days=1)
+    chain = ChainReward()
+    assert early.config(before).min_consumption_rate == 100_000
+    assert early.config(halfway).min_consumption_rate == 87_500
+    assert early.config(origin + timedelta(days=200)).min_consumption_rate == 75_000
+    assert early.potential_reward_navax(2_000 * AVAX, 14 * SECONDS_PER_DAY, SUPPLY, halfway) < chain.potential_reward_navax(2_000 * AVAX, 14 * SECONDS_PER_DAY, SUPPLY, halfway)
