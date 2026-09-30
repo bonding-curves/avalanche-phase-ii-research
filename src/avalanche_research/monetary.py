@@ -20,6 +20,7 @@ from typing import Any
 import duckdb
 
 from . import __version__, datasets, seam
+from .derived import PRE_CORTINA
 from .catalog import DataError, canonical_bytes, contract_hash, dataset, load_catalog, now, sha256
 
 DATASET_ID = "derived.avax-monetary-daily"
@@ -39,6 +40,11 @@ CHECKPOINT_TOLERANCE_AVAX = 1.0
 # The P-Chain supply counter reserves a period's potential reward at acceptance and releases it if the period fails,
 # so it should equal genesis plus rewards paid plus potential rewards of periods still open, within this share.
 COUNTER_TOLERANCE = 0.0005
+# The Data API's totalRewards counts rewards as they are earned, the ledger when the chain pays them. At a snapshot
+# instant it reconciles as rewards paid, plus delegation fees earned but held until the validator's period ends (from
+# Cortina), plus each open period's potential reward times the share of its duration elapsed (data/monetary-source-audit.md,
+# F5). The fit was 0.0014% on 2026-09-19 and 0.014% on 2026-09-21, so a snapshot fails beyond this share of totalRewards.
+REWARDS_RECONCILIATION_TOLERANCE = 0.0002
 
 # One built run each, the newest or the one pinned with --input.
 SINGLE_INPUTS = {
@@ -447,7 +453,8 @@ def checkpoints(connection: Any) -> list[dict[str, Any]]:
         )
         SELECT s.observed_at, s.total_rewards_avax, s.total_p_burned_avax, s.total_x_burned_avax, s.total_c_burned_avax, s.total_supply_avax,
                b.rewards, a.rewards, b.p, a.p, b.x, a.x, b.c, a.c, b.supply, a.supply,
-               (SELECT bool_and(complete) FROM cumulative WHERE date_utc <= s.date_utc) AS ledger_complete
+               (SELECT bool_and(complete) FROM cumulative WHERE date_utc <= s.date_utc) AS ledger_complete,
+               s.date_utc > (SELECT max(date_utc) FROM cumulative WHERE supply IS NOT NULL) AS after_ledger_supply
         FROM snapshots s
         LEFT JOIN cumulative b ON b.date_utc = s.date_utc - INTERVAL 1 DAY
         LEFT JOIN cumulative a ON a.date_utc = s.date_utc
@@ -461,12 +468,36 @@ def checkpoints(connection: Any) -> list[dict[str, Any]]:
         results.append({
             "observed_at": _plain(observed_at),
             "ledger_complete_through_that_day": ledger_complete,
+            "after_ledger_supply": row[17],
+            "rewards_reconciliation": rewards_reconciliation(connection, observed_at, api_rewards),
             **{name: _bracket(api, before if ledger_complete else None, after if ledger_complete else None) for name, api, before, after in (
                 ("rewards", api_rewards, row[6], row[7]), ("p_burned", api_p, row[8], row[9]), ("x_burned", api_x, row[10], row[11]),
                 ("c_burned", api_c, row[12], row[13]), ("total_supply", api_supply, row[14], row[15]),
             )},
         })
     return results
+
+
+def rewards_reconciliation(connection: Any, instant: Any, api_rewards: Any) -> dict[str, Any]:
+    """The Data API's totalRewards at one instant against rewards paid, held delegation fees, and earned open shares.
+    Not compared when the reward input ends before the instant: the periods come from the same walk and end with it."""
+    covered = connection.execute("SELECT max(rewarded_at) >= ? FROM staking_rewards", [instant]).fetchone()[0]
+    paid, held, earned = connection.execute(
+        f"""
+        SELECT (SELECT coalesce(sum(realized_reward_navax), 0) FROM staking_rewards WHERE rewarded_at <= $t),
+               (SELECT coalesce(sum(-d.fee_transfer_navax), 0) FROM staking_periods d
+                JOIN staking_periods v ON v.transaction_hash = d.validator_transaction_hash AND v.role = 'validator'
+                WHERE d.role = 'delegator' AND d.rewarded AND d.rewarded_at <= $t AND coalesce(v.rewarded_at > $t, TRUE)
+                  AND v.regime NOT IN ({", ".join(f"'{name}'" for name in PRE_CORTINA)})),
+               (SELECT coalesce(sum(potential_reward_navax * least(1.0, epoch($t - start_time) / epoch(end_time - start_time))), 0)
+                FROM staking_periods WHERE start_time <= $t AND end_time > start_time AND coalesce(rewarded_at > $t, TRUE))
+        """, {"t": instant}).fetchone()
+    model = (int(paid) + int(held) + float(earned)) / 1e9
+    api = float(api_rewards)
+    gap = api - model
+    return {"paid_avax": int(paid) / 1e9, "held_fees_avax": int(held) / 1e9, "earned_open_avax": float(earned) / 1e9, "model_avax": model,
+            "api_avax": api, "gap_avax": round(gap, 3), "gap_share": gap / api if api else None, "covered": bool(covered),
+            "within": abs(gap) <= REWARDS_RECONCILIATION_TOLERANCE * api if covered else None}
 
 
 def _bracket(api_avax: Any, before_wei: Any, after_wei: Any) -> dict[str, Any]:
@@ -626,12 +657,17 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                     findings.append(f"{negative} days carry a negative flow")
                 summary.update({key: value for key, value in build_receipt.get("summary", {}).items()})
                 for point in summary.get("checkpoints", []):
-                    for name in ("p_burned", "x_burned", "c_burned", "rewards", "total_supply"):
+                    reconciled = point.get("rewards_reconciliation")
+                    # With the reconciliation, rewards and total supply are compared on the API's earned basis, not bracketed.
+                    for name in ("p_burned", "x_burned", "c_burned") + (() if reconciled else ("rewards", "total_supply")):
                         result = point[name]
                         if result["within"] is False:
                             findings.append(f"Data API {name} at {point['observed_at']} differs from the ledger by {result['gap_avax']:,.3f} AVAX beyond the {CHECKPOINT_TOLERANCE_AVAX} AVAX allowance")
-                        elif result["within"] is None and point["ledger_complete_through_that_day"] is not False:
+                        elif result["within"] is None and point["ledger_complete_through_that_day"] is not False and not point.get("after_ledger_supply"):
                             findings.append(f"Data API {name} at {point['observed_at']} cannot be bracketed: the ledger has no supply through that day")
+                    if reconciled and reconciled["within"] is False:
+                        findings.append(f"Data API rewards at {point['observed_at']} differ from rewards paid plus held fees plus earned open shares by "
+                                        f"{reconciled['gap_avax']:,.0f} AVAX ({reconciled['gap_share']:.4%}), beyond {REWARDS_RECONCILIATION_TOLERANCE:.2%}")
                 sources = summary.get("gap_fee_sources", {})
                 if sources.get("differing_blocks"):
                     findings.append(f"{sources['differing_blocks']} of {sources['shared_blocks']} gap blocks carry different fees from the Data API and the node's receipts")

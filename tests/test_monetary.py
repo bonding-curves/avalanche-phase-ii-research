@@ -66,7 +66,7 @@ def root(tmp_path: Path, monkeypatch) -> Path:
     make_run(runs, "rewards", "snowflake.primary-staking-rewards", "primary-staking-rewards",
              f"SELECT * FROM (VALUES ('r1', TIMESTAMP '2020-09-11 05:00:00', 1, 's1', 'AddValidatorTx', 'NodeID-1', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-11 00:00:00', TRUE, 50 * {BIG}, 50.0, 50 * {BIG}, 50.0, 0, 0.0, 1), ('r2', TIMESTAMP '2020-09-13 23:00:00', 2, 's2', 'AddDelegatorTx', 'NodeID-1', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-13 00:00:00', TRUE, 20 * {BIG}, 20.0, 19 * {BIG}, 19.0, -{BIG}, -1.0, 1)) AS t(reward_transaction_hash, rewarded_at, block_height, staking_transaction_hash, staking_tx_type, node_id, period_start_time, period_end_time, rewarded, potential_reward_navax, potential_reward_avax, realized_reward_navax, realized_reward_avax, fee_transfer_navax, fee_transfer_avax, reward_utxo_count)",
              "2026-09-23T18:10:00Z", window("2020-09-10", "2026-09-24"))
-    periods = f"SELECT * FROM (VALUES ('s1', 'validator', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-13 12:00:00', 2000 * {BIG}, 50 * {BIG}, TIMESTAMP '2020-09-11 05:00:00'), ('s2', 'delegator', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-11 00:00:00', TIMESTAMP '2020-09-20 00:00:00', 25 * {BIG}, 20 * {BIG}, TIMESTAMP '2020-09-13 23:00:00'), ('s3', 'validator', TIMESTAMP '2020-09-12 00:00:00', TIMESTAMP '2020-09-12 00:00:00', TIMESTAMP '2021-09-12 00:00:00', 3000 * {BIG}, 100 * {BIG}, NULL::TIMESTAMP)) AS t(transaction_hash, role, accepted_at, start_time, end_time, stake_navax, potential_reward_navax, rewarded_at)"
+    periods = f"SELECT * FROM (VALUES ('s1', 'validator', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-13 12:00:00', 2000 * {BIG}, 50 * {BIG}, TIMESTAMP '2020-09-11 05:00:00', NULL, TRUE, 'genesis', 0), ('s2', 'delegator', TIMESTAMP '2020-09-10 00:00:00', TIMESTAMP '2020-09-11 00:00:00', TIMESTAMP '2020-09-20 00:00:00', 25 * {BIG}, 20 * {BIG}, TIMESTAMP '2020-09-13 23:00:00', 's1', TRUE, 'genesis', -{BIG}), ('s3', 'validator', TIMESTAMP '2020-09-12 00:00:00', TIMESTAMP '2020-09-12 00:00:00', TIMESTAMP '2021-09-12 00:00:00', 3000 * {BIG}, 100 * {BIG}, NULL::TIMESTAMP, NULL, NULL, 'genesis', 0)) AS t(transaction_hash, role, accepted_at, start_time, end_time, stake_navax, potential_reward_navax, rewarded_at, validator_transaction_hash, rewarded, regime, fee_transfer_navax)"
     make_run(runs, "periods", "derived.staking-periods", "staking-periods", periods, "2026-09-23T18:12:00Z",
              {"inputs": [{"input_id": "validator-stakes", "captured_at": "2026-09-23T08:00:00Z"}, {"input_id": "delegator-stakes", "captured_at": "2026-09-23T08:30:00Z"}]})
     make_run(runs, "staking-supply", "snowflake.primary-staking-supply", "primary-staking-supply",
@@ -228,3 +228,45 @@ def test_the_api_c_burn_is_bracketed_by_evm_fees_only(root, monkeypatch):
     point = next(item for item in summary["checkpoints"] if item["observed_at"].startswith("2020-09-13"))
     # EVM fees: 4 AVAX through 09-12, 7.5 through 09-13. The 1 AVAX atomic burn of 09-13 is not in the bracket.
     assert (point["c_burned"]["ledger_before_avax"], point["c_burned"]["ledger_after_avax"], point["c_burned"]["within"]) == (4.0, 7.5, True)
+
+
+def reconciliation_tables() -> duckdb.DuckDBPyConnection:
+    """One paid validator, a delegation to a running post-Cortina validator, and one to a pre-Cortina validator."""
+    connection = duckdb.connect()
+    connection.execute(f"""CREATE TABLE staking_rewards AS SELECT * FROM (VALUES (TIMESTAMP '2026-01-05 00:00:00', 40 * {BIG}), (TIMESTAMP '2026-01-06 00:00:00', 18 * {BIG}),
+        (TIMESTAMP '2026-01-07 00:00:00', 9 * {BIG})) AS t(rewarded_at, realized_reward_navax)""")
+    connection.execute(f"""CREATE TABLE staking_periods AS SELECT * FROM (VALUES
+        ('v1', 'validator', NULL, TIMESTAMP '2026-01-01', TIMESTAMP '2026-01-01', TIMESTAMP '2026-01-05', 40 * {BIG}, TIMESTAMP '2026-01-05', TRUE, 'durango', 0),
+        ('v2', 'validator', NULL, TIMESTAMP '2026-01-01', TIMESTAMP '2026-01-01', TIMESTAMP '2026-01-11', 100 * {BIG}, NULL::TIMESTAMP, NULL, 'durango', 0),
+        ('d1', 'delegator', 'v2', TIMESTAMP '2026-01-02', TIMESTAMP '2026-01-02', TIMESTAMP '2026-01-06', 20 * {BIG}, TIMESTAMP '2026-01-06', TRUE, 'durango', -2 * {BIG}),
+        ('v3', 'validator', NULL, TIMESTAMP '2022-01-01', TIMESTAMP '2022-01-01', TIMESTAMP '2027-01-01', 0, NULL::TIMESTAMP, NULL, 'banff', 0),
+        ('d2', 'delegator', 'v3', TIMESTAMP '2026-01-02', TIMESTAMP '2026-01-02', TIMESTAMP '2026-01-06', 10 * {BIG}, TIMESTAMP '2026-01-06', TRUE, 'banff', -{BIG}))
+        AS t(transaction_hash, role, validator_transaction_hash, accepted_at, start_time, end_time, potential_reward_navax, rewarded_at, rewarded, regime, fee_transfer_navax)""")
+    return connection
+
+
+def test_the_api_rewards_reconcile_as_paid_plus_held_fees_plus_earned_open_shares():
+    connection = reconciliation_tables()
+    at = monetary.datetime(2026, 1, 6, 12)
+    # Paid by then: 40 + 18. Held: d1's 2 AVAX fee waits for v2, which runs to 01-11; banff's d2 was paid in full. Earned: v2 at 5.5 of 10 days.
+    result = monetary.rewards_reconciliation(connection, at, 115.0)
+    assert (result["paid_avax"], result["held_fees_avax"], result["earned_open_avax"]) == pytest.approx((58.0, 2.0, 55.0))
+    assert result["covered"] and result["within"] is True and result["gap_avax"] == 0.0
+    assert monetary.rewards_reconciliation(connection, at, 116.0)["within"] is False
+    # After the last paid reward the inputs do not cover the instant, so nothing is compared.
+    late = monetary.rewards_reconciliation(connection, monetary.datetime(2026, 1, 8), 1.0)
+    assert late["covered"] is False and late["within"] is None
+
+
+def test_check_reports_a_rewards_snapshot_that_stops_reconciling(root):
+    make_run(root, "supply-2020-09-11", "data-api.avax-supply", "avax-supply",
+             "SELECT TIMESTAMP '2020-09-11 12:00:00' AS observed_at, 360000000.0 AS total_supply_avax, 0.0 AS circulating_supply_avax, 0.0 AS total_staked_avax, 0.0 AS total_locked_avax, 60.0 AS total_rewards_avax, 0.0 AS total_p_burned_avax, 0.0 AS total_x_burned_avax, 0.0 AS total_c_burned_avax, 0.0 AS l1_validator_fees_avax, 360000000.0 AS genesis_unlock_avax, 0.0 AS supply_identity_gap_avax",
+             "2026-09-23T18:25:00Z")
+    output = root / "ledger"
+    summary = monetary.derive(monetary.DATASET_ID, output, None, root)["build"]["summary"]
+    point = next(item for item in summary["checkpoints"] if item["observed_at"].startswith("2020-09-11"))
+    # Paid 50 by 05:00, and s2 has earned half a day of its nine: 20 / 18.
+    assert point["rewards_reconciliation"]["model_avax"] == pytest.approx(50 + 20 / 18)
+    findings = monetary.check(output / "capture", output / "dataset", root=root)["findings"]
+    assert [finding for finding in findings if "rewards" in finding or "total_supply" in finding] == [
+        "Data API rewards at 2020-09-11T12:00:00 differ from rewards paid plus held fees plus earned open shares by 9 AVAX (14.8148%), beyond 0.02%"]
