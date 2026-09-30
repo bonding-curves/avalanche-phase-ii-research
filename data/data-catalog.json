@@ -1343,6 +1343,11 @@
           "role": "today's validator set as Ava Labs' indexer observes it, optional"
         },
         {
+          "id": "validators-completed-recent",
+          "dataset_id": "data-api.validators-completed-recent",
+          "role": "the newest ended validators as Ava Labs' indexer lists them, which name a delegation's validator after it ends"
+        },
+        {
           "id": "burn-daily",
           "dataset_id": "snowflake.primary-burn-daily",
           "role": "P- and X-Chain burns by day, with the L1 validator fees and the unresolved hashes"
@@ -6868,7 +6873,8 @@
         "p-chain-blocks",
         "p-chain-staking-transactions",
         "reward-utxos",
-        "current-validators"
+        "current-validators",
+        "validators-completed-recent"
       ],
       "fields": [
         {
@@ -7010,7 +7016,8 @@
         "p-chain-blocks",
         "p-chain-staking-transactions",
         "reward-utxos",
-        "current-validators"
+        "current-validators",
+        "validators-completed-recent"
       ],
       "fields": [
         {
@@ -7139,7 +7146,8 @@
         "p-chain-blocks",
         "p-chain-staking-transactions",
         "reward-utxos",
-        "current-validators"
+        "current-validators",
+        "validators-completed-recent"
       ],
       "fields": [
         {
@@ -7257,7 +7265,8 @@
         "p-chain-blocks",
         "p-chain-staking-transactions",
         "reward-utxos",
-        "current-validators"
+        "current-validators",
+        "validators-completed-recent"
       ],
       "fields": [
         {
@@ -7340,7 +7349,8 @@
         "p-chain-blocks",
         "p-chain-staking-transactions",
         "reward-utxos",
-        "current-validators"
+        "current-validators",
+        "validators-completed-recent"
       ],
       "fields": [
         {

@@ -23,6 +23,10 @@ A stake's acceptance and start are its block's time and its end the transaction'
 rewarded flag is known once the walk holds the commit or abort after its reward transaction, and null before. Reward
 rows of stakes that started before the walk take the stake's type, node, times, and potential reward from the Data API
 record, and every reward row takes the realized reward from the node's reward outputs.
+
+A delegation's validator is the newest period on its node that contains it: one the walk saw start, one the Data API
+records, one the Data API lists as ended, or one the node lists as current. A validator that started before the walk is
+known only from the last two, and once it ends only from the ended list, which must reach back to the walk's start.
 """
 
 from __future__ import annotations
@@ -77,6 +81,7 @@ INPUTS = {
     "staking-records": "data-api.p-chain-staking-transactions",
     "reward-utxos": "p-chain-rpc.reward-utxos",
     "current-validators": "p-chain-rpc.current-validators",
+    "validators-completed-recent": "data-api.validators-completed-recent",
 }
 SPECS = {
     VALIDATORS_ID: ("p-chain-validator-stakes", VALIDATOR_STAKES.table_columns),
@@ -176,12 +181,19 @@ def _load(inputs: list[dict[str, Any]]) -> dict[str, Any]:
         paid = {row[0]: row for row in connection.execute("SELECT * FROM read_parquet(?)", [paths["reward-utxos"]]).fetchall()}
         current = connection.execute(
             "SELECT transaction_hash, node_id, start_time, end_time FROM read_parquet(?)", [paths["current-validators"]]).fetchall()
+        ended = connection.execute(
+            "SELECT transaction_hash, node_id, start_time, end_time FROM read_parquet(?) WHERE validation_status = 'completed'",
+            [paths["validators-completed-recent"]]).fetchall()
     finally:
         connection.close()
+    oldest_end = min((row[3] for row in ended), default=None)
+    if walk and (oldest_end is None or oldest_end > walk[0][1]):
+        raise DataError(f"the ended-validator list reaches back to {oldest_end}, after the walk's start {walk[0][1]}; "
+                        "a delegation to a validator that ended between them would lose its validator")
     parsed = [_stake(row) for row in walk]
     reward_of = [json.loads(row[7]) if row[5] in AUTO_RENEW_TYPES else json.loads(row[7])["txID"] if row[5] == "RewardValidatorTx" else None
                  for row in walk]
-    return {"walk": walk, "parsed": parsed, "reward_of": reward_of, "records": records, "paid": paid, "current": current}
+    return {"walk": walk, "parsed": parsed, "reward_of": reward_of, "records": records, "paid": paid, "current": current, "ended": ended}
 
 
 def _stake(row: tuple[Any, ...]) -> dict[str, Any] | None:
@@ -379,13 +391,13 @@ def solve_start(loaded: dict[str, Any], anchor: int) -> tuple[int, int, dict[str
 
 
 def _validators(loaded: dict[str, Any], result: dict[str, Any]) -> list[tuple[Any, ...]]:
-    """Validator periods a delegation can fall in: the walk's, the Data API's closed ones, and the node's current ones."""
+    """Validator periods a delegation can fall in: the walk's, the Data API's records and ended list, and the node's current ones."""
     periods = {tx_hash: (stake["node_id"], stake["start_time"], stake["end_time"])
                for tx_hash, stake in result["stakes"].items() if stake["tx_type"] in VALIDATOR_TYPES}
     for tx_hash, record in loaded["records"].items():
         if record[1] in ("AddValidatorTx", "AddPermissionlessValidatorTx", "AddAutoRenewedValidatorTx"):
             periods.setdefault(tx_hash, (record[2], record[5], record[6]))
-    for tx_hash, node, start, end in loaded["current"]:
+    for tx_hash, node, start, end in [*loaded["ended"], *loaded["current"]]:
         periods.setdefault(tx_hash, (node, start, end))
     return [(tx_hash, *period) for tx_hash, period in periods.items()]
 

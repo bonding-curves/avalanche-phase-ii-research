@@ -44,19 +44,23 @@ def chain() -> dict[int, dict]:
     return made
 
 
-def make_current_validators(root: Path) -> None:
-    capture_dir, dataset_dir = root / "current" / "capture", root / "current" / "dataset"
+CURRENT = "SELECT 'V1' AS transaction_hash, 'NodeID-A' AS node_id, TIMESTAMP '2026-01-01' AS start_time, TIMESTAMP '2027-01-01' AS end_time"
+ENDED = ("SELECT 'V0' AS transaction_hash, 'NodeID-Z' AS node_id, 'completed' AS validation_status, TIMESTAMP '2025-01-01' AS start_time,"
+         " TIMESTAMP '2025-12-01' AS end_time")
+
+
+def make_validators(root: Path, run: str, dataset_id: str, select: str) -> None:
+    """A validator list run: the node's current validators or the Data API's ended ones."""
+    capture_dir, dataset_dir = root / run / "capture", root / run / "dataset"
     capture_dir.mkdir(parents=True)
     dataset_dir.mkdir(parents=True)
-    parquet = dataset_dir / "current-validators.parquet"
-    duckdb.connect().execute(
-        "COPY (SELECT 'V1' AS transaction_hash, 'NodeID-A' AS node_id, TIMESTAMP '2026-01-01' AS start_time,"
-        " TIMESTAMP '2027-01-01' AS end_time) TO ? (FORMAT PARQUET)", [str(parquet)])
-    capture_id = "capture:test:current"
+    parquet = dataset_dir / f"{dataset_id.split('.')[1]}.parquet"
+    duckdb.connect().execute(f"COPY ({select}) TO ? (FORMAT PARQUET)", [str(parquet)])
+    capture_id = f"capture:test:{run}"
     (capture_dir / "capture.json").write_bytes(canonical_bytes({"schema_version": "test/v1", "capture_id": capture_id,
-                                                                "dataset_id": "p-chain-rpc.current-validators", "completed_at": "2026-09-29T00:00:00Z"}))
+                                                                "dataset_id": dataset_id, "completed_at": "2026-09-29T00:00:00Z"}))
     body = parquet.read_bytes()
-    (dataset_dir / "build.json").write_bytes(canonical_bytes({"schema_version": "test/v1", "dataset_id": "p-chain-rpc.current-validators",
+    (dataset_dir / "build.json").write_bytes(canonical_bytes({"schema_version": "test/v1", "dataset_id": dataset_id,
                                                               "source_capture_id": capture_id, "completed_at": "2026-09-29T00:00:00Z", "summary": {"rows": 1},
                                                               "outputs": [{"path": parquet.name, "bytes": len(body), "sha256": sha256(body)}]}))
 
@@ -69,7 +73,8 @@ def root(tmp_path: Path) -> Path:
     for name, dataset_id, request in (("records", pstakers.STAKING_ID, data_api), ("paid", pstakers.REWARDS_ID, node)):
         pstakers.capture(dataset_id, runs / name / "capture", parameters={"blocks": "walk"}, request=request, root=runs)
         pstakers.build(dataset_id, runs / name / "capture", runs / name / "dataset")
-    make_current_validators(runs)
+    make_validators(runs, "current", "p-chain-rpc.current-validators", CURRENT)
+    make_validators(runs, "ended", "data-api.validators-completed-recent", ENDED)
     return runs
 
 
@@ -114,10 +119,26 @@ def test_stakes_and_rewards_carry_the_share_columns(root):
     assert rewards["OLD"]["realized_reward_navax"] == 0 and rewards["OLD"]["staking_tx_type"] == "AddPermissionlessDelegatorTx"
 
 
-def pstaking_run(root: Path, dataset_id: str) -> Path:
+def pstaking_run(root: Path, dataset_id: str, pinned: dict[str, str] | None = None) -> Path:
     output = root / dataset_id
-    pstaking.derive(dataset_id, output, root=root)
+    pstaking.derive(dataset_id, output, pinned=pinned, root=root)
     return output
+
+
+def test_a_delegation_keeps_its_validator_after_the_validator_ends(root):
+    # V1 has left the node's current list and is only on the Data API's ended list.
+    make_validators(root, "current-later", "p-chain-rpc.current-validators", CURRENT.replace("'V1'", "'V2'").replace("NodeID-A", "NodeID-B"))
+    make_validators(root, "ended-later", "data-api.validators-completed-recent",
+                    f"{ENDED} UNION ALL SELECT 'V1', 'NodeID-A', 'completed', TIMESTAMP '2026-01-01', TIMESTAMP '2027-01-01'")
+    pinned = {"p-chain-rpc.current-validators": "current-later", "data-api.validators-completed-recent": "ended-later"}
+    (delegation,) = rows(pstaking_run(root, pstaking.DELEGATORS_ID, pinned))
+    assert delegation["validator_transaction_hash"] == "V1"
+
+
+def test_an_ended_list_that_starts_after_the_walk_is_refused(root):
+    make_validators(root, "ended-short", "data-api.validators-completed-recent", ENDED.replace("2025-12-01", "2027-06-01"))
+    with pytest.raises(DataError, match="ended-validator list"):
+        pstaking_run(root, pstaking.DELEGATORS_ID, {"data-api.validators-completed-recent": "ended-short"})
 
 
 def test_a_walk_without_the_node_anchor_is_refused(root, tmp_path):
