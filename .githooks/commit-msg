@@ -1,0 +1,3 @@
+#!/bin/sh
+project=$(git rev-parse --show-toplevel) || exit 2
+exec python3 "$project/scripts/check_commit_message.py" "$1"
