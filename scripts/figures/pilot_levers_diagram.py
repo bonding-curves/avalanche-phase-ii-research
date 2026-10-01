@@ -45,18 +45,18 @@ def dot_source() -> str:
     lines = [
         "digraph levers {",
         f'  graph [rankdir=TB, bgcolor="{PAPER}", nodesep=0.6, ranksep=0.75, pad=0.3, fontname="{FONT}"];',
-        node("reward", "ACP-285 reward curve<BR/><FONT POINT-SIZE='12' COLOR='#7a7f87'>lowers the reward rate for short commitments,<BR/>so pay rises faster with duration</FONT>", reward),
-        node("frontier", "Admission frontier<BR/><FONT POINT-SIZE='12' COLOR='#7a7f87'>minimum stake falls as duration rises<BR/>cost: none, it is a gate</FONT>", stake),
+        node("reward", "ACP-285 reward curve<BR/><FONT POINT-SIZE='12' COLOR='#7a7f87'>pays relatively more<BR/>for longer commitments</FONT>", reward),
+        node("frontier", "Admission frontier<BR/><FONT POINT-SIZE='12' COLOR='#7a7f87'>minimum stake falls as duration rises<BR/>sets no reward, it is a gate</FONT>", stake),
         node("choice", "A validator chooses<BR/>duration and stake", INK, fill="#f4f5f7", bold=True),
         node("seat", "With the frontier, every validator commitment<BR/>holds at least 28,000 AVAX-days", stake),
         node("firewall", "Delegators: 14-day minimum<BR/><FONT POINT-SIZE='12' COLOR='#7a7f87'>unchanged by Helicon</FONT>", duration),
         node("short", "Validator commitments shorter than 14 days", MUTED),
         "  { rank=same; reward; frontier; firewall; }",
-        edge("reward", "choice", "the carrot: reward for duration", reward),
-        edge("frontier", "choice", "the stick: stake required by duration", stake),
+        edge("reward", "choice", "reward for duration", reward),
+        edge("frontier", "choice", "stake required by duration", stake),
         edge("choice", "seat", "commitments admitted", INK),
         edge("firewall", "short", "no delegation possible", duration, dashed=True),
-        edge("choice", "short", "the new 48-hour tier", MUTED, dashed=True),
+        edge("seat", "short", "of these, shorter than 14 days", MUTED, dashed=True),
         "}",
     ]
     return "\n".join(lines) + "\n"
