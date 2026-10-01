@@ -15,6 +15,7 @@ from . import attributions
 from . import binance
 from . import catx
 from . import builderhub
+from . import uptime_hourly
 from . import cblocks
 from . import cchain_rpc
 from . import clist
@@ -95,6 +96,7 @@ MODULES = {
     **{dataset_id: snowflake for dataset_id in snowflake.DATASET_IDS},
     **{dataset_id: validators_api for dataset_id in validators_api.DATASET_IDS},
     **{dataset_id: builderhub for dataset_id in builderhub.DATASET_IDS},
+    **{dataset_id: uptime_hourly for dataset_id in uptime_hourly.DATASET_IDS},
     **{dataset_id: weeks for dataset_id in weeks.DATASET_IDS},
     **{dataset_id: etf for dataset_id in etf.DATASET_IDS},
 }

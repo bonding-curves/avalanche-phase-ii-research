@@ -9,8 +9,9 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import builderhub, datasets
+from avalanche_research import datasets, uptime_hourly
 from avalanche_research.catalog import DataError, load_catalog
+from avalanche_research.sources import builderhub
 
 LIST = "https://build.avax.network/api/validators"
 # Hours before the capture time, which is the real clock: a bucket after the capture is a BC3 finding.
@@ -60,7 +61,7 @@ def run(root: Path, name: str, hub: FakeHub, **parameters: str) -> Path:
 def test_catalog_declares_both_datasets():
     catalog = load_catalog()
     ids = {item["id"] for item in catalog["datasets"]}
-    assert {builderhub.DATASET_ID, builderhub.DERIVED_ID} <= ids
+    assert {builderhub.DATASET_ID, uptime_hourly.DERIVED_ID} <= ids
 
 
 def test_capture_build_and_check(tmp_path):
@@ -122,12 +123,12 @@ def test_derived_merges_captures_and_marks_revisions(tmp_path):
     revised_hour = end - timedelta(hours=10)
     run(tmp_path, "day2", FakeHub(["NodeID-a"], end + timedelta(hours=24), changed={revised_hour: 97.5}))
     output = tmp_path / "hourly"
-    value = builderhub.derive(builderhub.DERIVED_ID, output, None, tmp_path)
+    value = uptime_hourly.derive(uptime_hourly.DERIVED_ID, output, None, tmp_path)
     assert value["build"]["summary"]["rows"] == 72 and value["build"]["summary"]["captures"] == 2
     row = duckdb.sql(f"SELECT p50_uptime_pct, captures, revised FROM read_parquet('{output / 'dataset' / 'validator-uptime-hourly.parquet'}') WHERE bucket_utc = '{revised_hour}'").fetchone()
     assert row == (97.5, 2, True)
-    result = builderhub.check(output / "capture", output / "dataset")
-    assert result["dataset_id"] == builderhub.DERIVED_ID and result["status"] == "pass", result["findings"]
+    result = uptime_hourly.check(output / "capture", output / "dataset")
+    assert result["dataset_id"] == uptime_hourly.DERIVED_ID and result["status"] == "pass", result["findings"]
 
 
 def test_import_wraps_the_preservation_copy(tmp_path):
