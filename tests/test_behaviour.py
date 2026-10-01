@@ -152,3 +152,13 @@ def test_the_duration_benchmark_is_a_transition_table():
     model = sv.DurationTransition(smoothing=0).fit(X, y)
     p = pd.DataFrame(model.predict_proba(pd.DataFrame({"duration_days": [14, 90]})), columns=model.classes_)
     assert p.loc[0, "up to 3 weeks"] == pytest.approx(2 / 3) and p.loc[1, "6 weeks to 3 months"] == 1
+
+
+def test_the_renewal_label_is_the_registered_measure(periods):
+    from avalanche_research import staking_renewal
+
+    cut = T0 + 600 * DAY
+    events = ev.decision_events(periods, observed_through=cut)
+    mine = events.loc[events.renewed.notna() & (events.end_time + 7 * DAY).le(cut), "renewed"].mean()
+    measure = staking_renewal.renewal_summary(staking_renewal.renewal_events(periods), T0, cut, cut)
+    assert mine == pytest.approx(measure["renewal_share"])

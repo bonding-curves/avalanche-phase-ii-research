@@ -14,9 +14,11 @@ import duckdb
 import pandas as pd
 
 from .. import datasets
+from ..staking_renewal import LOCKBOX_START as _LOCKBOX_START
 
-# The data from this instant on is held back to test the model once. Naive UTC, as the staking-period log stores it.
-LOCKBOX_START = pd.Timestamp("2025-11-19 16:00:00")
+# The data from this instant on is held back to test the model once. One definition, the renewal measure's, as naive
+# UTC because the staking-period log stores naive UTC.
+LOCKBOX_START = _LOCKBOX_START.tz_convert("UTC").tz_localize(None)
 
 # The largest delegator by count. Attributed to BENQI as an inference (data/operator-attributions.json, OA4), so
 # features and labels call it the largest delegator, and only a page that cites that attribution may name it.
