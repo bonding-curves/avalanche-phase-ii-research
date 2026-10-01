@@ -5,7 +5,7 @@ description: "How long stake is committed, what locking costs, and the option to
 
 How long stake is committed, what locking costs, and the option to exit.
 
-18 pages are filed under this topic. See [all topics](/tags/).
+19 pages are filed under this topic. See [all topics](/tags/).
 
 ## Deliverables
 
@@ -20,6 +20,7 @@ How long stake is committed, what locking costs, and the option to exit.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
+| [2026-10-01-helicon-first-days](/Phase-II/Wiki/Memos/drafts/2026-10-01-helicon-first-days/) | BCRG | October 1, 2026 | In Helicon's first eight days, 13 of 105 new validator commitments chose under 7 days, against none of 401 in the 30 days before. They hold 1.25% of the new stake. Every auto-renewed 48-hour commitment has renewed. |
 | [2026-09-29-validator-minimums](/Phase-II/Wiki/Memos/drafts/2026-09-29-validator-minimums/) | BCRG | September 29, 2026 | Since Durango, 62% to 69% of new validator commitments last the 14-day minimum, yet they hold 3% to 11% of committed AVAX-days. By upgrade period, from one pinned run. |
 
 ## Briefs

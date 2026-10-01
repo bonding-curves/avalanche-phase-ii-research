@@ -5,7 +5,7 @@ description: "The reward formula, consumption rates, the issuance schedule, infl
 
 The reward formula, consumption rates, the issuance schedule, inflation, and the supply cap.
 
-16 pages are filed under this topic. See [all topics](/tags/).
+17 pages are filed under this topic. See [all topics](/tags/).
 
 ## Deliverables
 
@@ -15,6 +15,12 @@ The reward formula, consumption rates, the issuance schedule, inflation, and the
 | [1.2 Data Manifest](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) | BCRG |  | Where every dataset comes from, how it is transformed, and how its quality is checked, so any number traces to its run. |
 | [1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | BCRG |  | The specification of a simplified model of the staking subsystem, with behavioral state variables. |
 | [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) | BCRG |  | Evaluation of alternative reward mechanisms proposed by the Foundation or external teams, such as node-age weighting and activity multipliers. |
+
+## Memos
+
+| Page | Authors | Date | Summary |
+| --- | --- | --- | --- |
+| [2026-10-01-data-record](/Phase-II/Wiki/Memos/drafts/2026-10-01-data-record/) | BCRG | October 1, 2026 | The data record behind every number: 66 checked datasets from 15 sources. When the Snowflake share stopped on 22 September, a second source rebuilt from the P-Chain took over, and it agrees with the share on every overlapping row. What Milestone 1 delivers. |
 
 ## Reference
 
