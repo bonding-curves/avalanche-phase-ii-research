@@ -66,8 +66,8 @@ class FoldScores(pm.Parameterized):
     def view(self):
         lower = self.metric in ("log_loss", "brier")
         title = f"{self.metric} by test window ({'lower' if lower else 'higher'} is better)"
-        return self.scores.hvplot.line(x="fold", y=self.metric, by="model", color=PALETTE, markers=True,
-                                       height=380, responsive=True, title=title, xlabel="Test window start")
+        return self.scores.hvplot.line(x="fold", y=self.metric, by="model", color=PALETTE, height=380, responsive=True,
+                                       title=title, xlabel="Test window start")
 
 
 class Calibration(pm.Parameterized):
@@ -88,7 +88,7 @@ class Calibration(pm.Parameterized):
         points = table.hvplot.scatter(x="predicted", y="observed", size="decisions", scale=0.02, color=PALETTE[0],
                                       hover_cols=["decisions"])
         line = table.hvplot.line(x="predicted", y="observed", color=PALETTE[0])
-        return (diagonal * line * points).opts(height=380, responsive=True, xlim=(0, 1), ylim=(0, 1),
+        return (diagonal * line * points).opts(height=420, width=640, xlim=(0, 1), ylim=(0, 1),
                                                title=f"Calibration of {self.model}")
 
 
