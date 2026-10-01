@@ -62,3 +62,21 @@ def test_the_event_table_is_an_input_not_a_setting():
     assert "events" not in model.settings()
     assert "events" not in model.specification()
     assert model.specification()["events_source"] == "synthetic"
+
+
+def test_input_column_names_enter_the_specification_hash():
+    """Swapping two input column names changes the hash, so a schema change cannot reuse a result (audit F2)."""
+    events = pd.DataFrame({"date_utc": [date(2021, 1, 1)], "d_validator_stake": [0], "d_delegated_stake": [0],
+                           "d_validators": [1], "d_delegations": [0], "rewards_paid": [0]})
+    swapped = events.rename(columns={"d_validators": "d_delegations", "d_delegations": "d_validators"})
+    assert Replay(events=events).specification_hash() != Replay(events=swapped).specification_hash()
+
+
+def test_long_table_names_the_model_version():
+    from avalanche_research.model import MODEL_VERSION
+    from avalanche_research.model.engine import run
+
+    events = pd.DataFrame({"date_utc": [date(2021, 1, 1)], "d_validator_stake": [5], "d_delegated_stake": [0],
+                           "d_validators": [1], "d_delegations": [0], "rewards_paid": [0]})
+    table = run(Replay(events=events))
+    assert set(table["model_version"]) == {MODEL_VERSION} == {"0.7.0"}

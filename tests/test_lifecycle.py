@@ -182,3 +182,13 @@ def test_scheduled_commitments_join_on_their_start_day_without_minting_again():
     assert path(table, "active_validators") == [4, 4, 5, 5, 5]
     assert path(table, "active_validator_stake_navax") == [100, 100, 150, 150, 150]
     assert set(path(table, "issued_navax")) == {0}
+
+
+def test_the_lifecycle_clock_is_one_day_per_step():
+    """A non-daily step would label events on the wrong day (audit F3), so the setting refuses it."""
+    import pytest
+
+    from avalanche_research.model.lifecycle import ValidatorLifecycle
+
+    with pytest.raises(ValueError):
+        ValidatorLifecycle(dt=2.0)

@@ -64,7 +64,7 @@ class ValidatorLifecycle(SimulationModel):
     renewal_probability = param.Number(default=Renewal().probability, bounds=(0.0, 1.0), doc="Renewal block probability")
     entry_rate_per_day = param.Number(default=5.0, bounds=(0.0, 100.0), doc="Entry block daily rate")
     seed = param.Integer(default=0, bounds=(0, None), doc="Base seed. Run r on day t draws from default_rng([seed, r, t])")
-    dt = param.Number(default=1.0, bounds=(0, None), inclusive_bounds=(False, True), doc="Days per timestep")
+    dt = param.Number(default=1.0, bounds=(0, None), inclusive_bounds=(False, True), doc="Days per timestep. The lifecycle clock is one UTC day per step, so only 1 is allowed")
     timesteps = param.Integer(default=90, bounds=(1, 3650), doc="Days after the origin")
     runs = param.Integer(default=20, bounds=(1, None), doc="Monte Carlo runs")
     initial_stakes = param.Array(default=None, allow_None=True, precedence=-1, doc="Stake of each open commitment, nAVAX")
@@ -90,6 +90,11 @@ class ValidatorLifecycle(SimulationModel):
 
     def state_variables(self):
         return ["active_validators", "active_validator_stake_navax", "supply_navax", "issued_navax", "yield_gap_pp"]
+
+    def __init__(self, **params):
+        super().__init__(**params)
+        if self.dt != 1:
+            raise ValueError(f"the lifecycle clock is one UTC day per step, so dt must be 1, not {self.dt}")
 
     def initial_state(self):
         stakes = np.asarray(self.initial_stakes, dtype=np.int64)

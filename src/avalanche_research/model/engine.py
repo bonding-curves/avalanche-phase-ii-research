@@ -20,6 +20,8 @@ from typing import Any
 import pandas as pd
 import param
 
+from avalanche_research.model import MODEL_VERSION
+
 RUN_CONTROLS = ("name", "timesteps", "runs")
 
 
@@ -103,7 +105,8 @@ def _digest(value: Any) -> str | None:
     if value is None:
         return None
     if isinstance(value, pd.DataFrame):
-        body = pd.util.hash_pandas_object(value, index=True).to_numpy().tobytes()
+        schema = json.dumps([[str(c), str(t)] for c, t in value.dtypes.items()]).encode()
+        body = schema + pd.util.hash_pandas_object(value, index=True).to_numpy().tobytes()
     else:
         import numpy as np
 
@@ -159,6 +162,7 @@ def _long_table(raw: pd.DataFrame, models: list[SimulationModel]) -> pd.DataFram
     settings.index.name = "simulation"
     table = table.merge(settings.reset_index(), on="simulation", how="left")
     table["time"] = table["timestep"] * table["dt"]
+    table["model_version"] = MODEL_VERSION
     front = ["simulation", "run", "timestep", "time", "variable", "value"]
     return table[front + [column for column in table.columns if column not in front]].reset_index(drop=True)
 
