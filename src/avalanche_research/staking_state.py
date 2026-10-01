@@ -8,7 +8,7 @@ import holoviews as hv
 import pandas as pd
 import panel as pn
 import param as pm
-from bokeh.models import DateFormatter, NumberFormatter, NumeralTickFormatter
+from bokeh.models import DateFormatter, HoverTool, NumberFormatter, NumeralTickFormatter
 
 from . import datasets
 from .palette import QUANTITY_COLORS
@@ -34,14 +34,6 @@ LINE_WIDTH = 3
 ERA_SHADE = "#eeeeee"
 SUPPLY_INK = "#4c4c4c"  # Neutral local rendering, not a new global semantic hue.
 CONTROL_WIDTH = 220
-
-
-def _area_hover(plot, element):
-    """Match component hover values to the rendered, gap-aware polygon."""
-    source = plot.handles["source"]
-    values = pd.Series(element.dimension_values("Value"), index=element.dimension_values(0))
-    values = values.reindex(source.data["x"]).tolist()
-    source.data = {**source.data, "Measure": [element.label] * len(values), "Value": values}
 
 
 def daily_state(ledger: pd.DataFrame) -> pd.DataFrame:
@@ -151,15 +143,18 @@ class StakingState(pm.Parameterized):
                 lower = frame["Validator stake (AVAX)"] if index else frame[measure] * 0
                 upper = lower + frame[measure]
                 data = data.assign(Lower=lower, Upper=upper, Value=frame[measure])
-                area_hover = {**hover, "hover_tooltips": [("Group start (UTC)", "@x{%F}"),
-                              ("Measure", "@Measure"), ("Stake (AVAX)", "@Value{0,0.00}")],
-                              "hover_formatters": {"@x": "datetime"}}
-                curves.append(hv.Area(data, "Date (UTC)", ["Upper", "Lower", "Value"],
+                curves.append(hv.Area(data, "Date (UTC)", ["Upper", "Lower"],
                                       label=measure).opts(color=color, alpha=0.35 if index else 0.8,
-                                      hooks=[_area_hover], **area_hover))
-                curve = hv.Curve(data, "Date (UTC)", ["Upper", "Value", "Measure"], label=measure)
+                                      tools=[]))
                 hover = {**hover, "hover_tooltips": [("Group start (UTC)", "@{Date (UTC)}{%F}"),
                          ("Measure", "@Measure"), ("Stake (AVAX)", "@Value{0,0.00}")]}
+                # Polygon hits have no row index. Invisible curves provide one
+                # for each component, inspecting the nearest grouped sample.
+                inspector = HoverTool(mode="vline", line_policy="nearest",
+                                      tooltips=hover["hover_tooltips"], formatters=hover["hover_formatters"])
+                curve = hv.Curve(data, "Date (UTC)", ["Upper", "Value", "Measure"], label=measure)
+                curves.append(curve.opts(color=color, line_alpha=0, line_width=LINE_WIDTH,
+                                         show_legend=False, tools=[inspector]))
             else:
                 curve = hv.Curve(data, "Date (UTC)", [measure, "Measure"], label=measure)
                 curves.append(curve.opts(color=color, line_dash=ROLE_STYLES.get(role, "solid"),

@@ -108,14 +108,31 @@ def test_active_stake_stacks_components_and_keeps_coverage_out_of_display(state)
     figure = hv.render(state.plot())
     patches = [r for r in figure.select(GlyphRenderer) if isinstance(r.glyph, Patch)]
     assert len(patches) == 2
-    assert not any(isinstance(r.glyph, Line) for r in figure.select(GlyphRenderer))
-    sources = {r.data_source.data["Measure"][0]: r.data_source.data for r in patches}
+    assert not any(isinstance(r.glyph, Line) and r.glyph.line_alpha > 0
+                   for r in figure.select(GlyphRenderer))
+    sources = {r.name: r.data_source.data for r in patches}
     assert sources["Validator stake (AVAX)"]["y"].tolist() == [0, 40]
     assert sources["Delegated stake (AVAX)"]["y"].tolist() == [40, 65]
-    assert sources["Delegated stake (AVAX)"]["Value"] == [25, 25]
     assert state.table()["Combined stake (AVAX)"].iloc[0] == 65
     for tool in figure.select(HoverTool):
         assert not any(label in {"Complete days", "Observed days"} for label, _ in tool.tooltips)
+
+
+def test_area_hover_uses_indexed_component_samples_instead_of_the_polygon(state):
+    state.grouping = "Day"
+    figure = hv.render(state.plot())
+    hovers = list(figure.select(HoverTool))
+    assert hovers and all(tool.mode == "vline" for tool in hovers)
+    targets = {renderer for tool in hovers for renderer in tool.renderers}
+    assert len(targets) == 2
+    for renderer in targets:
+        assert isinstance(renderer.glyph, Line) and renderer.glyph.line_alpha == 0
+        data = renderer.data_source.data
+        measure = data["Measure"][0]
+        expected = state.table()[measure]
+        pd.testing.assert_series_equal(pd.Series(data["Value"]), expected, check_names=False)
+        assert list(data["Measure"]) == [measure] * len(expected)
+        assert len(data["Date (UTC)"]) == len(expected)
 
 
 @pytest.mark.parametrize("quantity", ["Active stake", "Supply", "Staking ratio"])
@@ -163,8 +180,8 @@ def test_area_hover_preserves_an_internal_missing_day(monkeypatch, ledger):
     hv.extension("bokeh")
     figure = hv.render(StakingState("gap-fixture", grouping="Day").plot())
     validator = next(r for r in figure.select(GlyphRenderer)
-                     if isinstance(r.glyph, Patch) and r.data_source.data["Measure"][0].startswith("Validator"))
+                     if isinstance(r.glyph, Line) and r.data_source.data["Measure"][0].startswith("Validator"))
     values = validator.data_source.data["Value"]
-    assert values[:2] == [20, 20] and values[-2:] == [999, 999]
-    assert len(values) == 5 and pd.isna(values[2])
+    assert values[0] == 20 and values[-1] == 999
+    assert len(values) == 3 and pd.isna(values[1])
     assert len({len(column) for column in validator.data_source.data.values()}) == 1
