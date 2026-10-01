@@ -528,6 +528,8 @@ class _CohortCommGuard(pn.pane.HTML):
                 };
                 manager._event_buffer = manager._event_buffer.filter(event => event.sync !== false);
                 manager._cohort_sync_guard = true;
+                // Batch nearby clicks without the default 50 ms input delay.
+                manager.setv({debounce: 10}, {sync: false});
             }
         }
     """
