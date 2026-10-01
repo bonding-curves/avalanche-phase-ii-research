@@ -131,14 +131,22 @@ def profile(lifetimes: pd.DataFrame, labels: pd.Series, columns) -> pd.DataFrame
 
 
 def null_sample(x: pd.DataFrame, seed: int = SEED) -> pd.DataFrame:
-    """Data with the same marginals and correlations as ``x`` but one Gaussian blob, so no groups by construction.
+    """Data with each column's exact marginal and the columns' rank correlations, but no groups by construction.
 
-    After the quantile map every column is standard normal, so a multivariate normal with the observed covariance
-    keeps both. A score that the real data does not beat on this sample is not evidence of groups.
+    A Gaussian copula: draw from one multivariate normal with the correlation of the columns' normal scores, then map
+    each column back through the real column's empirical quantiles. Tied values, such as a share that is zero for most
+    nodes, stay tied. A score that the real data does not beat on this sample is not evidence of groups.
     """
+    from scipy.special import ndtr
+    from scipy.stats import norm, rankdata
+
     rng = np.random.default_rng(seed)
-    draw = rng.multivariate_normal(x.mean().to_numpy(), np.cov(x.to_numpy(), rowvar=False), size=len(x))
-    return pd.DataFrame(draw, index=x.index, columns=x.columns)
+    values = x.to_numpy(dtype=float)
+    scores = norm.ppf((np.apply_along_axis(rankdata, 0, values) - 0.5) / len(values))
+    correlation = np.corrcoef(scores, rowvar=False)
+    draw = ndtr(rng.multivariate_normal(np.zeros(values.shape[1]), correlation, size=len(values)))
+    columns = [np.quantile(values[:, j], draw[:, j], method="inverted_cdf") for j in range(values.shape[1])]
+    return pd.DataFrame(np.column_stack(columns), index=x.index, columns=x.columns)
 
 
 def against_null(x: pd.DataFrame, method: str, ks=range(2, 9), replicates: int = 5) -> pd.DataFrame:

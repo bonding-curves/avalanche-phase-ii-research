@@ -175,7 +175,8 @@ def _scores(y_true, proba, classes) -> dict[str, float]:
     out["brier"] = float(np.mean(np.sum((proba - onehot) ** 2, axis=1)))
     if len(labels) == 2:
         out["roc_auc"] = roc_auc_score(onehot[:, 1], proba[:, 1]) if onehot[:, 1].std() > 0 else float("nan")
-        out["average_precision"] = average_precision_score(onehot[:, 0], proba[:, 0])
+        # The minority class, not renewing, is the one worth ranking, so precision is measured for it.
+        out["average_precision_not_renewed"] = average_precision_score(onehot[:, 0], proba[:, 0])
     else:
         present = onehot.sum(0) > 0
         out["roc_auc"] = roc_auc_score(onehot[:, present], proba[:, present], average="macro") if present.sum() > 1 \
@@ -229,7 +230,7 @@ def run(events: pd.DataFrame, features: pd.DataFrame, target: str, keep: pd.Seri
 
 def summarise(scores: pd.DataFrame) -> pd.DataFrame:
     """Mean of each score over folds, weighted by test size, with the last fold before the lockbox beside it."""
-    numeric = [c for c in ("log_loss", "brier", "roc_auc", "average_precision", "accuracy", "skill_vs_prior")
+    numeric = [c for c in ("log_loss", "brier", "roc_auc", "average_precision_not_renewed", "accuracy", "skill_vs_prior")
                if c in scores]
     weighted = scores.groupby("model").apply(
         lambda g: pd.Series({c: np.average(g[c], weights=g.test) for c in numeric}), include_groups=False)

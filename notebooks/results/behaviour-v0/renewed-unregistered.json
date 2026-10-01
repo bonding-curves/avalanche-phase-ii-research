@@ -51,43 +51,43 @@
       "end": "2023-05-19 16:00:00",
       "name": "2022-11",
       "start": "2022-11-19 16:00:00",
-      "test": 3231,
-      "train": 14039
+      "test": 3233,
+      "train": 14051
     },
     {
       "end": "2023-11-19 16:00:00",
       "name": "2023-05",
       "start": "2023-05-19 16:00:00",
-      "test": 2952,
-      "train": 17251
+      "test": 3079,
+      "train": 17265
     },
     {
       "end": "2024-05-19 16:00:00",
       "name": "2023-11",
       "start": "2023-11-19 16:00:00",
-      "test": 3331,
-      "train": 20225
+      "test": 3701,
+      "train": 20366
     },
     {
       "end": "2024-11-19 16:00:00",
       "name": "2024-05",
       "start": "2024-05-19 16:00:00",
-      "test": 3158,
-      "train": 23524
+      "test": 3348,
+      "train": 24033
     },
     {
       "end": "2025-05-19 16:00:00",
       "name": "2024-11",
       "start": "2024-11-19 16:00:00",
-      "test": 3139,
-      "train": 26698
+      "test": 3419,
+      "train": 27392
     },
     {
       "end": "2025-11-19 16:00:00",
       "name": "2025-05",
       "start": "2025-05-19 16:00:00",
-      "test": 2994,
-      "train": 29819
+      "test": 3202,
+      "train": 30800
     }
   ],
   "inputs": {
@@ -105,61 +105,61 @@
     "validator_periods": 52941,
     "validator_periods_with_delegations": 26242
   },
-  "rows": "unnamed nodes",
+  "rows": "without the registered actors (AS1)",
   "scores": {
     "boosted": {
-      "accuracy": 0.797341,
-      "average_precision": 0.474582,
-      "brier": 0.285292,
-      "last_fold_accuracy": 0.800267,
-      "last_fold_average_precision": 0.535938,
-      "last_fold_brier": 0.272208,
-      "last_fold_log_loss": 0.418573,
-      "last_fold_roc_auc": 0.807677,
-      "last_fold_skill_vs_prior": 0.200664,
-      "log_loss": 0.444223,
-      "roc_auc": 0.766898,
-      "skill_vs_prior": 0.146012
+      "accuracy": 0.79997,
+      "average_precision_not_renewed": 0.473422,
+      "brier": 0.289678,
+      "last_fold_accuracy": 0.802311,
+      "last_fold_average_precision_not_renewed": 0.51663,
+      "last_fold_brier": 0.291259,
+      "last_fold_log_loss": 0.4517,
+      "last_fold_roc_auc": 0.774254,
+      "last_fold_skill_vs_prior": 0.149487,
+      "log_loss": 0.451202,
+      "roc_auc": 0.763175,
+      "skill_vs_prior": 0.136389
     },
     "history": {
-      "accuracy": 0.794629,
-      "average_precision": 0.44384,
-      "brier": 0.306255,
-      "last_fold_accuracy": 0.791917,
-      "last_fold_average_precision": 0.452004,
-      "last_fold_brier": 0.317834,
-      "last_fold_log_loss": 0.512453,
-      "last_fold_roc_auc": 0.728782,
-      "last_fold_skill_vs_prior": 0.021385,
-      "log_loss": 0.484729,
-      "roc_auc": 0.743191,
-      "skill_vs_prior": 0.06868
+      "accuracy": 0.792213,
+      "average_precision_not_renewed": 0.438418,
+      "brier": 0.31026,
+      "last_fold_accuracy": 0.785447,
+      "last_fold_average_precision_not_renewed": 0.43781,
+      "last_fold_brier": 0.331031,
+      "last_fold_log_loss": 0.535999,
+      "last_fold_roc_auc": 0.71199,
+      "last_fold_skill_vs_prior": -0.00924,
+      "log_loss": 0.490185,
+      "roc_auc": 0.73922,
+      "skill_vs_prior": 0.062498
     },
     "logistic": {
-      "accuracy": 0.784206,
-      "average_precision": 0.437192,
-      "brier": 0.313697,
-      "last_fold_accuracy": 0.793921,
-      "last_fold_average_precision": 0.46723,
-      "last_fold_brier": 0.298456,
-      "last_fold_log_loss": 0.461475,
-      "last_fold_roc_auc": 0.757791,
-      "last_fold_skill_vs_prior": 0.118735,
-      "log_loss": 0.49742,
-      "roc_auc": 0.736732,
-      "skill_vs_prior": 0.040892
+      "accuracy": 0.783205,
+      "average_precision_not_renewed": 0.428842,
+      "brier": 0.317546,
+      "last_fold_accuracy": 0.789819,
+      "last_fold_average_precision_not_renewed": 0.47145,
+      "last_fold_brier": 0.318301,
+      "last_fold_log_loss": 0.498225,
+      "last_fold_roc_auc": 0.753019,
+      "last_fold_skill_vs_prior": 0.061885,
+      "log_loss": 0.508099,
+      "roc_auc": 0.727233,
+      "skill_vs_prior": 0.024739
     },
     "prior": {
-      "accuracy": 0.785748,
-      "average_precision": 0.214252,
-      "brier": 0.336947,
-      "last_fold_accuracy": 0.782565,
-      "last_fold_average_precision": 0.217435,
-      "last_fold_brier": 0.34032,
-      "last_fold_log_loss": 0.523651,
+      "accuracy": 0.783855,
+      "average_precision_not_renewed": 0.216145,
+      "brier": 0.339049,
+      "last_fold_accuracy": 0.776702,
+      "last_fold_average_precision_not_renewed": 0.223298,
+      "last_fold_brier": 0.3469,
+      "last_fold_log_loss": 0.531091,
       "last_fold_roc_auc": 0.5,
       "last_fold_skill_vs_prior": 0.0,
-      "log_loss": 0.519899,
+      "log_loss": 0.522269,
       "roc_auc": 0.5,
       "skill_vs_prior": 0.0
     }

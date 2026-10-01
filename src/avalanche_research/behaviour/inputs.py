@@ -21,7 +21,9 @@ from ..staking_renewal import LOCKBOX_START as _LOCKBOX_START
 LOCKBOX_START = _LOCKBOX_START.tz_convert("UTC").tz_localize(None)
 
 # The largest delegator by count. Attributed to BENQI as an inference (data/operator-attributions.json, OA4), so
-# features and labels call it the largest delegator, and only a page that cites that attribution may name it.
+# features and labels call it the largest delegator, and only a page that cites that attribution may name it. It was
+# chosen on data through 2026, but it is also the largest from its first delegation in 2022, so the choice does not
+# depend on the future.
 LARGEST_DELEGATOR = "avax1tnuesf6cqwnjw7fxjyk7lhch0vhf0v95wj5jvy"
 
 PERIODS = "derived.staking-periods"
@@ -126,8 +128,13 @@ def load(runs: dict[str, str] | None = None, observed_through: Any = LOCKBOX_STA
         ORDER BY date""").df()
     daily["date"] = pd.to_datetime(daily["date"])
     daily["tbill_pct"] = daily["tbill_pct"].ffill()
-    # Named operators carry the evidence for their label in the attribution file. The label is a fixed property of the
-    # node, used to report results with and without them and to group folds, never as a feature.
-    nodes = con.sql(f"""SELECT node_id, named_agent FROM '{paths[OPERATORS]}'""").df().set_index("node_id")
+    # Named operators carry the evidence for their label in the attribution file. Only a name resting on a registry
+    # (tier AS1, EVIDENCE: a contract's addresses, the genesis allocation) was knowable when a node made its decisions,
+    # so only those mark a node as a registered actor, to be modelled separately. A name inferred from a later
+    # snapshot (AS4, AS5) describes the node today and is used only to read results, never to select rows.
+    nodes = con.sql(f"""SELECT node_id, named_agent, named_agent_evidence FROM '{paths[OPERATORS]}'""").df()
+    nodes = nodes.set_index("node_id")
+    registered = nodes.named_agent_evidence.fillna("").str.match(r"^\S+ AS1 EVIDENCE")
+    nodes["registered_actor"] = nodes.named_agent.where(registered)
     return Inputs(periods=periods, delegations=delegations, daily=daily, nodes=nodes, observed_through=cutoff,
                   runs=runs)

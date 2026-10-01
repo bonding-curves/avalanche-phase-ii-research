@@ -51,29 +51,29 @@
       "end": "2023-05-19 16:00:00",
       "name": "2022-11",
       "start": "2022-11-19 16:00:00",
-      "test": 2913,
+      "test": 2915,
       "train": 4827
     },
     {
       "end": "2023-11-19 16:00:00",
       "name": "2023-05",
       "start": "2023-05-19 16:00:00",
-      "test": 2594,
-      "train": 8751
+      "test": 2721,
+      "train": 8755
     },
     {
       "end": "2024-05-19 16:00:00",
       "name": "2023-11",
       "start": "2023-11-19 16:00:00",
-      "test": 2972,
-      "train": 12055
+      "test": 3237,
+      "train": 12067
     },
     {
       "end": "2024-11-19 16:00:00",
       "name": "2024-05",
       "start": "2024-05-19 16:00:00",
-      "test": 2835,
-      "train": 14983
+      "test": 3014,
+      "train": 14997
     }
   ],
   "inputs": {
@@ -91,53 +91,53 @@
     "validator_periods": 52941,
     "validator_periods_with_delegations": 26242
   },
-  "rows": "unnamed nodes",
+  "rows": "without the registered actors (AS1)",
   "scores": {
     "boosted": {
-      "accuracy": 0.619852,
-      "brier": 0.520567,
-      "last_fold_accuracy": 0.675485,
-      "last_fold_brier": 0.455504,
-      "last_fold_log_loss": 0.847528,
-      "last_fold_roc_auc": 0.881475,
-      "last_fold_skill_vs_prior": 0.373031,
-      "log_loss": 1.019413,
-      "roc_auc": 0.848384,
-      "skill_vs_prior": 0.246612
+      "accuracy": 0.625557,
+      "brier": 0.504095,
+      "last_fold_accuracy": 0.677837,
+      "last_fold_brier": 0.435645,
+      "last_fold_log_loss": 0.82075,
+      "last_fold_roc_auc": 0.88436,
+      "last_fold_skill_vs_prior": 0.380437,
+      "log_loss": 0.994669,
+      "roc_auc": 0.848175,
+      "skill_vs_prior": 0.256003
     },
     "logistic": {
-      "accuracy": 0.375376,
-      "brier": 0.892592,
-      "last_fold_accuracy": 0.214815,
-      "last_fold_brier": 1.132939,
-      "last_fold_log_loss": 2.716089,
-      "last_fold_roc_auc": 0.717632,
-      "last_fold_skill_vs_prior": -1.00926,
-      "log_loss": 2.117538,
-      "roc_auc": 0.689647,
-      "skill_vs_prior": -0.563071
+      "accuracy": 0.383108,
+      "brier": 0.881347,
+      "last_fold_accuracy": 0.209688,
+      "last_fold_brier": 1.125482,
+      "last_fold_log_loss": 2.815079,
+      "last_fold_roc_auc": 0.72227,
+      "last_fold_skill_vs_prior": -1.125032,
+      "log_loss": 2.110043,
+      "roc_auc": 0.690925,
+      "skill_vs_prior": -0.577495
     },
     "persistence": {
-      "accuracy": 0.706205,
-      "brier": 0.459233,
-      "last_fold_accuracy": 0.729453,
-      "last_fold_brier": 0.433909,
-      "last_fold_log_loss": 0.863763,
-      "last_fold_roc_auc": 0.863911,
-      "last_fold_skill_vs_prior": 0.361021,
-      "log_loss": 0.906239,
-      "roc_auc": 0.842059,
-      "skill_vs_prior": 0.329318
+      "accuracy": 0.713973,
+      "brier": 0.450183,
+      "last_fold_accuracy": 0.744526,
+      "last_fold_brier": 0.416143,
+      "last_fold_log_loss": 0.8349,
+      "last_fold_roc_auc": 0.868073,
+      "last_fold_skill_vs_prior": 0.369755,
+      "log_loss": 0.890919,
+      "roc_auc": 0.844081,
+      "skill_vs_prior": 0.332401
     },
     "prior": {
-      "accuracy": 0.484444,
-      "brier": 0.689291,
-      "last_fold_accuracy": 0.44515,
-      "last_fold_brier": 0.698622,
-      "last_fold_log_loss": 1.351786,
+      "accuracy": 0.497771,
+      "brier": 0.68148,
+      "last_fold_accuracy": 0.472462,
+      "last_fold_brier": 0.684607,
+      "last_fold_log_loss": 1.324723,
       "last_fold_roc_auc": 0.5,
       "last_fold_skill_vs_prior": 0.0,
-      "log_loss": 1.350531,
+      "log_loss": 1.333324,
       "roc_auc": 0.5,
       "skill_vs_prior": 0.0
     }

@@ -89,6 +89,10 @@ def principal_flow(events: pd.DataFrame, periods: pd.DataFrame, start, end, rene
     window without being a renewal: a node's first period, a return after a gap of up to a year, or a return after
     longer. Gross starts are renewed stake plus fresh principal. Every node's inflow equals its outflow, except the
     sources and the two ends.
+
+    The renewed leg follows the periods that ended in the window, so gross starts include renewals that start up to
+    ``renew_days`` after it and exclude renewals of periods that ended just before it: it is not exactly the stake that
+    started in the window. Periods whose next one started before they ended (one in the history) are left out.
     """
     start, end = pd.Timestamp(start), pd.Timestamp(end)
     ended = events.loc[events.end_time.ge(start) & events.end_time.lt(end) & events.renewed.notna()]

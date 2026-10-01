@@ -137,13 +137,15 @@ def test_lifetimes_and_the_null_sample():
     assert agreement.between(-1, 1).all()
 
 
-def test_the_null_sample_keeps_correlations_and_has_no_groups():
+def test_the_null_sample_keeps_marginals_and_correlations():
     rng = np.random.default_rng(1)
     base = rng.multivariate_normal([0, 0, 0], [[1, 0.8, 0], [0.8, 1, 0.3], [0, 0.3, 1]], size=4000)
     x = pd.DataFrame(base, columns=["a", "b", "c"])
+    x["tied"] = np.where(base[:, 0] > 1, base[:, 0], 0.0)  # mostly one value, as many shares are
     null = un.null_sample(x)
     assert null.shape == x.shape and null.index.equals(x.index)
-    assert np.allclose(null.cov().to_numpy(), x.cov().to_numpy(), atol=0.08)
+    assert abs(null.tied.eq(0).mean() - x.tied.eq(0).mean()) < 0.03
+    assert np.allclose(null[["a", "b", "c"]].corr().to_numpy(), x[["a", "b", "c"]].corr().to_numpy(), atol=0.08)
 
 
 def test_the_duration_benchmark_is_a_transition_table():
