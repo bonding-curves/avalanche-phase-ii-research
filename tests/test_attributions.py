@@ -22,7 +22,7 @@ def test_the_curated_file_follows_the_standard_and_names_every_operator_agent():
     rows, _ = attributions.load_attributions()
     assert all(row["class"] != "EVIDENCE" or row["tier"] in ("AS1", "AS2", "AS3") for row in rows)
     assert set(operators.NAMED_AGENTS) == {row["subject"] for row in rows if row["subject_kind"] == "reward-address"}
-    assert operators.NAMED_AGENTS["avax19zfygxaf59stehzedhxjesads0p5jdvfeedal0"][1].startswith("OA3 AS4 INFERENCE")
+    assert operators.NAMED_AGENTS["avax19zfygxaf59stehzedhxjesads0p5jdvfeedal0"][1].startswith("OA10 AS1 EVIDENCE")
 
 
 def write(tmp_path: Path, rows: list[dict]) -> Path:

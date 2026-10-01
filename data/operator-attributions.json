@@ -124,6 +124,41 @@
       "data_run": null,
       "agent": "data-engineer",
       "replaces": null
+    },
+    {
+      "attribution_id": "OA9",
+      "subject_kind": "funding-address",
+      "subject": "avax1tnuesf6cqwnjw7fxjyk7lhch0vhf0v95wj5jvy",
+      "name": "BENQI",
+      "statement": "The P-Chain address of the key that runs BENQI's liquid staking contract sAVAX (0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE, on BENQI's contract list). The C-Chain account 0x565f0fe9715e3cb0df579f186c299d6707887e83 holds the contract's ROLE_DEPOSIT and ROLE_WITHDRAW: hasRole returns true for both at C-Chain block 96,557,985. The public key recovered from that account's signed sAVAX withdraw call 0x2259372f8f290e1c60e1df15d443d72e61179f78483891024624eb3f741cfc53 derives this P-Chain address, so one key controls both. It owns the stake of BENQI's delegations",
+      "tier": "AS1",
+      "class": "EVIDENCE",
+      "source": "https://docs.benqi.fi/resources/contracts/liquid-staking",
+      "supporting_sources": [
+        "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api?module=contract&action=getsourcecode&address=0xb791c7a42fd0d10f90deaa906a8735f79719fa53",
+        "https://snowscan.xyz/address/0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE"
+      ],
+      "captured_on": "2026-10-01",
+      "data_run": null,
+      "agent": "data-engineer",
+      "replaces": "OA4"
+    },
+    {
+      "attribution_id": "OA10",
+      "subject_kind": "reward-address",
+      "subject": "avax19zfygxaf59stehzedhxjesads0p5jdvfeedal0",
+      "name": "BENQI",
+      "statement": "The rewards owner BENQI's key names on its delegations: all 28,920 delegation transactions whose stake avax1tnuesf6cqwnjw7fxjyk7lhch0vhf0v95wj5jvy owns (OA9), 19.49M AVAX accepted from 2026-09-15 to 2026-10-01, pay their rewards to this address, and no other",
+      "tier": "AS1",
+      "class": "EVIDENCE",
+      "source": "https://subnets.avax.network/p-chain/tx/27j4FtUNxyveAtq82sZc4BXoXC9wVWBBVGgdHkvXFYs5C17Moo",
+      "supporting_sources": [
+        "https://docs.benqi.fi/resources/contracts/liquid-staking"
+      ],
+      "captured_on": "2026-10-01",
+      "data_run": "p-chain-blocks-2026-10-01",
+      "agent": "data-engineer",
+      "replaces": "OA3"
     }
   ]
 }
