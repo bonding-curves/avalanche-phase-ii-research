@@ -9,8 +9,9 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import gci
+from avalanche_research import gci_monthly
 from avalanche_research.catalog import DataError, canonical_bytes, load_catalog, sha256
+from avalanche_research.sources import gci
 
 START = int(datetime(2024, 1, 1, tzinfo=UTC).timestamp())
 DAY = 86_400
@@ -93,7 +94,7 @@ def runs(tmp_path: Path, monkeypatch) -> Path:
 
 def test_catalog_declares_every_table():
     catalog = {item["id"]: item for item in load_catalog()["datasets"]}
-    for dataset_id, columns in gci.COLUMNS.items():
+    for dataset_id, columns in {**gci.COLUMNS, **gci_monthly.COLUMNS}.items():
         assert [field["name"] for field in catalog[dataset_id]["fields"]] == list(columns)
 
 
@@ -114,7 +115,7 @@ def test_the_bill_rate_check_compares_monthly_means_with_tb3ms(runs):
 
 def test_the_monthly_table_joins_issuer_vault_fees_and_burn(runs):
     output = runs / "monthly"
-    gci.derive(gci.MONTHLY_ID, output, root=runs)
+    gci_monthly.derive(gci_monthly.MONTHLY_ID, output, root=runs)
     rows = duckdb.connect().execute(
         "SELECT month::VARCHAR, tether_float_usd, bill_rate_pct, issuer_income_usd, savusd_income_usd, fees_usd, burn_c_evm_avax, burn_c_evm_usd"
         " FROM read_parquet(?) ORDER BY month", [str(output / "dataset" / "gci-monthly.parquet")]).fetchall()
@@ -123,7 +124,7 @@ def test_the_monthly_table_joins_issuer_vault_fees_and_burn(runs):
     assert january[3] == pytest.approx(january[1] * 5.1 / 1200)
     assert january[4] is None and february[4] == pytest.approx(1.0, rel=1e-6)
     assert january[5] == 310 and january[6] == 62 and january[7] == pytest.approx(1240)
-    assert gci.check(output / "capture", output / "dataset", root=runs)["status"] == "pass"
+    assert gci_monthly.check(output / "capture", output / "dataset", root=runs)["status"] == "pass"
 
 
 def test_a_month_range_is_validated(tmp_path):

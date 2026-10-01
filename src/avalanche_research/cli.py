@@ -27,6 +27,7 @@ from . import derived
 from . import etf
 from . import freshness
 from . import gci
+from . import gci_monthly
 from . import helicon
 from . import metrics
 from . import monetary
@@ -75,6 +76,7 @@ MODULES = {
     **{dataset_id: clist_daily for dataset_id in clist_daily.DATASET_IDS},
     pburns.DATASET_ID: pburns,
     **{dataset_id: gci for dataset_id in gci.DATASET_IDS},
+    **{dataset_id: gci_monthly for dataset_id in gci_monthly.DATASET_IDS},
     **{dataset_id: seam for dataset_id in seam.DATASET_IDS},
     catx.DATASET_ID: catx,
     yields.DATASET_ID: yields,
