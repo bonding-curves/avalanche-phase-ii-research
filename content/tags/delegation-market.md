@@ -5,19 +5,13 @@ description: "Delegator choice, validator fees, and competition for delegation."
 
 Delegator choice, validator fees, and competition for delegation. For concentration of stake across operators, see decentralization.
 
-9 pages are filed under this topic. See [all topics](/tags/).
+8 pages are filed under this topic. See [all topics](/tags/).
 
 ## Deliverables
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
 | [1.1 Data Ingestion](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | BCRG |  | The historical staking data the research runs on: validator and delegator flows, rewards, and durations, each from a checked run. |
-
-## Memos
-
-| Page | Authors | Date | Summary |
-| --- | --- | --- | --- |
-| [2026-10-01-benqi-interview](/Phase-II/Wiki/Memos/drafts/2026-10-01-benqi-interview/) | BCRG | October 1, 2026 | BENQI's interview checked against the chain: its address made 93% of all delegations, holds about half of delegated stake, never delegates longer than 17 days, and since 2026 places most of it on validators that pay BENQI. |
 
 ## Reference
 

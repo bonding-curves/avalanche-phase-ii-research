@@ -5,18 +5,7 @@ description: "Operator costs, profitability, uptime, tenure, and rewarding them.
 
 Operator costs, profitability, uptime, tenure, and rewarding them. For what funds the network's security as a whole, see security budget.
 
-11 pages are filed under this topic. See [all topics](/tags/).
-
-## Memos
-
-| Page | Authors | Date | Summary |
-| --- | --- | --- | --- |
-| [2026-10-01-avalanche-summit-follow-up](/Phase-II/Wiki/Memos/drafts/2026-10-01-avalanche-summit-follow-up/) | BCRG | October 1, 2026 | What the Avalanche Summit's stage sessions imply for staking: security that issuance cannot fund for ever, a steeper duration curve, and ETFs that need part of their AVAX liquid within 48 hours. |
-| [2026-10-01-benqi-interview](/Phase-II/Wiki/Memos/drafts/2026-10-01-benqi-interview/) | BCRG | October 1, 2026 | BENQI's interview checked against the chain: its address made 93% of all delegations, holds about half of delegated stake, never delegates longer than 17 days, and since 2026 places most of it on validators that pay BENQI. |
-| [2026-10-01-data-record](/Phase-II/Wiki/Memos/drafts/2026-10-01-data-record/) | BCRG | October 1, 2026 | The data record behind every number: 66 checked datasets from 15 sources. When the Snowflake share stopped on 22 September, a second source rebuilt from the P-Chain took over, and it agrees with the share on every overlapping row. What Milestone 1 delivers. |
-| [2026-10-01-duration-dependent-minimum](/Phase-II/Wiki/Memos/drafts/2026-10-01-duration-dependent-minimum/) | BCRG | October 1, 2026 | Hash's duration-dependent minimum stake can keep 2,000 AVAX at 14 days, hold at least 28,000 AVAX-days of capital at every duration, and lower the one-year minimum to 500 AVAX. Every validator commitment of the year before Granite already meets that setting. |
-| [2026-10-01-helicon-first-days](/Phase-II/Wiki/Memos/drafts/2026-10-01-helicon-first-days/) | BCRG | October 1, 2026 | In Helicon's first eight days, 13 of 105 new validator commitments chose under 7 days, against none of 401 in the 30 days before. They hold 1.25% of the new stake. Every auto-renewed 48-hour commitment has renewed. |
-| [2026-09-29-validator-minimums](/Phase-II/Wiki/Memos/drafts/2026-09-29-validator-minimums/) | BCRG | September 29, 2026 | Since Durango, 62% to 69% of new validator commitments last the 14-day minimum, yet they hold 3% to 11% of committed AVAX-days. By upgrade period, from one pinned run. |
+5 pages are filed under this topic. See [all topics](/tags/).
 
 ## Essential Readings
 

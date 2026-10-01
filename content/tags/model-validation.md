@@ -5,7 +5,7 @@ description: "Tests that decide whether a model can be trusted for policy."
 
 Tests that decide whether a model can be trusted for policy. For how a model is specified, see model structure.
 
-9 pages are filed under this topic. See [all topics](/tags/).
+8 pages are filed under this topic. See [all topics](/tags/).
 
 ## Deliverables
 
@@ -13,12 +13,6 @@ Tests that decide whether a model can be trusted for policy. For how a model is 
 | --- | --- | --- | --- |
 | [Preliminary Validation Report](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/) | BCRG |  | Milestone 1's success criterion: a first goodness-of-fit assessment of the model against history, for the Foundation's approval. |
 | [2.4 Validation Confirmation](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) | BCRG |  | The final goodness-of-fit test of the model against history, with the agreement's target of above 90% correlation. |
-
-## Memos
-
-| Page | Authors | Date | Summary |
-| --- | --- | --- | --- |
-| [2026-10-01-staking-model-v0](/Phase-II/Wiki/Memos/drafts/2026-10-01-staking-model-v0/) | BCRG | October 1, 2026 | The staking model reproduces the chain's stake and reward records exactly on all 1,896 complete days before Granite, prices every reward mechanism on the same year of real stakes, and shows how the mechanisms separate once validators respond to pay. Version 0, under review. |
 
 ## Research papers
 

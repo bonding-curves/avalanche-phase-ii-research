@@ -5,23 +5,13 @@ description: "Proposed rule changes and how to evaluate them."
 
 Proposed rule changes and how to evaluate them. For how a change is proposed and adopted, see protocol governance.
 
-13 pages are filed under this topic. See [all topics](/tags/).
+8 pages are filed under this topic. See [all topics](/tags/).
 
 ## Deliverables
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
 | [2.8 Collaborative Mechanism Design](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) | BCRG |  | Evaluation of alternative reward mechanisms proposed by the Foundation or external teams, such as node-age weighting and activity multipliers. |
-
-## Memos
-
-| Page | Authors | Date | Summary |
-| --- | --- | --- | --- |
-| [2026-10-01-avalanche-summit-follow-up](/Phase-II/Wiki/Memos/drafts/2026-10-01-avalanche-summit-follow-up/) | BCRG | October 1, 2026 | What the Avalanche Summit's stage sessions imply for staking: security that issuance cannot fund for ever, a steeper duration curve, and ETFs that need part of their AVAX liquid within 48 hours. |
-| [2026-10-01-duration-dependent-minimum](/Phase-II/Wiki/Memos/drafts/2026-10-01-duration-dependent-minimum/) | BCRG | October 1, 2026 | Hash's duration-dependent minimum stake can keep 2,000 AVAX at 14 days, hold at least 28,000 AVAX-days of capital at every duration, and lower the one-year minimum to 500 AVAX. Every validator commitment of the year before Granite already meets that setting. |
-| [2026-10-01-helicon-first-days](/Phase-II/Wiki/Memos/drafts/2026-10-01-helicon-first-days/) | BCRG | October 1, 2026 | In Helicon's first eight days, 13 of 105 new validator commitments chose under 7 days, against none of 401 in the 30 days before. They hold 1.25% of the new stake. Every auto-renewed 48-hour commitment has renewed. |
-| [2026-10-01-staking-model-v0](/Phase-II/Wiki/Memos/drafts/2026-10-01-staking-model-v0/) | BCRG | October 1, 2026 | The staking model reproduces the chain's stake and reward records exactly on all 1,896 complete days before Granite, prices every reward mechanism on the same year of real stakes, and shows how the mechanisms separate once validators respond to pay. Version 0, under review. |
-| [2026-09-29-validator-minimums](/Phase-II/Wiki/Memos/drafts/2026-09-29-validator-minimums/) | BCRG | September 29, 2026 | Since Durango, 62% to 69% of new validator commitments last the 14-day minimum, yet they hold 3% to 11% of committed AVAX-days. By upgrade period, from one pinned run. |
 
 ## Briefs
 

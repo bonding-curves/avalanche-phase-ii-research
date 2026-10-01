@@ -5,13 +5,7 @@ description: "Value added, nominal against real output, chain-weighted indexes, 
 
 Value added, nominal against real output, chain-weighted indexes, and income against production.
 
-4 pages are filed under this topic. See [all topics](/tags/).
-
-## Memos
-
-| Page | Authors | Date | Summary |
-| --- | --- | --- | --- |
-| [2026-10-01-data-record](/Phase-II/Wiki/Memos/drafts/2026-10-01-data-record/) | BCRG | October 1, 2026 | The data record behind every number: 66 checked datasets from 15 sources. When the Snowflake share stopped on 22 September, a second source rebuilt from the P-Chain took over, and it agrees with the share on every overlapping row. What Milestone 1 delivers. |
+3 pages are filed under this topic. See [all topics](/tags/).
 
 ## Essential Readings
 

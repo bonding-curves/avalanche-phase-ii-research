@@ -5,7 +5,7 @@ description: "Choosing parameters and policies that perform well across futures 
 
 Choosing parameters and policies that perform well across futures that cannot be predicted.
 
-12 pages are filed under this topic. See [all topics](/tags/).
+11 pages are filed under this topic. See [all topics](/tags/).
 
 ## Deliverables
 
@@ -17,12 +17,6 @@ Choosing parameters and policies that perform well across futures that cannot be
 | [3.1 Parameter Recommendation Report](/Phase-II/Milestones/Milestone-3/3-1-Parameter-Recommendation-Report/) | BCRG |  | Actionable parameter guidance, with the decision framework behind it. |
 | [3.2 Scenario Playbook](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) | BCRG |  | Guidance of the form: if a given market condition holds, adjust a given parameter this way. |
 | [3.4 Workshop 2](/Phase-II/Milestones/Milestone-3/3-4-Workshop-2/) | BCRG |  | Training for the Foundation team on running scenarios and interpreting the results. |
-
-## Memos
-
-| Page | Authors | Date | Summary |
-| --- | --- | --- | --- |
-| [2026-10-01-staking-model-v0](/Phase-II/Wiki/Memos/drafts/2026-10-01-staking-model-v0/) | BCRG | October 1, 2026 | The staking model reproduces the chain's stake and reward records exactly on all 1,896 complete days before Granite, prices every reward mechanism on the same year of real stakes, and shows how the mechanisms separate once validators respond to pay. Version 0, under review. |
 
 ## Research papers
 
