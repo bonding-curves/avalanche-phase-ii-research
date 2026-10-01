@@ -5,7 +5,7 @@ description: "The reward formula, consumption rates, the issuance schedule, infl
 
 The reward formula, consumption rates, the issuance schedule, inflation, and the supply cap.
 
-17 pages are filed under this topic. See [all topics](/tags/).
+18 pages are filed under this topic. See [all topics](/tags/).
 
 ## Deliverables
 
@@ -21,6 +21,7 @@ The reward formula, consumption rates, the issuance schedule, inflation, and the
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
 | [2026-10-01-data-record](/Phase-II/Wiki/Memos/drafts/2026-10-01-data-record/) | BCRG | October 1, 2026 | The data record behind every number: 66 checked datasets from 15 sources. When the Snowflake share stopped on 22 September, a second source rebuilt from the P-Chain took over, and it agrees with the share on every overlapping row. What Milestone 1 delivers. |
+| [2026-10-01-staking-model-v0](/Phase-II/Wiki/Memos/drafts/2026-10-01-staking-model-v0/) | BCRG | October 1, 2026 | The staking model runs, and it reproduces the chain's own reward and stake records exactly. Its first behaviour model does not yet beat the forecast that nothing changes, and every comparison of reward mechanisms depends on how strongly validators respond to pay, which history alone cannot tell us. Version 0, under review. |
 
 ## Reference
 
