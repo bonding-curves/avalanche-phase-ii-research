@@ -162,3 +162,18 @@ def test_the_renewal_label_is_the_registered_measure(periods):
     mine = events.loc[events.renewed.notna() & (events.end_time + 7 * DAY).le(cut), "renewed"].mean()
     measure = staking_renewal.renewal_summary(staking_renewal.renewal_events(periods), T0, cut, cut)
     assert mine == pytest.approx(measure["renewal_share"])
+
+
+def test_the_principal_flow_conserves_stake(periods):
+    cut = T0 + 600 * DAY
+    events = ev.decision_events(periods, observed_through=cut)
+    flows = ev.principal_flow(events, periods.loc[periods.start_time.lt(cut)], T0, cut)
+    inflow = flows.groupby("target").avax.sum()
+    outflow = flows.groupby("source").avax.sum()
+    for node in ("Renewed in place", "Fresh principal"):
+        assert inflow[node] == pytest.approx(outflow[node])
+    # a1 renews into a2 (2,000 to 3,000 AVAX); a3 returns after 40 days; nodes A, B and C start fresh.
+    by = flows.set_index(["source", "target"]).avax
+    assert by["Added at renewal", "Renewed in place"] == 1000
+    assert by["Returned within a year", "Fresh principal"] == 2000
+    assert by["First period of a new node", "Fresh principal"] == 6000

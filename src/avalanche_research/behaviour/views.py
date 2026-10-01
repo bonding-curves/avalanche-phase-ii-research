@@ -8,7 +8,9 @@ import pandas as pd
 import panel as pn
 import param as pm
 
+from . import events as event_flows
 from . import lifetimes as lifetime_columns
+from .inputs import LOCKBOX_START
 
 PALETTE = ["#3B82B4", "#D95F02", "#1B9E77", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666",
            "#1F78B4", "#B2DF8A", "#FB9A99"]
@@ -102,3 +104,40 @@ def panel(obj, parameters=None):
     widgets = {name: {"sizing_mode": "stretch_width", "width": None} for name in (parameters or [])}
     return pn.Row(pn.Param(obj, parameters=parameters, show_name=False, widgets=widgets, width=260), obj.view,
                   sizing_mode="stretch_width")
+
+
+def flow_windows(years: int = 5, last_end=None) -> dict[str, tuple[pd.Timestamp, pd.Timestamp]]:
+    """One-year windows ending a week before the lockbox, so every 7-day renewal label in them is known."""
+    end = pd.Timestamp(last_end) if last_end is not None else LOCKBOX_START - pd.Timedelta(days=7)
+    windows = {}
+    for _ in range(years):
+        start = end - pd.DateOffset(years=1)
+        windows[f"{start:%Y-%m-%d} to {end:%Y-%m-%d}"] = (start, end)
+        end = start
+    return windows
+
+
+class PrincipalFlow(pm.Parameterized):
+    """Validator stake through period ends and starts in one year, observed: the empirical principal-flow Sankey."""
+
+    window = pm.Selector(default=None, objects=[])
+    events = pm.DataFrame(precedence=-1)
+    periods = pm.DataFrame(precedence=-1)
+
+    def __init__(self, **params):
+        super().__init__(**params)
+        self.windows = flow_windows()
+        self.param.window.objects = list(self.windows)
+        self.window = next(iter(self.windows))
+
+    def flows(self) -> pd.DataFrame:
+        start, end = self.windows[self.window]
+        flows = event_flows.principal_flow(self.events, self.periods, start, end)
+        return flows.assign(million_avax=(flows.avax / 1e6).round(1))
+
+    @pm.depends("window")
+    def view(self):
+        flows = self.flows()
+        return hv.Sankey(flows, kdims=["source", "target"], vdims=["million_avax"]).opts(
+            title=f"Validator stake, {self.window}, million AVAX", label_position="right", node_padding=24,
+            edge_color="source", node_color="index", cmap=PALETTE, width=1000, height=520)

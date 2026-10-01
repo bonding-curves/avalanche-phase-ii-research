@@ -78,3 +78,41 @@ def summary(events: pd.DataFrame) -> pd.DataFrame:
     table["share_of_events"] = table.events / table.events.sum()
     table["share_of_stake"] = table.stake_avax / table.stake_avax.sum()
     return table
+
+
+def principal_flow(events: pd.DataFrame, periods: pd.DataFrame, start, end, renew_days: int = 7) -> pd.DataFrame:
+    """Validator stake moving through period ends and starts in ``[start, end)``, as conserved flows in AVAX.
+
+    The observed counterpart of a principal-flow Sankey. Stake whose period ended in the window either starts again on
+    the same node within ``renew_days`` or is out for longer. A renewal can add or withdraw stake, so the renewed flow
+    reaches the next period's stake through two explicit nodes. Fresh principal is stake whose period started in the
+    window without being a renewal: a node's first period, a return after a gap of up to a year, or a return after
+    longer. Gross starts are renewed stake plus fresh principal. Every node's inflow equals its outflow, except the
+    sources and the two ends.
+    """
+    start, end = pd.Timestamp(start), pd.Timestamp(end)
+    ended = events.loc[events.end_time.ge(start) & events.end_time.lt(end) & events.renewed.notna()]
+    renewed = ended.loc[ended.renewed.eq(1)]
+    added = (renewed.next_stake_avax - renewed.stake_avax).clip(lower=0).sum()
+    withdrawn = (renewed.stake_avax - renewed.next_stake_avax).clip(lower=0).sum()
+    rows = periods.sort_values(["node_id", "start_time", "transaction_hash"])
+    previous_end = rows.groupby("node_id", sort=False).end_time.shift(1)
+    gap = (rows.start_time - previous_end) / DAY
+    started = rows.start_time.ge(start) & rows.start_time.lt(end)
+    first = rows.loc[started & previous_end.isna(), "stake_avax"].sum()
+    returned = rows.loc[started & gap.gt(renew_days) & gap.le(365), "stake_avax"].sum()
+    back_later = rows.loc[started & gap.gt(365), "stake_avax"].sum()
+    flows = [
+        ("Ended stake", "Renewed in place", renewed.stake_avax.sum()),
+        ("Ended stake", "Out for more than a week", ended.loc[ended.renewed.eq(0), "stake_avax"].sum()),
+        ("Added at renewal", "Renewed in place", added),
+        ("Renewed in place", "Withdrawn at renewal", withdrawn),
+        ("Renewed in place", "Gross starts", renewed.next_stake_avax.sum()),
+        ("First period of a new node", "Fresh principal", first),
+        ("Returned within a year", "Fresh principal", returned),
+        ("Returned after more than a year", "Fresh principal", back_later),
+        ("Fresh principal", "Gross starts", first + returned + back_later),
+    ]
+    table = pd.DataFrame(flows, columns=["source", "target", "avax"])
+    table.attrs.update(window_start=str(start), window_end=str(end), renew_days=renew_days)
+    return table.loc[table.avax.gt(0)].reset_index(drop=True)
