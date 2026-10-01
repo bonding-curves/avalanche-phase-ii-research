@@ -6,8 +6,8 @@
 Each edge states a rule the code holds:
 
 - ACP-285 lowers the minimum consumption rate from 10% to 7.5% over a 90-day ramp, so the reward rate rises
-  more steeply with committed duration (avalanche_research.model.protocol), and every reward is
-  newly issued AVAX.
+  more steeply with committed duration (avalanche_research.model.protocol). It lowers issuance for short
+  commitments rather than raising it for long ones.
 - The admission frontier sets the minimum stake by duration (avalanche_research.mechanisms.admission). A gate
   issues nothing.
 - Delegations keep a 14-day minimum duration (protocol.min_stake_duration_seconds with role "delegator"), so a
@@ -45,7 +45,7 @@ def dot_source() -> str:
     lines = [
         "digraph levers {",
         f'  graph [rankdir=TB, bgcolor="{PAPER}", nodesep=0.6, ranksep=0.75, pad=0.3, fontname="{FONT}"];',
-        node("reward", "ACP-285 reward curve<BR/><FONT POINT-SIZE='12' COLOR='#7a7f87'>lowers the reward rate for short commitments,<BR/>so pay rises with duration. Cost: issued AVAX</FONT>", reward),
+        node("reward", "ACP-285 reward curve<BR/><FONT POINT-SIZE='12' COLOR='#7a7f87'>lowers the reward rate for short commitments,<BR/>so pay rises with duration</FONT>", reward),
         node("frontier", "Admission frontier<BR/><FONT POINT-SIZE='12' COLOR='#7a7f87'>minimum stake falls as duration rises<BR/>cost: none, it is a gate</FONT>", stake),
         node("choice", "A validator chooses<BR/>duration and stake", INK, fill="#f4f5f7", bold=True),
         node("seat", "With the frontier, every validator seat<BR/>holds at least 28,000 AVAX-days", stake),
