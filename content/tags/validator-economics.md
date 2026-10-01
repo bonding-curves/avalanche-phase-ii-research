@@ -5,13 +5,14 @@ description: "Operator costs, profitability, uptime, tenure, and rewarding them.
 
 Operator costs, profitability, uptime, tenure, and rewarding them. For what funds the network's security as a whole, see security budget.
 
-8 pages are filed under this topic. See [all topics](/tags/).
+9 pages are filed under this topic. See [all topics](/tags/).
 
 ## Memos
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
 | [2026-10-01-data-record](/Phase-II/Wiki/Memos/drafts/2026-10-01-data-record/) | BCRG | October 1, 2026 | The data record behind every number: 66 checked datasets from 15 sources. When the Snowflake share stopped on 22 September, a second source rebuilt from the P-Chain took over, and it agrees with the share on every overlapping row. What Milestone 1 delivers. |
+| [2026-10-01-duration-dependent-minimum](/Phase-II/Wiki/Memos/drafts/2026-10-01-duration-dependent-minimum/) | BCRG | October 1, 2026 | A minimum validator stake that falls with committed duration can hold 2,000 AVAX for 14 days of capital at every duration, keep today's two-week validators, and still lower the one-year minimum to 500 AVAX. The settings drafted so far do not. |
 | [2026-10-01-helicon-first-days](/Phase-II/Wiki/Memos/drafts/2026-10-01-helicon-first-days/) | BCRG | October 1, 2026 | In Helicon's first eight days, 13 of 105 new validator commitments chose under 7 days, against none of 401 in the 30 days before. They hold 1.25% of the new stake. Every auto-renewed 48-hour commitment has renewed. |
 | [2026-09-29-validator-minimums](/Phase-II/Wiki/Memos/drafts/2026-09-29-validator-minimums/) | BCRG | September 29, 2026 | Since Durango, 62% to 69% of new validator commitments last the 14-day minimum, yet they hold 3% to 11% of committed AVAX-days. By upgrade period, from one pinned run. |
 
