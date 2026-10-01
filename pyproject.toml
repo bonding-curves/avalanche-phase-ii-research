@@ -30,6 +30,11 @@ packages = ["src/avalanche_research"]
 dev = [
   "pytest>=8.4,<9",
 ]
+model = [
+  "cadCAD==0.5.3",
+  "numpy>=2,<3",
+  "param>=2.4,<3",
+]
 notebook = [
   "bokeh>=3.9,<4",
   "holoviews>=1.23,<2",
