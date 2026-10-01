@@ -83,7 +83,7 @@ id = "K4"
 name = "The rules and the model run without the catalog"
 type = "forbidden"
 source_modules = ["avalanche_research.domain", "avalanche_research.model"]
-forbidden_modules = ["avalanche_research.catalog"]
+forbidden_modules = ["avalanche_research.catalog", "avalanche_research.core.catalog"]
 
 [[tool.importlinter.contracts]]
 id = "K5"

@@ -7,18 +7,13 @@ seconds here and nanoseconds inside the reward arithmetic. Nothing in this modul
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 
-
-NAVAX_PER_AVAX = 1_000_000_000
-NANOSECONDS_PER_SECOND = 1_000_000_000
-SECONDS_PER_DAY = 86_400
-# vms/platformvm/reward/config.go: PercentDenominator = 1_000_000
-PERCENT_DENOMINATOR = 1_000_000
-
-
-class ModelError(ValueError):
-    """A protocol rule was asked to evaluate an input outside its domain."""
+# The units, the error and the UTC reading are in ``core`` since restructure step M1, and are imported here so the
+# old names keep working.
+from ..core.clock import as_utc
+from ..core.errors import ModelError
+from ..core.units import NANOSECONDS_PER_SECOND, NAVAX_PER_AVAX, PERCENT_DENOMINATOR, SECONDS_PER_DAY  # noqa: F401
 
 
 @dataclass(frozen=True)
@@ -140,8 +135,3 @@ class Mechanism:
     keyed_by: str
     sources: tuple[str, ...]
 
-
-def as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
