@@ -1,12 +1,10 @@
 ---
 title: Interviews
-description: Structured evidence from Avalanche validators about their decisions, preferences, and operating constraints.
+description: Interviews about Avalanche staking decisions.
 ---
 
-Validator interviews compare modeled behavior with how operators describe their choices, preferences, costs and constraints. The [interview method](/Phase-II/Interviews/Interview-Method) explains participant selection, questions, permissions and evidence review.
+| Date | Interview | Pages |
+| --- | --- | --- |
+| 2026-08-31 | [BENQI with Hansen](/Phase-II/Interviews/BENQI-2026-08-31/) | Narrative, minutes, transcript, analysis and method |
 
-The BENQI interview includes a public summary and an [evidence analysis](/Phase-II/Interviews/BENQI-2026-08-31/Analysis). The analysis distinguishes Hansen's account from checked chain observations and untested hypotheses. One interview does not establish population preferences or calibrated response parameters.
-
-| Date | Interviewee | Pages | Status |
-| --- | --- | --- | --- |
-| 2026-08-31 | Hansen, BENQI | [Summary](/Phase-II/Interviews/BENQI-2026-08-31/) · [Evidence analysis](/Phase-II/Interviews/BENQI-2026-08-31/Analysis) | Summary and analysis published. Full transcript withheld pending consent. |
+[Narrative](/Phase-II/Interviews/BENQI-2026-08-31/narrative) · [Minutes](/Phase-II/Interviews/BENQI-2026-08-31/minutes) · [Transcript](/Phase-II/Interviews/BENQI-2026-08-31/transcript) · [Analysis](/Phase-II/Interviews/BENQI-2026-08-31/analysis-draft) · [Method](/Phase-II/Interviews/BENQI-2026-08-31/methodology-draft)
