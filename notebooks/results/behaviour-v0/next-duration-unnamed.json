@@ -1,0 +1,149 @@
+{
+  "claim": "exploratory, v0, unreviewed",
+  "data_kind": "observed",
+  "features": [
+    "stake_log10",
+    "duration_days",
+    "fee_rate",
+    "failed",
+    "reward_rate_annual",
+    "pending_start",
+    "at_stake_floor",
+    "fee_at_floor",
+    "regime",
+    "period_number",
+    "node_age_days",
+    "prior_renew_share",
+    "prev_gap_days",
+    "reward_address_changed",
+    "prior_mean_gap_days",
+    "prior_mean_duration_days",
+    "duration_vs_prior_log",
+    "stake_change_prev_log",
+    "stake_vs_max_log",
+    "fee_changes_to_date",
+    "failed_to_date",
+    "delegations_log",
+    "delegators_log",
+    "delegated_avax_log",
+    "delegation_ratio",
+    "largest_delegator_share",
+    "median_delegation_log",
+    "fee_income_log",
+    "operator_nodes_to_date",
+    "price_log10",
+    "return_30d",
+    "return_90d",
+    "volatility_30d",
+    "return_over_period",
+    "return_since_entry",
+    "staking_ratio",
+    "staking_ratio_change_90d",
+    "network_delegated_share",
+    "active_validators",
+    "stake_share_of_network_bp",
+    "tbill_pct",
+    "reward_spread_pct"
+  ],
+  "features_sha256": "4ecd9a78ce9605346f19fcb8aad500f7474035477ec8b9d6d26b897e2ca8f80e",
+  "folds": [
+    {
+      "end": "2023-05-19 16:00:00",
+      "name": "2022-11",
+      "start": "2022-11-19 16:00:00",
+      "test": 2913,
+      "train": 4827
+    },
+    {
+      "end": "2023-11-19 16:00:00",
+      "name": "2023-05",
+      "start": "2023-05-19 16:00:00",
+      "test": 2594,
+      "train": 8751
+    },
+    {
+      "end": "2024-05-19 16:00:00",
+      "name": "2023-11",
+      "start": "2023-11-19 16:00:00",
+      "test": 2972,
+      "train": 12055
+    },
+    {
+      "end": "2024-11-19 16:00:00",
+      "name": "2024-05",
+      "start": "2024-05-19 16:00:00",
+      "test": 2835,
+      "train": 14983
+    }
+  ],
+  "inputs": {
+    "daily_rows": 1896,
+    "observed_through": "2025-11-19 16:00:00",
+    "runs": {
+      "binance.avax-usdt-daily": "binance-avax-daily-2026-09-26",
+      "derived.avax-monetary-daily": "avax-monetary-daily-2026-10-01",
+      "derived.operators": "operators-2026-10-01",
+      "derived.seamed-delegator-stakes": "seamed-delegator-stakes-2026-10-01",
+      "derived.seamed-validator-stakes": "seamed-validator-stakes-2026-10-01",
+      "derived.staking-periods": "staking-periods-2026-10-01",
+      "fred.tbill-3m-daily": "tbill-3m-daily-2026-09-29"
+    },
+    "validator_periods": 52941,
+    "validator_periods_with_delegations": 26242
+  },
+  "rows": "unnamed nodes",
+  "scores": {
+    "boosted": {
+      "accuracy": 0.619852,
+      "brier": 0.520567,
+      "last_fold_accuracy": 0.675485,
+      "last_fold_brier": 0.455504,
+      "last_fold_log_loss": 0.847528,
+      "last_fold_roc_auc": 0.881475,
+      "last_fold_skill_vs_prior": 0.373031,
+      "log_loss": 1.019413,
+      "roc_auc": 0.848384,
+      "skill_vs_prior": 0.246612
+    },
+    "logistic": {
+      "accuracy": 0.375376,
+      "brier": 0.892592,
+      "last_fold_accuracy": 0.214815,
+      "last_fold_brier": 1.132939,
+      "last_fold_log_loss": 2.716089,
+      "last_fold_roc_auc": 0.717632,
+      "last_fold_skill_vs_prior": -1.00926,
+      "log_loss": 2.117538,
+      "roc_auc": 0.689647,
+      "skill_vs_prior": -0.563071
+    },
+    "persistence": {
+      "accuracy": 0.706205,
+      "brier": 0.459233,
+      "last_fold_accuracy": 0.729453,
+      "last_fold_brier": 0.433909,
+      "last_fold_log_loss": 0.863763,
+      "last_fold_roc_auc": 0.863911,
+      "last_fold_skill_vs_prior": 0.361021,
+      "log_loss": 0.906239,
+      "roc_auc": 0.842059,
+      "skill_vs_prior": 0.329318
+    },
+    "prior": {
+      "accuracy": 0.484444,
+      "brier": 0.689291,
+      "last_fold_accuracy": 0.44515,
+      "last_fold_brier": 0.698622,
+      "last_fold_log_loss": 1.351786,
+      "last_fold_roc_auc": 0.5,
+      "last_fold_skill_vs_prior": 0.0,
+      "log_loss": 1.350531,
+      "roc_auc": 0.5,
+      "skill_vs_prior": 0.0
+    }
+  },
+  "seed": 20261001,
+  "sklearn": "1.9.1",
+  "target": "next_duration",
+  "target_definition": "Duration class of the next period, when the node stakes again within 365 days"
+}

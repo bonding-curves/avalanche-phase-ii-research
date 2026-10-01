@@ -35,6 +35,9 @@ model = [
   "numpy>=2,<3",
   "param>=2.4,<3",
 ]
+ml = [
+  "scikit-learn>=1.9,<2",
+]
 notebook = [
   "bokeh>=3.9,<4",
   "holoviews>=1.23,<2",
