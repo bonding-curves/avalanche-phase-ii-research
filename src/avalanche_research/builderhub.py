@@ -43,6 +43,9 @@ from .catalog import (
 DATASET_ID = "builder-hub.validator-uptime"
 DERIVED_ID = "derived.validator-uptime-hourly"
 DATASET_IDS = (DATASET_ID, DERIVED_ID)
+# The command line resolves the previous capture to a reading (datasets.readings), so a capture reads no dataset code.
+READS = {"previous": DATASET_ID}
+READ_DEFAULTS = {"previous": "auto"}
 SOURCE_ID = "avalanche-builder-hub"
 LIST_ENDPOINT = "validators"
 DETAIL_ENDPOINT = "validator-detail"
@@ -99,19 +102,18 @@ def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
             "unavailable_limit": unavailable_limit}
 
 
-def _previous(choice: str, root: Path | None) -> dict[str, Any] | None:
-    """The previous capture: ``auto`` for the newest built run, ``none``, or a run name."""
+def _previous(choice: str, readings: dict[str, dict[str, Any]] | None) -> dict[str, Any] | None:
+    """The previous capture: ``auto`` for the newest built run, ``none``, or a run name, as the command line resolved it."""
     if choice == "none":
         return None
-    available = datasets.runs(DATASET_ID, root)
-    if choice != "auto":
-        available = [item for item in available if item["run"] == choice]
-        if not available:
-            raise DataError(f"no built run of {DATASET_ID} named {choice}")
-    if not available:
-        return None
-    newest = max(available, key=lambda item: (item["captured_at"] or "", item["run"]))
-    return {"run": newest["run"], "capture_id": newest["capture_id"], "nodes": _listed_nodes(newest["capture_dir"])}
+    reading = (readings or {}).get("previous")
+    if reading is None:
+        if choice == "auto":
+            return None
+        raise DataError(f"the previous run {choice} was not resolved; fetch it through `avalanche data fetch`")
+    if choice not in ("auto", reading["run"]):
+        raise DataError(f"the previous run {choice} was not resolved; fetch it through `avalanche data fetch`")
+    return {"run": reading["run"], "capture_id": reading["capture_id"], "nodes": _listed_nodes(reading["capture_dir"])}
 
 
 def _listed_nodes(capture_dir: Path) -> list[str]:
@@ -121,7 +123,8 @@ def _listed_nodes(capture_dir: Path) -> list[str]:
         raise DataError(f"unreadable validator list in {capture_dir}: {error}") from error
 
 
-def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None, root: Path | None = None) -> dict[str, Any]:
+def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None,
+                    readings: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     if dataset_id == DERIVED_ID:
         raise DataError(f"{DERIVED_ID} is derived; use `avalanche data derive`")
     if dataset_id != DATASET_ID:
@@ -181,10 +184,10 @@ def capture(
     timeout: float = 20,
     parameters: dict[str, str] | None = None,
     request: Callable[[str, float], tuple[bytes, dict[str, Any]]] = _request,
-    root: Path | None = None,
+    readings: dict[str, dict[str, Any]] | None = None,
     sleep: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
-    preview = capture_preview(dataset_id, output, parameters, root)
+    preview = capture_preview(dataset_id, output, parameters, readings)
     if output.exists():
         raise DataError(f"output already exists: {output}")
     catalog = load_catalog()
@@ -201,7 +204,7 @@ def capture(
         if state_path.exists():
             state = json.loads(state_path.read_text(encoding="utf-8"))
         else:
-            previous = _previous(preview["previous"], root)
+            previous = _previous(preview["previous"], readings)
             body, _ = _fetch(request, preview["list_endpoint"], timeout, sleep)
             listing = json.loads(body)
             if not isinstance(listing, list) or not all(isinstance(item, dict) and str(item.get("node_id", "")).startswith("NodeID-") for item in listing):

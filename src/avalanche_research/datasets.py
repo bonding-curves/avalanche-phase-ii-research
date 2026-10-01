@@ -71,20 +71,31 @@ def _select(dataset_id: str, run: str | None, root: Path | None) -> dict[str, An
     return available[0]
 
 
-def readings(reads: dict[str, str], parameters: dict[str, str] | None, root: Path | None = None) -> dict[str, dict[str, Any]]:
+def readings(reads: dict[str, str], parameters: dict[str, str] | None, root: Path | None = None,
+             defaults: dict[str, str] | None = None) -> dict[str, dict[str, Any]]:
     """The built runs a capture's parameters name, for a capture module that declares ``READS``.
 
-    ``reads`` maps a parameter to the dataset whose run it names. Each named run becomes a reading: its dataset, run,
-    capture ID, and Parquet path. The capture then opens the path itself and never imports this module. A parameter
-    that is not given is left out, and the capture reports it as missing.
+    ``reads`` maps a parameter to the dataset whose run it names, and ``defaults`` gives a parameter's value when it is
+    not given. A value is a run name, ``auto`` for the newest capture by capture time, or ``none``. Each run found
+    becomes a reading: its dataset, run, capture ID, capture directory, and Parquet path. The capture opens those paths
+    itself and never imports this module. A parameter with no value, ``none``, or ``auto`` with no built run is left
+    out, and the capture decides what that means.
     """
-    given = parameters or {}
+    given = {**(defaults or {}), **{key: value for key, value in (parameters or {}).items() if value}}
     found = {}
     for name, dataset_id in reads.items():
-        if given.get(name):
-            record = receipt(dataset_id, given[name], root)
-            found[name] = {"dataset_id": dataset_id, "run": record["run"], "capture_id": record["capture"]["capture_id"],
-                           "parquet": parquet_path(dataset_id, record["run"], root)}
+        value = given.get(name)
+        if not value or value == "none":
+            continue
+        if value == "auto":
+            available = runs(dataset_id, root)
+            if not available:
+                continue
+            value = max(available, key=lambda item: (item["captured_at"] or "", item["run"]))["run"]
+        record = receipt(dataset_id, value, root)
+        selected = _select(dataset_id, record["run"], root)
+        found[name] = {"dataset_id": dataset_id, "run": record["run"], "capture_id": record["capture"]["capture_id"],
+                       "capture_dir": selected["capture_dir"], "parquet": parquet_path(dataset_id, record["run"], root)}
     return found
 
 

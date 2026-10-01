@@ -9,7 +9,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import builderhub
+from avalanche_research import builderhub, datasets
 from avalanche_research.catalog import DataError, load_catalog
 
 LIST = "https://build.avax.network/api/validators"
@@ -52,7 +52,7 @@ class FakeHub:
 
 def run(root: Path, name: str, hub: FakeHub, **parameters: str) -> Path:
     directory = root / name
-    builderhub.capture(builderhub.DATASET_ID, directory / "capture", 5, {"previous": "none", **parameters}, request=hub, root=root, sleep=lambda _: None)
+    builderhub.capture(builderhub.DATASET_ID, directory / "capture", 5, {"previous": "none", **parameters}, request=hub, sleep=lambda _: None)
     builderhub.build(builderhub.DATASET_ID, directory / "capture", directory / "dataset")
     return directory
 
@@ -80,13 +80,13 @@ def test_a_failed_capture_keeps_its_lines_and_resumes(tmp_path):
     hub = FakeHub(["NodeID-a", "NodeID-b", "NodeID-c"], end, fail={"NodeID-c"})
     output = tmp_path / "day1" / "capture"
     with pytest.raises(DataError, match="resumes"):
-        builderhub.capture(builderhub.DATASET_ID, output, 5, {"previous": "none", "workers": "1", "unavailable_limit": "0"}, request=hub, root=tmp_path,
+        builderhub.capture(builderhub.DATASET_ID, output, 5, {"previous": "none", "workers": "1", "unavailable_limit": "0"}, request=hub,
                            sleep=lambda _: None)
     partial = tmp_path / "day1" / ".capture.partial"
     assert len((partial / builderhub.DETAIL_RAW).read_bytes().splitlines()) == 2
     hub.fail.clear()
     hub.calls.clear()
-    builderhub.capture(builderhub.DATASET_ID, output, 5, {"previous": "none", "unavailable_limit": "0"}, request=hub, root=tmp_path, sleep=lambda _: None)
+    builderhub.capture(builderhub.DATASET_ID, output, 5, {"previous": "none", "unavailable_limit": "0"}, request=hub, sleep=lambda _: None)
     assert hub.calls == [f"{LIST}/NodeID-c"]
     assert json.loads((output / "capture.json").read_text())["details"] == 3
     assert not partial.exists()
@@ -97,7 +97,8 @@ def test_ended_nodes_are_asked_again_and_fallback_is_flagged(tmp_path):
     run(tmp_path, "day1", FakeHub(["NodeID-a", "NodeID-gone"], end))
     hub = FakeHub(["NodeID-a", "NodeID-fallback"], end + timedelta(hours=24))
     directory = tmp_path / "day2"
-    builderhub.capture(builderhub.DATASET_ID, directory / "capture", 5, {}, request=hub, root=tmp_path, sleep=lambda _: None)
+    builderhub.capture(builderhub.DATASET_ID, directory / "capture", 5, {}, request=hub,
+                       readings=datasets.readings(builderhub.READS, {}, tmp_path, builderhub.READ_DEFAULTS), sleep=lambda _: None)
     builderhub.build(builderhub.DATASET_ID, directory / "capture", directory / "dataset")
     receipt = json.loads((directory / "capture" / "capture.json").read_text())
     assert receipt["previous"]["run"] == "day1" and receipt["nodes_ended_requested"] == 1
@@ -138,7 +139,7 @@ def test_import_wraps_the_preservation_copy(tmp_path):
     (source / "validator-details.jsonl").write_text(json.dumps({"node_id": "NodeID-a", "body": detail("NodeID-a", end)}) + "\n")
     (source / "receipt.json").write_text(json.dumps({"started_at": "2026-09-24T08:05:32+00:00", "completed_at": "2026-09-24T08:11:47+00:00", "nodes": 1, "failed": []}))
     output = tmp_path / "imported" / "capture"
-    receipt = builderhub.capture(builderhub.DATASET_ID, output, 5, {"import": str(source)}, request=None, root=tmp_path)
+    receipt = builderhub.capture(builderhub.DATASET_ID, output, 5, {"import": str(source)}, request=None)
     assert receipt["completed_at"] == "2026-09-24T08:11:47+00:00" and receipt["import"]["imported_from"] == str(source)
     builderhub.build(builderhub.DATASET_ID, output, tmp_path / "imported" / "dataset")
     assert builderhub.check(output, tmp_path / "imported" / "dataset")["status"] == "pass"
@@ -171,6 +172,20 @@ def test_ended_nodes_the_source_cannot_serve_never_count_as_an_outage(tmp_path):
     run(tmp_path, "day1", FakeHub(["NodeID-a"] + [f"NodeID-gone{index}" for index in range(5)], END))
     hub = FakeHub(["NodeID-a"], END + timedelta(hours=24), fail={f"NodeID-gone{index}" for index in range(5)})
     directory = tmp_path / "day2"
-    receipt = builderhub.capture(builderhub.DATASET_ID, directory / "capture", 5, {"workers": "1"}, request=hub, root=tmp_path, sleep=lambda _: None)
+    receipt = builderhub.capture(builderhub.DATASET_ID, directory / "capture", 5, {"workers": "1"}, request=hub,
+                                 readings=datasets.readings(builderhub.READS, {"workers": "1"}, tmp_path, builderhub.READ_DEFAULTS), sleep=lambda _: None)
     assert receipt["details"] == 1 and len(receipt["unavailable"]) == 5
     assert {item["requested_because"] for item in receipt["unavailable"]} == {"ended-since-previous"}
+
+
+def test_the_previous_capture_is_resolved_by_the_command_line(tmp_path):
+    """IB4: auto with no built run means no previous capture. A named run the command line did not resolve is refused."""
+    assert datasets.readings(builderhub.READS, {}, tmp_path, builderhub.READ_DEFAULTS) == {}
+    assert builderhub._previous("auto", {}) is None and builderhub._previous("none", None) is None
+    with pytest.raises(DataError, match="not resolved"):
+        builderhub._previous("day1", {})
+    run(tmp_path, "day1", FakeHub(["NodeID-a"], END))
+    reading = datasets.readings(builderhub.READS, {}, tmp_path, builderhub.READ_DEFAULTS)["previous"]
+    assert reading["run"] == "day1" and builderhub._previous("auto", {"previous": reading})["nodes"] == ["NodeID-a"]
+    with pytest.raises(DataError, match="not resolved"):
+        builderhub._previous("day0", {"previous": reading})

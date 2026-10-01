@@ -195,7 +195,8 @@ def fetch(dataset_id: str, output: Path, params: tuple[str, ...], preview: bool,
     module = module_for(dataset_id)
     parameters = parse_parameters(params)
     # A capture that names a built run in a parameter gets that run resolved here, so it imports no dataset code.
-    extra = {"readings": datasets.readings(module.READS, parameters)} if hasattr(module, "READS") else {}
+    extra = ({"readings": datasets.readings(module.READS, parameters, defaults=getattr(module, "READ_DEFAULTS", None))}
+             if hasattr(module, "READS") else {})
     if preview:
         value = module.capture_preview(dataset_id, output, parameters, **extra)
         result = envelope("data fetch", "pass", {"text": f"preview {dataset_id}"}, preview=value)
