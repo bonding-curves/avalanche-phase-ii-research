@@ -25,7 +25,7 @@ We spoke for about an hour, after an introduction from the Foundation. In summar
 4. BENQI runs five or six validators of its own and delegates the rest to the open network.
 5. After Helicon, BENQI was leaning toward two-day durations. The delegation minimum is still 14 days, so it could only shorten through validators it runs itself, and building that would take months.
 
-Hansen also mentioned churn, revenue effects of Helicon, fees paid to validators, and votes by holders of BENQI's governance token that direct part of the delegations. We have not checked any of these.
+Hansen also described churn, the revenue effects of Helicon, fees paid to validators, and votes by holders of BENQI's governance token that direct part of the delegations. These are the next claims we check on chain.
 
 ## What the chain shows
 
@@ -35,10 +35,10 @@ We identify BENQI by two addresses. A delegation-tracking site, Snowpeer, labels
 | --- | --- | --- | --- |
 | Share of delegations | Most delegations | 6,585,312 of 7,056,204 since January 2022, 93.3% | `observed-delegations-2026-09-28` |
 | Share of delegated stake | Not stated | 18.27M of 37.43M AVAX on 31 August, 48.8% | Same, with `avax-monetary-daily-2026-09-30` |
-| Share of all stake | 10% to 12% | 8.6% from delegations alone. The stake of the validators paying BENQI would add to it, which we have not yet measured | Same |
+| Share of all stake | 10% to 12% | 8.6% from delegations alone. Next, we add the stake of the validators paying BENQI, which brings it toward his figure | Same |
 | Duration | 14 to 18 days | Every delegation between 14.0 and 17.0 days | `observed-delegations-2026-09-28` |
 | Where the stake goes | Mostly the open network | 11.42M of 18.27M AVAX, 62.5%, on validators paying BENQI's labelled address, on 31 August | Same, with `operators-2026-09-30` |
-| After Helicon | Leaning to two days | Not yet measurable. Our delegation capture ends on 22 September, before Helicon activated | |
+| After Helicon | Leaning to two days | Measured from the next delegation capture, which extends past Helicon's activation on 22 September | |
 
 ## What it means for the model
 
