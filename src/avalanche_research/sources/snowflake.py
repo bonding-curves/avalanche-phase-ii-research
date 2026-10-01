@@ -8,7 +8,6 @@ import os
 import shutil
 import tempfile
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -17,14 +16,24 @@ import duckdb
 
 from .. import __version__
 from ..core.catalog import (
-    DATA_DIR, DataError, canonical_bytes, contract_hash, dataset, load_catalog, now, sha256, source,
+    DataError, canonical_bytes, contract_hash, dataset, load_catalog, now, sha256, source,
+)
+from .capture.snowflake import (  # noqa: F401  the client helpers stay reachable under this module's name
+    CONNECTION_VARIABLE,
+    DEFAULT_CONNECTION,
+    FETCH_SIZE,
+    QUERY_TAG,
+    SESSION_SQL,
+    _connector_error,
+    _json_value,
+    _session,
+    connect,
+    connection_name,
+    read_sql,
 )
 
 
 SOURCE_ID = "avalanche-snowflake"
-CONNECTION_VARIABLE = "AVALANCHE_SNOWFLAKE_CONNECTION"
-DEFAULT_CONNECTION = "avalanche"
-QUERY_TAG = "avalanche-phase-ii-research"
 GENESIS_DATE = "2020-09-10"
 C_CHAIN_FIRST_DATE = "2020-09-23"
 NAVAX_PER_AVAX = 1_000_000_000
@@ -39,8 +48,6 @@ DELEGATOR_STAKE_NAVAX = (25 * NAVAX_PER_AVAX, 3_000_000 * NAVAX_PER_AVAX)
 FEE_SHARES = (20_000, FEE_SHARES_PER_UNIT)
 GENESIS_SUPPLY_NAVAX = 360_000_000 * NAVAX_PER_AVAX
 SUPPLY_CAP_NAVAX = 720_000_000 * NAVAX_PER_AVAX
-SESSION_SQL = "SELECT CURRENT_ROLE(), CURRENT_WAREHOUSE(), CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_VERSION()"
-FETCH_SIZE = 10_000
 
 
 @dataclass(frozen=True)
@@ -635,33 +642,6 @@ def spec_for(dataset_id: str) -> DatasetSpec:
         raise DataError(f"unknown Snowflake dataset: {dataset_id}") from None
 
 
-def connection_name() -> str:
-    return os.environ.get(CONNECTION_VARIABLE, DEFAULT_CONNECTION)
-
-
-def connect(name: str, timeout: float) -> Any:
-    """Open a Snowflake connection through the connector's named-connection configuration."""
-    try:
-        import snowflake.connector
-    except ImportError as error:
-        raise DataError(
-            "snowflake-connector-python is not installed; run: uv sync --locked --extra snowflake"
-        ) from error
-    try:
-        return snowflake.connector.connect(
-            connection_name=name,
-            login_timeout=int(timeout),
-            network_timeout=int(timeout),
-            session_parameters={"QUERY_TAG": QUERY_TAG, "STATEMENT_TIMEOUT_IN_SECONDS": int(timeout)},
-        )
-    except snowflake.connector.errors.Error as error:
-        raise DataError(f"Snowflake connection {name!r} failed: {error}") from error
-
-
-def _connector_error(error: BaseException) -> bool:
-    return type(error).__module__.startswith("snowflake.")
-
-
 def query_definition(catalog: dict[str, Any], dataset_id: str) -> dict[str, Any]:
     spec = spec_for(dataset_id)
     definition = dataset(catalog, dataset_id)
@@ -669,13 +649,6 @@ def query_definition(catalog: dict[str, Any], dataset_id: str) -> dict[str, Any]
     if "queries" not in provider or definition.get("query_ids") != [spec.query_id]:
         raise DataError(f"dataset is not a Snowflake query dataset: {dataset_id}")
     return next(item for item in provider["queries"] if item["id"] == spec.query_id)
-
-
-def read_sql(query: dict[str, Any]) -> str:
-    try:
-        return (DATA_DIR / query["sql"]).read_text(encoding="utf-8")
-    except OSError as error:
-        raise DataError(f"missing query text: {query['sql']}") from error
 
 
 def resolve_parameters(parameters: dict[str, str] | None) -> dict[str, str]:
@@ -727,31 +700,6 @@ def capture_preview(
         "writes": [f"raw/{spec.query_id}.sql", f"raw/{spec.query_id}.jsonl.gz", "capture.json"],
         "overwrite": False,
     }
-
-
-def _json_value(value: Any) -> Any:
-    if value is None or isinstance(value, (bool, int, float, str)):
-        return value
-    if isinstance(value, Decimal):
-        return int(value) if value == value.to_integral_value() else float(value)
-    if isinstance(value, datetime):
-        if value.tzinfo is not None:
-            value = value.astimezone(timezone.utc).replace(tzinfo=None)
-        spec = "seconds" if value.microsecond == 0 else "microseconds"
-        return value.isoformat(timespec=spec) + "Z"
-    if isinstance(value, date):
-        return value.isoformat()
-    raise DataError(f"unsupported value type from Snowflake: {type(value).__name__}")
-
-
-def _session(connection: Any) -> dict[str, Any]:
-    cursor = connection.cursor()
-    try:
-        cursor.execute(SESSION_SQL)
-        role, warehouse, database, schema, version = cursor.fetchall()[0]
-    finally:
-        cursor.close()
-    return {"role": role, "warehouse": warehouse, "database": database, "schema": schema, "server_version": version}
 
 
 def capture(
