@@ -8,7 +8,8 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import cblocks, datasets
+from avalanche_research import datasets
+from avalanche_research.sources import cblocks
 from avalanche_research.catalog import DataError, canonical_bytes, load_catalog, sha256
 
 HEIGHTS = [100, 101, 205]

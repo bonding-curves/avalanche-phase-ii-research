@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 from test_pblocks import FakeNode, blocks
 
-from avalanche_research import datasets, pblocks, pstakers
+from avalanche_research import datasets, pblocks
+from avalanche_research.sources import pstakers
 from avalanche_research.catalog import DataError, load_catalog
 
 # A reward UTXO the node returned on 2026-09-29 for 2eLyKrgXUPBLikPkTwUHii4FB7tXQ53wfgqaGaPJxuDeE6Rhjx: 1,586,601,847 nAVAX.
