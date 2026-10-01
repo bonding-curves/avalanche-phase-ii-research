@@ -28,6 +28,7 @@ packages = ["src/avalanche_research"]
 
 [dependency-groups]
 dev = [
+  "import-linter>=2.15,<3",
   "pytest>=8.4,<9",
 ]
 model = [
@@ -49,3 +50,44 @@ notebook = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# The package's import direction (the restructure note's K1 to K4, and K5). A layer in parentheses is optional: it
+# does not exist yet, and the parentheses come off as each subpackage lands. tests/test_architecture.py runs these in
+# report mode against architecture-baseline.txt until the restructure's last step.
+[tool.importlinter]
+root_package = "avalanche_research"
+
+[[tool.importlinter.contracts]]
+id = "K1"
+name = "One direction"
+type = "layers"
+containers = ["avalanche_research"]
+layers = ["views | cli", "datasets | model", "sources | domain", "core"]
+
+[[tool.importlinter.contracts]]
+id = "K2"
+name = "Experiments import the engine, never the reverse. The engine and estimation never import each other"
+type = "layers"
+containers = ["avalanche_research.model"]
+layers = ["(experiments)", "engine | (estimation)", "blocks | (mechanisms)"]
+
+[[tool.importlinter.contracts]]
+id = "K3"
+name = "Mechanisms do not import the engine"
+type = "forbidden"
+source_modules = ["avalanche_research.mechanisms"]
+forbidden_modules = ["avalanche_research.model.engine", "avalanche_research.model.lifecycle"]
+
+[[tool.importlinter.contracts]]
+id = "K4"
+name = "The rules and the model run without the catalog"
+type = "forbidden"
+source_modules = ["avalanche_research.domain", "avalanche_research.model"]
+forbidden_modules = ["avalanche_research.catalog"]
+
+[[tool.importlinter.contracts]]
+id = "K5"
+name = "The rules and the model never import data code"
+type = "forbidden"
+source_modules = ["avalanche_research.domain", "avalanche_research.model"]
+forbidden_modules = ["avalanche_research.sources", "avalanche_research.datasets"]
