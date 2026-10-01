@@ -26,7 +26,7 @@ def source_commit() -> dict[str, object]:
     def git(*arguments: str) -> str:
         return subprocess.run(["git", *arguments], cwd=here, check=True, capture_output=True, text=True).stdout.strip()
 
-    return {"source_commit": git("rev-parse", "HEAD"), "source_dirty": bool(git("status", "--porcelain", "--untracked-files=no", "--", "src", "scripts"))}
+    return {"source_commit": git("rev-parse", "HEAD"), "source_dirty": bool(git("status", "--porcelain", "--untracked-files=no", "--", ":/src", ":/scripts/figures/diagrams.py"))}
 
 
 def data_path(folder: Path, periods_run: str | None = None, ledger_run: str | None = None) -> None:
