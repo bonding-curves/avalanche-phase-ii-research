@@ -417,47 +417,75 @@ with admissible and rejected regions identified, together with the implementatio
 
 ---
 
-## Stage 4: Stress-Test the Mechanism
+## Stage 4: Stress-Test the Mechanism (Empirical Validator Digital Twin & PSuU)
 
-**Core Question:** Does the mechanism behave acceptably when heterogeneous validators interact?
+**Core Question:** How does the candidate mechanism perform under uncertainty when replayed across empirically grounded validator populations, and how sensitive are system outcomes to unresolved yield-response behaviors?
 
 **Scope:**
 
-1. Implement the candidate frontier in radCAD with validator renewal decisions driven by the Stage 2 behavioral model.
+1. **Three-Layer Data Architecture for Digital Twin Grounding:**
+   The simulation model is grounded directly in real-world validator data structured into three distinct operational layers:
+   - *Layer A: Full Historical Data (Genesis to Present):* The complete historical dataset (`derived.node-table` covering 7,644 historical Primary Network nodes, `derived.staking-periods`, and completed validation records) serves as the behavioral foundation. It establishes the empirical distribution of entry timing, exit hazards, renewal habits, accumulated tenure, streak persistence, duration choices, self-stake magnitudes, delegation capacity utilization, stake concentration, and multi-cohort population dynamics.
+   - *Layer B: Current-Regime Data:* The most relevant recent and current validator population (active nodes captured via P-Chain RPC snapshots and Data API telemetry) initializes the baseline digital-twin population. Its purpose is to represent the active validator set operating under current protocol parameters without imposing an arbitrary historical lookback window.
+   - *Layer C: Post-ACP-285 / Helicon Data:* Observations collected under ACP-285 / Helicon provide the specific empirical foundation to begin identifying how validators respond to duration-dependent yield spreads and reward differentials.
 
-2. Compare:
+2. **Validator Profile Construction from Observed Heterogeneity:**
+   Representative validator profiles are derived directly from observed historical distributions to preserve real-world heterogeneity across stake, duration, tenure, renewal propensity, delegation position, and operator scale:
+   - *Profile A (Capital-Constrained Solo Validators):* Reconstructed from historical nodes operating near minimum self-stake ($S_i \approx 2{,}000$ AVAX historically), carrying zero delegation ($D_i = 0$), and absorbing 100% of server costs. Evaluated against break-even solvency at $S_{\mathrm{floor}}$.
+   - *Profile B (Commercial Delegator-Facing Validators):* Reconstructed from historical nodes with substantial self-stake ($S_i \gg 2{,}000$ AVAX), high delegation fill (median 74% of capacity), and active commission fee capture ($f_{\mathrm{del}} \in [2\%, 10\%]$). Evaluated against the delegation eligibility threshold $d_{\mathrm{del,\min}}$.
+   - *Profile C (Multi-Purpose Ecosystem Validators):* Reconstructed from institutional and infrastructure nodes exhibiting continuous streaks, co-funded operations (Subnets/L1s, RPC services), and low sensitivity to standalone Primary Network staking returns.
 
-   $$
-   \text{Baseline mechanism}
-   $$
+3. **Clarifying the Identification Limitation (Three Behavioral Dimensions):**
+   Validator behavior is not unknown overall. Historical records provide substantial, high-confidence empirical evidence regarding validator behavior:
+   - *Observed Behavior:* Entry timing, baseline duration preferences, calendar milestone clustering (14d, 30d, 60d, 90d, 180d, 365d), renewal propensities, streak lengths, exit hazards, self-stake sizing, and delegation capacity utilization are observed and estimated from history.
+   - *Partially Identified Behavior:* Duration switching under shifting capital hurdles and delegation re-routing upon node exit, where historical data provides structural boundaries but incomplete counterfactual variation.
+   - *Currently Unidentified Behavior (Yield / Reward Sensitivity):* The specific unresolved behavioral relationship is how sensitive validators are to yield and reward changes. Historically, protocol staking yield was effectively stable, providing insufficient variation to identify a reliable yield-elasticity function. Lack of historical yield variation is a limitation on estimating yield sensitivity specifically, not a limitation on reconstructing validator behavior generally.
 
-   against:
+4. **Immediate Simulation Execution via Bounded Yield Scenarios:**
+   The digital twin can and should be built, validated, and run now using the historical behavioral foundation and current-regime population baseline. Simulation does not wait for future data. What awaits additional post-Helicon observations is stronger empirical calibration of the yield-response function. To evaluate the candidate admission mechanism immediately under uncertainty, Stage 4 introduces three bounded yield-sensitivity scenarios:
+    - *Scenario Y1 (Low Yield Sensitivity):* Validator duration choices and renewal decisions are dominated by operational conventions, capital lockup limits, and existing delegation relationships, exhibiting low migration in response to duration reward differentials.
+    - *Scenario Y2 (Moderate Yield Sensitivity):* Validators exhibit proportional substitution toward longer, higher-reward tenures as duration reward spreads widen, balanced by capital lockup frictions.
+    - *Scenario Y3 (High Yield Sensitivity):* Validators actively optimize staking duration to maximize net annual yield, rapidly migrating toward peak-reward tenures and exhibiting high elasticity to outside liquid staking or lending benchmarks.
+    - *Algorithmic Implementation & Purpose:* While parameterized at the methodology level as low, moderate, and high, simulation execution translates each scenario into explicit algorithmic transition rules and numerical elasticity parameters. This structure determines how much the mechanism's performance, stability boundaries, and optimal parameter envelopes $(S_{\mathrm{floor}}, S_{\mathrm{short}}, p)$ depend on this specific unresolved behavioral parameter.
 
-   $$
-   \text{Duration-dependent frontier}.
-   $$
+5. **Measures of Effectiveness (MOEs):**
+   Mechanism performance is evaluated across five quantitative MOEs expressed strictly in consensus, economic, and network terms, without governance or voting terminology:
+   - *MOE 1: Validator-Set Stability ($S_N$):*
+     $$S_N = \frac{\sigma(N)}{\bar{N}}$$
+     Measures active validator population volatility across the simulation horizon under macroeconomic price and return shocks. Informs whether candidate admission hurdles cause destabilizing validator dropouts.
+   - *MOE 2: Validator Churn & Renewal Dynamics ($\lambda_{\mathrm{turnover}}, \lambda_{\mathrm{short}}$):*
+     $$\lambda_{\mathrm{turnover}}(t) = \frac{A(t) + E(t)}{2N(t)}, \qquad \lambda_{\mathrm{short}} = \frac{1}{T} \sum_{t=1}^T \frac{A_{\mathrm{short}}(t) + E_{\mathrm{short}}(t)}{2N(t)}$$
+     where $A_{\mathrm{short}}(t)$ and $E_{\mathrm{short}}(t)$ measure arrivals and exits on tenures below the delegation eligibility minimum ($d < d_{\mathrm{del,\min}}$). Evaluates overall network turnover and quantifies whether $S_{\mathrm{short}}$ successfully dampens transient short-tenure churn.
+   - *MOE 3: Stake Concentration / Decentralization Across Nodes and Clustered Operators ($HHI, C_K$):*
+     $$HHI_{\mathrm{node}}(t) = \sum_{i=1}^{N(t)} s_i(t)^2 \times 10{,}000, \qquad HHI_{\mathrm{operator}}(t) = \sum_{j=1}^{M(t)} \omega_j(t)^2 \times 10{,}000$$
+     $$C_{K,\mathrm{operator}}(t) = \sum_{j=1}^K \omega_{(j)}(t) \quad (K=10, 20)$$
+     where $s_i(t) = \frac{S_i(t) + D_i(t)}{S_{\mathrm{total}}(t) + D_{\mathrm{total}}(t)}$ is node $i$'s share of active consensus stake weight, and $\omega_j(t) = \sum_{i \in \text{Operator } j} s_i(t)$ aggregates consensus stake across all nodes belonging to the same identified operator cluster. Evaluates both node-level dispersion and operator-level concentration, ensuring that multi-node operators do not mask true consensus stake concentration.
+   - *MOE 4: Economic Viability Across Validator Profiles ($V_{\mathrm{profile}, k}$):*
+     $$V_{\mathrm{profile}, k}(t) = \frac{1}{N_k} \sum_{i \in \text{Profile } k} \chi\left( \text{Net\_Operating\_Margin}_i(t) > 0 \right)$$
+     Measures the proportion of validators within each empirical profile that maintain positive net operating margins under endogenous staking yields $R_{\mathrm{macro}}(t)$ and market price scenarios. Informs whether $S_{\mathrm{floor}}$ represents a sustainable economic tier for solo operators.
+   - *MOE 5: Network-Capacity Pressure ($H_{\mathrm{cap}}$):*
+     $$H_{\mathrm{cap}} = \min\left( 1 - \frac{\max_t N(t)}{N_{\max}}, \; 1 - \frac{\max_t \lambda_{\mathrm{turnover}}(t)}{\lambda_{\max}} \right)$$
+     Measures operational safety headroom relative to external telemetry capacity limits $(N_{\max}, \lambda_{\max})$ established by Ava Labs engineering benchmarks. Informs whether a parameter configuration breaches P2P gossip or PlatformVM throughput capacity.
 
-3. Track:
+6. **Parameter Selection under Uncertainty (PSuU):**
+   Execute structured parameter sweeps across uncertain policy, behavioral, and macroeconomic dimensions:
+   - Policy parameters: $S_{\mathrm{floor}} \in [500, 2{,}000]$ AVAX, $S_{\mathrm{short}} \in [5{,}000, 25{,}000]$ AVAX.
+   - Exponent sweep: Canonical baseline $p = 1.0$ evaluated against alternative candidates $p \in \{1.2, 1.5, 2.0, 3.0\}$. No $p$ range is claimed to be universally valid; simulation tests whether curvature flexibility produces material value over the linear harmonic baseline.
+   - Yield-sensitivity scenarios: Scenarios Y1 (Low), Y2 (Moderate), and Y3 (High).
+   - Macroeconomic stress scenarios: Exploratory price assumptions ($25 AVAX and $15 AVAX) and volatile price cycles, explicitly treated as stress assumptions for parameter exploration rather than empirically established economic thresholds.
+   - Perform global variance decomposition to determine which parameters dominate MOE outcomes, which have marginal impact, and where parameter combinations are robust.
 
-   $$
-   N(t),
-   \quad
-   N_{\mathrm{churn}}(t),
-   \quad
-   S_{\mathrm{total}}(t),
-   \quad
-   HHI(t).
-   $$
+7. **Deferred Empirical Calibration Questions:**
+   - The simulation methodology strictly distinguishes: *Observed from history* vs. *Calibrated from history* vs. *Assumed for scenario testing* vs. *Not yet identifiable from available data*.
+   - The lack of historical yield variation is a limitation on estimating yield sensitivity, not a limitation on reconstructing validator behavior generally.
+   - ACP-285 / Helicon data is formally treated as the beginning of the empirical calibration opportunity for yield sensitivity, to be monitored as post-policy observations accumulate over relevant renewal cycles, while the simulation framework proceeds immediately.
 
-4. Test the mechanism under relevant stress scenarios.
-
-5. Where validated consensus/network capacity information is available, compare simulated validator population and churn against that capacity.
-
-**Output:** Stress-test report resulting in one of:
-
-1. **Candidate region supported for external review.**
-2. **Candidate supported only within a defined parameter range.**
-3. **Mechanism fails and requires redesign.**
+**Output:** Comprehensive PSuU Stress-Test Report containing:
+1. Empirical validator population and profile baseline characteristics.
+2. Sensitivity ranking across MOE 1 through MOE 5 under low, moderate, and high yield responsiveness.
+3. Robustness heatmaps identifying feasible $(S_{\mathrm{floor}}, S_{\mathrm{short}}, p)$ operational envelopes.
+4. Comparative outcome analysis of the canonical baseline $p = 1$ versus candidate $p > 1$ curves across all five MOEs to examine structural trade-offs without forcing an artificial single-score ranking.
+5. Network-capacity headroom compliance verification.
 
 ---
 
