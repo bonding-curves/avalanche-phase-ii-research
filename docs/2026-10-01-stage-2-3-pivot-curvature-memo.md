@@ -25,11 +25,11 @@ Following forensic review, the previously tentative claim that "14 days is the e
 
 We distinguish three separate operational layers:
 1. **Protocol Eligibility ($A^{\mathrm{prot}}_{\mathrm{del}}(d)$):** Under ACP-273 / ACP-285, the protocol permits delegation only if validator duration $d \ge 14\text{ days}$. This is a **necessary protocol condition**, but **not a sufficient condition for receiving delegation**.
-2. **Provider-Level Constraints ($A^{\mathrm{prov}}_{\mathrm{del}}$):** Liquid staking and institutional allocators (e.g., BENQI) impose severe requirements far beyond the protocol rules:
+2. **Provider-Level Constraints ($A^{\mathrm{prov}}_{\mathrm{del}}$):** Liquid staking and institutional allocators (e.g., BENQI) impose multi-tiered requirements far beyond the protocol rules:
    - *BENQI Open Pool (65% of delegation):* Requires self-stake $S \ge 6{,}000\text{ AVAX}$, high-spec hardware, $\ge 15\text{ days}$ uptime, and a fixed $2\%$ fee. A validator with 2,000 AVAX is **completely excluded**.
-   - *BENQI Miles Pool (35% of delegation):* Requires $S \ge 2{,}000\text{ AVAX}$, $\ge 15\text{ days}$ uptime, governance voting support, and fee $\le 5\%$.
-   - Any validator with fee $> 5\%$ is excluded from BENQI entirely. `[EXTERNALLY SOURCED]`
+   - *BENQI Miles Pool (35% of delegation):* Requires $S \ge 2{,}000\text{ AVAX}$, $\ge 15\text{ days}$ uptime, and fee $\le 5\%$. While this provides an eligibility pathway to smaller validators, **eligibility does not imply material delegation**. Actual allocation depends strictly on BENQI Miles user voting support. Validators with fee $> 5\%$ are excluded from BENQI entirely. `[EXTERNALLY SOURCED]`
 3. **Delegator Time-Matching Preference ($M(d)$):** Retail delegators must commit for at least 14 days and cannot lock past the validator's end date. At $d = 14\text{--}21\text{ days}$, empirical capacity utilization is a negligible **3.9%** (and only 5.5% even for `lst_magnet` nodes). Meaningful delegation utilization only unlocks at $d \ge 30\text{ days}$ (21.1%) and matures at $d \ge 60\text{--}90\text{ days}$ (60.7%). `[OBSERVED]`
+
 
 ### Core Conclusions
 
@@ -161,11 +161,14 @@ Where:
 
 #### Key Empirical Insights:
 1. **At 14–21 Days, Delegation Access is Effectively Suppressed:**  
-   Even for nodes classified as `lst_magnet` (nodes specifically operated to attract LST delegation), only 35.4% receive any delegation, and average capacity utilization is only 5.5%.
-2. **Effective Access Unlocks at 30+ Days:**  
+   Even for nodes classified as `lst_magnet` (nodes specifically operated to attract LST delegation), only 35.4% receive any delegation, and average capacity utilization is only 5.5%. The broader 14–21 day cohort utilizes only 3.9% of its 4x capacity.
+2. **BENQI Miles Eligibility vs. Material Allocation:**  
+   BENQI Miles provides a delegation pathway to smaller validators ($S \ge 2{,}000\text{ AVAX}$, $\ge 15\text{ days}$ uptime), but eligibility does not imply material delegation. Historical utilization data show very low delegation utilization among 14–21 day validators, while actual allocation under the Miles Pool (representing 35% of BENQI delegations) is further conditioned on Miles-based user voting support.
+3. **Effective Access Unlocks at 30+ Days:**  
    Delegation utilization jumps more than 5x from 14–21d to 22–35d (from 3.9% to 21.1%), and surpasses 60% for durations over 66 days.
-3. **The 2,000 AVAX Fallacy:**  
+4. **The 2,000 AVAX Fallacy:**  
    Posting 2,000 AVAX at 14 days satisfies the protocol rule, but does not grant entry to the primary commercial delegation pool (BENQI Open Pool requires 6,000 AVAX).
+
 
 ---
 
