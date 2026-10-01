@@ -81,6 +81,9 @@ def compute(inputs: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
     paths = {item["input_id"]: str(item["path"]).replace("'", "''") for item in inputs}
     connection = duckdb.connect()
     try:
+        # The means average floating-point ratios. Summed across threads, their last digits depend on the order the
+        # threads finish, and the check's rebuild then differs from the build. One thread makes the order fixed.
+        connection.execute("SET threads TO 1")
         connection.execute(f"CREATE VIEW ledger AS SELECT * FROM read_parquet('{paths['ledger']}')")
         connection.execute(f"CREATE VIEW rewards AS SELECT * FROM read_parquet('{paths['rewards']}')")
         connection.execute("CREATE TABLE starts(regime VARCHAR, starts_at TIMESTAMP)")
