@@ -8,7 +8,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import cblocks
+from avalanche_research import cblocks, datasets
 from avalanche_research.catalog import DataError, canonical_bytes, load_catalog, sha256
 
 HEIGHTS = [100, 101, 205]
@@ -46,7 +46,7 @@ def test_catalog_declares_the_dataset():
 def test_capture_build_check_against_the_gaps_run(tmp_path):
     root = make_gaps_run(tmp_path / "runs")
     capture, dataset = tmp_path / "capture", tmp_path / "dataset"
-    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=fake_request, root=root)
+    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=fake_request, readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     assert [item["block_height"] for item in receipt["blocks"]] == HEIGHTS and receipt["blocks_listed"] == 3 and receipt["retries"] == 0
     assert not (capture / cblocks.PROGRESS).exists()
     built = cblocks.build(cblocks.DATASET_ID, capture, dataset)
@@ -55,7 +55,7 @@ def test_capture_build_check_against_the_gaps_run(tmp_path):
     assert checked["status"] == "pass" and checked["summary"]["unlisted_blocks"] == 0
     rows = duckdb.sql(f"SELECT block_height, date_utc, fees_wei FROM read_parquet('{dataset / 'c-chain-block-fees.parquet'}') ORDER BY 1").fetchall()
     assert rows[0][0] == 100 and str(rows[0][1]) == "2023-10-06" and int(rows[0][2]) == 10**15 + 100
-    only_short = cblocks.capture(cblocks.DATASET_ID, tmp_path / "short", parameters={"gaps": "gaps", "kind": "short"}, request=fake_request, root=root)
+    only_short = cblocks.capture(cblocks.DATASET_ID, tmp_path / "short", parameters={"gaps": "gaps", "kind": "short"}, request=fake_request, readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     assert [item["block_height"] for item in only_short["blocks"]] == [205]
 
 
@@ -72,9 +72,9 @@ def test_failed_walk_keeps_lines_and_resumes(tmp_path, monkeypatch):
 
     capture = tmp_path / "capture"
     with pytest.raises(DataError, match="1 blocks kept"):
-        cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=flaky, root=root)
+        cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=flaky, readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     kept = next(tmp_path.glob(".capture.*"))
-    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "resume": str(kept)}, request=flaky, root=root)
+    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "resume": str(kept)}, request=flaky, readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     assert [item["block_height"] for item in receipt["blocks"]] == HEIGHTS and not kept.exists()
     assert cblocks.check(capture)["status"] == "pass"
 
@@ -89,9 +89,9 @@ def test_wrong_block_and_tampered_line_are_rejected(tmp_path):
         return json.dumps(value).encode(), metadata
 
     with pytest.raises(DataError, match="answered block 999"):
-        cblocks.capture(cblocks.DATASET_ID, tmp_path / "wrong", parameters={"gaps": "gaps"}, request=wrong, root=root)
+        cblocks.capture(cblocks.DATASET_ID, tmp_path / "wrong", parameters={"gaps": "gaps"}, request=wrong, readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     capture = tmp_path / "capture"
-    cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=fake_request, root=root)
+    cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=fake_request, readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     raw = capture / cblocks.RAW
     raw.write_bytes(raw.read_bytes().replace(b'"txCount": 2', b'"txCount": 3', 1))
     with pytest.raises(DataError, match="hash or size differs"):
@@ -102,7 +102,7 @@ def test_wrong_block_and_tampered_line_are_rejected(tmp_path):
 def test_parameters_are_checked(parameters, tmp_path):
     root = make_gaps_run(tmp_path / "runs")
     with pytest.raises(DataError):
-        cblocks.capture_preview(cblocks.DATASET_ID, tmp_path / "capture", parameters, root=root)
+        cblocks.capture_preview(cblocks.DATASET_ID, tmp_path / "capture", parameters, datasets.readings(cblocks.READS, parameters, root))
 
 
 def test_parallel_workers_keep_height_order(tmp_path):
@@ -115,7 +115,7 @@ def test_parallel_workers_keep_height_order(tmp_path):
         return fake_request(url, timeout)
 
     capture = tmp_path / "capture"
-    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "workers": "3"}, request=slow_first, root=root)
+    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "workers": "3"}, request=slow_first, readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     assert [item["block_height"] for item in receipt["blocks"]] == HEIGHTS
     assert cblocks.check(capture)["status"] == "pass"
 
@@ -131,11 +131,11 @@ def test_resume_cuts_back_a_walk_stopped_between_writes(tmp_path, monkeypatch):
 
     capture = tmp_path / "capture"
     with pytest.raises(DataError, match="2 blocks kept"):
-        cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=dies_at_205, root=root)
+        cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps"}, request=dies_at_205, readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     kept = next(tmp_path.glob(".capture.*"))
     progress = kept / cblocks.PROGRESS
     progress.write_text("".join(progress.read_text().splitlines(keepends=True)[:-1]))  # the second record never written
-    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "resume": str(kept)}, request=fake_request, root=root)
+    receipt = cblocks.capture(cblocks.DATASET_ID, capture, parameters={"gaps": "gaps", "resume": str(kept)}, request=fake_request, readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     assert [item["block_height"] for item in receipt["blocks"]] == HEIGHTS
     assert cblocks.check(capture)["status"] == "pass"
 
@@ -162,7 +162,7 @@ def test_the_receipt_source_computes_fees_and_checks_them_against_the_header(tmp
     assert [field["name"] for field in definition["fields"]] == list(cblocks.COLUMNS)
     root = make_gaps_run(tmp_path / "runs")
     capture, dataset = tmp_path / "capture", tmp_path / "dataset"
-    receipt = cblocks.capture(cblocks.RPC_DATASET_ID, capture, parameters={"gaps": "gaps", "workers": "2"}, request=rpc_request(node_batch), root=root)
+    receipt = cblocks.capture(cblocks.RPC_DATASET_ID, capture, parameters={"gaps": "gaps", "workers": "2"}, request=rpc_request(node_batch), readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
     assert receipt["dataset_id"] == cblocks.RPC_DATASET_ID and [item["block_height"] for item in receipt["blocks"]] == HEIGHTS
     built = cblocks.build(cblocks.RPC_DATASET_ID, capture, dataset)
     fee = 21_000 * 30_000_000_000 + 40_000 * 26_000_000_000
@@ -184,4 +184,15 @@ def test_the_receipt_source_computes_fees_and_checks_them_against_the_header(tmp
 def test_the_receipt_source_refuses_receipts_that_are_not_the_blocks(tmp_path, answer, message):
     root = make_gaps_run(tmp_path / "runs")
     with pytest.raises(DataError, match=message):
-        cblocks.capture(cblocks.RPC_DATASET_ID, tmp_path / "capture", parameters={"gaps": "gaps"}, request=rpc_request(answer), root=root)
+        cblocks.capture(cblocks.RPC_DATASET_ID, tmp_path / "capture", parameters={"gaps": "gaps"}, request=rpc_request(answer), readings=datasets.readings(cblocks.READS, {"gaps": "gaps"}, root))
+
+
+def test_a_capture_is_given_its_blocks_and_reads_no_dataset_code(tmp_path):
+    """IB4: the command line resolves the gaps run. The capture refuses a run it was not given."""
+    assert not hasattr(cblocks, "datasets")
+    make_gaps_run(tmp_path / "runs")
+    with pytest.raises(DataError, match="not resolved"):
+        cblocks.capture_preview(cblocks.DATASET_ID, tmp_path / "capture", {"gaps": "gaps"})
+    other = {"gaps": {"dataset_id": cblocks.GAPS_ID, "run": "another", "capture_id": "c", "parquet": tmp_path / "x.parquet"}}
+    with pytest.raises(DataError, match="not resolved"):
+        cblocks.capture_preview(cblocks.DATASET_ID, tmp_path / "capture", {"gaps": "gaps"}, other)

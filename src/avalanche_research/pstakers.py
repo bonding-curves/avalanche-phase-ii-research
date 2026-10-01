@@ -34,7 +34,7 @@ from typing import Any
 
 import duckdb
 
-from . import __version__, datasets
+from . import __version__
 from .catalog import (
     DataError,
     canonical_bytes,
@@ -52,6 +52,8 @@ REWARDS_ID = "p-chain-rpc.reward-utxos"
 DATASET_IDS = (STAKING_ID, REWARDS_ID)
 DATASET_ID = STAKING_ID
 BLOCKS_ID = "p-chain-rpc.blocks"
+# The command line resolves the walk run to a reading (datasets.readings), so a capture reads no dataset code.
+READS = {"blocks": BLOCKS_ID}
 SPECS = {
     STAKING_ID: {"source_id": "avalanche-data-api", "endpoint_id": "p-chain-transaction", "table": "p-chain-staking-transactions"},
     REWARDS_ID: {"source_id": "avalanche-p-chain-rpc", "endpoint_id": "get-reward-utxos", "table": "reward-utxos"},
@@ -119,11 +121,17 @@ def _parameters(parameters: dict[str, str] | None) -> dict[str, Any]:
             **{key: values[key] for key in ("resume", "extend") if values.get(key)}}
 
 
-def staking_hashes(run: str, root: Path | None = None, which: str = "all") -> tuple[dict[str, Any], list[str]]:
-    """The staking transactions the walk's reward transactions close, in walk order, and the walk's receipt. With
-    ``unrewarded-before-walk``, only those closed by an abort that the walk did not see start."""
-    record = datasets.receipt(BLOCKS_ID, run, root)
-    parquet = datasets.parquet_path(BLOCKS_ID, run, root)
+def _reading(values: dict[str, Any], readings: dict[str, dict[str, Any]] | None) -> dict[str, Any]:
+    reading = (readings or {}).get("blocks")
+    if reading is None or reading["run"] != values["blocks"]:
+        raise DataError(f"the blocks run {values['blocks']} was not resolved; fetch it through `avalanche data fetch`")
+    return reading
+
+
+def staking_hashes(reading: dict[str, Any], which: str = "all") -> list[str]:
+    """The staking transactions the walk's reward transactions close, in walk order. With ``unrewarded-before-walk``,
+    only those closed by an abort that the walk did not see start."""
+    parquet = reading["parquet"]
     connection = duckdb.connect()
     try:
         quoted = str(parquet).replace("'", "''")
@@ -136,16 +144,18 @@ def staking_hashes(run: str, root: Path | None = None, which: str = "all") -> tu
             " ORDER BY block_height, tx_index", [*REWARD_TYPES, which]).fetchall()]
     finally:
         connection.close()
-    return record, list(dict.fromkeys(hashes))
+    return list(dict.fromkeys(hashes))
 
 
-def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None, root: Path | None = None) -> dict[str, Any]:
+def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None,
+                    readings: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     spec = _spec(dataset_id)
     values = _parameters(parameters)
-    record, hashes = staking_hashes(values["blocks"], root, values["which"])
+    reading = _reading(values, readings)
+    hashes = staking_hashes(reading, values["which"])
     return {
         "dataset_id": dataset_id, "source_id": spec["source_id"], "output": str(output), "endpoint": _endpoint(load_catalog(), dataset_id, values["node"]),
-        "blocks_run": values["blocks"], "blocks_capture_id": record["capture"]["capture_id"], "stakes": len(hashes), "which": values["which"],
+        "blocks_run": values["blocks"], "blocks_capture_id": reading["capture_id"], "stakes": len(hashes), "which": values["which"],
         "workers": values["workers"], **{key: values[key] for key in ("resume", "extend") if key in values},
         "writes": [RAW, "capture.json"], "overwrite": False,
     }
@@ -164,13 +174,13 @@ def capture(
     timeout: float = 20,
     parameters: dict[str, str] | None = None,
     request: Callable[..., tuple[bytes, dict[str, Any]]] = _request,
-    root: Path | None = None,
+    readings: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    preview = capture_preview(dataset_id, output, parameters, root)
+    preview = capture_preview(dataset_id, output, parameters, readings)
     if output.exists():
         raise DataError(f"output already exists: {output}")
     catalog = load_catalog()
-    _, hashes = staking_hashes(preview["blocks_run"], root, preview["which"])
+    hashes = staking_hashes(_reading(_parameters(parameters), readings), preview["which"])
     header = {"endpoint": preview["endpoint"], "blocks_capture_id": preview["blocks_capture_id"], "which": preview["which"]}
     output.parent.mkdir(parents=True, exist_ok=True)
     if "resume" in preview:

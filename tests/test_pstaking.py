@@ -12,7 +12,7 @@ import pytest
 from test_pblocks import FakeNode, blocks
 from test_pstakers import data_api, node
 
-from avalanche_research import pblocks, pstakers, pstaking
+from avalanche_research import datasets, pblocks, pstakers, pstaking
 from avalanche_research.catalog import DataError, canonical_bytes, load_catalog, sha256
 from avalanche_research.model import protocol
 
@@ -71,7 +71,7 @@ def root(tmp_path: Path) -> Path:
     pblocks.capture(pblocks.DATASET_ID, runs / "walk" / "capture", parameters={"from_height": "100"}, request=AbortingNode(chain()))
     pblocks.build(pblocks.DATASET_ID, runs / "walk" / "capture", runs / "walk" / "dataset")
     for name, dataset_id, request in (("records", pstakers.STAKING_ID, data_api), ("paid", pstakers.REWARDS_ID, node)):
-        pstakers.capture(dataset_id, runs / name / "capture", parameters={"blocks": "walk"}, request=request, root=runs)
+        pstakers.capture(dataset_id, runs / name / "capture", parameters={"blocks": "walk"}, request=request, readings=datasets.readings(pstakers.READS, {"blocks": "walk"}, runs))
         pstakers.build(dataset_id, runs / name / "capture", runs / name / "dataset")
     make_validators(runs, "current", "p-chain-rpc.current-validators", CURRENT)
     make_validators(runs, "ended", "data-api.validators-completed-recent", ENDED)
@@ -150,7 +150,7 @@ def test_a_walk_without_the_node_anchor_is_refused(root, tmp_path):
 
 
 def test_the_replay_needs_records_only_for_older_stakes_that_end_unrewarded(root):
-    assert pstakers.staking_hashes("walk", root, "unrewarded-before-walk")[1] == ["OLD"]
+    assert pstakers.staking_hashes(datasets.readings(pstakers.READS, {"blocks": "walk"}, root)["blocks"], "unrewarded-before-walk") == ["OLD"]
 
 
 def test_an_auto_renewed_cycle_restakes_and_starts_the_next(root):

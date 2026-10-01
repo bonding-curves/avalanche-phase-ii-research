@@ -71,6 +71,23 @@ def _select(dataset_id: str, run: str | None, root: Path | None) -> dict[str, An
     return available[0]
 
 
+def readings(reads: dict[str, str], parameters: dict[str, str] | None, root: Path | None = None) -> dict[str, dict[str, Any]]:
+    """The built runs a capture's parameters name, for a capture module that declares ``READS``.
+
+    ``reads`` maps a parameter to the dataset whose run it names. Each named run becomes a reading: its dataset, run,
+    capture ID, and Parquet path. The capture then opens the path itself and never imports this module. A parameter
+    that is not given is left out, and the capture reports it as missing.
+    """
+    given = parameters or {}
+    found = {}
+    for name, dataset_id in reads.items():
+        if given.get(name):
+            record = receipt(dataset_id, given[name], root)
+            found[name] = {"dataset_id": dataset_id, "run": record["run"], "capture_id": record["capture"]["capture_id"],
+                           "parquet": parquet_path(dataset_id, record["run"], root)}
+    return found
+
+
 def receipt(dataset_id: str, run: str | None = None, root: Path | None = None) -> dict[str, Any]:
     """The capture and build receipts of the latest, or the named, run."""
     selected = _select(dataset_id, run, root)

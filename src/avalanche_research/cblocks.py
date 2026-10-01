@@ -27,7 +27,7 @@ from typing import Any
 
 import duckdb
 
-from . import __version__, datasets
+from . import __version__
 from .catalog import DataError, canonical_bytes, contract_hash, dataset, load_catalog, now, sha256, source
 from .rest import _request
 
@@ -43,6 +43,8 @@ SPECS = {
     RPC_DATASET_ID: {"source_id": RPC_SOURCE_ID, "endpoint_id": RPC_ENDPOINT_ID, "table": "c-chain-block-receipt-fees"},
 }
 GAPS_ID = "snowflake.c-chain-block-gaps"
+# The command line resolves the gaps run to a reading (datasets.readings), so a capture reads no dataset code.
+READS = {"gaps": GAPS_ID}
 TABLE = "c-chain-block-fees"
 PROGRESS = "progress.jsonl"
 RAW = "raw/blocks.jsonl"
@@ -102,30 +104,38 @@ def _batch(height: int) -> list[dict[str, Any]]:
     ]
 
 
-def gap_heights(run: str, kind: str, root: Path | None = None) -> tuple[dict[str, Any], list[int]]:
-    """The heights a gaps run lists, ascending, and that run's receipt."""
-    record = datasets.receipt(GAPS_ID, run, root)
-    parquet = datasets.parquet_path(GAPS_ID, run, root)
+def _reading(values: dict[str, Any], readings: dict[str, dict[str, Any]] | None) -> dict[str, Any]:
+    reading = (readings or {}).get("gaps")
+    if reading is None or reading["run"] != values["gaps"]:
+        raise DataError(f"the gaps run {values['gaps']} was not resolved; fetch it through `avalanche data fetch`")
+    return reading
+
+
+def gap_heights(reading: dict[str, Any], kind: str) -> list[int]:
+    """The heights a gaps run lists, ascending."""
+    parquet = reading["parquet"]
     connection = duckdb.connect()
     try:
         clause = "" if kind == "all" else f"WHERE kind = '{kind}'"
         heights = [row[0] for row in connection.execute(f"SELECT DISTINCT block_height FROM read_parquet(?) {clause} ORDER BY 1", [str(parquet)]).fetchall()]
     finally:
         connection.close()
-    return record, heights
+    return heights
 
 
-def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None, root: Path | None = None) -> dict[str, Any]:
+def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | None = None,
+                    readings: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     spec = _spec(dataset_id)
     values = _parameters(parameters)
-    record, heights = gap_heights(values["gaps"], values["kind"], root)
+    reading = _reading(values, readings)
+    heights = gap_heights(reading, values["kind"])
     return {
         "dataset_id": dataset_id,
         "source_id": spec["source_id"],
         "output": str(output),
         "endpoint": _endpoint(load_catalog(), dataset_id),
         "gaps_run": values["gaps"],
-        "gaps_capture_id": record["capture"]["capture_id"],
+        "gaps_capture_id": reading["capture_id"],
         "kind": values["kind"],
         "blocks": len(heights),
         "limit": values["limit"],
@@ -171,13 +181,13 @@ def capture(
     timeout: float = 20,
     parameters: dict[str, str] | None = None,
     request: Callable[..., tuple[bytes, dict[str, Any]]] = _request,
-    root: Path | None = None,
+    readings: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    preview = capture_preview(dataset_id, output, parameters, root)
+    preview = capture_preview(dataset_id, output, parameters, readings)
     if output.exists():
         raise DataError(f"output already exists: {output}")
     catalog = load_catalog()
-    _, heights = gap_heights(preview["gaps_run"], preview["kind"], root)
+    heights = gap_heights(_reading(_parameters(parameters), readings), preview["kind"])
     output.parent.mkdir(parents=True, exist_ok=True)
     if "resume" in preview:
         temporary = Path(preview["resume"])
