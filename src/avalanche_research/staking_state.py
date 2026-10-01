@@ -36,6 +36,14 @@ SUPPLY_INK = "#4c4c4c"  # Neutral local rendering, not a new global semantic hue
 CONTROL_WIDTH = 220
 
 
+def _area_hover(plot, element):
+    """Match component hover values to the rendered, gap-aware polygon."""
+    source = plot.handles["source"]
+    values = pd.Series(element.dimension_values("Value"), index=element.dimension_values(0))
+    values = values.reindex(source.data["x"]).tolist()
+    source.data = {**source.data, "Measure": [element.label] * len(values), "Value": values}
+
+
 def daily_state(ledger: pd.DataFrame) -> pd.DataFrame:
     """Keep missing days as gaps and use identical support for all stocks/ratios."""
     if ledger.date_utc.duplicated().any():
@@ -110,37 +118,52 @@ class StakingState(pm.Parameterized):
         start, end = self.date_range
         selected = self._daily.loc[self._daily["Date (UTC)"].between(pd.Timestamp(start), pd.Timestamp(end))]
         if selected.empty:
-            return pd.DataFrame(columns=["Date (UTC)", *self.columns(), "Complete days", "Observed days"])
+            return pd.DataFrame(columns=["Date (UTC)", *self.columns()])
         frame = summarize_state(selected, self.grouping, self.statistic)
         context = ["Date (UTC)"]
         if self.grouping == "Era":
             names = {a: era for era, a, _ in _era_intervals(NETWORK_START, selected["Date (UTC)"].max() + DAY)}
             frame["Era"] = frame["Date (UTC)"].map(names).str.title()
             context.append("Era")
-        return frame[[*context, *self.columns(), "Complete days", "Observed days"]]
+        return frame[[*context, *self.columns()]]
 
     @pm.depends("quantity", "population", "grouping", "statistic", "date_range")
     def plot(self):
         frame = self.table()
-        if frame.empty:
-            return pn.pane.Markdown("No snapshots in the selected dates.")
+        if frame.empty or not frame[self.columns()].notna().any().any():
+            return pn.pane.Markdown("No complete snapshots in the selected dates.")
         start, end = (pd.Timestamp(value) for value in self.date_range)
         bands = [hv.VSpan(a, b).opts(color=ERA_SHADE, line_alpha=0)
                  for index, (_, a, b) in enumerate(_era_intervals(NETWORK_START, end + DAY))
                  if index % 2 and b > start]
         curves = []
-        for measure in self.columns():
+        stacked = self.quantity == "Active stake" and self.population == "Both"
+        measures = ["Validator stake (AVAX)", "Delegated stake (AVAX)"] if stacked else self.columns()
+        for index, measure in enumerate(measures):
             role = measure.split()[0]
             color = SUPPLY_INK if self.quantity == "Supply" else QUANTITY_COLORS["stake"]
-            curve = hv.Curve(frame.assign(Measure=measure), "Date (UTC)",
-                             [measure, "Measure", "Complete days", "Observed days"], label=measure)
             hover = {"tools": ["hover"], "hover_tooltips": [("Group start (UTC)", "@{Date (UTC)}{%F}"),
                      ("Measure", "@Measure"),
-                     ("Value", f"@{{{measure}}}{{0,0.00}}"), ("Complete days", "@{Complete days}"),
-                     ("Observed days", "@{Observed days}")],
+                     ("Value", f"@{{{measure}}}{{0,0.00}}")],
                      "hover_formatters": {"@{Date (UTC)}": "datetime"}}
-            curves.append(curve.opts(color=color, line_dash=ROLE_STYLES.get(role, "solid"),
-                                     line_width=LINE_WIDTH, **hover))
+            data = frame.assign(Measure=measure)
+            if stacked:
+                lower = frame["Validator stake (AVAX)"] if index else frame[measure] * 0
+                upper = lower + frame[measure]
+                data = data.assign(Lower=lower, Upper=upper, Value=frame[measure])
+                area_hover = {**hover, "hover_tooltips": [("Group start (UTC)", "@x{%F}"),
+                              ("Measure", "@Measure"), ("Stake (AVAX)", "@Value{0,0.00}")],
+                              "hover_formatters": {"@x": "datetime"}}
+                curves.append(hv.Area(data, "Date (UTC)", ["Upper", "Lower", "Value"],
+                                      label=measure).opts(color=color, alpha=0.35 if index else 0.8,
+                                      hooks=[_area_hover], **area_hover))
+                curve = hv.Curve(data, "Date (UTC)", ["Upper", "Value", "Measure"], label=measure)
+                hover = {**hover, "hover_tooltips": [("Group start (UTC)", "@{Date (UTC)}{%F}"),
+                         ("Measure", "@Measure"), ("Stake (AVAX)", "@Value{0,0.00}")]}
+            else:
+                curve = hv.Curve(data, "Date (UTC)", [measure, "Measure"], label=measure)
+                curves.append(curve.opts(color=color, line_dash=ROLE_STYLES.get(role, "solid"),
+                                         line_width=LINE_WIDTH, **hover))
             if frame[measure].notna().sum() == 1:
                 curves.append(hv.Scatter(curve).opts(color=color, size=LINE_WIDTH * 2, show_legend=False, **hover))
         return hv.Overlay([*bands, *curves]).opts(
@@ -150,6 +173,11 @@ class StakingState(pm.Parameterized):
             yformatter=NumeralTickFormatter(format="0,0.##"), legend_position="top_right",
             hooks=[_upgrade_axis, _legend_interaction],
         )
+
+    @pm.depends("quantity", "population", "grouping", "statistic", "date_range")
+    def _plot_pane(self):
+        # Fresh panes avoid in-place scalar-color patches through notebook comms.
+        return pn.panel(self.plot(), linked_axes=False)
 
     def panel(self):
         controls = pn.Row(*(pn.widgets.Select.from_param(self.param[name], width=CONTROL_WIDTH)
@@ -166,6 +194,7 @@ class StakingState(pm.Parameterized):
         note = (f"Pinned ledger `{self.run}`. Active stake is sampled at 23:59:59 UTC and supply at day close. "
                 "All quantities use the same complete daily support. Missing days stay missing. "
                 "Mean/median ratios reduce daily ratios, not ratios of aggregated stocks. "
+                "Stacked areas add the validator and delegated statistics. For Median, their sum can differ from the combined median. "
                 "Last means last complete reading. Last minus first is a change between complete closes, not issuance or burn. "
                 "Grouped points use interval starts. Edge groups can be partial. These controls do not change acceptance cohorts.")
-        return pn.Column(controls, dates, self.plot, table, pn.pane.Markdown(note), sizing_mode="stretch_width")
+        return pn.Column(controls, dates, self._plot_pane, table, pn.pane.Markdown(note), sizing_mode="stretch_width")

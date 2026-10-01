@@ -87,7 +87,7 @@ def test_plot_preserves_gaps_units_hover_and_line_identities(owner):
     comparison = StakingDurations(cohorts=owner)
     assert DURATION_SERIES == {
         "Mean duration (days)": {"color": "#b85c00", "line_dash": "solid"},
-        "Stake-weighted mean duration (days)": {"color": "#b85c00", "line_dash": "dashed"},
+        "Stake-weighted mean duration (days)": {"color": "#787500", "line_dash": "dashed"},
     }
     overlay = comparison.plot()
     curves = [element for element in overlay if isinstance(element, hv.Curve)]
@@ -106,7 +106,7 @@ def test_plot_preserves_gaps_units_hover_and_line_identities(owner):
     assert sum(isinstance(element, hv.Curve) for element in comparison.plot()) == 4
 
 
-def test_rendered_charts_share_duration_identity_without_changing_data(owner):
+def test_rendered_duration_weighting_uses_the_stake_duration_blend_without_changing_data(owner):
     comparison = StakingDurations(cohorts=owner)
     before = comparison.table()
     owner.param.update(metrics=["Duration"], views=["Per Commitment"], time_grain="Week")
@@ -116,7 +116,8 @@ def test_rendered_charts_share_duration_identity_without_changing_data(owner):
              for figure in figures]
     duration_lines = [glyph for glyph in lines[1] if isinstance(glyph, Line)]
     assert lines[0] and len(duration_lines) == 2
-    assert {glyph.line_color for glyphs in lines for glyph in glyphs} == {QUANTITY_COLORS["duration"]}
+    assert {glyph.line_color for glyph in lines[0]} == {QUANTITY_COLORS["duration"]}
+    assert {glyph.line_color for glyph in lines[1]} == {QUANTITY_COLORS["duration"], "#787500"}
     assert {tuple(glyph.line_dash) for glyph in duration_lines} == {(), (6,)}
     assert WEIGHTING_LINE_DASH == {"commitment_weighted": "solid", "stake_weighted": "dashed"}
     pd.testing.assert_frame_equal(before, comparison.table())
@@ -126,4 +127,4 @@ def test_rendered_charts_share_duration_identity_without_changing_data(owner):
         rendered = hv.render(comparison.plot())
         glyphs = [renderer.glyph for renderer in rendered.select(GlyphRenderer)
                   if isinstance(renderer.glyph, (Line, Scatter))]
-        assert {glyph.line_color for glyph in glyphs} == {QUANTITY_COLORS["duration"]}
+        assert {glyph.line_color for glyph in glyphs} == {QUANTITY_COLORS["duration"], "#787500"}
