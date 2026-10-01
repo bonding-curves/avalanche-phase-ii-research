@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avalanche Mechanism Design: Interactive Research Board</title>
+  <!-- KaTeX for pristine math rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --grid-dot: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --card-bg: #ffffff;
+      
+      --c-blue: #2563eb;
+      --c-blue-bg: #eff6ff;
+      --c-blue-border: #bfdbfe;
+      
+      --c-green: #059669;
+      --c-green-bg: #ecfdf5;
+      --c-green-border: #a7f3d0;
+      
+      --c-yellow: #d97706;
+      --c-yellow-bg: #fffbeb;
+      --c-yellow-border: #fde68a;
+      
+      --c-orange: #ea580c;
+      --c-orange-bg: #fff7ed;
+      --c-orange-border: #fed7aa;
+      
+      --c-purple: #7c3aed;
+      --c-purple-bg: #f5f3ff;
+      --c-purple-border: #ddd6fe;
+      
+      --c-red: #dc2626;
+      --c-red-bg: #fef2f2;
+      --c-red-border: #fecaca;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+
+    /* Top Toolbar */
+    #toolbar {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      right: 16px;
+      height: 54px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 1000;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .brand-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #e0e7ff;
+      color: #4338ca;
+      letter-spacing: 0.3px;
+    }
+
+    .tool-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+      border-color: #1d4ed8;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    /* Infinite Canvas */
+    #viewport {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      cursor: grab;
+      background-image: radial-gradient(var(--grid-dot) 1.5px, transparent 1.5px);
+      background-size: 26px 26px;
+    }
+    #viewport:active {
+      cursor: grabbing;
+    }
+
+    #world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+      width: 0;
+      height: 0;
+    }
+
+    /* SVG Connections Layer */
+    #connections-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 6000px;
+      height: 4000px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Column Header Guides */
+    .column-header {
+      position: absolute;
+      width: 290px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1.5px dashed var(--border);
+      background: rgba(255, 255, 255, 0.65);
+      z-index: 1;
+    }
+
+    /* Individual Element Cards */
+    .board-card {
+      position: absolute;
+      width: 290px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      padding: 14px 16px;
+      cursor: move;
+      z-index: 2;
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .board-card:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    .board-card.active {
+      border-color: var(--c-blue);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2), 0 8px 24px rgba(0,0,0,0.12);
+      z-index: 10;
+    }
+
+    .card-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .card-body {
+      font-size: 12.5px;
+      color: #334155;
+      line-height: 1.45;
+      user-select: text;
+    }
+    .card-body p { margin-bottom: 5px; }
+    .card-body ul { padding-left: 16px; margin-bottom: 4px; }
+    .card-body li { margin-bottom: 3px; }
+    .card-body code {
+      font-family: ui-monospace, monospace;
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      color: #0f172a;
+    }
+    .math-block {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin: 6px 0;
+      font-size: 13px;
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    /* Category Pastel Color Classes */
+    .c-blue { background: var(--c-blue-bg); border-color: var(--c-blue-border); }
+    .c-blue .card-badge { background: #dbeafe; color: #1e40af; }
+    .c-blue-head { color: #1e40af; border-color: #bfdbfe; background: #eff6ff; }
+
+    .c-green { background: var(--c-green-bg); border-color: var(--c-green-border); }
+    .c-green .card-badge { background: #d1fae5; color: #065f46; }
+    .c-green-head { color: #065f46; border-color: #a7f3d0; background: #ecfdf5; }
+
+    .c-yellow { background: var(--c-yellow-bg); border-color: var(--c-yellow-border); }
+    .c-yellow .card-badge { background: #fef3c7; color: #92400e; }
+    .c-yellow-head { color: #92400e; border-color: #fde68a; background: #fffbeb; }
+
+    .c-orange { background: var(--c-orange-bg); border-color: var(--c-orange-border); }
+    .c-orange .card-badge { background: #ffedd5; color: #9a3412; }
+    .c-orange-head { color: #9a3412; border-color: #fed7aa; background: #fff7ed; }
+
+    .c-purple { background: var(--c-purple-bg); border-color: var(--c-purple-border); }
+    .c-purple .card-badge { background: #ede9fe; color: #5b21b6; }
+    .c-purple-head { color: #5b21b6; border-color: #ddd6fe; background: #f5f3ff; }
+
+    .c-red { background: var(--c-red-bg); border-color: var(--c-red-border); }
+    .c-red .card-badge { background: #fee2e2; color: #991b1b; }
+    .c-red-head { color: #991b1b; border-color: #fecaca; background: #fef2f2; }
+
+    /* Floating Curve Playground */
+    #curve-dock {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 420px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.14);
+      padding: 16px;
+      z-index: 1000;
+      transition: all 0.25s ease;
+    }
+    #curve-dock.minimized {
+      transform: translateY(calc(100% - 42px));
+    }
+    .dock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .dock-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      margin-bottom: 6px;
+    }
+    .slider-row label { color: var(--text-muted); font-weight: 600; }
+    .slider-row input[type="range"] { width: 130px; }
+    .slider-val { font-family: ui-monospace, monospace; font-weight: 700; color: var(--c-blue); min-width: 75px; text-align: right; }
+
+    canvas#miniCurve {
+      width: 100%;
+      height: 160px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      margin-top: 6px;
+    }
+
+    /* Zoom Controls */
+    #zoom-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      z-index: 1000;
+    }
+    .zoom-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: none;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .zoom-btn:hover { background: #f1f5f9; }
+    .zoom-text {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      min-width: 44px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation & Actions -->
+  <div id="toolbar">
+    <div class="brand">
+      <span>🏔️ Avalanche Admission Mechanism: Individual Component Board</span>
+      <span class="brand-tag">20 Individual Boxes • KaTeX Active</span>
+    </div>
+    <div class="tool-actions">
+      <button class="btn" onclick="resetView()">🎯 Reset View</button>
+      <button class="btn" onclick="autoLayout()">📐 Auto-Align Columns</button>
+      <button class="btn btn-primary" onclick="toggleCurveDock()">📈 Curve Playground</button>
+    </div>
+  </div>
+
+  <!-- Infinite Canvas Viewport -->
+  <div id="viewport">
+    <div id="world">
+      <!-- SVG Connecting Arrows Layer -->
+      <svg id="connections-layer"></svg>
+
+      <!-- ========================================== -->
+      <!-- COLUMN 1: HARD CONSTRAINTS (3 BOXES)       -->
+      <!-- ========================================== -->
+      <div id="head-1" class="column-header c-blue-head">1. Hard Constraints</div>
+
+      <div id="card-1-1" class="board-card c-blue">
+        <span class="card-badge">Constraint 1</span>
+        <div class="card-title">PlatformVM Duration Bounds</div>
+        <div class="card-body">
+          <p>Enforced at consensus layer in Go:</p>
+          <div class="math-block">$$d_{\min} = 48\text{h} \le d \le 365\text{d} = d_{\max}$$</div>
+          <p>Admissibility: <code>tx.Weight &ge; S_min(d)</code>.</p>
+        </div>
+      </div>
+
+      <div id="card-1-2" class="board-card c-blue">
+        <span class="card-badge">Constraint 2</span>
+        <div class="card-title">14-Day Delegator Firewall</div>
+        <div class="card-body">
+          <p>PlatformVM consensus invariant:</p>
+          <div class="math-block">$$d_{\text{del}} \ge 14\text{d} \quad \land \quad d_{\text{del}} \le d_{\text{val}}$$</div>
+          <p><strong>Rule:</strong> Stakers under 14 days get <span style="font-weight:700; color:#dc2626;">0% delegations</span>.</p>
+        </div>
+      </div>
+
+      <div id="card-1-3" class="board-card c-blue">
+        <span class="card-badge">Constraint 3</span>
+        <div class="card-title">Deterministic Integer Math</div>
+        <div class="card-body">
+          <p>To eliminate floating-point drift across CPU architectures:</p>
+          <div class="math-block">$$\text{Stake} \in \mathbb{N} \text{ (nAVAX)}, \quad t \in \text{Nanoseconds}$$</div>
+          <p>Quantized into integer brackets in Go consensus.</p>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- COLUMN 2: CORE OBJECTIVES (3 BOXES)        -->
+      <!-- ========================================== -->
+      <div id="head-2" class="column-header c-green-head">2. Core Objectives</div>
+
+      <div id="card-2-1" class="board-card c-green">
+        <span class="card-badge">Objective 1</span>
+        <div class="card-title">48-Hour Sybil Parity</div>
+        <div class="card-body">
+          <p>Preserve historical capital-time commitment:</p>
+          <div class="math-block">$$K(d_{\min}) = S(d_{\min}) \cdot d_{\min} \ge K_{\text{baseline}}$$</div>
+          <p>Stops attackers from running 28 slots for the price of 1.</p>
+        </div>
+      </div>
+
+      <div id="card-2-2" class="board-card c-green">
+        <span class="card-badge">Objective 2</span>
+        <div class="card-title">Retail Entry Relief (365d)</div>
+        <div class="card-body">
+          <p>At maximum duration, barrier drops to floor:</p>
+          <div class="math-block">$$S(d_{\max}) = S_{\text{floor}}$$</div>
+          <p>Lowers entry barrier for long-term sovereign home stakers.</p>
+        </div>
+      </div>
+
+      <div id="card-2-3" class="board-card c-green">
+        <span class="card-badge">Objective 3</span>
+        <div class="card-title">Off-Peak Churn Defense</div>
+        <div class="card-body">
+          <p>When gas fees sit at floor ($g \to g_{\min}$):</p>
+          <div class="math-block">$$S(d_{\min}) = S_{\text{short}} \gg S_{\text{floor}}$$</div>
+          <p>Short anchor bond economically halts 48h spinning loops.</p>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- COLUMN 3: MATH PROPERTIES (4 BOXES)        -->
+      <!-- ========================================== -->
+      <div id="head-3" class="column-header c-yellow-head">3. Math Properties</div>
+
+      <div id="card-3-1" class="board-card c-yellow">
+        <span class="card-badge">Property 1</span>
+        <div class="card-title">Strict Monotonic Decay</div>
+        <div class="card-body">
+          <p>Longer commitments always require less stake:</p>
+          <div class="math-block">$$\frac{d S_{\min}(d)}{dd} < 0 \quad \forall d \in [d_{\min}, d_{\max}]$$</div>
+          <p>No paradoxical steps where locking longer costs more.</p>
+        </div>
+      </div>
+
+      <div id="card-3-2" class="board-card c-yellow">
+        <span class="card-badge">Property 2</span>
+        <div class="card-title">Strict Convexity</div>
+        <div class="card-body">
+          <p>Rapid discount initially; flattens smoothly:</p>
+          <div class="math-block">$$\frac{d^2 S_{\min}(d)}{dd^2} > 0 \quad \forall d \in [d_{\min}, d_{\max}]$$</div>
+          <p>Matches diminishing marginal risk of capital lockup.</p>
+        </div>
+      </div>
+
+      <div id="card-3-3" class="board-card c-yellow">
+        <span class="card-badge">Property 3</span>
+        <div class="card-title">Exact Boundary Match</div>
+        <div class="card-body">
+          <p>Zero overshoot at both ends of the domain:</p>
+          <div class="math-block">$$S(d_{\min}) = S_{\text{short}}, \quad S(d_{\max}) = S_{\text{floor}}$$</div>
+          <p>Clamps cleanly without artificial truncation cliffs.</p>
+        </div>
+      </div>
+
+      <div id="card-3-4" class="board-card c-yellow">
+        <span class="card-badge">Property 4</span>
+        <div class="card-title">Low Parameter Complexity</div>
+        <div class="card-body">
+          <p>Minimal governance control knobs:</p>
+          <div class="math-block">$$\Theta = \{ S_{\text{short}}, \, S_{\text{floor}}, \, p \}$$</div>
+          <p>Avoids brittle equations with uncalibrated parameters.</p>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- COLUMN 4: THE 2 BOUNCER KPIS (2 BOXES)     -->
+      <!-- ========================================== -->
+      <div id="head-4" class="column-header c-orange-head">4. Bouncer KPIs</div>
+
+      <div id="card-4-1" class="board-card c-orange">
+        <span class="card-badge">KPI 1</span>
+        <div class="card-title">48h Micro-Stake Exposure</div>
+        <div class="card-body">
+          <p>Counts active sub-14d nodes below anchor stake:</p>
+          <div class="math-block">$$\text{Count}(d_i < 14\text{d} \land S_i < S_{\text{short}}) \equiv \mathbf{0}$$</div>
+          <p><strong>Target:</strong> Exactly 0. Closes the cheap 48h attack vector.</p>
+        </div>
+      </div>
+
+      <div id="card-4-2" class="board-card c-orange">
+        <span class="card-badge">KPI 2</span>
+        <div class="card-title">Off-Peak State Churn</div>
+        <div class="card-body">
+          <p>Turnover rate during quiet network periods:</p>
+          <div class="math-block">$$N_{\text{churn}}^{\text{off-peak}} \le N_{\text{churn}}^{\text{baseline}}$$</div>
+          <p><strong>Target:</strong> Suppresses registration spam when gas is zero.</p>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- COLUMN 5: CANDIDATE CURVES (4 BOXES)       -->
+      <!-- ========================================== -->
+      <div id="head-5" class="column-header c-purple-head">5. Candidate Curves</div>
+
+      <div id="card-5-1" class="board-card c-purple">
+        <span class="card-badge">Family 1</span>
+        <div class="card-title">Pure Iso-Commitment</div>
+        <div class="card-body">
+          <div class="math-block">$$S_1(d) = \max\left(S_{\text{floor}}, \, \frac{K_{\text{base}}}{d}\right)$$</div>
+          <p><strong>Fatal Flaw:</strong> Flattens completely at day 56. Zero duration incentive from 2 months to 1 year.</p>
+        </div>
+      </div>
+
+      <div id="card-5-2" class="board-card c-purple">
+        <span class="card-badge">Family 2</span>
+        <div class="card-title">Standard Hyperbolic</div>
+        <div class="card-body">
+          <div class="math-block">$$S_2(d) = S_{\text{floor}} + \frac{S_{\text{short}} - S_{\text{floor}}}{1 + \alpha(d - d_{\min})}$$</div>
+          <p><strong>Fatal Flaw:</strong> Heavy tail overshoots $S_{\text{floor}}$ by &gt;50% at 365d.</p>
+        </div>
+      </div>
+
+      <div id="card-5-3" class="board-card c-purple">
+        <span class="card-badge">Family 3</span>
+        <div class="card-title">Power-Law Decay</div>
+        <div class="card-body">
+          <div class="math-block">$$S_3(d) = S_{\text{floor}} + \Delta S \left(\frac{d_{\max} - d}{d_{\max} - d_{\min}}\right)^p$$</div>
+          <p><strong>Fatal Flaw:</strong> Requires $p > 6$, creating severe hockey-stick distortion at 14d.</p>
+        </div>
+      </div>
+
+      <div id="card-5-4" class="board-card c-purple" style="border: 2px solid #7c3aed;">
+        <span class="card-badge" style="background:#7c3aed; color:white;">Family 4 (Selected)</span>
+        <div class="card-title">Bounded Harmonic Decay</div>
+        <div class="card-body">
+          <div class="math-block">$$S_4(d) = S_{\text{floor}} + \Delta S \left[ \frac{\frac{1}{d} - \frac{1}{d_{\max}}}{\frac{1}{d_{\min}} - \frac{1}{d_{\max}}} \right]^p$$</div>
+          <p><strong>Optimal:</strong> Exact boundaries; matches $1/d$ turnover kernel; stable $p \approx 0.65$.</p>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- COLUMN 6: cadCAD & TELEMETRY (4 BOXES)     -->
+      <!-- ========================================== -->
+      <div id="head-6" class="column-header c-red-head">6. cadCAD & Telemetry</div>
+
+      <div id="card-6-1" class="board-card c-red">
+        <span class="card-badge">Policy Gate</span>
+        <div class="card-title">The Bouncer Policy (`p_admission`)</div>
+        <div class="card-body">
+          <p>Enforced inside cadCAD digital twin:</p>
+          <div class="math-block">$$\text{Admit}(S, d) = \mathbf{1}_{\{S \ge S_{\min}(d)\}}$$</div>
+          <p>Inadmissible transactions rejected at simulated PlatformVM block.</p>
+        </div>
+      </div>
+
+      <div id="card-6-2" class="board-card c-red">
+        <span class="card-badge">Simulation Invariant</span>
+        <div class="card-title">Continuous Arrival Invariant</div>
+        <div class="card-body">
+          <p>Uniform initialization across active tenure:</p>
+          <div class="math-block">$$\tau_{\text{rem}} \sim U(1, d_{\text{chosen}})$$</div>
+          <p>Prevents artificial harmonic resonance rollover waves.</p>
+        </div>
+      </div>
+
+      <div id="card-6-3" class="board-card c-red">
+        <span class="card-badge">Live Mainnet Grounding</span>
+        <div class="card-title">Helicon Telemetry (Sep 22–29)</div>
+        <div class="card-body">
+          <p>Real validator choices under new 48h rule:</p>
+          <ul style="font-size:11.5px;">
+            <li><strong>2x 48h nodes:</strong> ~2k AVAX each, both auto-renewed.</li>
+            <li><strong>2x Whales:</strong> 1.75M AVAX each for ~198 days.</li>
+            <li><strong>Delegations:</strong> 100% kept &ge;14d minimum.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="card-6-4" class="board-card c-red">
+        <span class="card-badge">Foundation Context</span>
+        <div class="card-title">Institutional ETF Focus</div>
+        <div class="card-body">
+          <p>Foundation Economic Directive:</p>
+          <div style="font-style:italic; font-size:11.5px; background:rgba(255,255,255,0.7); padding:5px; border-radius:4px;">
+            "We don’t really have a quantitative expectation. The new flow will most likely come from ETFs."
+          </div>
+          <p style="margin-top:4px;">Bouncer provides the protective perimeter for ETF liquidity.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Zoom Controls -->
+  <div id="zoom-controls">
+    <button class="zoom-btn" onclick="zoom(-0.1)">−</button>
+    <span class="zoom-text" id="zoom-val">85%</span>
+    <button class="zoom-btn" onclick="zoom(0.1)">+</button>
+  </div>
+
+  <!-- Floating Interactive Curve Playground -->
+  <div id="curve-dock">
+    <div class="dock-header" onclick="toggleCurveDock()">
+      <div class="dock-title">📊 Live Admission Curve Playground</div>
+      <span id="dock-chevron">▼</span>
+    </div>
+    <div class="slider-row">
+      <label>Anchor Stake ($S_{\text{short}}$):</label>
+      <input type="range" id="sl-short" min="10000" max="30000" step="1000" value="18000" oninput="drawCurve()">
+      <span class="slider-val" id="tx-short">18,000 AVAX</span>
+    </div>
+    <div class="slider-row">
+      <label>Terminal Floor ($S_{\text{floor}}$):</label>
+      <input type="range" id="sl-floor" min="300" max="1000" step="50" value="500" oninput="drawCurve()">
+      <span class="slider-val" id="tx-floor">500 AVAX</span>
+    </div>
+    <div class="slider-row">
+      <label>Target Pivot ($d_{\text{pivot}}$):</label>
+      <input type="range" id="sl-pivot" min="30" max="120" step="7" value="84" oninput="drawCurve()">
+      <span class="slider-val" id="tx-pivot">84d (p=0.615)</span>
+    </div>
+    <canvas id="miniCurve" width="388" height="160"></canvas>
+    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; text-align: center;">
+      <span style="color: #7c3aed; font-weight:700;">— Bounded Harmonic</span> | 
+      <span style="color: #dc2626; font-weight:700;">┆ 14d Firewall</span> | 
+      <span style="color: #94a3b8; font-weight:700;">-- 2k Baseline</span>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // KaTeX Auto-Render with Unicode Fallback
+    // -------------------------------------------------------------
+    function renderMath() {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false}
+          ],
+          throwOnError: false
+        });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Infinite Pan & Zoom Engine
+    // -------------------------------------------------------------
+    const viewport = document.getElementById('viewport');
+    const world = document.getElementById('world');
+    const zoomText = document.getElementById('zoom-val');
+
+    let scale = 0.82;
+    let panX = 40;
+    let panY = 70;
+    let isPanning = false;
+    let startX = 0;
+    let startY = 0;
+
+    function updateTransform() {
+      world.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+      zoomText.textContent = Math.round(scale * 100) + '%';
+      drawConnections();
+    }
+
+    viewport.addEventListener('mousedown', (e) => {
+      if (e.target === viewport || e.target.id === 'connections-layer') {
+        isPanning = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isPanning) {
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        updateTransform();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isPanning = false;
+    });
+
+    viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = 1.1;
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      let newScale = e.deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
+      newScale = Math.max(0.25, Math.min(2.5, newScale));
+
+      panX = mouseX - (mouseX - panX) * (newScale / scale);
+      panY = mouseY - (mouseY - panY) * (newScale / scale);
+      scale = newScale;
+
+      updateTransform();
+    }, { passive: false });
+
+    function zoom(delta) {
+      scale = Math.max(0.25, Math.min(2.5, scale + delta));
+      updateTransform();
+    }
+
+    function resetView() {
+      scale = 0.82;
+      panX = 40;
+      panY = 70;
+      updateTransform();
+    }
+
+    // -------------------------------------------------------------
+    // Draggable Individual Cards Engine
+    // -------------------------------------------------------------
+    const cards = document.querySelectorAll('.board-card');
+    let draggedCard = null;
+    let cardOffsetX = 0;
+    let cardOffsetY = 0;
+
+    cards.forEach(card => {
+      card.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        draggedCard = card;
+        cards.forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+
+        const rect = card.getBoundingClientRect();
+        cardOffsetX = (e.clientX - rect.left) / scale;
+        cardOffsetY = (e.clientY - rect.top) / scale;
+      });
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (draggedCard) {
+        const x = (e.clientX - panX) / scale - cardOffsetX;
+        const y = (e.clientY - panY) / scale - cardOffsetY;
+        draggedCard.style.left = x + 'px';
+        draggedCard.style.top = y + 'px';
+        drawConnections();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (draggedCard) {
+        draggedCard = null;
+      }
+    });
+
+    // -------------------------------------------------------------
+    // Auto-Layout 6 Columns of Individual Boxes
+    // -------------------------------------------------------------
+    const layoutColumns = [
+      { headId: 'head-1', cardIds: ['card-1-1', 'card-1-2', 'card-1-3'] },
+      { headId: 'head-2', cardIds: ['card-2-1', 'card-2-2', 'card-2-3'] },
+      { headId: 'head-3', cardIds: ['card-3-1', 'card-3-2', 'card-3-3', 'card-3-4'] },
+      { headId: 'head-4', cardIds: ['card-4-1', 'card-4-2'] },
+      { headId: 'head-5', cardIds: ['card-5-1', 'card-5-2', 'card-5-3', 'card-5-4'] },
+      { headId: 'head-6', cardIds: ['card-6-1', 'card-6-2', 'card-6-3', 'card-6-4'] }
+    ];
+
+    function autoLayout() {
+      const colWidth = 330;
+      const startX = 60;
+      const startY = 30;
+      const cardGap = 18;
+
+      layoutColumns.forEach((col, cIdx) => {
+        const x = startX + cIdx * colWidth;
+        const head = document.getElementById(col.headId);
+        if (head) {
+          head.style.left = x + 'px';
+          head.style.top = startY + 'px';
+        }
+
+        let curY = startY + 50;
+        col.cardIds.forEach(cId => {
+          const card = document.getElementById(cId);
+          if (card) {
+            card.style.left = x + 'px';
+            card.style.top = curY + 'px';
+            curY += card.offsetHeight + cardGap;
+          }
+        });
+      });
+
+      drawConnections();
+    }
+
+    // -------------------------------------------------------------
+    // Dynamic SVG Arrow Connectors Across Columns
+    // -------------------------------------------------------------
+    function drawConnections() {
+      const svg = document.getElementById('connections-layer');
+      svg.innerHTML = '';
+
+      // Inter-stage main connectors (top card to top card)
+      for (let i = 0; i < layoutColumns.length - 1; i++) {
+        const colA = layoutColumns[i];
+        const colB = layoutColumns[i+1];
+
+        const cA = document.getElementById(colA.cardIds[0]);
+        const cB = document.getElementById(colB.cardIds[0]);
+
+        if (!cA || !cB) continue;
+
+        const leftA = parseFloat(cA.style.left || cA.offsetLeft);
+        const topA = parseFloat(cA.style.top || cA.offsetTop);
+        const wA = cA.offsetWidth;
+        const hA = cA.offsetHeight;
+
+        const leftB = parseFloat(cB.style.left || cB.offsetLeft);
+        const topB = parseFloat(cB.style.top || cB.offsetTop);
+        const hB = cB.offsetHeight;
+
+        const x1 = leftA + wA;
+        const y1 = topA + hA / 2;
+        const x2 = leftB;
+        const y2 = topB + hB / 2;
+
+        const dx = Math.max(30, (x2 - x1) / 2);
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+        path.setAttribute('d', d);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', '#94a3b8');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke-dasharray', '5 4');
+        svg.appendChild(path);
+
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        arrow.setAttribute('points', `${x2},${y2} ${x2-7},${y2-4} ${x2-7},${y2+4}`);
+        arrow.setAttribute('fill', '#94a3b8');
+        svg.appendChild(arrow);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Live Curve Calculator (Pure HTML5 Canvas)
+    // -------------------------------------------------------------
+    function toggleCurveDock() {
+      const dock = document.getElementById('curve-dock');
+      dock.classList.toggle('minimized');
+      document.getElementById('dock-chevron').textContent = dock.classList.contains('minimized') ? '▲' : '▼';
+    }
+
+    function drawCurve() {
+      const s_short = parseFloat(document.getElementById('sl-short').value);
+      const s_floor = parseFloat(document.getElementById('sl-floor').value);
+      const d_pivot = parseFloat(document.getElementById('sl-pivot').value);
+
+      document.getElementById('tx-short').textContent = s_short.toLocaleString() + ' AVAX';
+      document.getElementById('tx-floor').textContent = s_floor.toLocaleString() + ' AVAX';
+
+      const denom = (1.0 / d_pivot - 1.0 / 365.0) / (0.5 - 1.0 / 365.0);
+      const numer = (2000.0 - s_floor) / (s_short - s_floor);
+      const p = Math.log(numer) / Math.log(denom);
+      document.getElementById('tx-pivot').textContent = `${d_pivot}d (p=${p.toFixed(3)})`;
+
+      const cvs = document.getElementById('miniCurve');
+      const ctx = cvs.getContext('2d');
+      const W = cvs.width;
+      const H = cvs.height;
+
+      ctx.clearRect(0, 0, W, H);
+
+      const padL = 35;
+      const padR = 15;
+      const padT = 15;
+      const padB = 22;
+      const maxStake = 24000;
+
+      function mapX(d) {
+        return padL + ((d - 2) / (365 - 2)) * (W - padL - padR);
+      }
+      function mapY(s) {
+        return (H - padB) - (s / maxStake) * (H - padT - padB);
+      }
+
+      // Grid line 2k
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, mapY(2000));
+      ctx.lineTo(W - padR, mapY(2000));
+      ctx.stroke();
+
+      // 14d Firewall line
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(mapX(14), padT);
+      ctx.lineTo(mapX(14), H - padB);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Baseline labels
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px ui-monospace, monospace';
+      ctx.fillText('2k', 8, mapY(2000) + 3);
+      ctx.fillText('14d', mapX(14) - 8, H - 6);
+      ctx.fillText('365d', W - padR - 22, H - 6);
+
+      // Draw Bounded Harmonic Curve
+      ctx.strokeStyle = '#7c3aed';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let d = 2; d <= 365; d++) {
+        const inv = (1.0 / d - 1.0 / 365.0) / (0.5 - 1.0 / 365.0);
+        const s = s_floor + (s_short - s_floor) * Math.pow(Math.max(0, inv), p);
+        const px = mapX(d);
+        const py = mapY(s);
+        if (d === 2) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+
+    // Initialize on Load
+    window.addEventListener('load', () => {
+      autoLayout();
+      updateTransform();
+      drawCurve();
+      setTimeout(renderMath, 100);
+      setTimeout(renderMath, 500);
+    });
+  </script>
+</body>
+</html>

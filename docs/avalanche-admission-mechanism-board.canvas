@@ -1,0 +1,337 @@
+{
+  "nodes": [
+    {
+      "id": "7113e45456d24293",
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 340,
+      "height": 60,
+      "text": "# 1. Hard Constraints [Protocol Truth]",
+      "color": "1"
+    },
+    {
+      "id": "7038125d3cd749ed",
+      "type": "text",
+      "x": 0,
+      "y": 85,
+      "width": 340,
+      "height": 170,
+      "text": "### PlatformVM Duration Bounds\n- Minimum duration: 48 hours (ACP-273)\n- Maximum duration: 365 days (PlatformVM)\n- Admissibility condition: S >= S_min(d)",
+      "color": "1"
+    },
+    {
+      "id": "b55df78200364f05",
+      "type": "text",
+      "x": 0,
+      "y": 280,
+      "width": 340,
+      "height": 170,
+      "text": "### 14-Day Delegator Firewall\n- Minimum delegator duration >= 14 days\n- Invariant: delegator.endTime <= validator.endTime\n- **Consequence:** Stakers < 14d get 0% delegations.",
+      "color": "1"
+    },
+    {
+      "id": "82709856db5a4156",
+      "type": "text",
+      "x": 0,
+      "y": 475,
+      "width": 340,
+      "height": 170,
+      "text": "### Deterministic Integer Math\n- Evaluated in raw atomic units (nAVAX) and nanoseconds\n- Zero floating point non-determinism in Go consensus.",
+      "color": "1"
+    },
+    {
+      "id": "275a4c3dc3b0427c",
+      "type": "text",
+      "x": 400,
+      "y": 0,
+      "width": 340,
+      "height": 60,
+      "text": "# 2. Core System Objectives",
+      "color": "4"
+    },
+    {
+      "id": "0b3144e979f64789",
+      "type": "text",
+      "x": 400,
+      "y": 85,
+      "width": 340,
+      "height": 170,
+      "text": "### Objective 1: Sybil Parity at 48h\n- Require K(d_min) >= K_baseline\n- 48h nodes must post anchor bond S_short\n- Prevent cheap consensus identity creation.",
+      "color": "4"
+    },
+    {
+      "id": "80dfb5fd602d49a0",
+      "type": "text",
+      "x": 400,
+      "y": 280,
+      "width": 340,
+      "height": 170,
+      "text": "### Objective 2: Retail Entry Relief\n- At d_max = 365d, stake drops to S_floor\n- Lowers barrier for sovereign long-term nodes.",
+      "color": "4"
+    },
+    {
+      "id": "4c10482a60e14672",
+      "type": "text",
+      "x": 400,
+      "y": 475,
+      "width": 340,
+      "height": 170,
+      "text": "### Objective 3: Off-Peak Churn Defense\n- Economic barrier to stop rapid 48h cycling when transaction gas fees are at minimum floor.",
+      "color": "4"
+    },
+    {
+      "id": "7d8235c3c1714a9b",
+      "type": "text",
+      "x": 800,
+      "y": 0,
+      "width": 340,
+      "height": 60,
+      "text": "# 3. Required Math Properties",
+      "color": "3"
+    },
+    {
+      "id": "85d529d1ba3d4407",
+      "type": "text",
+      "x": 800,
+      "y": 85,
+      "width": 340,
+      "height": 170,
+      "text": "### Monotonic Decay (dS/dd < 0)\n- Longer commitments always require less or equal self-stake.",
+      "color": "3"
+    },
+    {
+      "id": "6be3b1b4d5804757",
+      "type": "text",
+      "x": 800,
+      "y": 280,
+      "width": 340,
+      "height": 170,
+      "text": "### Strict Convexity (d2S/dd2 > 0)\n- Steepest discount rate at the short end; flattens out as duration extends.",
+      "color": "3"
+    },
+    {
+      "id": "3d2eac03ae974cc4",
+      "type": "text",
+      "x": 800,
+      "y": 475,
+      "width": 340,
+      "height": 170,
+      "text": "### Boundary Interpolation\n- Exact short match: S(d_min) = S_short\n- Exact long match: S(d_max) = S_floor",
+      "color": "3"
+    },
+    {
+      "id": "ee525f9efaf74f16",
+      "type": "text",
+      "x": 1200,
+      "y": 0,
+      "width": 340,
+      "height": 60,
+      "text": "# 4. The 2 Bouncer KPIs",
+      "color": "2"
+    },
+    {
+      "id": "902dcbfcb1844cb7",
+      "type": "text",
+      "x": 1200,
+      "y": 85,
+      "width": 340,
+      "height": 170,
+      "text": "### KPI 1: 48h Micro-Stake Defense\n- **Target:** Count(d_i < 14d and S_i < S_short) == 0\n- Guarantees zero cheap transient validator slots.",
+      "color": "2"
+    },
+    {
+      "id": "3d6b05783e9f4cda",
+      "type": "text",
+      "x": 1200,
+      "y": 280,
+      "width": 340,
+      "height": 170,
+      "text": "### KPI 2: Off-Peak State Churn\n- **Target:** N_churn(off-peak) <= N_baseline\n- Suppresses registration spam when gas is free.",
+      "color": "2"
+    },
+    {
+      "id": "768be12d141f4e8a",
+      "type": "text",
+      "x": 1600,
+      "y": 0,
+      "width": 340,
+      "height": 60,
+      "text": "# 5. Candidate Curve Families",
+      "color": "6"
+    },
+    {
+      "id": "9e853bac39134db5",
+      "type": "text",
+      "x": 1600,
+      "y": 85,
+      "width": 340,
+      "height": 170,
+      "text": "### Family 1: Pure Iso-Commitment\n- S(d) = max(S_floor, K_base / d)\n- *Critical Flaw:* Flattens completely at day 56.",
+      "color": "6"
+    },
+    {
+      "id": "6d9e026202674912",
+      "type": "text",
+      "x": 1600,
+      "y": 280,
+      "width": 340,
+      "height": 170,
+      "text": "### Family 2: Standard Hyperbolic\n- S(d) = S_floor + (S_short - S_floor) / (1 + alpha * d)\n- *Critical Flaw:* Heavy tail overshoots S_floor at 365d.",
+      "color": "6"
+    },
+    {
+      "id": "aecd00bcdacb4c37",
+      "type": "text",
+      "x": 1600,
+      "y": 475,
+      "width": 340,
+      "height": 170,
+      "text": "### Family 3: Power-Law Decay\n- S(d) = S_floor + (S_short - S_floor) * ((365-d)/363)^p\n- *Critical Flaw:* High exponent causes hockey-stick distortion.",
+      "color": "6"
+    },
+    {
+      "id": "7535b036019f46b9",
+      "type": "text",
+      "x": 1600,
+      "y": 670,
+      "width": 340,
+      "height": 170,
+      "text": "### Family 4: Bounded Harmonic (Selected)\n- S(d) = S_floor + delta_S * [(1/d - 1/365) / (1/2 - 1/365)]^p\n- *Advantage:* Exact boundaries, stable exponent p ~ 0.65.",
+      "color": "6"
+    },
+    {
+      "id": "8f61d29de8a246d6",
+      "type": "text",
+      "x": 2000,
+      "y": 0,
+      "width": 340,
+      "height": 60,
+      "text": "# 6. cadCAD Simulation & Grounding",
+      "color": "5"
+    },
+    {
+      "id": "e74d1f44a7bc4514",
+      "type": "text",
+      "x": 2000,
+      "y": 85,
+      "width": 340,
+      "height": 170,
+      "text": "### The Bouncer Policy Gate\n-  enforces S >= S_min(d)\n- Inadmissible transactions rejected.",
+      "color": "5"
+    },
+    {
+      "id": "2cab3902c44c4ace",
+      "type": "text",
+      "x": 2000,
+      "y": 280,
+      "width": 340,
+      "height": 170,
+      "text": "### Continuous Arrival Invariant\n- Ongoing contracts mature as continuous arrival\n- Zero artificial rollover shockwaves.",
+      "color": "5"
+    },
+    {
+      "id": "74f1c1054aa34318",
+      "type": "text",
+      "x": 2000,
+      "y": 475,
+      "width": 340,
+      "height": 170,
+      "text": "### Live Mainnet Grounding (Helicon)\n- 2 nodes chose 48h @ 2k AVAX and auto-renewed\n- 2 whales locked 1.75M AVAX for 198 days\n- Bimodal capital landscape confirmed.",
+      "color": "5"
+    }
+  ],
+  "edges": [
+    {
+      "id": "64e26e2c4be0451c",
+      "fromNode": "7038125d3cd749ed",
+      "fromSide": "right",
+      "toNode": "0b3144e979f64789",
+      "toSide": "left"
+    },
+    {
+      "id": "847da7be9db54381",
+      "fromNode": "b55df78200364f05",
+      "fromSide": "right",
+      "toNode": "80dfb5fd602d49a0",
+      "toSide": "left"
+    },
+    {
+      "id": "32c0bb32befe41b2",
+      "fromNode": "82709856db5a4156",
+      "fromSide": "right",
+      "toNode": "4c10482a60e14672",
+      "toSide": "left"
+    },
+    {
+      "id": "14497d65cf674b87",
+      "fromNode": "0b3144e979f64789",
+      "fromSide": "right",
+      "toNode": "85d529d1ba3d4407",
+      "toSide": "left"
+    },
+    {
+      "id": "446ff5be220a429b",
+      "fromNode": "80dfb5fd602d49a0",
+      "fromSide": "right",
+      "toNode": "6be3b1b4d5804757",
+      "toSide": "left"
+    },
+    {
+      "id": "cf3bda140c184c1f",
+      "fromNode": "4c10482a60e14672",
+      "fromSide": "right",
+      "toNode": "3d2eac03ae974cc4",
+      "toSide": "left"
+    },
+    {
+      "id": "952f724d6cd341af",
+      "fromNode": "85d529d1ba3d4407",
+      "fromSide": "right",
+      "toNode": "902dcbfcb1844cb7",
+      "toSide": "left"
+    },
+    {
+      "id": "d35dda0f1e5f483b",
+      "fromNode": "6be3b1b4d5804757",
+      "fromSide": "right",
+      "toNode": "3d6b05783e9f4cda",
+      "toSide": "left"
+    },
+    {
+      "id": "c62d433b9aef4775",
+      "fromNode": "902dcbfcb1844cb7",
+      "fromSide": "right",
+      "toNode": "9e853bac39134db5",
+      "toSide": "left"
+    },
+    {
+      "id": "173a3350f94840e2",
+      "fromNode": "3d6b05783e9f4cda",
+      "fromSide": "right",
+      "toNode": "6d9e026202674912",
+      "toSide": "left"
+    },
+    {
+      "id": "b7efbe5138374fe9",
+      "fromNode": "9e853bac39134db5",
+      "fromSide": "right",
+      "toNode": "e74d1f44a7bc4514",
+      "toSide": "left"
+    },
+    {
+      "id": "c5a7252bd53d41c5",
+      "fromNode": "6d9e026202674912",
+      "fromSide": "right",
+      "toNode": "2cab3902c44c4ace",
+      "toSide": "left"
+    },
+    {
+      "id": "e7bf0969a738415b",
+      "fromNode": "aecd00bcdacb4c37",
+      "fromSide": "right",
+      "toNode": "74f1c1054aa34318",
+      "toSide": "left"
+    }
+  ]
+}
