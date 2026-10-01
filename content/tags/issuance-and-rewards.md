@@ -21,7 +21,7 @@ The reward formula, consumption rates, the issuance schedule, inflation, and the
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
 | [2026-10-01-data-record](/Phase-II/Wiki/Memos/drafts/2026-10-01-data-record/) | BCRG | October 1, 2026 | The data record behind every number: 66 checked datasets from 15 sources. When the Snowflake share stopped on 22 September, a second source rebuilt from the P-Chain took over, and it agrees with the share on every overlapping row. What Milestone 1 delivers. |
-| [2026-10-01-staking-model-v0](/Phase-II/Wiki/Memos/drafts/2026-10-01-staking-model-v0/) | BCRG | October 1, 2026 | The staking model runs, and it reproduces the chain's own reward and stake records exactly. Its first behaviour model does not yet beat the forecast that nothing changes, and every comparison of reward mechanisms depends on how strongly validators respond to pay, which history alone cannot tell us. Version 0, under review. |
+| [2026-10-01-staking-model-v0](/Phase-II/Wiki/Memos/drafts/2026-10-01-staking-model-v0/) | BCRG | October 1, 2026 | The staking model reproduces the chain's stake and reward records exactly on all 1,896 complete days before Granite, prices every reward mechanism on the same year of real stakes, and shows how the mechanisms separate once validators respond to pay. Version 0, under review. |
 
 ## Reference
 
