@@ -4,8 +4,6 @@ description: "Participant selection, neutral questions, permissions, source hand
 date: 2026-10-01
 ---
 
-# Validator interview method
-
 The interviews explain staking decisions that the chain can record but cannot explain by itself. Their output is a set of traceable, testable hypotheses about duration, renewal, delegation, entry, and exit. Chain data test the observed actions. A single interview supplies neither population preferences nor calibrated response parameters.
 
 This page sets out participant selection, interview conduct, source handling, corroboration, and interpretation. It distinguishes the proposed research method from what has been completed. The [BENQI analysis](/Phase-II/Interviews/BENQI-2026-08-31/Analysis) is the first published application.

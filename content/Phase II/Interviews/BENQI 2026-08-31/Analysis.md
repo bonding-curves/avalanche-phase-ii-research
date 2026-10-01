@@ -4,8 +4,6 @@ description: "Hansen's statements, checked delegation evidence, and the limits o
 date: 2026-10-01
 ---
 
-# BENQI interview evidence analysis
-
 Hansen describes two different decisions: managing a liquid staking service's redemption needs and choosing how to stake his personal AVAX. Those decisions should remain separate in the model. The observed funding address is sufficiently concentrated to warrant its own analysis stratum, conditional on the inferred BENQI attribution. This interview supports candidate decision rules. It does not estimate population preferences, response coefficients, or future adoption.
 
 Read the [interview summary](/Phase-II/Interviews/BENQI-2026-08-31/) and the [interview method](/Phase-II/Interviews/Interview-Method) for context. This analysis was published on October 1, 2026. The full transcript is withheld pending Hansen's consent.
