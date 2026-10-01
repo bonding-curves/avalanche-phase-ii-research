@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 import duckdb
 import pytest
 
-from avalanche_research import metrics
+from avalanche_research.sources import metrics
 from avalanche_research.catalog import DataError, load_catalog
 
 

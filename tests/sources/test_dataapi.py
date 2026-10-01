@@ -6,7 +6,8 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import dataapi, rest
+from avalanche_research.sources.capture import rest
+from avalanche_research.sources import dataapi
 from avalanche_research.catalog import DataError, load_catalog
 
 

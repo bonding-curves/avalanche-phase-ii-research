@@ -9,7 +9,8 @@ from typing import Any
 import duckdb
 import pytest
 
-from avalanche_research import cli, etf
+from avalanche_research import cli
+from avalanche_research.sources import etf
 from avalanche_research.catalog import DataError, load_catalog, source
 
 # Trimmed from the issuers' responses of 2026-09-28.

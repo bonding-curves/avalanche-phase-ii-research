@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from avalanche_research import coingecko, defillama
+from avalanche_research.sources import coingecko, defillama
 from avalanche_research.catalog import DataError, load_catalog, source
 
 

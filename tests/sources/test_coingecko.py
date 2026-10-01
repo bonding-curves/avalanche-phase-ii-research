@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from avalanche_research import cli, coingecko
+from avalanche_research import cli
+from avalanche_research.sources import coingecko
 from avalanche_research.catalog import DataError, load_catalog
 
 

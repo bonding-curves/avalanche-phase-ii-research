@@ -8,7 +8,7 @@ import struct
 
 import pytest
 
-from avalanche_research import catx
+from avalanche_research.sources import catx
 from avalanche_research.catalog import DataError, load_catalog
 
 AVAX = bytes.fromhex("21e67317cbc4be2aeb00677ad6462778a8f52274b9d605df2591b23027a87dff")

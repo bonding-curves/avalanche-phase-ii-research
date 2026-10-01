@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from avalanche_research import yields
+from avalanche_research.sources import yields
 from avalanche_research.catalog import DataError, load_catalog
 
 

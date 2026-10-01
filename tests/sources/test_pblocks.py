@@ -8,7 +8,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import pblocks
+from avalanche_research.sources import pblocks
 from avalanche_research.catalog import DataError, load_catalog
 
 AVAX = pblocks.AVAX_ASSET_ID

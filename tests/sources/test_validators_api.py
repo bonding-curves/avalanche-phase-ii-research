@@ -8,7 +8,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import validators_api as va
+from avalanche_research.sources import validators_api as va
 from avalanche_research.catalog import DataError, load_catalog
 from test_dataapi import Response
 

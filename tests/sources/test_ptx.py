@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from avalanche_research import ptx
+from avalanche_research.sources import ptx
 from avalanche_research.catalog import DataError, load_catalog
 
 AVAX = ptx.AVAX_ASSET_ID

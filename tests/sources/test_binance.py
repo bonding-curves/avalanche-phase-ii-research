@@ -9,7 +9,7 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
-from avalanche_research import binance
+from avalanche_research.sources import binance
 from avalanche_research.catalog import DataError, load_catalog, sha256
 
 END = date(2020, 11, 4)

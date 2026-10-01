@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 import duckdb
 import pytest
 
-from avalanche_research import atomic
+from avalanche_research.sources import atomic
 from avalanche_research.catalog import DataError
 
 

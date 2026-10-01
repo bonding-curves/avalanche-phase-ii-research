@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from avalanche_research import cchain_rpc
+from avalanche_research.sources import cchain_rpc
 from avalanche_research.catalog import DataError
 
 
