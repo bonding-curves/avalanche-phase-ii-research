@@ -18,6 +18,7 @@ from . import builderhub
 from . import cblocks
 from . import cchain_rpc
 from . import clist
+from . import clist_daily
 from . import coingecko
 from . import dataapi
 from . import datasets
@@ -71,6 +72,7 @@ MODULES = {
     **{dataset_id: pstakers for dataset_id in pstakers.DATASET_IDS},
     **{dataset_id: pstaking for dataset_id in pstaking.DATASET_IDS},
     **{dataset_id: clist for dataset_id in clist.DATASET_IDS},
+    **{dataset_id: clist_daily for dataset_id in clist_daily.DATASET_IDS},
     pburns.DATASET_ID: pburns,
     **{dataset_id: gci for dataset_id in gci.DATASET_IDS},
     **{dataset_id: seam for dataset_id in seam.DATASET_IDS},
