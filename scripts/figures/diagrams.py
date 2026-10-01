@@ -11,11 +11,22 @@ DOT, SVG, PNG at 288 dpi, and a JSON manifest: `data-path` at memo width, one bo
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
 from avalanche_research.views import diagrams
 from avalanche_research.views.diagrams import lineage
+
+
+def source_commit() -> dict[str, object]:
+    """The client commit the diagram was built from, and whether its tracked source differed from it."""
+    here = Path(__file__).resolve().parent
+
+    def git(*arguments: str) -> str:
+        return subprocess.run(["git", *arguments], cwd=here, check=True, capture_output=True, text=True).stdout.strip()
+
+    return {"source_commit": git("rev-parse", "HEAD"), "source_dirty": bool(git("status", "--porcelain", "--untracked-files=no", "--", "src", "scripts"))}
 
 
 def data_path(folder: Path, periods_run: str | None = None, ledger_run: str | None = None) -> None:
@@ -24,7 +35,7 @@ def data_path(folder: Path, periods_run: str | None = None, ledger_run: str | No
         runs[lineage.PERIODS] = periods_run
     if ledger_run:
         runs[lineage.LEDGER] = ledger_run
-    record = lineage.manifest(runs)
+    record = {**lineage.manifest(runs), **source_commit()}
     for name, diagram in (("data-path", lineage.build_memo(runs)), ("data-path-full", lineage.build(runs))):
         paths = diagrams.save(diagram, folder, name, record)
         print(" ".join(str(path) for path in paths.values()))
