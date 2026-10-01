@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #0f172a;
+    color: #f8fafc;
+    width: 1920px;
+    height: 1280px;
+    padding: 24px 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #334155;
+  }
+  .title-group h1 {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .title-group h1 span.badge-chaos {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: #ef4444;
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+  .title-group h1 span.arrow {
+    color: #94a3b8;
+    font-size: 20px;
+  }
+  .title-group h1 span.badge-struct {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: #10b981;
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+  .title-group p {
+    font-size: 13.5px;
+    color: #94a3b8;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .metrics-strip {
+    display: flex;
+    gap: 12px;
+  }
+  .metric-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .metric-card .num {
+    font-size: 16px;
+    font-weight: 800;
+    color: #38bdf8;
+  }
+  .metric-card .lbl {
+    font-size: 10px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* Main 3-Phase Landscape */
+  .landscape-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr 1.05fr 1.25fr;
+    gap: 16px;
+    margin: 12px 0 8px 0;
+    flex-grow: 1;
+  }
+
+  .phase-col {
+    background: #1e293b;
+    border-radius: 12px;
+    border: 1.5px solid #334155;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+
+  .phase-header {
+    padding: 10px 14px;
+    border-bottom: 2px solid;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .phase-title {
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phase-tag {
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Phase 1: Chaos */
+  .p-chaos { border-color: #f87171; }
+  .p-chaos .phase-header { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #fca5a5; }
+  .p-chaos .phase-tag { background: #ef4444; color: #ffffff; }
+
+  /* Phase Turning Point: Halts */
+  .p-halt { border-color: #f59e0b; }
+  .p-halt .phase-header { background: rgba(245, 158, 11, 0.15); border-color: #f59e0b; color: #fde68a; }
+  .p-halt .phase-tag { background: #f59e0b; color: #000000; }
+
+  /* Phase 2: Axiomatic Reset */
+  .p-reset { border-color: #38bdf8; }
+  .p-reset .phase-header { background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #bae6fd; }
+  .p-reset .phase-tag { background: #0284c7; color: #ffffff; }
+
+  /* Phase 3: Grounded Twin */
+  .p-ground { border-color: #a855f7; }
+  .p-ground .phase-header { background: rgba(168, 85, 247, 0.15); border-color: #a855f7; color: #e9d5ff; }
+  .p-ground .phase-tag { background: #9333ea; color: #ffffff; }
+
+  .phase-body {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-grow: 1;
+    overflow: hidden;
+  }
+
+  .item-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .item-card.warn { border-color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+  .item-card.stop { border-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+  .item-card.clean { border-color: #38bdf8; background: rgba(56, 189, 248, 0.06); }
+  .item-card.active { border-color: #a855f7; background: rgba(168, 85, 247, 0.08); }
+
+  .item-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #f8fafc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .item-title span.sub {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: #94a3b8;
+  }
+  .item-text {
+    font-size: 10.5px;
+    color: #cbd5e1;
+    line-height: 1.35;
+  }
+  .item-text strong {
+    color: #f8fafc;
+  }
+  .item-text code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 9.5px;
+    background: #1e293b;
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: #38bdf8;
+  }
+  .item-text code.err { color: #f87171; }
+  .item-text code.ok { color: #4ade80; }
+
+  /* Middle Callout: The Anatomy of Our Mistakes & Halts */
+  .anatomy-banner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 6px 0;
+  }
+  .mistake-box {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px 10px;
+    border-left: 4px solid;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .mistake-box.m1 { border-color: #ef4444; }
+  .mistake-box.m2 { border-color: #f97316; }
+  .mistake-box.m3 { border-color: #eab308; }
+  .mistake-box.m4 { border-color: #a855f7; }
+
+  .mistake-hdr {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+  }
+  .mistake-box.m1 .mistake-hdr { color: #f87171; }
+  .mistake-box.m2 .mistake-hdr { color: #fb923c; }
+  .mistake-box.m3 .mistake-hdr { color: #fde047; }
+  .mistake-box.m4 .mistake-hdr { color: #c084fc; }
+
+  .mistake-desc {
+    font-size: 10px;
+    color: #cbd5e1;
+    line-height: 1.3;
+  }
+  .mistake-desc strong { color: #f8fafc; }
+
+  /* Timeline */
+  .timeline-bar {
+    background: #1e293b;
+    border: 1.5px solid #334155;
+    border-radius: 10px;
+    padding: 8px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .timeline-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .timeline-meta span.active-txt {
+    color: #c084fc;
+    font-weight: 800;
+  }
+
+  .timeline-track {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+  }
+  .t-line {
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    height: 2px;
+    background: #334155;
+    z-index: 1;
+  }
+  .t-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    z-index: 2;
+    flex: 1;
+  }
+  .t-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #0f172a;
+    border: 2px solid #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: #94a3b8;
+    margin-bottom: 3px;
+  }
+  .t-step.done .t-dot {
+    background: #064e3b;
+    border-color: #10b981;
+    color: #6ee7b7;
+  }
+  .t-step.revert .t-dot {
+    background: #7f1d1d;
+    border-color: #ef4444;
+    color: #fca5a5;
+  }
+  .t-step.active .t-dot {
+    background: #7e22ce;
+    border-color: #c084fc;
+    color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.35);
+  }
+  .t-step.next .t-dot {
+    background: #1e293b;
+    border-color: #64748b;
+    border-style: dashed;
+    color: #64748b;
+  }
+  .t-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: #e2e8f0;
+    line-height: 1.15;
+  }
+  .t-sub {
+    font-size: 8.5px;
+    color: #64748b;
+    line-height: 1.1;
+  }
+  .t-step.active .t-lbl { color: #c084fc; }
+  .t-step.active .t-sub { color: #e9d5ff; font-weight: 600; }
+  .t-step.revert .t-lbl { color: #fca5a5; }
+</style>
+</head>
+<body>
+
+  <!-- 1. Header -->
+  <div class="header">
+    <div class="title-group">
+      <h1>
+        Avalanche Admission Frontier Research
+        <span class="badge-chaos">Exploratory Chaos</span>
+        <span class="arrow">➔</span>
+        <span class="badge-struct">Empirical Digital Twin</span>
+      </h1>
+      <p>The Non-Linear Research Odyssey: Subspace Tensors, 18+ HTML Dashboards, Failed Assumptions, Critical Halts, and the Systems Engineering Reconstruction</p>
+    </div>
+    <div class="metrics-strip">
+      <div class="metric-card">
+        <span class="num">18+</span>
+        <span class="lbl">HTMLs Built & Retired</span>
+      </div>
+      <div class="metric-card">
+        <span class="num">2</span>
+        <span class="lbl">Git Reverts on Stage 1</span>
+      </div>
+      <div class="metric-card">
+        <span class="num">538</span>
+        <span class="lbl">Farming Nodes Autopsied</span>
+      </div>
+      <div class="metric-card">
+        <span class="num">56,465</span>
+        <span class="lbl">Staking Periods Audited</span>
+      </div>
+      <div class="metric-card">
+        <span class="num">138</span>
+        <span class="lbl">Unit Tests Passing</span>
+      </div>
+      <div class="metric-card">
+        <span class="num" style="color: #fbbf24;">AMBER</span>
+        <span class="lbl">Forensic Audit Gate</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Main 4-Column Architectural Landscape -->
+  <div class="landscape-grid">
+
+    <!-- Column 1: Phase I - The Exploratory Chaos -->
+    <div class="phase-col p-chaos">
+      <div class="phase-header">
+        <span class="phase-title">Phase I: Exploratory Chaos</span>
+        <span class="phase-tag">Last Week</span>
+      </div>
+      <div class="phase-body">
+        <div class="item-card warn">
+          <div class="item-title">
+            <span>HTML & Dashboard Sprawl</span>
+            <span class="sub">18+ Files</span>
+          </div>
+          <div class="item-text">
+            Generated dozens of standalone HTMLs: <code>frontier_calculator.html</code>, <code>admission_frontier_tensor_report.html</code>, <code>notion_policy_memo.html</code>, <code>mechanism_design_board.html</code>. Visual complexity masquerading as empirical certainty.
+          </div>
+        </div>
+
+        <div class="item-card warn">
+          <div class="item-title">
+            <span>Subspace PSuU 84-Tensors</span>
+            <span class="sub">Reference Model</span>
+          </div>
+          <div class="item-text">
+            Imported Subspace Network trajectory tensor pipeline (<code>run_tensor_psuu.py</code>) running 84 parameter permutations with boolean utility U(θ) ∈ {0,1}. Sweeps lacked empirical grounding and had synthetic expiration clumping.
+          </div>
+        </div>
+
+        <div class="item-card warn">
+          <div class="item-title">
+            <span>The 1,451 Node Explosion</span>
+            <span class="sub">Poisson(21.25)</span>
+          </div>
+          <div class="item-text">
+            Assumed <code class="err">A_t ~ Poisson(21.25/wk)</code> by dividing 2,954 NodeIDs by 139 weeks. Simulated validator set blew up to <strong>1,451 nodes</strong>! Fatal flaw: conflated ephemeral NodeIDs with new economic entrants.
+          </div>
+        </div>
+
+        <div class="item-card warn">
+          <div class="item-title">
+            <span>Phantom Axioms & Drift</span>
+            <span class="sub">Axiomatic Drift</span>
+          </div>
+          <div class="item-text">
+            Cited phantom <code>ACP-49</code>; violated Tinbergen boundary by conflating retail validator duration with macro ACP-285 issuance; assumed 14d protocol delegation rule was an economic pivot.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 2: The Critical Halts, Reverts & Reality Checks -->
+    <div class="phase-col p-halt">
+      <div class="phase-header">
+        <span class="phase-title">Forced Halts & Autopsies</span>
+        <span class="phase-tag">The Turning Points</span>
+      </div>
+      <div class="phase-body">
+        <div class="item-card stop">
+          <div class="item-title">
+            <span>HALT 1: Git Revert on Stage 1</span>
+            <span class="sub">git revert 6e8b213</span>
+          </div>
+          <div class="item-text">
+            Reverted premature Stage 1 boundary specification commits (<code>6e8b213</code> & <code>cbf3bf9</code>). Found claims exceeded empirical evidence; stripped premature parameter declarations.
+          </div>
+        </div>
+
+        <div class="item-card stop">
+          <div class="item-title">
+            <span>HALT 2: August 2025 Autopsy</span>
+            <span class="sub">Farming Collapse</span>
+          </div>
+          <div class="item-text">
+            Investigated August 2025 drop (-506 nodes in 30 days). Discovered <strong>4 farming operators ran 538 nodes of 2,000 AVAX</strong> with near-zero delegation! Realized: <code>NodeID ≠ Validator ≠ Operator ≠ Entrant</code>.
+          </div>
+        </div>
+
+        <div class="item-card stop">
+          <div class="item-title">
+            <span>HALT 3: 14d Pivot Busted</span>
+            <span class="sub">Hypothesis P Rejected</span>
+          </div>
+          <div class="item-text">
+            Protocol permission ≠ economic access! 14–21d nodes capture only <strong>3.9%</strong> of 4x delegation capacity; BENQI requires <strong>6,000 AVAX</strong> for Open Pool. S_min(14)=2k anchor was invalid.
+          </div>
+        </div>
+
+        <div class="item-card stop">
+          <div class="item-title">
+            <span>HALT 4: Clean Slate Protocol</span>
+            <span class="sub">Workflow Discipline</span>
+          </div>
+          <div class="item-text">
+            Purged phantom ACP-49 citations; established affirmative communication rules; banned premature sweeps until digital twin behavioral foundations were proven.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 3: Phase II - The Axiomatic & SE Reset -->
+    <div class="phase-col p-reset">
+      <div class="phase-header">
+        <span class="phase-title">Phase II: Axiomatic Reset</span>
+        <span class="phase-tag">Dennis Buede / NASA SE</span>
+      </div>
+      <div class="phase-body">
+        <div class="item-card clean">
+          <div class="item-title">
+            <span>Canonical SE Framework</span>
+            <span class="sub">NASA SP-2016-6105</span>
+          </div>
+          <div class="item-text">
+            Structured stages 0 to 5; established Verification Gates (VG-01 to VG-05); anchored 5 Consensus MOEs: Stability (<code class="ok">S_N</code>), Churn (<code class="ok">T_N</code>), Operator Concentration (<code class="ok">HHI, C10</code>), Viability (<code class="ok">V_A</code>), Headroom (<code class="ok">H_cap</code>).
+          </div>
+        </div>
+
+        <div class="item-card clean">
+          <div class="item-title">
+            <span>Harmonic Power Family</span>
+            <span class="sub">Dual Precision</span>
+          </div>
+          <div class="item-text">
+            Adopted <code>S_min(d) = S_floor + (S_short - S_floor)η(d)^p</code>. Enforced dual implementation: 64-bit IEEE float + integer nanoAVAX (<code class="ok">10⁻⁹ AVAX</code>) for consensus-level protocol equivalence.
+          </div>
+        </div>
+
+        <div class="item-card clean">
+          <div class="item-title">
+            <span>Curvature Inversion (p ≥ 1)</span>
+            <span class="sub">Hypothesis E</span>
+          </div>
+          <div class="item-text">
+            Solved the small-validator squeeze! Enforced strict convexity (<code class="ok">p ∈ [1.11, 1.49]</code>), rapidly bending the curve downward to shelter 30–90d capital-constrained validators while maintaining high 48h anti-swarm bounds.
+          </div>
+        </div>
+
+        <div class="item-card clean">
+          <div class="item-title">
+            <span>Helicon Specification Map</span>
+            <span class="sub">ACPs 236, 267, 273, 285</span>
+          </div>
+          <div class="item-text">
+            Frontier evaluated strictly over cycle length <code>D_cycle</code> (ACP-236); anchored short boundary at 48h (ACP-273); mapped post-ramp ARR yield schedule from 3.95% to 6.38% (ACP-285).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 4: Phase III - The Grounded Digital Twin -->
+    <div class="phase-col p-ground">
+      <div class="phase-header">
+        <span class="phase-title">Phase III: Grounded Digital Twin</span>
+        <span class="phase-tag" style="background: #a855f7;">Where We Are Today</span>
+      </div>
+      <div class="phase-body">
+        <div class="item-card active">
+          <div class="item-title">
+            <span>Macro Flow Calibration</span>
+            <span class="sub">λ = 8.24/wk</span>
+          </div>
+          <div class="item-text">
+            Replaced 21.25/wk with calibrated steady-state flow: <strong>8.24 NodeIDs/wk</strong> (3.37 new operators, 4.87 replacements). 50 MC runs stabilize at <strong>598.8 nodes (S_N = 0.0127)</strong>. Fixed the explosion!
+          </div>
+        </div>
+
+        <div class="item-card active">
+          <div class="item-title">
+            <span>Capital-Duration Transitions</span>
+            <span class="sub">P(d_t+1 | d_t, S)</span>
+          </div>
+          <div class="item-text">
+            Grounded in <code>Corr(log S, log d) ≈ +0.25</code>. Modeled persistence: Small stakers (≤2.5k) stay in 14–21d with 93% probability; Whales (>100k) stake long (P90 180d).
+          </div>
+        </div>
+
+        <div class="item-card active">
+          <div class="item-title">
+            <span>Multi-Layer Delegation Access</span>
+            <span class="sub">A_eff_del(d, S)</span>
+          </div>
+          <div class="item-text">
+            Multi-tier engine: Sub-14d protocol firewall (0.0), BENQI 6,000 AVAX Open Pool scale, and empirical duration demand gradient (3.9% at 14d scaling to 221% at 365d).
+          </div>
+        </div>
+
+        <div class="item-card active" style="border-color: #fbbf24; background: rgba(251, 191, 36, 0.1);">
+          <div class="item-title">
+            <span style="color: #fbbf24;">Forensic Audit: AMBER Verdict</span>
+            <span class="sub" style="color: #fde047;">Current Gate</span>
+          </div>
+          <div class="item-text">
+            Caught: Profile A absorbing zero-delegation trap (20.6% empirical mobility). Caught: In-sample circularity in 48w replay. Issued <strong>AMBER verdict</strong>; model verified for bounded sweeps!
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 3. The Anatomy of Our Mistakes & What We Learned -->
+  <div class="anatomy-banner">
+    <div class="mistake-box m1">
+      <div class="mistake-hdr">
+        <span>Mistake 1: Population Inflation</span>
+        <span>Stage 4A</span>
+      </div>
+      <div class="mistake-desc">
+        <strong>The Mess:</strong> Poisson(21.25) entry blew up active nodes to 1,451. Conflated machine rotations with economic entrants.<br>
+        <strong>The Fix:</strong> Autopsied August 2025 contraction (4 operators = 538 nodes); calibrated arrival to 8.24/wk.
+      </div>
+    </div>
+
+    <div class="mistake-box m2">
+      <div class="mistake-hdr">
+        <span>Mistake 2: The 14-Day Anchor Fallacy</span>
+        <span>Stage 2–3</span>
+      </div>
+      <div class="mistake-desc">
+        <strong>The Mess:</strong> Assumed 14d protocol delegation rule was an economic attractor for S_min(14)=2,000 AVAX.<br>
+        <strong>The Fix:</strong> On-chain data proved 14–21d captures only 3.9% capacity; BENQI requires 6k. Inverted to p ≥ 1.
+      </div>
+    </div>
+
+    <div class="mistake-box m3">
+      <div class="mistake-hdr">
+        <span>Mistake 3: Phantom Citations & Axiom Drift</span>
+        <span>Stage 0–1</span>
+      </div>
+      <div class="mistake-desc">
+        <strong>The Mess:</strong> Cited non-existent ACP-49; conflated retail validator duration with macro ACP-285 issuance.<br>
+        <strong>The Fix:</strong> Purged phantom text, enforced strict Tinbergen boundary separation, committed to git discipline.
+      </div>
+    </div>
+
+    <div class="mistake-box m4">
+      <div class="mistake-hdr">
+        <span>Mistake 4: Profile A Absorbing Trap</span>
+        <span>Stage 4B Audit</span>
+      </div>
+      <div class="mistake-desc">
+        <strong>The Mess:</strong> Permanently blocked Profile A from delegation, ignoring 20.6% empirical upward mobility.<br>
+        <strong>The Fix:</strong> Forensic audit issued AMBER verdict, mandating friction sensitivity testing across Y1, Y2, Y3.
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Chronological Research Trajectory (Steps 1 to 9) -->
+  <div class="timeline-bar">
+    <div class="timeline-meta">
+      <span>Chronological Research Trajectory: From Subspace Explorations to Verified Digital Twin</span>
+      <span class="active-txt">Current Milestone: Step 8 (Forensic Audit Gate Passed) • Next: Step 9</span>
+    </div>
+    <div class="timeline-track">
+      <div class="t-line"></div>
+
+      <div class="t-step done">
+        <div class="t-dot">1</div>
+        <div class="t-lbl">Subspace Tensors</div>
+        <div class="t-sub">18+ HTMLs & sweeps</div>
+      </div>
+
+      <div class="t-step revert">
+        <div class="t-dot">2</div>
+        <div class="t-lbl">Git Reverts</div>
+        <div class="t-sub">Stage 1 stripped</div>
+      </div>
+
+      <div class="t-step done">
+        <div class="t-dot">3</div>
+        <div class="t-lbl">Aug 2025 Autopsy</div>
+        <div class="t-sub">4 farms = 538 nodes</div>
+      </div>
+
+      <div class="t-step done">
+        <div class="t-dot">4</div>
+        <div class="t-lbl">SE Axiom Reset</div>
+        <div class="t-sub">Dennis Buede & NASA</div>
+      </div>
+
+      <div class="t-step done">
+        <div class="t-dot">5</div>
+        <div class="t-lbl">Bounds Grounding</div>
+        <div class="t-sub">S_floor & S_short</div>
+      </div>
+
+      <div class="t-step done">
+        <div class="t-dot">6</div>
+        <div class="t-lbl">Pivot Inversion</div>
+        <div class="t-sub">Hypothesis E (p ≥ 1)</div>
+      </div>
+
+      <div class="t-step done">
+        <div class="t-dot">7</div>
+        <div class="t-lbl">Digital Twin Rebuild</div>
+        <div class="t-sub">λ=8.24, P(d|S)</div>
+      </div>
+
+      <div class="t-step active">
+        <div class="t-dot">8</div>
+        <div class="t-lbl">Forensic Audit</div>
+        <div class="t-sub">AMBER Gate (TODAY)</div>
+      </div>
+
+      <div class="t-step next">
+        <div class="t-dot">9</div>
+        <div class="t-lbl">Policy Sweeps</div>
+        <div class="t-sub">Y1, Y2, Y3 Sweeps</div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
