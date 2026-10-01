@@ -22,13 +22,17 @@ HTML_CONTENT = """<!DOCTYPE html>
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: #0f172a;
     color: #f8fafc;
-    width: 1920px;
-    height: 1280px;
+    width: 100%;
+    min-width: 1400px;
+    max-width: 1920px;
+    margin: 0 auto;
+    min-height: 100vh;
     padding: 24px 32px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: auto;
   }
 
   /* Header */
@@ -718,13 +722,50 @@ HTML_CONTENT = """<!DOCTYPE html>
 
 async def render():
     out_html = Path("research/plots/comprehensive_research_odyssey_infographic.html")
+    out_html_downloads = Path("/home/hash/Downloads/comprehensive_research_odyssey_infographic.html")
     out_png_downloads = Path("/home/hash/Downloads/Iterative_Research_Workflow_Infographic_Revised.png")
     out_png_plots = Path("research/plots/Iterative_Research_Workflow_Infographic_Revised.png")
     out_png_docs = Path("docs/Iterative_Research_Workflow_Infographic_Revised.png")
+    out_viewer_plots = Path("research/plots/view_infographic.html")
+    out_viewer_downloads = Path("/home/hash/Downloads/view_infographic.html")
 
     out_html.parent.mkdir(parents=True, exist_ok=True)
     out_html.write_text(HTML_CONTENT, encoding="utf-8")
+    out_html_downloads.write_text(HTML_CONTENT, encoding="utf-8")
     print(f"Wrote HTML source to: {out_html}")
+    print(f"Wrote HTML source to: {out_html_downloads}")
+
+    viewer_html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avalanche Admission Frontier — Research Odyssey Infographic</title>
+<style>
+  body { margin: 0; padding: 24px; background: #0f172a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #f8fafc; text-align: center; }
+  .nav { margin-bottom: 24px; display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+  .btn { background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+  .btn:hover { background: #1d4ed8; }
+  .btn-purple { background: #9333ea; }
+  .btn-purple:hover { background: #7e22ce; }
+  .img-wrapper { max-width: 100%; overflow: auto; padding: 10px; }
+  img { max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid #334155; }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="Iterative_Research_Workflow_Infographic_Revised.png" target="_blank" class="btn">View Raw Full-Res PNG (3440x2360)</a>
+    <a href="comprehensive_research_odyssey_infographic.html" class="btn btn-purple">Open Interactive HTML Version</a>
+  </div>
+  <div class="img-wrapper">
+    <img src="Iterative_Research_Workflow_Infographic_Revised.png" alt="Avalanche Research Workflow Infographic">
+  </div>
+</body>
+</html>
+"""
+    out_viewer_plots.write_text(viewer_html, encoding="utf-8")
+    out_viewer_downloads.write_text(viewer_html, encoding="utf-8")
+    print(f"Wrote Viewer HTML to: {out_viewer_plots}")
 
     async with async_playwright() as p:
         browser = await p.chromium.launch()
