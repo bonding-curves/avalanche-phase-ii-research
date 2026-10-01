@@ -16,3 +16,12 @@ DURATION_COMPARISON_COLORS = {
 }
 
 WEIGHTING_LINE_DASH = {"commitment_weighted": "solid", "stake_weighted": "dashed"}
+
+# Reward and admission designs, in hues no quantity uses. Today's chain is drawn in ink.
+MECHANISM_COLORS = {
+    "Chain today": "#1b1b1b",
+    "ACP-285 settings": "#0e7c86",
+    "Tenure boost": "#9c3d8f",
+    "Quadratic curve": "#7a5230",
+    "Quadratic curve, today's issuance": "#50607a",
+}
