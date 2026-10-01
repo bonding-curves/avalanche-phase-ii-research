@@ -1,16 +1,22 @@
 """Acceptance-cohort table boundaries, rates, and reward coverage."""
 
-import pandas as pd
-import pytest
 import duckdb
 import holoviews as hv
+import pandas as pd
 import panel as pn
 import param as pm
+import pytest
 from bokeh.models import BoxAnnotation, HoverTool, Line
 
-import avalanche_research.staking_cohorts as staking_cohorts
+from avalanche_research import staking_cohorts
 from avalanche_research.staking_cohorts import (
-    StakingCohorts, cohort_table, denominator_options, display_columns, distinct_identities, for_population, rates_per,
+    StakingCohorts,
+    cohort_table,
+    denominator_options,
+    display_columns,
+    distinct_identities,
+    for_population,
+    rates_per,
     selected_columns,
 )
 
@@ -332,6 +338,11 @@ def test_chart_uses_table_controls_and_only_per_measures(cohorts, monkeypatch):
     monkeypatch.setattr(staking_cohorts, "_window_table", lambda run, start, end, grain: filtered[grain])
     slider = chart[0][1]
     slider.value = (window[0].date(), window[0].date())
+    # Dragging moves the handles immediately; commit the expensive window
+    # calculation on release, as DateRangeSlider.value_throttled does in JS.
+    assert explorer.date_range == explorer.param.date_range.bounds
+    with pm.edit_constant(slider):
+        slider.value_throttled = slider.value
     assert explorer.date_range == (window[0].date(), window[0].date())
     assert explorer.panel()[0][1].value == explorer.date_range
     assert explorer._selected_table()["Total Commitments"].sum() == 1
@@ -488,9 +499,13 @@ def test_panel_keeps_one_table_when_selections_change(monkeypatch):
     explorer.param.date_range.bounds = (pd.Timestamp("2026-09-21").date(), pd.Timestamp("2026-09-24").date())
     explorer.date_range = explorer.param.date_range.bounds
     frame = pd.DataFrame({"Nodes": [1], "Stake": [2]})
+    projection_calls = []
+    def projection(self):
+        projection_calls.append(tuple(self.metrics))
+        return frame[["Nodes"] if "Nodes" in self.metrics else ["Stake"]]
+
     monkeypatch.setattr(StakingCohorts, "_full_frame", lambda self: frame)
-    monkeypatch.setattr(StakingCohorts, "_frame",
-                        lambda self: frame[["Nodes"] if "Nodes" in self.metrics else ["Stake"]])
+    monkeypatch.setattr(StakingCohorts, "_frame", projection)
 
     panel = explorer.panel()
     assert explorer.panel() is panel
@@ -498,7 +513,139 @@ def test_panel_keeps_one_table_when_selections_change(monkeypatch):
     original_value = table.value
     assert table.value.columns.tolist() == ["Nodes", "Stake"]
     assert table.hidden_columns == ["Stake"]
+    assert len(projection_calls) == 1
     explorer.metrics = ["Stake"]
     assert panel[1] is table
     assert table.value is original_value
     assert table.hidden_columns == ["Nodes"]
+    assert len(projection_calls) == 2
+
+    # Same-schema context changes update rows in place. A new schema must be
+    # initialized with its hidden columns instead of rebuilding a live table.
+    frame = pd.DataFrame({"Nodes": [3], "Stake": [4]})
+    explorer.time_grain = "Week"
+    assert panel[1] is table
+    assert table.value.equals(frame)
+    frame = frame.assign(Rate=[5])
+    explorer.periodic_denominator = "Week"
+    replacement = panel[1]
+    assert replacement is not table
+    assert replacement.value.equals(frame)
+    assert replacement.hidden_columns == ["Nodes", "Rate"]
+    explorer.metrics = ["Nodes"]
+    assert panel[1] is replacement
+    assert replacement.hidden_columns == ["Stake", "Rate"]
+    assert table.hidden_columns == ["Nodes"]
+
+
+def test_chart_preserves_models_sources_and_selections(cohorts, monkeypatch):
+    daily, cutoffs = cohorts
+    tables = {grain: cohort_table(daily, cutoffs, grain)
+              for grain in StakingCohorts.param.time_grain.objects}
+    monkeypatch.setattr(staking_cohorts, "_cohort_data",
+                        lambda run: (tables, cutoffs, pd.Timestamp("2026-09-24"), daily, ()))
+    explorer = StakingCohorts("fixture", time_grain="Day", metrics=["Stake", "Duration"],
+                              views=["Per Commitment"])
+    chart, panel = explorer.chart(), explorer.panel()
+    for chart_widget, table_widget in (
+        (chart[0][0][0][0], panel[0][0][0][0]),
+        (chart[0][0][2][1], panel[0][0][2][1]),
+        (chart[0][0][4][1], panel[0][0][4][1]),
+        (chart[0][1], panel[0][1]),
+    ):
+        assert chart_widget is not table_widget
+        assert chart_widget.value == table_widget.value
+    figure = chart[1].object
+    model_ids = {model.id for model in figure.references()}
+    series = explorer._chart_plot.series["Validator", "Stake", "Per Commitment"]
+    source_data = series["source"].data
+    source_values = source_data["Value"]
+    # Explicit fixture oracle, not a second invocation of the plotted values.
+    assert source_values.tolist() == [150, 500]
+    assert source_data["Index"].tolist() == pytest.approx([150 / 325, 500 / 325])
+    assert series["line"].visible and not series["point"].visible
+    assert series["legend"].label.value == "Stake per Commitment (AVAX)"
+    assert not series["line"].syncable and not series["line"].glyph.syncable
+    monkeypatch.setattr(explorer, "_plot_frame", lambda **kwargs: pytest.fail("Selection recomputed chart data"))
+    for metrics in (["Stake"], ["Stake", "Duration"], [], ["Duration", "Stake"]):
+        explorer._chart_widgets["metrics"].value = metrics
+        assert explorer.metrics == metrics
+        assert explorer._table_widgets["metrics"].value == metrics
+        assert series["source"].data["Value"] is source_values
+        assert chart[1].object is figure
+        assert {model.id for model in figure.references()} == model_ids
+        assert series["line"].visible == ("Stake" in metrics)
+        assert chart[1].visible == bool(metrics)
+        assert chart[2].visible == (not metrics)
+
+
+def test_chart_updates_values_without_replacing_glyphs(cohorts, monkeypatch):
+    daily, cutoffs = cohorts
+    tables = {grain: cohort_table(daily, cutoffs, grain)
+              for grain in StakingCohorts.param.time_grain.objects}
+    monkeypatch.setattr(staking_cohorts, "_cohort_data",
+                        lambda run: (tables, cutoffs, pd.Timestamp("2026-09-24"), daily, ()))
+    explorer = StakingCohorts("fixture", time_grain="Day", metrics=["Stake"], views=["Per Commitment"])
+    chart = explorer.chart()
+    figure = chart[1].object
+    model_ids = {model.id for model in figure.references()}
+    for grain, population, period, normalization in (
+        ("Week", "Both", "Week", "Median"),
+        ("All", "Delegators", "Year", "None"),
+        ("Day", "Validators", "Day", "First nonzero"),
+    ):
+        explorer.param.update(time_grain=grain, population=population,
+                              periodic_denominator=period, normalization=normalization)
+        assert chart[1].object is figure
+        assert {model.id for model in figure.references()} == model_ids
+        expected = explorer._plot_frame()
+        # Reset should fit the current reporting intervals after a context change.
+        start, end = expected["Date"].min(), expected["Date"].max()
+        if start == end:
+            start, end = expected["Start (UTC)"].min(), expected["End (UTC)"].max()
+        assert figure.x_range.reset_start == start
+        assert figure.x_range.reset_end == end
+        assert explorer._chart_plot.reference.visible == (normalization != "None")
+        visible = [renderer for renderer in figure.renderers if renderer.visible]
+        assert len(visible) == len(expected.groupby(["Role", "Measure"]))
+        for renderer in visible:
+            data = renderer.data_source.data
+            label = data["Title"][0]
+            role = label.split(": ")[0] if population == "Both" else population[:-1]
+            group = expected[expected["Role"].eq(role)]
+            assert data["Value"].tolist() == pytest.approx(group["Value"].tolist())
+            assert data["Index"].tolist() == pytest.approx(group["Index"].tolist())
+            assert all(len(values) == len(group) for values in data.values())
+            assert isinstance(renderer.glyph, Line) == (len(group) > 1)
+
+
+def test_repeated_chart_displays_keep_independent_live_figures(cohorts, monkeypatch):
+    from bokeh.document import Document
+    from bokeh.plotting import figure as Figure
+
+    daily, cutoffs = cohorts
+    tables = {grain: cohort_table(daily, cutoffs, grain)
+              for grain in StakingCohorts.param.time_grain.objects}
+    monkeypatch.setattr(staking_cohorts, "_cohort_data",
+                        lambda run: (tables, cutoffs, pd.Timestamp("2026-09-24"), daily, ()))
+    explorer = StakingCohorts("fixture", time_grain="Day", metrics=["Stake", "Duration"],
+                              views=["Per Commitment"])
+    chart = explorer.chart()
+    first, second = Document(), Document()
+    first_root = chart.get_root(first)
+    first.add_root(first_root)
+    second_root = chart.get_root(second)
+    second.add_root(second_root)
+    first_plot = next(iter(first.select({"type": Figure})))
+    second_plot = next(iter(second.select({"type": Figure})))
+    assert first_plot is not second_plot
+    assert first_plot.document is first and second_plot.document is second
+    model_ids = [{model.id for model in plot.references()} for plot in (first_plot, second_plot)]
+    explorer.metrics = ["Stake"]
+    for plot, ids in zip((first_plot, second_plot), model_ids, strict=True):
+        assert {model.id for model in plot.references()} == ids
+        visible = [renderer for renderer in plot.renderers if renderer.visible]
+        assert len(visible) == 1
+        assert visible[0].data_source.data["Value"].tolist() == [150, 500]
+    chart._cleanup(second_root)
+    assert not explorer._chart_plot.pane._copies

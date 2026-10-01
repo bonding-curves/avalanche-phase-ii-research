@@ -3,20 +3,33 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import date, timedelta, timezone
+from datetime import UTC, date, timedelta
 from functools import cache
+from uuid import uuid4
 
 import duckdb
 import holoviews as hv
 import pandas as pd
 import panel as pn
 import param as pm
-from bokeh.models import DatetimeAxis, FixedTicker
+from bokeh.core.properties import value
+from bokeh.models import (
+    BoxAnnotation,
+    ColumnDataSource,
+    DataRange1d,
+    DatetimeAxis,
+    FixedTicker,
+    HoverTool,
+    Legend,
+    LegendItem,
+    Range1d,
+    Span,
+)
+from bokeh.plotting import figure
 
 from . import datasets
 from .model.protocol import MAINNET_UPGRADES
 from .palette import QUANTITY_COLORS
-
 
 DAY = timedelta(days=1)
 NETWORK_START = pd.Timestamp("2020-09-10")
@@ -133,7 +146,7 @@ def _era_bucket_sql() -> str:
     for upgrade in MAINNET_UPGRADES.upgrades:
         era = "apricot" if upgrade.name.startswith("apricot_") else upgrade.name
         if not changes or era != changes[-1][0]:
-            changes.append((era, upgrade.activated_at.astimezone(timezone.utc)))
+            changes.append((era, upgrade.activated_at.astimezone(UTC)))
     clauses = [f"WHEN accepted_at >= TIMESTAMP '{instant:%Y-%m-%d %H:%M:%S}' THEN '{era}'"
                for era, instant in reversed(changes)]
     return "CASE " + " ".join(clauses) + " ELSE 'genesis' END"
@@ -226,7 +239,7 @@ def _era_intervals(start: pd.Timestamp, end: pd.Timestamp):
     for upgrade in MAINNET_UPGRADES.upgrades:
         era = "apricot" if upgrade.name.startswith("apricot_") else upgrade.name
         if era != changes[-1][0]:
-            changes.append((era, pd.Timestamp(upgrade.activated_at.astimezone(timezone.utc)).tz_localize(None)))
+            changes.append((era, pd.Timestamp(upgrade.activated_at.astimezone(UTC)).tz_localize(None)))
     for index, (era, beginning) in enumerate(changes):
         finish = changes[index + 1][1] if index + 1 < len(changes) else end
         if beginning < end and finish > start:
@@ -498,6 +511,217 @@ def _window_table(run: str, start: date, end: date, grain: str):
     return cohort_table(daily, cutoffs, grain, identities, window)
 
 
+class _CohortCommGuard(pn.pane.HTML):
+    """Ignore returned notebook patches instead of echoing stale widget values."""
+
+    # Bokeh marks backend patches sync=false. Panel's notebook comm listener
+    # currently buffers them anyway, unlike ClientSession. Guard only the
+    # document containing these controls. Server documents have no CommManager.
+    _script = """
+        for (const doc of Bokeh.documents) {
+            if (!Array.from(doc._all_models.values()).some(model => model.name === GUARD_NAME)) continue;
+            for (const manager of doc._all_models.values()) {
+                if (!manager.type.endsWith("CommManager") || manager._cohort_sync_guard) continue;
+                const receive = manager._document_changed.bind(manager);
+                manager._document_changed = event => {
+                    if (event.sync !== false) receive(event);
+                };
+                manager._event_buffer = manager._event_buffer.filter(event => event.sync !== false);
+                manager._cohort_sync_guard = true;
+            }
+        }
+    """
+
+    def __init__(self, **params):
+        super().__init__("", **params)
+        self._guard_name = f"cohorts-comm-guard-{uuid4().hex}"
+        self.object = "<script>(() => {" + self._script.replace("GUARD_NAME", repr(self._guard_name)) + "})();</script>"
+
+    def _get_model(self, doc, root=None, parent=None, comm=None):
+        model = super()._get_model(doc, root, parent, comm)
+        model.name = self._guard_name
+        model.syncable = False
+        return model
+
+
+class _CohortChartPane(pn.pane.Bokeh):
+    """Give each live notebook document its own persistent figure."""
+
+    def __init__(self, chart):
+        self._chart = chart
+        self._copies = {}
+        super().__init__(chart.figure, sizing_mode="stretch_width")
+
+    def _get_model(self, doc, root=None, parent=None, comm=None):
+        if root is None:
+            return self.get_root(doc, comm)
+        if self.object.document is None or self.object.document is doc:
+            return super()._get_model(doc, root, parent, comm)
+        copy = _CohortChart(self._chart.explorer, isolated=True)
+        model = copy.pane._get_model(doc, root, parent, comm)
+        self._copies[root.id] = copy
+        self._models[root.id] = (model, parent)
+        return model
+
+    def update_copies(self):
+        for copy in tuple(self._copies.values()):
+            copy.update()
+
+    def _cleanup(self, root=None):
+        if root is not None:
+            copy = self._copies.pop(root.id, None)
+            if copy is not None:
+                copy.pane._cleanup(root)
+        super()._cleanup(root)
+
+
+class _CohortChart:
+    """Keep the notebook's model graph stable; selection changes only visibility."""
+
+    _fields = ("Date", "Index", "Value", "Title", "DisplayValue", "DisplayIndex")
+
+    def __init__(self, explorer, *, isolated=False):
+        self.explorer = explorer
+        self.figure = figure(
+            title="New staking commitments over time", x_axis_type="datetime",
+            x_range=Range1d(0, 1),
+            x_axis_label="Calendar time", height=600, sizing_mode="stretch_width",
+            tools="pan,wheel_zoom,box_zoom,reset,save", active_scroll="wheel_zoom",
+            y_range=DataRange1d(only_visible=True),
+        )
+        # Display-only models do not need browser-to-kernel traffic on zoom,
+        # hover or legend mute, including Bokeh's scalar-color serialization.
+        self.figure.x_range.syncable = self.figure.y_range.syncable = False
+        self.reference = Span(location=1, dimension="width", line_color="#888888",
+                              line_dash="dotted", line_width=1, syncable=False)
+        self.figure.add_layout(self.reference)
+        self.bands = {}
+        for era, start, end in _era_intervals(
+            NETWORK_START, pd.Timestamp(explorer.param.date_range.bounds[1]) + DAY,
+        ):
+            band = BoxAnnotation(left=start, right=end, fill_color="#d9d9d9", fill_alpha=0.35,
+                                 line_alpha=0, visible=False, syncable=False)
+            self.bands[era] = band
+            self.figure.add_layout(band)
+        ticks = {start.value / 1_000_000: era for era, start, _ in
+                 _era_intervals(NETWORK_START, pd.Timestamp.max.normalize())}
+        self.figure.add_layout(DatetimeAxis(
+            ticker=FixedTicker(ticks=list(ticks)), major_label_overrides=ticks,
+            axis_line_color=None, major_label_text_font_size="8pt", major_tick_in=0,
+        ), "above")
+        self.series = {}
+        self._catalog = {}
+        self._context = None
+        self._groups = {}
+        legend_items = []
+        colors = quantity_colors(explorer.periodic_denominator)
+        for (quantity, view), measure in self._columns().items():
+            for role in ("Validator", "Delegator"):
+                source = ColumnDataSource({name: [] for name in self._fields}, syncable=False)
+                common = {"source": source, "name": measure, "visible": False, "syncable": False,
+                          "color": colors[measure], "muted_alpha": 0.08}
+                line = self.figure.line("Date", "Index", line_width=4, line_alpha=0.75,
+                                        hover_line_width=6, hover_line_alpha=1, **common)
+                point = self.figure.scatter("Date", "Index", size=7, **common)
+                for renderer in (line, point):
+                    renderer.syncable = False
+                    for glyph in (renderer.glyph, renderer.hover_glyph, renderer.muted_glyph,
+                                  renderer.nonselection_glyph):
+                        if hasattr(glyph, "syncable"):
+                            glyph.syncable = False
+                item = LegendItem(label=value(measure), renderers=[line, point], visible=False, syncable=False)
+                legend_items.append(item)
+                self.series[role, quantity, view] = {"source": source, "line": line, "point": point,
+                                                     "legend": item, "context": None}
+        self.figure.add_layout(Legend(items=legend_items, location="top_right", click_policy="mute",
+                                      syncable=False))
+        self.figure.add_tools(HoverTool(
+            renderers=[renderer for series in self.series.values() for renderer in
+                       (series["line"], series["point"])],
+            tooltips=[("Measure", "@Title"), ("Date", "@Date{%F}"),
+                      ("Value", "@DisplayValue"), ("Chart value", "@DisplayIndex")],
+            formatters={"@Date": "datetime"}, syncable=False,
+        ))
+        self.pane = (pn.pane.Bokeh(self.figure, sizing_mode="stretch_width") if isolated
+                     else _CohortChartPane(self))
+        self.empty = pn.pane.Markdown(
+            "Select a Per denominator and a quantity with observed values to draw the chart.", visible=False,
+        )
+        self.update()
+
+    def _columns(self):
+        period = self.explorer.periodic_denominator
+        if period not in self._catalog:
+            # Use the same column projection as the table, including the
+            # intentionally unsupported quantity/denominator combinations.
+            table = rates_per(for_population(self.explorer._tables["All"].iloc[:0], "Both"), period)
+            context = (*CONTEXT_COLUMNS, f"Total {period}s", "Reward Outcomes")
+            self._catalog[period] = {
+                (quantity, view): display_column(column)
+                for quantity in QUANTITIES for view in VIEWS if view != "Total"
+                for column in selected_columns(table, [quantity], [view], period)
+                if column not in context
+            }
+        return self._catalog[period]
+
+    def update(self, *events):
+        explorer = self.explorer
+        context = (explorer.time_grain, explorer.population, explorer.periodic_denominator,
+                   explorer.normalization, explorer.date_range)
+        if context != self._context:
+            frame = explorer._plot_frame(metrics=list(QUANTITIES), views=list(VIEWS))
+            self._groups = dict(tuple(frame.groupby(["Role", "Measure"], sort=False)))
+            self._context = context
+        visible_groups = []
+        columns = self._columns()
+        for (role, quantity, view), series in self.series.items():
+            measure = columns[quantity, view]
+            values = self._groups.get((role, measure))
+            visible = quantity in explorer.metrics and view in explorer.views and values is not None
+            if visible:
+                visible_groups.append(values)
+                if series["context"] != context:
+                    label = f"{role}: {measure}" if explorer.population == "Both" else measure
+                    series["source"].data = {
+                        "Date": values["Date"].to_numpy(), "Index": values["Index"].to_numpy(),
+                        "Value": values["Value"].to_numpy(), "Title": [label] * len(values),
+                        "DisplayValue": values["Value"].map(_hover_number).tolist(),
+                        "DisplayIndex": values["Index"].map(_hover_number).tolist(),
+                    }
+                    series["legend"].label = value(label)
+                    series["line"].name = series["point"].name = label
+                    series["context"] = context
+            series["line"].visible = visible and len(values) > 1
+            series["point"].visible = visible and len(values) == 1
+            series["legend"].visible = visible
+        self.figure.visible = bool(visible_groups)
+        self.pane.visible = bool(visible_groups)
+        self.empty.visible = not visible_groups
+        self.reference.visible = explorer.normalization != "None"
+        self.figure.yaxis.axis_label = ("Value (original units)" if explorer.normalization == "None"
+                                       else f"Relative to {explorer.normalization.lower()}")
+        if visible_groups:
+            start = min(values["Date"].min() for values in visible_groups)
+            end = max(values["Date"].max() for values in visible_groups)
+            if start == end:
+                start = min(values["Start (UTC)"].min() for values in visible_groups)
+                end = max(values["End (UTC)"].max() for values in visible_groups)
+            self.figure.x_range.update(start=start, end=end, reset_start=start, reset_end=end)
+            bands = {era: (index, left, right) for index, (era, left, right) in enumerate(_era_intervals(
+                min(values["Start (UTC)"].min() for values in visible_groups),
+                max(values["End (UTC)"].max() for values in visible_groups),
+            ))}
+            for era, band in self.bands.items():
+                band.visible = era in bands and bool(bands[era][0] % 2)
+                if band.visible:
+                    _, band.left, band.right = bands[era]
+        # A table control may live in a different notebook document. Flush this
+        # figure's held changes rather than waiting for its next widget event.
+        if isinstance(self.pane, _CohortChartPane):
+            self.pane.update_copies()
+        pn.io.push_notebook(self.pane)
+
+
 class StakingCohorts(pm.Parameterized):
     """Fast notebook view of one checked staking-period release."""
 
@@ -539,12 +763,13 @@ class StakingCohorts(pm.Parameterized):
                                  self.periodic_denominator)
         return display_columns(table).round(2)
 
-    def _plot_frame(self):
+    def _plot_frame(self, *, metrics=None, views=None):
         """Selected per-denominator quantities on the same reporting intervals as the table."""
-        views = [view for view in self.views if view != "Total"]
+        metrics = self.metrics if metrics is None else metrics
+        views = [view for view in (self.views if views is None else views) if view != "Total"]
         table = rates_per(for_population(self._selected_table(), self.population),
                           self.periodic_denominator)
-        table = display_columns(selected_columns(table, self.metrics, views, self.periodic_denominator))
+        table = display_columns(selected_columns(table, metrics, views, self.periodic_denominator))
         measures = [column for column in table if column not in (*CONTEXT_COLUMNS,
                     f"Total {self.periodic_denominator}s", "Reward Outcomes")]
         if not measures:
@@ -610,49 +835,62 @@ class StakingCohorts(pm.Parameterized):
     def chart(self):
         """A second set of controls edits the same parameters as the table."""
         if getattr(self, "_chart", None) is None:
+            controls = self._controls(normalization=True)
+            self._chart_plot = _CohortChart(self)
             self._chart = pn.Column(
-                self._controls(normalization=True), self.plot,
+                controls, self._chart_plot.pane, self._chart_plot.empty,
                 pn.pane.Markdown("Selected Per measures share one axis. Choose Normalize by None only when "
                                  "their original units are comparable. Totals stay in the table. "
                                  "Legend clicks mute curves; hovering a curve emphasizes it. "
                                  "Helicon is partial; rewards include known outcomes only."),
                 sizing_mode="stretch_width",
             )
+            self.param.watch(self._chart_plot.update, ["time_grain", "population", "periodic_denominator",
+                                                      "metrics", "views", "normalization", "date_range"])
         return self._chart
 
     def view(self):
         full = self._full_frame()
-        hidden = [column for column in full if column not in self._frame()]
+        selected = self._frame().columns
+        hidden = [column for column in full if column not in selected]
         return pn.widgets.Tabulator(full, hidden_columns=hidden, show_index=False, disabled=True,
                                     pagination="remote", page_size=20, height=350, sizing_mode="stretch_width")
 
     def _controls(self, normalization=False):
-        parameters = [self.param.time_grain, self.param.population, self.param.periodic_denominator]
+        # Each notebook output owns its widget models. Sharing one widget object
+        # across documents can echo an older selection into the active output.
+        attribute = "_chart_widgets" if normalization else "_table_widgets"
+        widgets = getattr(self, attribute, None)
+        if widgets is None:
+            widgets = {name: pn.widgets.Select.from_param(self.param[name], width=220)
+                             for name in ("time_grain", "population", "periodic_denominator", "normalization")}
+            widgets["date_range"] = pn.widgets.DateRangeSlider.from_param(
+                self.param.date_range, start=self.param.date_range.bounds[0],
+                end=self.param.date_range.bounds[1], step=1, format="%Y-%m-%d", width=660, throttled=True,
+            )
+            widgets["metrics"] = pn.widgets.CheckButtonGroup.from_param(
+                self.param.metrics, orientation="vertical", variant="outline", color="primary", width=190,
+            )
+            widgets["views"] = pn.widgets.CheckButtonGroup.from_param(
+                self.param.views, options=denominator_options(self.periodic_denominator),
+                orientation="vertical", variant="outline", color="primary", width=220,
+            )
+            self.param.watch(lambda event: setattr(widgets["views"], "options",
+                                                  denominator_options(event.new)), "periodic_denominator")
+            setattr(self, attribute, widgets)
+        names = ["time_grain", "population", "periodic_denominator"]
         if normalization:
-            parameters.append(self.param.normalization)
-        grouping = pn.Column(*(pn.widgets.Select.from_param(parameter, width=220)
-                               for parameter in parameters), width=220)
-        dates = pn.widgets.DateRangeSlider.from_param(
-            self.param.date_range, start=self.param.date_range.bounds[0],
-            end=self.param.date_range.bounds[1], step=1, format="%Y-%m-%d", width=660,
-        )
-        quantities = pn.widgets.CheckButtonGroup.from_param(
-            self.param.metrics, orientation="vertical", variant="outline", color="primary", width=190,
-        )
-        denominators = pn.widgets.CheckButtonGroup.from_param(
-            self.param.views, options=denominator_options(self.periodic_denominator),
-            orientation="vertical", variant="outline", color="primary", width=220,
-        )
-        self.param.watch(lambda event: setattr(denominators, "options", denominator_options(event.new)),
-                         "periodic_denominator")
+            names.append("normalization")
+        grouping = pn.Column(*(widgets[name] for name in names), width=220)
         return pn.Column(
             pn.Row(
                 grouping, pn.Spacer(width=16),
-                pn.Column(pn.pane.Markdown("Quantities", margin=(0, 0, 4, 0)), quantities, width=190),
+                pn.Column(pn.pane.Markdown("Quantities", margin=(0, 0, 4, 0)), widgets["metrics"], width=190),
                 pn.Spacer(width=16),
-                pn.Column(pn.pane.Markdown("Denominators", margin=(0, 0, 4, 0)), denominators, width=220),
+                pn.Column(pn.pane.Markdown("Denominators", margin=(0, 0, 4, 0)), widgets["views"], width=220),
+                _CohortCommGuard(width=0, height=0, margin=0),
             ),
-            dates,
+            widgets["date_range"],
         )
 
     def panel(self):
@@ -679,12 +917,25 @@ class StakingCohorts(pm.Parameterized):
                 "Year rates use 365.2425 days. Start is inclusive; End is exclusive.")
         table = self.view()
         def update_visibility(event):
-            table.hidden_columns = [column for column in table.value if column not in self._frame()]
+            selected = self._frame().columns
+            table.hidden_columns = [column for column in table.value if column not in selected]
 
         def update_data(event):
+            nonlocal table
             full = self._full_frame()
-            hidden = [column for column in full if column not in self._frame()]
-            table.param.update(value=full, hidden_columns=hidden)
+            selected = self._frame().columns
+            hidden = [column for column in full if column not in selected]
+            if not full.columns.equals(table.value.columns):
+                # Tabulator rebuilds columns asynchronously. Changing hidden
+                # columns in that same patch can redraw a torn-down table.
+                # Initialize a new table atomically only when its schema changes.
+                table = pn.widgets.Tabulator(
+                    full, hidden_columns=hidden, show_index=False, disabled=True,
+                    pagination="remote", page_size=20, height=350, sizing_mode="stretch_width",
+                )
+                self._panel[1] = table
+            else:
+                table.param.update(value=full, hidden_columns=hidden)
 
         self.param.watch(update_visibility, ["metrics", "views"])
         self.param.watch(update_data, ["time_grain", "population", "periodic_denominator", "date_range"])

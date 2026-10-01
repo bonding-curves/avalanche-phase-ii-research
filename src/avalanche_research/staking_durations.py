@@ -13,6 +13,7 @@ from .staking_cohorts import (
     DAY,
     NETWORK_START,
     StakingCohorts,
+    _CohortCommGuard,
     _era_intervals,
     _legend_interaction,
     _upgrade_axis,
@@ -116,4 +117,5 @@ class StakingDurations(pm.Parameterized):
                 "Zero-denominator weeks have gaps. Edge weeks can be partial. "
                 "Validator and delegator roles remain separate when Population is Both.")
         return pn.Column(population, dates, self.plot, pn.pane.Markdown(note),
+                         _CohortCommGuard(width=0, height=0, margin=0),
                          sizing_mode="stretch_width")
