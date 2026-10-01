@@ -3,7 +3,11 @@
 import pandas as pd
 import pytest
 
-from avalanche_research.staking_renewal import renewal_events, renewal_summary
+from avalanche_research.staking_renewal import (
+    LOCKBOX_START,
+    renewal_events,
+    renewal_summary,
+)
 
 
 def periods():
@@ -80,3 +84,30 @@ def test_empty_source_timestamp_is_rejected_after_parsing(column):
     rows.loc[0, column] = ""
     with pytest.raises(ValueError, match="timestamps must be present"):
         renewal_events(rows)
+
+
+@pytest.mark.parametrize("bound", ["end", "observed_through"])
+@pytest.mark.parametrize("timestamp", ["2026-01-01", "2025-11-19T16:00:00.000000001Z"])
+def test_cohort_and_followup_cannot_enter_lockbox(bound, timestamp):
+    window = {"start": "2025-01-01", "end": LOCKBOX_START,
+              "observed_through": LOCKBOX_START}
+    window[bound] = timestamp
+    with pytest.raises(ValueError, match="validation lockbox"):
+        renewal_summary(renewal_events(periods()), **window)
+
+
+def test_lockbox_boundary_excludes_endings_and_censors_followup_at_boundary():
+    day, second = pd.Timedelta(1, unit="D"), pd.Timedelta(1, unit="s")
+    rows = pd.DataFrame([
+        ["a", "node-a", LOCKBOX_START - 14 * day - second, LOCKBOX_START - 7 * day - second, 100],
+        ["a-next", "node-a", LOCKBOX_START - second, LOCKBOX_START + day, 100],
+        ["b", "node-b", LOCKBOX_START - 14 * day, LOCKBOX_START - 7 * day, 100],
+        ["b-next", "node-b", LOCKBOX_START, LOCKBOX_START + day, 100],
+        ["c", "node-c", LOCKBOX_START - 14 * day, LOCKBOX_START, 100],
+    ], columns=["transaction_hash", "node_id", "start_time", "end_time", "stake_avax"])
+    # This offset timestamp is the same exact boundary in UTC. The known
+    # successor at the first lockbox instant must not turn censored b positive.
+    result = renewal_summary(renewal_events(rows), "2025-01-01",
+                             "2025-11-19T08:00:00-08:00", LOCKBOX_START)
+    assert result == {"cohort_ends": 2, "eligible_ends": 1, "renewed_ends": 1,
+                      "censored_ends": 1, "overlapping_ends": 0, "renewal_share": 1.0}

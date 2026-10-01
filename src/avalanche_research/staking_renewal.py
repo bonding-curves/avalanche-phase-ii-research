@@ -6,6 +6,7 @@ import pandas as pd
 
 RENEWAL_DAYS = 7
 SECONDS_PER_DAY = 86_400
+LOCKBOX_START = pd.Timestamp("2025-11-19 16:00:00", tz="UTC")
 
 
 def renewal_events(commitments: pd.DataFrame) -> pd.DataFrame:
@@ -41,6 +42,8 @@ def renewal_summary(events: pd.DataFrame, start, end, observed_through,
     previous end and that end plus ``days``, including both boundaries. Endings
     without the full window are censored, even when a successor is already
     known. Overlapping successors are excluded and counted separately.
+    Cohort and observation bounds cannot extend into the validation lockbox.
+    Full follow-up must finish strictly before its first timestamp.
     """
     if not isinstance(days, int) or isinstance(days, bool) or days <= 0:
         raise ValueError("renewal days must be a positive integer")
@@ -51,8 +54,11 @@ def renewal_summary(events: pd.DataFrame, start, end, observed_through,
         raise ValueError("renewal window timestamps must be present")
     if end <= start:
         raise ValueError("renewal cohort end must follow its start")
+    if end > LOCKBOX_START or cutoff > LOCKBOX_START:
+        raise ValueError("renewal window reaches into the validation lockbox, which starts 2025-11-19 16:00 UTC")
     cohort = events.loc[events.end_time.ge(start) & events.end_time.lt(end)]
-    complete = cohort.end_time.add(pd.Timedelta(days, unit="D")).le(cutoff)
+    followup_end = cohort.end_time.add(pd.Timedelta(days, unit="D"))
+    complete = followup_end.le(cutoff) & followup_end.lt(LOCKBOX_START)
     eligible = cohort.loc[complete & ~cohort.overlapping_successor]
     renewed = eligible.gap_days.between(0, days, inclusive="both")
     return {
