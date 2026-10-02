@@ -205,7 +205,7 @@ def roadmap_plot(versions: tuple[Version, ...] = VERSIONS, events=EVENTS, today:
     if today is not None:
         marks.append(hv.VLine(pd.Timestamp(today)).opts(color=QUANTITY_COLORS["rewards"], line_width=1.5))
     return hv.Overlay([bars, *marks, done, planned, names]).opts(
-        width=1060, height=440, title="Model versions by the Eric call that shows each one", xlabel="", ylabel="",
+        width=1060, height=440, title="Model versions by the call at which each is shown", xlabel="", ylabel="",
         yaxis=None, xlim=(pd.Timestamp("2026-08-01"), pd.Timestamp("2027-03-20")), ylim=(-0.7, len(rows) + 0.05),
         show_grid=False, toolbar=None, fontscale=1.15)
 

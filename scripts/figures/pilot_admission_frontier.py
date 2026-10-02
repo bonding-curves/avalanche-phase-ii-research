@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A minimum validator stake that falls with committed duration, drawn over six years of real commitments.
+"""A minimum validator stake that falls with committed duration, drawn over validator commitments since 2020.
 
     uv run --group notebook --group model python scripts/figures/pilot_admission_frontier.py <output folder>
 
@@ -107,7 +107,7 @@ def chart(rule, rows, short, frame) -> hv.Layout:
     base = density(rows)
     today = hv.Curve(frame, "duration_days", "today_min_avax", label="Today: 2,000 AVAX at any duration").opts(
         color=MUTED, line_dash="dashed", line_width=2.5)
-    curve = hv.Curve(frame, "duration_days", "frontier_min_avax", label="Frontier: 19,500 AVAX at 48 hours, 2,000 at 14 days, 500 at a year").opts(
+    curve = hv.Curve(frame, "duration_days", "frontier_min_avax", label="Frontier, curvature 1.282: 19,477 AVAX at 48 hours, 2,000 at 14 days, 500 at a year").opts(
         color=FRONTIER_COLOR, line_width=4)
     clears = hv.Scatter(short[short.clears], "duration_days", "stake_avax", label="Since Helicon, under 14 days, clears the frontier").opts(
         color=CLEARS_COLOR, size=13, marker="circle", line_color="white", line_width=2)
@@ -116,7 +116,7 @@ def chart(rule, rows, short, frame) -> hv.Layout:
     top = (base * today * curve * below * clears).opts(
         width=WIDTH, height=TOP_HEIGHT, logx=True, logy=True, fontscale=1.2, toolbar=None, show_grid=False,
         xlim=(1.8, 380), ylim=(300, 30_000_000), yticks=STAKE_TICKS, legend_position="top_left", hooks=[hook_axes],
-        title="A minimum stake that falls with duration asks more only of commitments under 14 days",
+        title="Validator commitments since 2020 by duration and stake, with the frontier and today's 2,000 AVAX minimum",
         xlabel="", ylabel="Stake (AVAX, log scale)")
     parity = hv.HLine(PARITY_AVAX_DAYS).opts(color=INK, line_dash="dotted", line_width=2)
     parity_label = hv.Text(360, PARITY_AVAX_DAYS * 0.62, "28,000 AVAX-days: 2,000 AVAX for 14 days").opts(
@@ -126,7 +126,7 @@ def chart(rule, rows, short, frame) -> hv.Layout:
     bottom = (today_days * frontier_days * parity * parity_label).opts(
         width=WIDTH, height=BOTTOM_HEIGHT, logx=True, logy=True, fontscale=1.2, toolbar=None, show_grid=False,
         xlim=(1.8, 380), ylim=(2_000, 1_000_000), yticks=[4_000, 28_000, 100_000, 730_000], legend_position="top_left",
-        hooks=[hook_axes], title="Stake times days committed for the smallest allowed commitment", xlabel="Commitment duration (days, log scale)",
+        hooks=[hook_axes], title="AVAX-days committed by the smallest allowed commitment, by duration", xlabel="Commitment duration (days, log scale)",
         ylabel="AVAX-days (log scale)")
     return (top + bottom).cols(1).opts(shared_axes=True, toolbar=None)
 

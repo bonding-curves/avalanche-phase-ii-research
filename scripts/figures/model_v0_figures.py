@@ -77,7 +77,7 @@ def replay_chart(out: Path, periods_path: str) -> dict:
     replayed = hv.Curve(frame, "date", "Replayed by the model", label="Replayed by the model").opts(
         color="#1b1b1b", line_width=2, tools=["hover"])
     chart = hv.Overlay([*bands, recorded, replayed]).opts(
-        **SIZE, title=f"The model replays the chain and matches the ledger on all {result['complete_days']:,} complete days",
+        **SIZE, title="Active validator stake, recorded on chain and replayed by the model, 2020-09-10 to 2025-11-18",
         xlabel="Date (UTC)", ylabel="Active validator stake (million AVAX)", legend_position="top_right",
         hooks=[_upgrade_axis], xlim=(frame.date.min(), end),
         ylim=(0.95 * frame["Replayed by the model"].min(), 1.03 * frame["Replayed by the model"].max()))
