@@ -3,228 +3,303 @@
 | Field | Value |
 | :--- | :--- |
 | **Author** | Hasher Nabi ([@coad1024-cmd](https://github.com/coad1024-cmd)), Bonding Curves Research Group (BCRG) |
-| **Topic** | Protocol Admission Geometry, Sybil Resistance, and Validator Invariants under ACP-273 |
-| **Audience** | Dr. Eric Lu, Ava Labs PlatformVM Architecture Team, BCRG Governance Group |
+| **Topic** | Duration-Dependent Validator Admission and Consensus Security |
+| **Audience** | Avalanche Foundation |
 | **Date** | October 2, 2026 |
+| **Status** | Research Working Paper / Mechanism Design Investigation |
 | **Target Review Gate** | Model v0.7.0 Handoff & Milestone 2 Collaborative Mechanism Review (October 2, 2026) |
-| **Status** | Complete Master Peer-Reviewed Technical Specification (Resolving Review Gates HD1–HD5 & HA1–HA10) |
 | **Artifact Codebase** | `src/avalanche_research/admission_frontier.py` & `BoundedHarmonicFrontier` |
 
 ---
 
-## Executive Summary
+## 1. Executive Summary
 
-Avalanche Primary Network consensus governance is currently navigating two interconnected structural proposals:
-1. **ACP-273:** Shortens the minimum validator staking duration from 14 days down to 48 hours to unlock capital liquidity and provide staking optionality.
-2. **Community Decentralization Proposals:** Proposes lowering the minimum validator self-stake entry threshold from 2,000 AVAX to 500 AVAX to expand sovereign home validation.
+In proof-of-stake protocols, validator stake and staking duration jointly determine the economic commitment required to participate in consensus sampling. In Avalanche's Primary Network, consensus admission has historically been governed by two static constraints: a minimum self-stake requirement of $2{,}000\text{ AVAX}$ and a minimum staking duration of $14\text{ days}$. 
 
-> [!CAUTION]
-> **The Decoupled Enactment Failure Mode:**  
-> If enacted independently as static, uncoupled parameters, an operator could occupy an active Primary Network consensus slot with only **500 AVAX locked for 48 hours**. This collapses the capital-time economic commitment from the historical Mainnet baseline of **28,000 AVAX-days** down to **1,000 AVAX-days**—a **96.43% reduction in economic security**. This subsidizes transient speculative capital, inflates Snowman consensus sampling variance, and induces severe PlatformVM state churn (up to 182.5 validator churn cycles per year per continuous node).
+As the protocol evolves through recent and proposed upgrades—including the Helicon upgrade series, discussions surrounding ACP-273 (shortened staking durations), and community initiatives to broaden validator decentralization—proposals have emerged to adjust these parameters. However, changing minimum duration and minimum stake as independent, uncoupled static scalars creates structural mechanism-design risks:
 
-**The Proposed Mechanism:** Rather than treating duration ($d$) and minimum self-stake ($S$) as independent static scalars, the protocol couples them via a continuous **Bounded Harmonic Admission Frontier** $S_{\min}(d)$.
+- `[DERIVED]` **The Decoupled Parameter Dilemma:** Lowering minimum duration (e.g., to 48 hours) and minimum stake (e.g., to 500 AVAX) independently collapses the minimum capital-time commitment from the historical baseline of $28{,}000\text{ AVAX-days}$ down to $1{,}000\text{ AVAX-days}$—a 96.43% reduction in the economic barrier to occupying an active consensus slot.
+- `[HYPOTHESIS]` **Operational Vulnerabilities:** Decoupled reductions lower the cost of high-frequency validator churning, elevate Snowman consensus sampling variance, and increase PlatformVM state-transition overhead (frequent BLS key additions and UTXO state churn).
+- `[OBSERVED]` **Empirical Concentration:** Analysis of 57,067 completed validator stints across 7,635 nodes reveals heavy clustering at the historical minimum boundaries (74.8% bond between 2,000 and 6,000 AVAX; 58.97% select durations $\le 30\text{ days}$), indicating that validator operators are highly sensitive to protocol entry thresholds.
 
-Under this mechanism:
-- **Earned Decentralization:** Sovereign home operators access the 500 AVAX (or cost-buffered 600 AVAX) minimum stake barrier by committing capital for 365 days.
-- **Anti-Churn & Sybil Defense:** Short-duration stakers utilizing the 48-hour window must post a substantial anchor bond ($S_{\text{short}} = 14{,}000\text{ to }19{,}402\text{ AVAX}$), preserving or exceeding consensus skin-in-the-game.
-- **Zero Disenfranchisement:** 100% of historical 14-day stints at 2,000 AVAX satisfy the admission frontier ($S_{\min}(14) \le 2{,}000\text{ AVAX}$).
-- **Deterministic Consensus Implementation:** The continuous formulation is quantized into an 8-tier discrete integer lookup table in nanoseconds and `nAVAX`, eliminating floating-point non-determinism during PlatformVM block validation.
-- **Tinbergen Instrument Separation:** The admission frontier strictly governs consensus slot entry and churn defense; macro stake-weighted duration expansion across whale capital is governed by ACP-285 annualized reward rate ($\text{ARR}(d)$) steepening.
+To resolve these tensions, this research investigates **duration-dependent admission frontiers** ($S_{\min}(d)$), wherein the minimum required self-stake is a decreasing function of commitment duration:
+
+1. **Earned Decentralization:** The mechanism is designed to enable lower-capital sovereign operators to access consensus validation by committing capital over longer time horizons, while the exact stake-duration trajectory remains subject to simulation sweeps and engineering validation.
+2. **Anti-Churn & Sybil Defense:** Short-duration commitments require substantially greater economic commitment than long-duration commitments, ensuring that reducing lockup duration does not reduce the economic barrier to consensus participation.
+3. **Continuity with Historical Participation:** The research establishes an analytical framework to evaluate how existing validator cohorts are affected under candidate admission geometries, treating continuity as an objective to quantify and calibrate rather than an assumed fixed constraint.
+4. **Architectural Feasibility:** Evaluating discrete integer schedules to ensure deterministic consensus validation within PlatformVM without floating-point arithmetic.
+
+This memorandum presents the theoretical foundations, empirical baseline, design axioms, candidate functional forms, behavioral mechanics, and exploratory sensitivity analyses of duration-dependent admission frontiers. It outlines what has been mathematically established versus what requires dynamic simulation in forthcoming digital-twin modeling, culminating in four structured questions for Avalanche Foundation leadership.
 
 ---
 
-## 1. Problem Formulation: The Geometry of Consensus Admission
+## 2. Research Question & Protocol Context
 
-### 1.1 Historical Mainnet Baseline Invariants
-Since Genesis, Avalanche consensus rules have enforced two static constraints:
-- Minimum Staking Duration: $d_{\min} = 14\text{ days}$
-- Minimum Validator Self-Stake: $S_{\min} = 2{,}000\text{ AVAX}$
+### 2.1 The Evolving Consensus Landscape
+Avalanche's Primary Network relies on Snowman consensus, a metastable consensus mechanism where validators repeatedly sample random subsets ($k=20$) of the active validator set. The security and performance of this mechanism depend upon validator set stability, representative stake weighting, and bounded churn in network membership.
 
-These boundaries establish the historical **Capital-Time Commitment Invariant ($K_{\text{base}}$)**:
+Recent protocol discussions have highlighted two distinct, competing desires:
+1. **Liquidity and Capital Efficiency:** Staking capital locked for long windows incurs substantial liquidity opportunity costs. Reducing minimum lockup durations allows market participants, liquid staking providers, and institutional treasuries to manage liquidity more responsively.
+2. **Validator Decentralization:** The historical $2{,}000\text{ AVAX}$ self-stake floor represents a significant capital barrier for solo, home, and sovereign operators. Lowering this threshold aims to expand node counts and geographical distribution.
+
+When evaluated in isolation, each goal appears desirable. However, in an economic engineering system, these parameters cannot be separated from the cost of consensus influence.
+
+### 2.2 Qualification of the Tinbergen Separation Heuristic
+A classical concept in economic policy design is the **Tinbergen Separation Principle**, which posits that achieving $N$ independent policy targets requires at least $N$ independent policy instruments. In preliminary mechanism discussions, Tinbergen separation has been cited to argue that admission rules should govern node counts, reward curves should govern duration, and fees should govern state churn:
+
+```
+                      [ Dynamic Protocol Feedback ]
+        +-------------------------------------------------------+
+        |                                                       |
+        v                                                       |
+[ Admission Rule S_min(d) ] ---> [ Validator Entry / Stint Choice ]
+        ^                               |
+        |                               v
+[ Macro Yield Curve ARR(d) ] <--- [ Aggregate Staked Supply & Churn ]
+        |                               |
+        +-------------------------------+
+```
+
+> [!NOTE]
+> **Tinbergen as a Guiding Heuristic, Not a Dynamic Law:**  
+> While Tinbergen separation provides a useful first-order organizing heuristic for distinguishing between policy objectives, **it is insufficient as a complete framework for a dynamic protocol system**.
+
+In a decentralized proof-of-stake protocol:
+- Policy instruments are dynamically coupled through behavioral feedback loops.
+- An adjustment to admission rules ($S_{\min}(d)$) alters the composition and duration distribution of validators.
+- Changes in validator duration and count alter aggregate circulating supply, delegation capacity, consensus sampling load, and fee consumption.
+- These state changes, in turn, shift the equilibrium yield delivered by reward mechanisms (such as ACP-285 consumption rate curves) and change the operational viability of node operators.
+
+Therefore, this research treats admission rules not as isolated static levers, but as an interactive component of a broader economic-engineering digital twin.
+
+---
+
+## 3. Empirical Baseline (57,067 Staking Periods, 7,635 Nodes)
+
+To ground the mechanism design in verified empirical reality, this investigation examines the primary dataset (`01-renewal-panel.parquet`), which captures 57,067 completed validator stints across 7,635 unique physical node IDs from Genesis through August 13, 2026 (the pre-Helicon baseline).
+
+*(Note: Helicon activated on September 22, 2026. All historical stints in this baseline were executed under the $d \ge 14\text{ days}$ and $S \ge 2{,}000\text{ AVAX}$ constraints. Prospective sub-14-day commitments represent an unobserved regime).*
+
+### 3.1 Distributional Observations
+- `[OBSERVED]` **Clustering at the Capital Boundary:** Validator self-stake exhibits extreme clustering at the protocol floor. The historical median self-stake is $2{,}015\text{ AVAX}$ (mean: $97{,}264\text{ AVAX}$). Exactly **74.8% of all validator stints (42,710 stints)** were initiated with self-bonds between $2{,}000\text{ AVAX}$ and $6{,}000\text{ AVAX}$.
+- `[OBSERVED]` **Duration Skewness:** The unweighted median staking duration across historical records is $23.0\text{ days}$ (mean: $45.6\text{ days}$). Commitments of exactly $14\text{ days}$ represent **16.38% of all stints (9,347 records)**. Commitments $\le 30\text{ days}$ account for **58.97% (33,654 records)**. Conversely, full-year commitments ($365\text{ days}$) represent only **4.10% (2,340 records)**.
+- `[OBSERVED]` **Capital-Duration Divergence:** Small operators overwhelmingly choose minimum durations, whereas large institutional pools lock for longer horizons ($\text{Corr}(\log S, \log d) = +0.246$). Commitments under 16 days represented 62% to 69% of new stints during the Durango and Fortuna network phases, but accounted for only 3% to 5% of committed AVAX-days.
+- `[OBSERVED]` **Renewal Inertia:** Consecutive stints by the same node operator display strong behavioral persistence ($\text{Corr}(d_t, d_{t-1}) = 0.690$). Approximately **44.54% of renewing validators repeat their exact previous duration**, and **75.32% remain within the same duration cohort**. Under a 7-day return window, the historical renewal rate is 80.7% across 2021–2024 and 78.1% across 2025 to Granite.
+
+### 3.2 Factual Forensic Context: August 2025 Restructuring
+Prior informal analyses hypothesized that a large drop in validator node counts in August 2025 reflected an adversarial Sybil attack or retail exodus. Detailed forensic decomposition of on-chain event logs refutes this hypothesis:
+- `[OBSERVED]` Between August 1, 2025, and September 1, 2025, the network experienced 602 gross validator expirations and 96 new entries (a net decline of 506 active nodes).
+- `[OBSERVED]` The top five exiting entities accounted for **472 of the 602 gross expirations (78.4%)**:
+  1. *Liquid Staking Pool Rebalancing:* GoGoPool operator restructuring accounted for 296 nodes (`avax10f83...`).
+  2. *Genesis Holder Consolidation:* An early holder consolidated 85 individual staking nodes into delegation structures (`avax1dwkw...`).
+  3. *Subnet Infrastructure Sunsetting:* A single infrastructure provider retired 42 subnet nodes.
+  4. *Solo Fleet Wind-Down:* A private multi-node operator wound down 25 nodes.
+  5. *Consolidation into High-Stake Nodes:* An institutional operator consolidated 24 distinct 2,000-AVAX nodes into a single large-stake node (`avax134sy...`).
+
+This empirical finding demonstrates that historical validator contractions were driven primarily by institutional treasury rebalancing rather than malicious Sybil swarms, reinforcing that protocol admission rules must account for institutional operational patterns.
+
+---
+
+## 4. The Mechanism Design Problem & The Decoupled Parameter Dilemma
+
+### 4.1 Capital-Time Commitment Geometry
+The economic barrier to consensus participation can be conceptualized as the product of capital scale and commitment duration. Under the historical baseline, the minimum commitment invariant ($K_{\text{base}}$) is:
+
 $$K_{\text{base}} = S_{\min} \cdot d_{\min} = 2{,}000\text{ AVAX} \times 14\text{ days} = 28{,}000\text{ AVAX-days}$$
 
-The integral $K = \int_0^T S(t) \, dt$ quantifies the minimum economic opportunity cost forfeited by a node operator to participate in Primary Network consensus sampling.
+This quantity represents the minimum opportunity cost required to occupy an active consensus slot.
 
-### 1.2 The Decoupled Parameter Dilemma
+If governance were to lower both parameters independently—for instance, setting an uncoupled floor of $S_{\min} = 500\text{ AVAX}$ and $d_{\min} = 2\text{ days}$—the minimum capital-time commitment collapses:
 
-```
-Required Self-Stake (AVAX)
- ^
- |  20,000 + - - - - - - - - - + [ S_short Anchor (48h Sybil Protection) ]
- |         |                   |
- |   2,000 +-------------------+ [ Historical Mainnet Barrier: 28,000 AVAX-days ]
- |         |                   |
- |     500 +--+                + [ Decoupled Static Barrier (ACP-273 x Low Floor) ]
- |         |  |                  (1,000 AVAX-days -> 96.43% SECURITY COLLAPSE)
- 0---------+--+----------------+--------------------> Duration (d)
-          2d 14d              365d
-```
+$$K_{\text{decoupled}} = 500\text{ AVAX} \times 2\text{ days} = 1{,}000\text{ AVAX-days}$$
 
-If governance adopts uncoupled static thresholds ($S_{\min} = 500\text{ AVAX}$, $d_{\min} = 2\text{ days}$):
-- $\text{Commitment}_{\text{Decoupled}} = 500\text{ AVAX} \times 2\text{ days} = 1{,}000\text{ AVAX-days}$.
-- **Sybil Cost Ratio:** $\frac{1{,}000}{28{,}000} = 0.0357$ (only 3.57% of historical cost).
-- **Consensus Slot Multiplication:** With 28,000 AVAX of liquid capital, an operator could spin up **56 concurrent consensus nodes** at 500 AVAX each, compared to **14 nodes** historically ($4\times$ slot expansion). When normalized by commitment units, the historical $28{,}000\text{ AVAX-days}$ budget can purchase **28 distinct 48-hour consensus slots** ($28{,}000 / 1{,}000 = 28\times$ multiplication of sampling opportunities per unit of economic sacrifice), destabilizing Snowman consensus sampling and generating high-frequency BLS key registration churn on the P-Chain.
+$$\frac{K_{\text{decoupled}}}{K_{\text{base}}} = \frac{1{,}000}{28{,}000} = 0.0357 \quad (96.43\%\text{ reduction in commitment barrier})$$
 
-### 1.3 Three Operational Hazards of Decoupled Admission
-1. **Consensus Sampling Instability:** Snowman consensus repeatedly samples small subsets ($k=20$) of validators weighted by stake. Replacing persistent nodes with 48-hour transient nodes increases sample variance and heightens the risk of partition attacks during network latency spikes.
-2. **P-Chain State Churn:** ACP-273 telemetry documents that delegations account for 46% of all P-Chain transactions at a 100:1 ratio to validator transactions. Introducing micro-stake short-duration validators accelerates BLS key registration and staking UTXO writes, increasing database commit latency on validator nodes.
-3. **Validator Set Turnover:** A network where capital cycles every 48 hours permits major validator set changes within two days, compromising L1 Interchain Message (ICM) verification stability.
+![The Decoupled Parameter Dilemma](/Phase-II/Milestone-2/2-8-Collaborative-Mechanism-Design/figures/decoupled_parameter_dilemma.png)
 
-### 1.4 Tinbergen Policy Separation Principle
-The Tinbergen Separation Principle establishes that achieving $N$ independent economic policy targets requires at least $N$ independent policy instruments. Attempting to solve multiple distinct network challenges with a single admission lever introduces structural distortion:
+### 4.2 Hazards of Decoupled Admission
+Lowering the commitment barrier by 96.43% introduces three primary operational and economic hazards:
 
-| System Target | Primary Policy Instrument | Interaction with Admission Rule |
+1. `[HYPOTHESIS]` **Consensus Sampling Instability:** In Snowman consensus, validators are sampled with probability proportional to stake. An uncoupled 500 AVAX / 2-day regime allows a fixed capital pool (e.g., 28,000 AVAX) to fund 56 simultaneous validator slots rather than 14 slots, or to cycle through 28 sequential 48-hour periods per 28,000 AVAX-days of budget. High turnover among micro-stake validators increases sampling variance and network routing entropy.
+2. `[OBSERVED]` **P-Chain State-Transition Overhead:** Historical telemetry indicates that validator registrations and delegation actions represent significant P-Chain write volume. Rapid turnover of 48-hour validators accelerates cryptographic BLS key additions and removals in the active validator set, expanding database commit latency across all verifying nodes.
+3. `[HYPOTHESIS]` **Consensus Churn and Re-Registration Friction:** Transient node turnover degrades gossip-layer peer discovery and increases validation overhead without contributing durable capital lockup to the network.
+
+---
+
+## 5. Behavioral Mechanics & The Validator Refusal Rule
+
+To evaluate how node operators respond when an admission frontier is introduced, we formalize the **Validator Refusal Rule**.
+
+When a prospective or renewing validator submits a stint with self-stake $S_i$ and preferred duration $d_i$, the admission engine evaluates whether $S_i \ge S_{\min}(d_i)$. If this condition is violated, the stint is rejected at the protocol boundary. The validator then faces three structural response pathways:
+
+![Validator Consensus Admission and Refusal Architecture](/Phase-II/Milestone-2/2-8-Collaborative-Mechanism-Design/figures/validator_refusal_flowchart.png)
+
+### 5.1 Structural Response Pathways
+1. `[HYPOTHESIS]` **Path A: Extend Duration (Earned Decentralization Pathway):**  
+   Operators with constrained capital (e.g., exactly $2{,}000\text{ AVAX}$) who desire a short duration (e.g., 7 days) are blocked if $S_{\min}(7) > 2{,}000\text{ AVAX}$. They can qualify by extending their commitment duration to the smallest duration that satisfies the frontier:
+   $$d_{\text{feasible}} = \min \{ d \in \mathcal{D} : S_i \ge S_{\min}(d) \}$$
+   This pathway allows sovereign home operators to trade liquidity for protocol admission without requiring additional capital.
+2. `[HYPOTHESIS]` **Path B: Commit Additional Capital (Capital Addition Pathway):**  
+   Operators with strict duration requirements (e.g., institutional market makers or liquidity providers needing a 48-hour lockup) can qualify by injecting additional self-stake:
+   $$\Delta S = S_{\min}(d_i) - S_i$$
+   This pathway ensures that transient participants pay a proportionate capital commitment to access consensus sampling.
+3. `[HYPOTHESIS]` **Path C: Migrate to Delegation or Exit (Non-Consensus Pathway):**  
+   Operators who are both capital-constrained and unwilling to extend duration choose not to run an active validator node. They may allocate capital to liquid delegation or alternative on-chain activities. This response filters low-commitment, high-churn actors out of the consensus set while preserving their ability to earn staking yield through delegation.
+
+### 5.2 Interaction with the Three-Layer Delegation Architecture
+Consensus self-stake rules operate in conjunction with the network's delegation framework. Concurrent delegation is structurally bounded by protocol rules (delegation capped at $4 \times S_{\text{self}}$, node cap at $3{,}000{,}000\text{ AVAX}$) and market access gates:
+
+| Delegation Layer | Operational Mechanism | Impact on Duration-Dependent Admission |
 | :--- | :--- | :--- |
-| **1. Capital Barrier Reduction** | Admission Frontier Floor ($S_{\text{floor}} = 500\text{ AVAX}$) | Direct enforcement at 365 days |
-| **2. Sybil Defense at 48 Hours** | Short Anchor Bond ($S_{\text{short}} = 14{,}000\text{--}19{,}402\text{ AVAX}$) | Direct enforcement at 48 hours |
-| **3. Macro Duration Expansion** | ACP-285 $\text{ARR}(d)$ Yield Steepening | Complements frontier; steers whales |
-| **4. Token Issuance Control** | ACP-285 Max Consumption Rate | Invariant (governed by ACP-285) |
-| **5. P-Chain State Churn Defense** | ACP-103 Multidimensional Fees | Complemented via short anchor bond |
-| **6. Hardware Hosting Viability** | Net $\text{ARR}(d)$ Yield Margin | Steers small nodes to $\ge 84\text{d}$ |
+| **Layer 1: Protocol Firewall** | Minimum delegator lockup duration ($d_{\text{del}} \ge 14\text{ days}$). | `[DERIVED]` Validators choosing $d < 14\text{ days}$ cannot receive delegation ($A_{\text{del}}(d) = 0$). |
+| **Layer 2: Provider Market Gates** | Liquid staking protocols (e.g., BENQI) impose strict minimum self-stake and fee thresholds. | `[OBSERVED]` Empirical records show that BENQI allocates $<1\%$ of delegated stake to nodes with $S_{\text{self}} < 6{,}000\text{ AVAX}$. |
+| **Layer 3: Duration Occupancy Gradient** | Delegators preferentially select nodes with longer remaining tenors. | `[OBSERVED]` Nodes with tenors $\ge 180\text{ days}$ capture $29.5\%$ of delegation capacity vs. $3.7\%$ for short tenors. |
 
-#### The Scale-Invariance Limit of Admission Frontiers
-The admission frontier functions as an **entry gatekeeper**, not an institutional allocator:
-- Large institutional entities holding 181,000 to 1,000,000+ AVAX easily satisfy an 18,000 AVAX barrier at 48 hours. Elevating the barrier further prices out decentralized operators without altering whale lockup behavior.
-- Institutional whales select duration based on the annualized yield differential in ACP-285 ($\text{ARR}(365\text{d}) - \text{ARR}(2\text{d})$), not the admission threshold.
-- Attributing macro network duration expansion to the admission frontier represents an attribution error. Macro duration expansion requires the coordinated activation of ACP-285 yield curve steepening.
+This multi-layer structure reinforces that lowering self-stake at long durations does not automatically confer access to delegated capital unless operators satisfy external market criteria.
 
 ---
 
-## 2. Empirical Grounding (57,067 Staking Periods, 7,635 Nodes)
+## 6. Design Axioms and Required Properties
 
-Telemetry from the primary dataset (`01-renewal-panel.parquet`), covering 57,067 completed validator periods across 7,635 physical nodes from Genesis to August 13, 2026 (pre-Helicon baseline), establishes empirical boundary conditions:
-*(Note: Helicon activated on September 22, 2026. Therefore, all historical stints in this panel are $\ge 14\text{ days}$. Sub-14-day commitments under ACP-273 represent a prospective policy intervention unobserved in pre-Helicon on-chain records).*
+Before selecting or testing specific mathematical functions, we formulate the structural properties that any viable admission frontier $S_{\min}(d)$ should satisfy.
 
-### 2.1 Distributional Realities
-- **Clustering at the Floor:** The median self-bond is 2,015 AVAX (mean 97,264 AVAX). 74.8% of all validator stints (42,710 records) bonded between 2,000 and 6,000 AVAX.
-- **Duration Compression:** The unweighted median duration across all history is 23.0 days (mean 45.6 days). Staking periods of exactly 14 days represent 16.38% of all stints (9,347 records). Commitments $\le 30\text{ days}$ account for 58.97% (33,654 records). Commitments spanning 365 days represent only 4.10% (2,340 records).
-- **Regime Shock (Etna & Granite):** Following the Etna upgrade, median duration compressed from 29 days down to 15.0 days. In the Granite regime, median self-stake jumped to 14,585 AVAX, and stake-weighted duration fell to an all-time low of 3.97 weeks.
-- **Capital vs. Count Divergence:** Commitments under 16 days represent 62% to 69% of new stints during Durango/Fortuna, but represent only 3% to 5% of committed AVAX-days. Small operators choose the minimum duration, while institutional capital locks for longer horizons. Correlation: $\text{Corr}(\log S, \log d) = +0.246$.
+### 6.1 Formal Axioms for Admission Frontiers
 
-### 2.2 Duration Persistence & Behavioral Habits
-The empirical record shows strong behavioral inertia across validator renewals:
-- Correlation across consecutive stints: $\text{Corr}(d_t, d_{t-1}) = 0.690$.
-- **44.54% of renewing validators repeat their exact duration**.
-- **75.32% remain within the same duration bucket**.
-- Stakers $\le 2,500\text{ AVAX}$ choose $\le 21\text{ days}$ in 57.6% of stints and $\le 35\text{ days}$ in 82.8% of stints. Whales ($> 100,000\text{ AVAX}$) select $\ge 66\text{ days}$ in 34.5% of stints.
-- **7-Day Return Renewal Rate:** Applying the standard 7-day renewal rule (`AM2`), the panel yields an 80.7% renewal rate for 2021–2024 and 78.1% for 2025 to Granite (resolving review item `HB6`/`HA2`).
+- **Axiom 1 (Domain Boundary Validity):**  
+  The frontier must be well-defined on the closed interval $d \in [d_{\min}, d_{\max}]$, where $d_{\min} > 0$ and $d_{\max} \ge d_{\min}$. For Avalanche, $d_{\min} = 2\text{ days}$ and $d_{\max} = 365\text{ days}$. The stake requirements at the boundaries must be finite and strictly positive:
+  $$0 < S_{\text{floor}} \le S_{\min}(d) \le S_{\text{anchor}} < \infty \quad \forall d \in [d_{\min}, d_{\max}]$$
 
-### 2.3 Contextualizing the August 2025 Exit Wave
-The net loss of over 500 nodes in August 2025 was previously hypothesized as an adversarial Sybil-swarm attack. Forensic reconstruction from on-chain records reveals the true structure:
-- Between 2025-08-01 and 2025-09-01, there were 602 gross validator exits and 96 entrants (net decline of 506 nodes).
-- The top 5 exiting entities represented **472 of 602 gross exits (78.4%)**. Attributing 93% to a Sybil swarm was an artifact of dividing gross exits by the net decline (`HB3`).
-- These exits were dominated by legitimate operational restructuring:
-  1. **GoGoPool Liquid Staking:** Institutional rebalancing of 296 liquid staking nodes (`avax10f83...`).
-  2. **Genesis Holder Migration:** A single early holder reorganizing 85 nodes into liquid delegation (`avax1dwkw...`).
-  3. **Subnet Infrastructure:** An operator retiring 42 nodes.
-  4. **Solo Staking Fleet:** An operator winding down 25 nodes.
-  5. **Node Consolidation:** An institutional operator (`avax134sy...`) merging 24 separate 2,000-AVAX nodes into a single active high-stake validator.
-- **Sybil Swarm Pricing Across Horizons:** Pricing only the 2-day seat provides incomplete protection (`HB5`). If an operator commands 1,243,879 AVAX across fleet balances, at an uncoupled 500 AVAX floor that capital could fund 2,487 one-year seats (four times today's active set). Long-term decentralization must therefore be grounded in physical server hosting solvency.
+- **Axiom 2 (Strict Monotonicity):**  
+  The required self-stake must be a strictly decreasing function of duration. A longer lockup commitment must strictly reduce or maintain the required capital:
+  $$\frac{\partial S_{\min}}{\partial d} < 0 \quad \forall d \in [d_{\min}, d_{\max})$$
 
----
+- **Axiom 3 (Strict Global Convexity / Diminishing Marginal Relief):**  
+  The marginal reduction in required stake per additional day of commitment must be diminishing. The initial extension of duration (e.g., from 2 days to 14 days) should provide greater capital relief than an extension late in the term (e.g., from 300 days to 312 days):
+  $$\frac{\partial^2 S_{\min}}{\partial d^2} > 0 \quad \forall d \in [d_{\min}, d_{\max}]$$
+  Convexity prevents cliff-edge arbitrage and ensures smooth economic incentives across all commitment tenors.
 
-## 3. Evaluated Functional Form Alternatives and Trade-off Analysis
+- **Axiom 4 (Exact Boundary Convergence):**  
+  At the maximum staking duration, the function must converge exactly to the designated decentralization floor:
+  $$S_{\min}(d_{\max}) = S_{\text{floor}}$$
+  At the minimum staking duration, the function must converge to the short-duration anchor:
+  $$S_{\min}(d_{\min}) = S_{\text{anchor}}$$
 
-Five distinct mathematical functional forms were audited against protocol design criteria:
+- **Axiom 5 (Continuity and Absence of Arbitrage Discontinuities):**  
+  The underlying continuous curve must be continuous ($C^0$) and smooth ($C^1$) across the entire domain, preventing threshold exploitation where an infinitesimal change in duration yields a discrete jump in capital requirements.
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                 ADMISSION FRONTIER FUNCTIONAL FORMS                    │
-├─────────────────────┬───────────────────────────┬──────────────────────┤
-│ Family              │ Formula S_min(d)          │ Critical Flaw        │
-├─────────────────────┼───────────────────────────┼──────────────────────┤
-│ Pure Iso-Commitment │ max(500, 28,000 / d)      │ Flattens at day 56   │
-│ Standard Hyperbolic │ S_floor + ΔS / (1 + a*d)  │ Heavy tail overshoot │
-│ Power-Law Decay     │ S_floor + ΔS*(1-d/365)^p  │ Exponent distortion  │
-│ Piecewise Cliffs    │ Discrete unlinked steps   │ Cliff-edge arbitrage │
-│ Bounded Harmonic    │ S_floor + ΔS * [η(d)]^p   │ None (Selected)      │
-└─────────────────────┴───────────────────────────┴──────────────────────┘
-```
+- **Axiom 6 (Interpretability and Calibration Tractability):**  
+  The functional form should possess parameters with clear economic interpretations (e.g., floor, anchor, curvature) that can be analytically calibrated to specific empirical or policy pivot points $(d_{\text{pivot}}, S_{\text{pivot}})$.
 
-1. **Pure Iso-Commitment ($S(d) = \max(S_{\text{floor}}, K_{\text{baseline}}/d)$):** Clamps to $S_{\text{floor}} = 500\text{ AVAX}$ at $d = 28{,}000 / 500 = 56.0\text{ days}$ (or $46.7\text{ days}$ for $600\text{ AVAX}$). For durations between 57 days and 365 days (85.1% of the allowable domain), the requirement is completely flat. This removes all capital incentives for locking beyond 8 weeks.
-2. **Standard Hyperbolic ($S(d) = S_{\text{floor}} + \frac{S_{\text{short}} - S_{\text{floor}}}{1 + \alpha (d - d_{\min})}$):** If $\alpha$ is calibrated to anchor $S(84) = 2{,}000\text{ AVAX}$, the heavy algebraic tail produces $S(365) = 862.92\text{ AVAX}$, missing the 500 AVAX target by 72.6%. If $S_{\text{floor}} = 600\text{ AVAX}$, it produces $S(365) = 937.26\text{ AVAX}$, overshooting by 56.2%.
-3. **Generalized Power-Law Decay ($S(d) = S_{\text{floor}} + \Delta S \cdot \left(\frac{365 - d}{363}\right)^p$):** Fitting $S(84) = 2{,}000\text{ AVAX}$ requires an extreme exponent $p = 9.59$ (for 500 floor) or $p = 9.84$ (for 600 floor). This causes severe distortion: at 14 days, the stake requirement remains excessively elevated at $13{,}093\text{ to }13{,}175\text{ AVAX}$, failing to provide liquidity relief.
-4. **Piecewise Discrete Cliffs ($S(d) = S_k$ without continuous derivation):** Setting discrete tiers without an underlying continuous curve creates severe cliff-edge arbitrage (for example, 13 days 23 hours requiring 18,000 AVAX, and 14 days requiring 2,000 AVAX). Operators exploit boundary gaps through timing games.
-5. **Continuous Bounded Harmonic Decay (Selected Optimal Design):** The kernel $\frac{1}{d} - \frac{1}{365}$ matches the linear turnover frequency of consensus churn. It satisfies all boundary conditions identically, maintains analytical tractability, eliminates cliff-edge boundary games, and guarantees strict global convexity ($S''_{\min}(d) > 0$) without inflection when parameterized under $p \ge 1.0$.
+- **Axiom 7 (Quantization Robustness):**  
+  The continuous formulation must map monotonically into discrete integer schedules (evaluated in integer time and token units) without introducing inversion steps or rounding ambiguities.
 
 ---
 
-## 4. Mathematical Specification: Bounded Harmonic Frontier
+## 7. Evaluated Candidate Functional Forms
 
-### 4.1 Canonical Functional Form
-The admission frontier is defined on the closed domain $d \in [d_{\min}, d_{\max}] = [2, 365\text{ days}]$ by the **Continuous Bounded Harmonic Decay Function**:
+Five candidate functional forms were evaluated against the design axioms:
 
-$$S_{\min}(d) = S_{\text{floor}} + (S_{\text{short}} - S_{\text{floor}}) \cdot \eta(d)^p = S_{\text{floor}} + \Delta S \cdot \left[ \frac{\frac{1}{d} - \frac{1}{d_{\max}}}{\frac{1}{d_{\min}} - \frac{1}{d_{\max}}} \right]^p$$
+![Candidate Admission Frontier Functional Forms](/Phase-II/Milestone-2/2-8-Collaborative-Mechanism-Design/figures/candidate_curve_families.png)
 
-where:
-- $d_{\min} = 2\text{ days}$ (the ACP-273 consensus floor).
-- $d_{\max} = 365\text{ days}$ (the annual staking ceiling).
-- $S_{\text{floor}} \in [500, 600]\text{ AVAX}$ (the long-term decentralization floor).
-- $S_{\text{short}} \in [14{,}000, 19{,}402]\text{ AVAX}$ (the short-duration anchor bond).
-- $\eta(d)$ is the normalized inverse duration kernel:
-  $$\eta(d) = \frac{\frac{1}{d} - \frac{1}{365}}{\frac{1}{2} - \frac{1}{365}} = \frac{\frac{1}{d} - 0.0027397}{0.4972603}$$
+### 7.1 Mathematical Definitions of Candidates
 
-Key evaluations of the kernel $\eta(d)$:
+1. **Fixed Baseline (Status Quo):**
+   $$S_{\min}(d) = S_0 = 2{,}000\text{ AVAX}$$
+   *Evaluation:* Violates duration sensitivity (Axiom 2). If $d_{\min}$ is lowered to 2 days without adjusting $S_0$, transient capital enters at 2,000 AVAX, creating an unmitigated 48-hour churn risk.
+
+2. **Iso-Commitment (Constant Capital-Time):**
+   $$S_{\min}(d) = \max\left(S_{\text{floor}}, \frac{K_{\text{base}}}{d}\right)$$
+   *Evaluation:* If calibrated to $K_{\text{base}} = 28{,}000\text{ AVAX-days}$, $S_{\min}(2) = 14{,}000\text{ AVAX}$. However, the curve clamps to $S_{\text{floor}} = 500\text{ AVAX}$ at $d = 28{,}000 / 500 = 56.0\text{ days}$. For all durations between 57 days and 365 days (84.7% of the domain), the curve is completely flat, offering zero marginal incentive for commitments beyond 8 weeks.
+
+3. **Standard Hyperbolic Decay:**
+   $$S_{\min}(d) = S_{\text{floor}} + \frac{S_{\text{anchor}} - S_{\text{floor}}}{1 + \alpha (d - d_{\min})}$$
+   *Evaluation:* Possesses a heavy algebraic tail. If calibrated to pass through an intermediate pivot, the tail overshoots the desired floor at $d_{\max} = 365\text{ days}$, requiring artificial truncation or discontinuity to meet Axiom 4.
+
+4. **Piecewise Step Function (Unlinked Tiers):**
+   $$S_{\min}(d) = S_k \quad \text{for } d \in [d_k, d_{k+1})$$
+   *Evaluation:* Violates continuity (Axiom 5). Unlinked step schedules create cliff edges where a validator staking for 13 days 23 hours pays a massive penalty compared to one staking for 14 days, incentivizing boundary gaming and schedule manipulation.
+
+5. **Bounded Harmonic Decay Family:**
+   $$S_{\min}(d) = S_{\text{floor}} + (S_{\text{anchor}} - S_{\text{floor}}) \cdot \left[ \frac{\frac{1}{d} - \frac{1}{d_{\max}}}{\frac{1}{d_{\min}} - \frac{1}{d_{\max}}} \right]^p$$
+   *Evaluation:* Uses an inverse-duration kernel $\eta(d)$ that directly mirrors turnover frequency. Satisfies exact boundary convergence (Axiom 4), strict monotonicity (Axiom 2), and strict global convexity (Axiom 3) for all $p \ge 1$.
+
+### 7.2 Axiom Compliance Matrix
+
+| Design Axiom | Fixed Baseline | Iso-Commitment | Standard Hyperbolic | Piecewise Cliffs | Bounded Harmonic |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **A1: Domain Boundary Validity** | Satisfied | Satisfied | Satisfied | Satisfied | Satisfied |
+| **A2: Strict Monotonicity** | **Violated** (Flat) | **Violated** ($d > 56\text{d}$) | Satisfied | **Violated** (Steps) | Satisfied |
+| **A3: Strict Global Convexity** | **Violated** | Satisfied | Satisfied | **Violated** | Satisfied ($p \ge 1$) |
+| **A4: Exact Boundary Convergence**| N/A | Satisfied (Clamped)| **Violated** | Satisfied | Satisfied |
+| **A5: Absence of Cliff Discontinuities** | Satisfied | Satisfied | Satisfied | **Violated** | Satisfied |
+| **A6: Calibration Tractability** | Trivial | Limited | Moderate | Arbitrary | Closed-Form Invertible |
+| **A7: Quantization Robustness** | Satisfied | Moderate | Moderate | Inherent | Highly Robust |
+
+The Bounded Harmonic family satisfies all seven axioms simultaneously while providing an analytical kernel for parameter calibration.
+
+---
+
+## 8. Mathematical Analysis of the Bounded Harmonic Family
+
+### 8.1 Continuous Formulation
+Let $d \in [d_{\min}, d_{\max}]$, with $d_{\min} = 2\text{ days}$ and $d_{\max} = 365\text{ days}$. Let $S_{\text{floor}}$ denote the long-duration floor and $S_{\text{anchor}}$ denote the short-duration anchor, with $\Delta S = S_{\text{anchor}} - S_{\text{floor}} > 0$.
+
+The normalized inverse-duration kernel $\eta(d)$ is defined as:
+$$\eta(d) = \frac{\frac{1}{d} - \frac{1}{d_{\max}}}{\frac{1}{d_{\min}} - \frac{1}{d_{\max}}}$$
+
+The admission frontier is defined by:
+$$S_{\min}(d) = S_{\text{floor}} + \Delta S \cdot \eta(d)^p, \quad p \ge 1$$
+
+Evaluating $\eta(d)$ across standard tenors:
 $$\eta(2) = 1.000000, \quad \eta(7) = 0.281804, \quad \eta(14) = 0.138135, \quad \eta(30) = 0.061524, \quad \eta(365) = 0.000000$$
 
-### 4.2 Proof of Strict Global Convexity for $p \ge 1$
-Convexity guarantees that the marginal capital relief per additional day of commitment, $-\frac{\partial S_{\min}}{\partial d}$, is strictly decreasing—rewarding commitment without creating cliff-edge arbitrage.
+### 8.2 Proof of Strict Global Convexity ($p \ge 1$)
+The first and second derivatives of the kernel $\eta(d)$ with respect to $d$ are:
+$$\eta'(d) = -\frac{1}{d^2 \left(\frac{1}{d_{\min}} - \frac{1}{d_{\max}}\right)} < 0 \quad \forall d > 0$$
+$$\eta''(d) = \frac{2}{d^3 \left(\frac{1}{d_{\min}} - \frac{1}{d_{\max}}\right)} > 0 \quad \forall d > 0$$
 
-- First derivative of the kernel:
-  $$\eta'(d) = -\frac{1}{d^2 \left(\frac{1}{d_{\min}} - \frac{1}{d_{\max}}\right)} < 0 \quad \text{for all } d > 0$$
-- Second derivative of the kernel:
-  $$\eta''(d) = \frac{2}{d^3 \left(\frac{1}{d_{\min}} - \frac{1}{d_{\max}}\right)} > 0 \quad \text{for all } d > 0$$
-
-Computing the derivatives of $S_{\min}(d)$:
+Applying the chain rule to $S_{\min}(d)$:
 $$S'_{\min}(d) = \Delta S \cdot p \cdot \eta(d)^{p-1} \cdot \eta'(d) < 0$$
-$$S''_{\min}(d) = \Delta S \cdot p \cdot \left[ (p-1)\eta(d)^{p-2}(\eta'(d))^2 + \eta(d)^{p-1}\eta''(d) \right]$$
+$$S''_{\min}(d) = \Delta S \cdot p \cdot \left[ (p-1)\eta(d)^{p-2} (\eta'(d))^2 + \eta(d)^{p-1} \eta''(d) \right]$$
 
-Since $\Delta S > 0$, $\eta(d) > 0$, and $\eta''(d) > 0$, whenever $p \ge 1$, both terms inside the bracket are strictly positive. Therefore:
+Since $\Delta S > 0$, $p \ge 1$, $\eta(d) > 0$, and $\eta''(d) > 0$ for all $d \in (d_{\min}, d_{\max})$, both terms inside the bracket are strictly positive for $p \ge 1$:
 $$S''_{\min}(d) > 0 \quad \forall d \in (d_{\min}, d_{\max}) \quad \iff \quad p \ge 1$$
 
-### 4.3 Formal Retraction of the $p < 1$ Regime
-Earlier preliminary drafts examined $p \approx 0.60\text{--}0.65$. Mathematical audit proves that when $p < 1$:
-1. **Interior Inflection Point:** $S''_{\min}(d^*) = 0$ occurs at:
+`[DERIVED]` This establishes that $p \ge 1$ is a necessary and sufficient condition for strict global convexity.
+
+### 8.3 Retraction and Analysis of the Sub-Convex Regime ($p < 1$)
+`[DERIVED]` Earlier preliminary drafts considered values in the range $p \in [0.60, 0.65]$. Mathematical analysis reveals two critical defects when $p < 1$:
+1. **Interior Inflection Point:** Setting $S''_{\min}(d^*) = 0$ yields a closed-form inflection point at:
    $$d^* = \frac{p+1}{2} \cdot d_{\max}$$
-   For $p = 0.62$, an inflection occurs at $d^* = 295.6\text{ days}$. For $d > d^*$, the curve becomes concave ($S''_{\min} < 0$).
-2. **Infinite Terminal Slope:** As $d \to d_{\max}$, $\eta(d) \to 0$, causing $\eta(d)^{p-1} \to \infty$ for $p < 1$. The derivative diverges: $\lim_{d \to 365} S'_{\min}(d) = -\infty$.
-3. **Zero Terminal Slope for $p > 1$:** For all $p > 1$, as $d \to 365$, $\lim_{d \to 365} S'_{\min}(d) = 0$. A continuous non-zero slope floor near 365 days is mathematically impossible under this family; discrete finite differences must be used instead (`HV3`).
+   For $p = 0.62$, an inflection point occurs at $d^* = \frac{1.62}{2} \times 365 = 295.65\text{ days}$. For durations beyond $d^*$, the curve becomes concave ($S''_{\min} < 0$), causing marginal relief to accelerate rather than diminish.
+2. **Infinite Terminal Slope:** As $d \to d_{\max}$, $\eta(d) \to 0$. For $p < 1$, the exponent $p-1 < 0$, causing $\lim_{d \to 365} S'_{\min}(d) = -\infty$.
 
-**Conclusion:** The parameter space is strictly restricted to $p \ge 1.0$. Earlier candidate values ($p \in [0.615, 0.631]$) are formally retracted.
+Consequently, all formulations with $p < 1$ are mathematically unsuitable and formally excluded from the design space.
 
-### 4.4 Closed-Form Pivot Feasibility Condition
-Governance can calibrate the curve by specifying a target pivot point $(d_{\text{pivot}}, S_{\text{pivot}})$. Inverting the equation for $p$:
-$$p = \frac{\ln\left(\frac{S_{\text{pivot}} - S_{\text{floor}}}{S_{\text{short}} - S_{\text{floor}}}\right)}{\ln(\eta(d_{\text{pivot}}))}$$
+### 8.4 Closed-Form Pivot Feasibility Bound
+If governance specifies a target continuity pivot $(d_{\text{pivot}}, S_{\text{pivot}})$, the exponent $p$ is determined by:
+$$p = \frac{\ln\left(\frac{S_{\text{pivot}} - S_{\text{floor}}}{S_{\text{anchor}} - S_{\text{floor}}}\right)}{\ln(\eta(d_{\text{pivot}}))}$$
 
-To ensure $p \ge 1$, the ratio must satisfy $\frac{S_{\text{pivot}} - S_{\text{floor}}}{S_{\text{short}} - S_{\text{floor}}} \le \eta(d_{\text{pivot}})$, yielding the **Convex Feasibility Bound**:
-$$S_{\text{pivot}} \le S_{\text{floor}} + (S_{\text{short}} - S_{\text{floor}}) \cdot \eta(d_{\text{pivot}})$$
+To ensure strict convexity ($p \ge 1$), the ratio must satisfy $\frac{S_{\text{pivot}} - S_{\text{floor}}}{S_{\text{anchor}} - S_{\text{floor}}} \le \eta(d_{\text{pivot}})$, yielding the **Convex Pivot Feasibility Bound**:
+$$S_{\text{pivot}} \le S_{\text{floor}} + (S_{\text{anchor}} - S_{\text{floor}}) \cdot \eta(d_{\text{pivot}})$$
 
-- **Why the Historical 84-Day Pivot Failed:** At $d_{\text{pivot}} = 84\text{ days}$, $\eta(84) = 0.018431$. For $S_{\text{short}} = 18{,}000\text{ AVAX}$ and $S_{\text{floor}} = 500\text{ AVAX}$, the upper bound is $500 + 17{,}500 \times 0.018431 = 822.5\text{ AVAX}$. Attempting to anchor $S(84) = 2{,}000\text{ AVAX}$ severely violated this bound ($2{,}000 > 822.5$), forcing $p = 0.615 < 1$.
-- **Why the 14-Day Pivot Succeeds:** At $d_{\text{pivot}} = 14\text{ days}$, $\eta(14) = 0.138135$. For $S_{\text{short}} = 14{,}000\text{ AVAX}$, the upper bound is $500 + 13{,}500 \times 0.138135 = 2{,}364.8\text{ AVAX}$. Setting $S(14) = 2{,}000\text{ AVAX}$ respects the bound ($2{,}000 \le 2{,}364.8$), yielding $p = 1.110 \ge 1.0$.
-
----
-
-## 5. The 28,000 AVAX-Days Parity Landscape
-
-The quantity $K(d) = S_{\min}(d) \cdot d$ measures the capital-time commitment across durations:
-$$K(d) = S_{\text{floor}} \cdot d + (S_{\text{short}} - S_{\text{floor}}) \cdot d \cdot \eta(d)^p$$
-
-The review establishes that the historical baseline $K_{\text{base}} = 28{,}000\text{ AVAX-days}$ serves as an **empirical reference anchor and reported KPI**, rather than an inviolable security constant across every single duration (`HD3`):
-
-1. **Full Uniform Parity (Package EM2):** To enforce $K(d) \ge 28{,}000\text{ AVAX-days}$ across *all* durations $d \in [2, 365]$ while keeping $S(14) \le 2{,}000\text{ AVAX}$, the short-end barrier is set to:
-   $$S_{\text{short}} = 19{,}402\text{ AVAX} \quad \text{with} \quad p = 1.282 \quad (S_{\text{floor}} = 500\text{ AVAX})$$
-   Under EM2, $K(2) = 38{,}804\text{ AVAX-days}$ ($1.39\times$), $K(14) \approx 28{,}000\text{ AVAX-days}$ ($1.00\times$), and the minimum commitment across the continuous domain is $27{,}917\text{ AVAX-days}$ at 13.94 days (or $27{,}998\text{ AVAX-days}$ with $S_{\text{short}} = 19{,}477\text{ AVAX}$).
-2. **Anchor-Point Parity (Package P):** If governance prefers a lower 48-hour barrier ($S_{\text{short}} = 14{,}000\text{ AVAX}$), parity holds exactly at 48 hours ($14{,}000 \times 2 = 28{,}000$) and at 14 days ($2{,}000 \times 14 = 28{,}000$). Between 3 and 10 days, $K(d)$ experiences a shallow, controlled dip (reaching a minimum of **$26{,}634\text{ AVAX-days}$ at $6.08\text{ days}$**, a modest 4.88% discount).
+`[DERIVED]` This closed-form inequality establishes whether any proposed policy pivot is mathematically compatible with strict convexity:
+- An anchor of $S(14) = 2{,}000\text{ AVAX}$ with $S_{\text{anchor}} = 14{,}000\text{ AVAX}$ and $S_{\text{floor}} = 500\text{ AVAX}$ yields an upper bound of $500 + 13{,}500 \times 0.138135 = 2{,}364.8\text{ AVAX}$. Because $2{,}000 \le 2{,}364.8$, the 14-day pivot is feasible and yields $p = 1.110 \ge 1.0$.
+- In contrast, an 84-day pivot at $2{,}000\text{ AVAX}$ with $S_{\text{anchor}} = 18{,}000\text{ AVAX}$ yields an upper bound of $500 + 17{,}500 \times 0.018431 = 822.5\text{ AVAX}$. Because $2{,}000 > 822.5$, setting $S(84) = 2{,}000$ strictly forces $p < 1$, introducing the aforementioned inflection defect.
 
 ---
 
-## 6. Calibrated Governance Parameter Packages
+## 9. Exploratory Sensitivity Analysis & Parity Scenarios
 
-We present four calibrated, peer-reviewed parameter packages:
+To assist the Avalanche Foundation in evaluating design trade-offs, we present four exploratory sensitivity scenarios.
 
-| Parameter / Metric | Package EM2 (Full Parity) | Package P (14d Anchor - Default) | Package E (30d LST Pivot) | Package B-600 (Cost-Buffered) |
+> [!IMPORTANT]
+> **Exploratory Sensitivity Sweeps, Not Final Governance Recommendations:**  
+> These parameter packages represent illustrative numerical sensitivity sweeps designed to explore trade-offs between short-end barriers, intermediate continuity, and long-end floors. They are not final governance proposals and have not been authorized by protocol governance.
+
+| Parameter / Metric | Scenario EM2 (Full Parity) | Scenario P (14d Anchor) | Scenario E (30d LST Pivot) | Scenario B-600 (Cost-Buffered) |
 | :--- | :---: | :---: | :---: | :---: |
-| **Short-End Stake $S_{\text{short}}$** | $19{,}402\text{ AVAX}$ | $14{,}000\text{ AVAX}$ | $14{,}000\text{ AVAX}$ | $18{,}000\text{ AVAX}$ |
+| **Short-End Anchor $S_{\text{anchor}}$** | $19{,}402\text{ AVAX}$ | $14{,}000\text{ AVAX}$ | $14{,}000\text{ AVAX}$ | $18{,}000\text{ AVAX}$ |
 | **Terminal Floor $S_{\text{floor}}$** | $500\text{ AVAX}$ | $500\text{ AVAX}$ | $500\text{ AVAX}$ | $600\text{ AVAX}$ |
 | **Calibration Pivot** | $S(14) = 2{,}000\text{ AVAX}$ | $S(14) = 2{,}000\text{ AVAX}$ | $S(30) = 1{,}200\text{ AVAX}$ | $S(14) = 2{,}000\text{ AVAX}$ |
 | **Exponent $p$** | **1.282** | **1.110** | **1.061** | **1.250** |
@@ -239,286 +314,123 @@ We present four calibrated, peer-reviewed parameter packages:
 | **$S_{\min}(365\text{d})$** | **$500\text{ AVAX}$** | **$500\text{ AVAX}$** | **$500\text{ AVAX}$** | **$600\text{ AVAX}$** |
 | **Min. Commitment $K(d)$** | $27{,}917\text{ AVAX-d}$ | **$26{,}634\text{ AVAX-d}$** | $27{,}726\text{ AVAX-d}$ | $28{,}618\text{ AVAX-d}$ |
 | **Location of Min $K(d)$** | $d = 13.94\text{d}$ | $d = 6.08\text{d}$ | $d = 3.72\text{d}$ | $d = 10.65\text{d}$ |
-| **Sybil Multiple at 365d** | $6.52\times$ | $6.52\times$ | $6.52\times$ | $7.82\times$ |
 
-**Trade-off Analysis & Recommendations:**
-- **Package P (Recommended Default):** Balances institutional liquidity at 48 hours ($14{,}000\text{ AVAX}$ anchor) with Mainnet continuity at 14 days ($2{,}000\text{ AVAX}$) and sovereign retail access ($500\text{ AVAX}$ at 365 days).
-- **Package EM2 (Full Parity):** Recommended if the Foundation mandates strict $K(d) \ge 28{,}000\text{ AVAX-days}$ across every single day, requiring $S_{\text{short}} = 19{,}402\text{ AVAX}$.
-- **Package B-600 (Cost-Buffered):** Recommended if governance wishes to provide a financial cushion for solo home validators against potential hardware hosting cost inflation.
-- **Package E (30d LST Pivot):** Calibrated to match BENQI rebalancing tenors ($S(30\text{d}) = 1{,}200\text{ AVAX}$). Under $S_{\text{floor}} = 500\text{ AVAX}$, this yields $p = 1.061$. *(Note: The historical $p = 1.497$ exponent corresponds to the $S_{\text{floor}} = 1{,}000\text{ AVAX}$ sensitivity branch, where $S(14\text{d}) = 1{,}671\text{ AVAX}$ and min $K = 20{,}662\text{ AVAX-days}$)*.
-
----
-
-## 7. Behavioral Mechanics: The Validator Refusal Rule
-
-When the admission frontier blocks an incoming commitment ($S < S_{\min}(d_{\text{pref}})$), the economic decision-maker does not simply vanish. We formalize the **Validator Refusal Rule** across three behavioral pathways:
-
-```
-                      [ Blocked: S < S_min(d_pref) ]
-                                    |
-          +-------------------------+-------------------------+
-          |                                                   |
-[ Extend Duration ]                                   [ Add Capital ]
-d_feas = min { d : S >= S_min(d) }                    Delta_S = S_min(d_pref) - S
-Accept longer lockup                                  Deposit additional AVAX
-          |                                                   |
-          +-------------------------+-------------------------+
-                                    |
-                           [ Unviable / Friction ]
-                                    v
-                              [ Exit Set ]
-```
-
-1. **Duration Extension (Primary Path for Small Validators):** Node operators with fixed capital (e.g. 2,000 AVAX) extend their duration to the shortest feasible duration:
-   $$d_{\text{feas}} = \min \{ d \in \mathcal{D} : S \ge S_{\min}(d) \}$$
-   For a 2,000 AVAX staker desiring 7 days, Package P routes them to 14 days, preserving their active node without requiring additional capital.
-2. **Capital Addition (Primary Path for Institutional Operators):** Stakers desiring strict liquidity horizons (e.g. market makers needing 48-hour turnaround) deposit the necessary incremental capital:
-   $$\Delta S = S_{\min}(d_{\text{pref}}) - S$$
-3. **Exit / Churn Abandonment:** Operators unwilling to extend duration and lacking capital exit the active set. In empirical testing, solo nodes face higher liquidity friction than commercial nodes, meaning an appropriate short barrier effectively filters out low-commitment transient actors.
+### 9.2 Key Trade-Off Insights from Sweeps
+1. **Uniform Parity vs. Anchor Parity:**  
+   Scenario EM2 enforces strict commitment parity ($K(d) \ge 28{,}000\text{ AVAX-days}$) across the entire continuous domain, but requires a higher 48-hour barrier ($S_{\text{anchor}} \approx 19{,}402\text{ AVAX}$). Scenario P accepts a modest 4.88% dip in capital-time commitment between 3 and 10 days (reaching a minimum of $26{,}634\text{ AVAX-days}$ at $d = 6.08\text{ days}$) to achieve a round anchor of $14{,}000\text{ AVAX}$ at 48 hours and exact parity at 14 days ($2{,}000\text{ AVAX} \times 14\text{d} = 28{,}000\text{ AVAX-days}$).
+2. **LST Tenor Alignment:**  
+   Scenario E calibrates the intermediate curve to match typical 30-day liquid staking rebalancing cycles ($S(30) = 1{,}200\text{ AVAX}$), demonstrating how the frontier can accommodate institutional treasury rhythms.
+3. **Decentralization Cushion:**  
+   Scenario B-600 evaluates the effect of elevating the long-duration floor to $600\text{ AVAX}$, which provides a greater revenue buffer against operational server expenses.
 
 ---
 
-## 8. Three-Layer Delegation Architecture
+## 10. Reference Data & External Inputs
 
-A critical finding from the peer review is that **delegation flow must be distinguished from active concurrent stock**, and concurrent delegation is bounded by the protocol cap ($4 \times S_{\text{self}}$) and node cap ($3{,}000{,}000\text{ AVAX}$) (`HB1`).
+To contextualize the admission frontier within broader network economics, we examine reference data on validator hosting costs and protocol reward dynamics. These data serve as informational baselines rather than definitive proof of validator solvency.
 
-Delegation access operates through three nested layers:
+### 10.1 Validator Server Cost Tiers
+Running an Avalanche validator node requires continuous hardware hosting, high-throughput network connectivity, and storage maintenance. Typical market hosting costs span three primary operational tiers:
+- **Tier 1 (Solo Bare Metal / Low-Cost VPS, e.g., Hetzner / OVH):** $\approx 600\text{ USD/year}$ (\$50 / month).
+- **Tier 2 (Commercial Cloud / Mid-Tier VPS, e.g., Contabo / Latitude):** $\approx 1{,}200\text{ USD/year}$ (\$100 / month).
+- **Tier 3 (Enterprise Multi-AZ Redundant Cloud, e.g., AWS / GCP):** $\approx 2{,}400\text{ USD/year}$ (\$200 / month).
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│ Layer 1: Protocol Firewall (ACP-273)                                  │
-│ Delegator minimum lockup remains 14 days.                             │
-│ Time-matching access ratio: A_del(d) = max(0, (d - 14) / d)           │
-│ Validators with d < 14 days receive EXACTLY ZERO delegation.           │
-├────────────────────────────────────────────────────────────────────────┤
-│ Layer 2: Provider Market Gates (BENQI, Liquid Staking Pools)          │
-│ Protocol eligibility does not guarantee delegation.                    │
-│ BENQI Open Pool: Requires S_self >= 6,000 AVAX and Commission <= 2%.   │
-│ Miles Pool: Requires S_self >= 2,000 AVAX and Commission <= 5%.        │
-├────────────────────────────────────────────────────────────────────────┤
-│ Layer 3: Empirical Duration Preference Gradient                       │
-│ Time-averaged occupancy of the 4x delegation cap scales with duration:│
-│ - 14 to 21 days:  3.7% occupancy                                      │
-│ - 30 to 60 days: 16.1% occupancy                                      │
-│ - 186 to 365 days: 29.5% occupancy                                    │
-└────────────────────────────────────────────────────────────────────────┘
-```
+### 10.2 Break-Even Staking Revenue Relationships
+`[DERIVED]` For a validator with self-stake $S$, annualized reward rate $\text{ARR}(d)$, token price $P_{\text{AVAX}}$, and historical uptime ratio $p_{\text{up}}$, annual net staking yield in fiat terms is modeled as:
+$$\text{Yield}_{\text{USD}} = S \cdot \text{ARR}(d) \cdot P_{\text{AVAX}} \cdot p_{\text{up}}$$
 
-**Key Implication:** An operator spinning up a 48-hour validator receives zero delegation by protocol rule. A small 500 AVAX validator at 365 days is eligible for protocol delegation, but must build reputation or self-stake to meet liquid staking provider thresholds. On-chain records confirm that BENQI placed only 0.93% of delegated AVAX on validators below 6,000 AVAX, and only 0.30% under 2,100 AVAX (`HV3`, `H2-V14`).
+Setting $\text{Yield}_{\text{USD}} = \text{Cost}_{\text{server}}$ yields the nominal break-even self-stake requirement:
+$$S_{\text{break-even}} = \frac{\text{Cost}_{\text{server}}}{P_{\text{AVAX}} \cdot \text{ARR}(d) \cdot p_{\text{up}}}$$
 
----
+Evaluating this relationship at current annual reward rates ($\text{ARR}(365) \approx 6.378\%$) and historical empirical uptime ($p_{\text{up}} = 0.9753$):
 
-## 9. Economic Grounding of $S_{\text{floor}}$: Hosting Cost Bands & Solvency
+| Server Cost Tier | Annual Cost | Break-Even @ \$15 AVAX | Break-Even @ \$25 AVAX | Break-Even @ \$40 AVAX |
+| :--- | :---: | :---: | :---: | :---: |
+| **Tier 1 (Solo VPS)** | \$600 / yr | **$643.0\text{ AVAX}$** | **$385.8\text{ AVAX}$** | **$241.1\text{ AVAX}$** |
+| **Tier 2 (Mid-Tier VPS)** | \$1,200 / yr | $1{,}286.1\text{ AVAX}$ | $771.6\text{ AVAX}$ | $482.3\text{ AVAX}$ |
+| **Tier 3 (Enterprise Cloud)**| \$2,400 / yr | $2{,}572.2\text{ AVAX}$ | $1{,}543.3\text{ AVAX}$ | $964.6\text{ AVAX}$ |
 
-Lowering $S_{\text{floor}}$ to 500 or 600 AVAX raises the question: can a node with 500 AVAX earn enough staking rewards to cover real-world server operating costs?
+`[ASSUMED]` **Analytical Takeaway:** These calculations demonstrate that at conservative price levels (\$15 AVAX), solo operators hosting on cost-effective bare metal require approximately $600\text{ to }650\text{ AVAX}$ to achieve operational break-even solely on self-stake yield. At higher price levels (\$25–\$40 AVAX), break-even falls comfortably below $500\text{ AVAX}$. However, this static relationship does not account for delegation revenue, fee-share, or opportunity costs of capital, which require dynamic validation in agent-based simulation.
 
-### 9.1 Real-World Server Cost Tiers
-- **Tier 1 (Bare Metal / Low-Cost Solo, e.g. Hetzner):** \$600 / year (\$50 / month).
-- **Tier 2 (Commercial Cloud / Mid-Tier VPS):** \$1,200 / year (\$100 / month).
-- **Tier 3 (Enterprise Redundant Cloud, e.g. AWS Multi-AZ):** \$2,400 / year (\$200 / month).
+### 10.3 Integration with Reward Curves (ACP-285)
+`[OBSERVED]` Staking rewards on Avalanche have incorporated a duration-dependent reward rate since Genesis:
+$$\text{ARR}(d) = r_{\min} + (r_{\max} - r_{\min}) \cdot \frac{d}{365}$$
+providing an annualized yield of approximately 5.36% at 14 days and 6.38% at 365 days (at current circulating supply).
 
-### 9.2 Break-Even Solvency Analysis
-A validator is solvent if net protocol earnings exceed server overhead:
-$$\text{Net Yield (USD)} = S \cdot \text{ARR}(d) \cdot P_{\text{AVAX}} \cdot p_{\text{up}} \ge \text{Cost}_{\text{server}}$$
-
-At current supply, the protocol annualized reward rate at 365 days is $\text{ARR}(365) = 6.378\%$.
-The break-even stake is calculated as:
-$$S_{\text{be}} = \frac{\text{Cost}_{\text{server}}}{P_{\text{AVAX}} \cdot \text{ARR}(365) \cdot p_{\text{up}}}$$
-
-Evaluating across AVAX price regimes ($P_{\text{AVAX}} \in [15, 25, 40]\text{ USD}$) using historical uptime rates:
-- **Baseline Empirical Uptime:** $p_{\text{up}} = 0.9753$ (All-duration mean)
-- **Long-Tenor Empirical Uptime:** $p_{\text{up}} = 0.9466$ (180–365 day cohorts)
-
-The audited break-even grid (`HV6`, `H2-V10`, `H3-S7`):
-
-| Server Cost Tier | Annual Cost | Break-Even @ \$15 AVAX ($p_{\text{up}}=0.9753$) | Break-Even @ \$15 AVAX ($p_{\text{up}}=0.9466$) | Break-Even @ \$25 AVAX ($p_{\text{up}}=0.9753$) | Break-Even @ \$40 AVAX ($p_{\text{up}}=0.9753$) |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Solo VPS (Tier 1)** | \$600 / yr | **$643.0\text{ AVAX}$** | **$662.5\text{ AVAX}$** | **$385.8\text{ AVAX}$** | **$241.1\text{ AVAX}$** |
-| **Mid-Tier (Tier 2)** | \$1,200 / yr | $1{,}286.1\text{ AVAX}$ | $1{,}325.1\text{ AVAX}$ | $771.6\text{ AVAX}$ | $482.3\text{ AVAX}$ |
-| **AWS Enterprise (Tier 3)**| \$2,400 / yr | $2{,}572.2\text{ AVAX}$ | $2{,}650.1\text{ AVAX}$ | $1{,}543.3\text{ AVAX}$ | $964.6\text{ AVAX}$ |
-
-*(With a 1.5% opportunity cost hurdle rate, break-even spans from 847.4 AVAX at \$15 up to 3,389.5 AVAX for enterprise cloud).*
-
-**Conclusion:** At \$15 AVAX, a solo operator paying \$50/month (\$600/year) requires **643.0 AVAX** for full solvency at average uptime, or **662.5 AVAX** at long-tenor uptime. At \$25 AVAX, break-even drops to **385.8 AVAX**. This confirms that $S_{\text{floor}} = 500\text{ to }600\text{ AVAX}$ represents the true physical boundary for decentralized solo validation.
+Under ACP-285, protocol discussions have proposed steepening this yield curve by lowering the minimum consumption rate to 7.5%, expanding the yield spread between short and long durations from ~1.02 percentage points to ~2.30 percentage points. This steepening works synergistically with the admission frontier: the admission frontier acts as an **entry filter** preventing low-capital churn at short durations, while ACP-285 provides the **macroeconomic incentive** encouraging large capital to commit for longer periods.
 
 ---
 
-## 10. Historical Yield Structure Clarification
+## 11. Architectural Implementation Requirements
 
-To maintain rigorous historical accuracy (`HB2`):
-- Protocol rewards have rewarded duration since Genesis:
-  $$\text{ARR}(d) = r_{\min} + (r_{\max} - r_{\min}) \cdot \frac{d}{365}$$
-  paying **5.36% at 14 days** and **6.38% at 365 days** (at 470M AVAX supply).
-- **ACP-285** widens this duration premium by lowering the consumption rate floor to 7.5%, expanding the spread from ~1.02 percentage points to ~2.30 percentage points.
-- **Instrument Synergy:** The Admission Frontier $S_{\min}(d)$ acts as the consensus gatekeeper, filtering out short-term churn, while ACP-285 acts as the macroeconomic incentive steering large capital toward longer commitments.
+Implementing a duration-dependent admission rule within Avalanche's consensus layer requires strict alignment with the deterministic execution requirements of `vms/platformvm`.
 
----
+### 11.1 Deterministic Integer Quantization
+`[DERIVED]` Floating-point arithmetic is inherently non-deterministic across differing CPU architectures, compiler flags, and operating systems. Evaluating non-linear mathematical functions ($x^p$, logarithms, or floating-point division) inside consensus validation would risk consensus forks.
 
-## 11. PlatformVM Consensus Quantization & Go Implementation
+Therefore, any production deployment of an admission frontier must be implemented via **discrete integer quantization**:
+- Durations evaluated in discrete integer time units (nanoseconds or seconds).
+- Minimum stake evaluated in integer token units (`nAVAX`, where $1\text{ AVAX} = 10^9\text{ nAVAX}$).
+- Frontier represented as a pre-computed, strictly monotonic lookup schedule or piecewise-linear integer function within PlatformVM state validation.
 
-### 11.1 Rationale for Integer Quantization
-Floating-point evaluations inside consensus critical paths introduce cross-platform verification divergences due to differences in CPU floating-point units, rounding modes, and compiler optimizations.
-
-To preserve deterministic execution across all Avalanche Network Clients, the continuous curve is quantized into eight discrete integer brackets evaluated in nanoseconds and `nAVAX` ($1\text{ AVAX} = 10^9\text{ nAVAX}$):
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                   QUANTIZED PLATFORMVM SCHEDULE (PACKAGE P - PRAGMATIC)                │
-├───────┬──────────────────────┬─────────────┬─────────────────┬────────────────┬────────┤
-│ Index │ Duration Range (d)   │ Stake (AVAX)│ Stake (nAVAX)   │ Capital-Time   │ Ratio  │
-├───────┼──────────────────────┼─────────────┼─────────────────┼────────────────┼────────┤
-│ 1     │ 2d <= d < 7d         │ 14,000 AVAX │ 14,000 * 10^9   │ 28.0k - <98.0k │ 1.00x+ │
-│ 2     │ 7d <= d < 14d        │ 3,900 AVAX  │ 3,900 * 10^9    │ 27.3k - <54.6k │ 0.98x+ │
-│ 3     │ 14d <= d < 30d       │ 2,000 AVAX  │ 2,000 * 10^9    │ 28.0k - <60.0k │ 1.00x+ │
-│ 4     │ 30d <= d < 60d       │ 1,100 AVAX  │ 1,100 * 10^9    │ 33.0k - <66.0k │ 1.18x+ │
-│ 5     │ 60d <= d < 90d       │ 750 AVAX    │ 750 * 10^9      │ 45.0k - <67.5k │ 1.61x+ │
-│ 6     │ 90d <= d < 180d      │ 650 AVAX    │ 650 * 10^9      │ 58.5k - <117.0k│ 2.09x+ │
-│ 7     │ 180d <= d < 360d     │ 550 AVAX    │ 550 * 10^9      │ 99.0k - <198.0k│ 3.54x+ │
-│ 8     │ 360d <= d <= 365d    │ 500 AVAX    │ 500 * 10^9      │ 180.0k - 182.5k│ 6.43x+ │
-└───────┴──────────────────────┴─────────────┴─────────────────┴────────────────┴────────┘
-```
-
-Note: Under the discrete 8-tier schedule, the minimum commitment occurs at the 7-day threshold ($3{,}900\text{ AVAX} \times 7\text{d} = 27{,}300\text{ AVAX-days}$, a 2.5% discount), whereas under the continuous curve, the minimum is $26{,}634\text{ AVAX-days}$ at $6.08\text{ days}$.
-
-> [!NOTE]
-> **Operational Boundary on Tier 8 (Annual Floor):**  
-> In PlatformVM, consensus validation enforces `MaxValidatorStakeDuration = 365 * 24 * time.Hour`. Because transaction submission time offsets can cause `endTime.Sub(startTime)` to register as 364 days 23 hours, setting a strict `ThresholdDuration: 365d` would disqualify legitimate annual stakers and bump them into Tier 7 (550 AVAX). We recommend configuring Tier 8 with an operational threshold window at **360 days** (`360 * 24 * time.Hour`), ensuring all ~1-year commitments access the intended 500 AVAX floor without risking rejection under `MaxValidatorStakeDuration`.
-
-For comparison, under Package EM2 (Full Parity):
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                   QUANTIZED PLATFORMVM SCHEDULE (PACKAGE EM2 - FULL PARITY)            │
-├───────┬──────────────────────┬─────────────┬─────────────────┬────────────────┬────────┤
-│ Index │ Duration Range (d)   │ Stake (AVAX)│ Stake (nAVAX)   │ Capital-Time   │ Ratio  │
-├───────┼──────────────────────┼─────────────┼─────────────────┼────────────────┼────────┤
-│ 1     │ 2d <= d < 7d         │ 19,402 AVAX │ 19,402 * 10^9   │ 38.8k - <135.8k│ 1.39x+ │
-│ 2     │ 7d <= d < 14d        │ 4,226 AVAX  │ 4,226 * 10^9    │ 29.6k - <59.2k │ 1.06x+ │
-│ 3     │ 14d <= d < 30d       │ 2,000 AVAX  │ 2,000 * 10^9    │ 28.0k - <60.0k │ 1.00x+ │
-│ 4     │ 30d <= d < 60d       │ 1,030 AVAX  │ 1,030 * 10^9    │ 30.9k - <61.8k │ 1.10x+ │
-│ 5     │ 60d <= d < 90d       │ 693 AVAX    │ 693 * 10^9      │ 41.6k - <62.4k │ 1.48x+ │
-│ 6     │ 90d <= d < 180d      │ 601 AVAX    │ 601 * 10^9      │ 54.1k - <108.2k│ 1.93x+ │
-│ 7     │ 180d <= d < 360d     │ 525 AVAX    │ 525 * 10^9      │ 94.5k - <189.0k│ 3.38x+ │
-│ 8     │ 360d <= d <= 365d    │ 500 AVAX    │ 500 * 10^9      │ 180.0k - 182.5k│ 6.43x+ │
-└───────┴──────────────────────┴─────────────┴─────────────────┴────────────────┴────────┘
-```
-
-### 11.2 Production Go Reference Implementation
-```go
-package platformvm
-
-import (
-	"errors"
-	"time"
-)
-
-var (
-	ErrStakeDurationTooShort      = errors.New("validator stake duration below protocol minimum")
-	ErrStakeDurationTooLong       = errors.New("validator stake duration exceeds protocol maximum")
-	ErrInsufficientValidatorStake = errors.New("validator self-stake does not satisfy duration frontier")
-	ErrNilOrEmptySchedule         = errors.New("admission frontier schedule cannot be nil or empty")
-)
-
-const (
-	MinValidatorStakeDuration = 48 * time.Hour
-	MaxValidatorStakeDuration = 365 * 24 * time.Hour
-	NanoAvaxPerAvax           = 1_000_000_000
-)
-
-type DurationBracket struct {
-	ThresholdDuration time.Duration
-	MinimumWeight     uint64 // in nAVAX
-}
-
-// AdmissionFrontierSchedule implements Package P (Recommended Default: 500 AVAX floor, 14,000 AVAX anchor).
-// Note: 360d threshold provides an operational buffer for annual commitments up to MaxValidatorStakeDuration.
-var AdmissionFrontierSchedule = []DurationBracket{
-	{ThresholdDuration: 360 * 24 * time.Hour, MinimumWeight: 500 * NanoAvaxPerAvax},
-	{ThresholdDuration: 180 * 24 * time.Hour, MinimumWeight: 550 * NanoAvaxPerAvax},
-	{ThresholdDuration: 90 * 24 * time.Hour,  MinimumWeight: 650 * NanoAvaxPerAvax},
-	{ThresholdDuration: 60 * 24 * time.Hour,  MinimumWeight: 750 * NanoAvaxPerAvax},
-	{ThresholdDuration: 30 * 24 * time.Hour,  MinimumWeight: 1100 * NanoAvaxPerAvax},
-	{ThresholdDuration: 14 * 24 * time.Hour,  MinimumWeight: 2000 * NanoAvaxPerAvax},
-	{ThresholdDuration: 7 * 24 * time.Hour,   MinimumWeight: 3900 * NanoAvaxPerAvax},
-	{ThresholdDuration: 48 * time.Hour,       MinimumWeight: 14000 * NanoAvaxPerAvax},
-}
-
-// GetMinimumValidatorStake returns the required minimum self-stake under Package P.
-func GetMinimumValidatorStake(duration time.Duration) (uint64, error) {
-	return GetMinimumValidatorStakeWithSchedule(duration, AdmissionFrontierSchedule)
-}
-
-// GetMinimumValidatorStakeWithSchedule evaluates an arbitrary bracket schedule with strict bounds checks.
-func GetMinimumValidatorStakeWithSchedule(duration time.Duration, schedule []DurationBracket) (uint64, error) {
-	if duration < MinValidatorStakeDuration {
-		return 0, ErrStakeDurationTooShort
-	}
-	if duration > MaxValidatorStakeDuration {
-		return 0, ErrStakeDurationTooLong
-	}
-	if len(schedule) == 0 {
-		return 0, ErrNilOrEmptySchedule
-	}
-	for _, bracket := range schedule {
-		if duration >= bracket.ThresholdDuration {
-			return bracket.MinimumWeight, nil
-		}
-	}
-	return schedule[len(schedule)-1].MinimumWeight, nil
-}
-
-// VerifyValidatorAdmission validates an incoming validator transaction.
-func VerifyValidatorAdmission(startTime, endTime time.Time, bondedWeight uint64) error {
-	if endTime.Before(startTime) || endTime.Equal(startTime) {
-		return ErrStakeDurationTooShort
-	}
-	duration := endTime.Sub(startTime)
-	requiredWeight, err := GetMinimumValidatorStake(duration)
-	if err != nil {
-		return err
-	}
-	if bondedWeight < requiredWeight {
-		return ErrInsufficientValidatorStake
-	}
-	return nil
-}
-```
-
-### 11.3 State Transition & Backwards Compatibility
-1. **Uninterrupted Staking Stints:** Active staking positions registered prior to the activation epoch execute under the rules active at their creation time. Active validators complete their terms without modification.
-2. **Deterministic Activation Epoch:** Upon reaching the activation timestamp, PlatformVM validates newly submitted `AddPermissionlessValidatorTx` transactions against `VerifyValidatorAdmission`. Transactions providing weight below the bracket threshold fail syntactic validation and are dropped from mempool propagation.
-3. **Wire Format Invariance:** P-Chain transaction serialization formats, cryptographic signatures, and codec structures remain identical.
+### 11.2 State Transition & Compatibility Considerations
+1. **Grandfathering Active Validators:** Staking positions registered prior to the protocol activation timestamp must be evaluated according to the rules active at their registration time. Active validators continue to validate and earn rewards until their scheduled end time without interruption.
+2. **Syntactic Mempool Verification:** Newly submitted `AddPermissionlessValidatorTx` transactions must be validated against the discrete integer schedule during syntactic transaction parsing. Transactions providing insufficient weight for their specified duration are rejected before block inclusion or mempool propagation.
+3. **P-Chain Serialization Invariance:** The proposed admission rules require zero modifications to on-chain transaction serialization formats, BLS signatures, or cryptographic proofs, preserving full backwards compatibility across network clients.
+4. **Engineering Responsibility:** Protocol implementation details, exact bracket counts, and Go code specifications are properly determined by Ava Labs PlatformVM core engineers during the client integration phase.
 
 ---
 
-## 12. Peer Review Audit & Epistemic Traceability
+## 12. Epistemic Status, Research Boundaries & Questions for the Foundation
 
-This master memo formally resolves the peer review feedback from the research operations evaluation (`plans/2026-09-30-research-operations/hash-review/`):
+### 12.1 Epistemic Taxonomy of Claims
+To ensure complete transparency and academic discipline, every major claim in this memorandum is classified under our strict epistemic validation standard:
 
-### 12.1 Decisions & Actions Log (HD1–HD5 & HA1–HA10)
-- **Mathematical Integrity (`HV1`–`HV4`, `HB4`, `HA3`):** Strict convexity proven for $p \ge 1$; $p < 1$ formally retracted with analytical inflection derivation; closed-form feasibility bound established. Package P minimum commitment verified at $26{,}634\text{ AVAX-days}$, and Package E recalculated to $p = 1.061$ for the 500 floor.
-- **Simulation Staging Discipline (`HD1`, `HD5`, `HA1`):** Headline Stage 4 simulation results are held back from external delivery until seed determinism (`hashlib.sha256`), common random numbers, neutral control alignment, and pre-Granite calibration are fully merged into the canonical modeling pipeline.
-- **Delegation Clarification (`HB1`, `HV3`):** Clarified distinction between cumulative delegation volume flow and active concurrent stock occupancy. Evaluated the three-layer delegation architecture.
-- **Empirical Grounding (`HB3`, `HB6`, `HA2`):** August 2025 exit wave corrected to 78.4% institutional fleet restructuring (GoGoPool, Genesis migration, 24-in-1 consolidation), refuting the 93% Sybil swarm hypothesis. 7-day renewal rate recomputed to 80.7% (2021–2024) and 78.1% (2025–Granite). Dataset boundary accurately marked as ending August 13, 2026 (pre-Helicon).
-- **Reward Mechanics (`HB2`):** Historical duration-dependent reward formula since Genesis documented; ACP-285 steepening framed accurately as an amplification of existing mechanics.
-- **Phantom Citation Purge (`HA6`):** Removed all lingering references to phantom "ACP-49" across the specification, ERD, and codebase; framed entry barrier reduction strictly under community 500 AVAX decentralization proposals.
-
-### 12.2 Epistemic Taxonomy Table
-Every input to this mechanism design is classified under our strict epistemic validation standard:
-
-| Epistemic Class | Items Included | Evidentiary Basis |
+| Epistemic Class | Subject Matter | Evidentiary Basis |
 | :--- | :--- | :--- |
-| **`[OBSERVED]`** | Validator stint durations, self-stake distribution, 14d clustering (16.38%), BENQI delegation allocation (<1% on <6k nodes), historical ARR yields (5.36%–6.38%). | Primary telemetry (`01-renewal-panel.parquet`, 57,067 stints, 7,635 nodes, ending 2026-08-13). |
-| **`[DERIVED]`** | Global convexity proof ($p \ge 1$), inflection point ($d^*$), closed-form pivot feasibility bound, 28,000 AVAX-days parity surface, break-even stake formula ($S_{\text{be}}$). | Closed-form mathematical derivations and numerical inversion verified to machine precision. |
-| **`[ASSUMED]`** | VPS server hosting costs (\$600–\$2,400/yr), validator refusal behavioral splits, delegator duration preferences. | Empirical operator survey data, hosting provider pricing, conservative behavioral bounds. |
-| **`[UNIDENTIFIED]`** | Endogenous token price-elastic staking supply response. | Explicitly treated via parameter sensitivity scenarios (\$15, \$25, \$40 AVAX) rather than uncalibrated point estimates. |
+| **`[OBSERVED]`** | Baseline validator distributions, 14-day clustering (16.38%), median stake (2,015 AVAX), August 2025 entity restructuring (78.4% institutional), historical ARR yields (5.36%–6.38%). | Primary on-chain panel (`01-renewal-panel.parquet`, 57,067 stints, 7,635 nodes, ending 2026-08-13). |
+| **`[DERIVED]`** | Strict convexity theorem ($p \ge 1$), inflection point derivation ($d^* = \frac{p+1}{2}d_{\max}$), closed-form pivot feasibility bound, break-even stake formula ($S_{\text{break-even}}$). | Closed-form mathematical proofs and numerical root-finding verified to machine precision. |
+| **`[HYPOTHESIS]`** | Operational hazards of decoupled admission (sampling variance, state churn), behavioral response pathways (Validator Refusal Rule splits). | Formal mechanism models and qualitative protocol analysis awaiting dynamic simulation. |
+| **`[ASSUMED]`** | Server hosting cost tiers (\$600–\$2,400/yr), validator hardware requirements, delegator risk preferences. | Industry hosting benchmarks, public cloud pricing sheets, and operator survey samples. |
+| **`[UNIDENTIFIED]`** | Endogenous validator supply elasticity under simultaneous price and yield shocks, cross-subnet validator migration. | Unobserved regimes requiring parameter calibration during digital-twin (cadCAD) simulation. |
+
+### 12.2 Research Boundaries: Established vs. Unresolved
+- **What Has Been Established:**
+  - Independent static reductions in stake and duration collapse the economic commitment barrier by over 96%, creating severe churn incentives.
+  - The Bounded Harmonic family satisfies all structural design axioms, guaranteeing strict convexity for $p \ge 1$ and exact boundary convergence.
+  - Closed-form bounds determine whether any proposed policy pivot is mathematically feasible under convex admission geometry.
+  - Historical baseline records show that validator exits in August 2025 were dominated by institutional restructuring rather than Sybil attacks.
+- **What Remains to Be Tested (Stage 4 / Digital Twin Scope):**
+  - Dynamic agent-based response distributions under varying validator refusal pathways.
+  - Network-wide staking supply elasticity when admission frontiers interact with ACP-285 reward curve steepening.
+  - Formal quantification of consensus sampling variance under synthetic high-churn regimes.
 
 ---
 
-## 13. Strategic Questions for Dr. Eric Lu
+### 12.3 Structured Collaborative Questions for the Avalanche Foundation
 
-To finalize the parameter specification for the upcoming v0.8/v0.9 integration, we submit four targeted questions for the review call:
+To guide the next phase of digital-twin simulation and protocol specification, we submit four strategic questions for Foundation review:
 
-1. **Parity Objective:** Does the Foundation view the $28{,}000\text{ AVAX-days}$ invariant as an inviolable baseline across every single duration (recommending **Package EM2** with $S_{\text{short}} \approx 19{,}402\text{ AVAX}$), or is an anchor-point parity design acceptable (recommending **Package P** with $S_{\text{short}} = 14{,}000\text{ AVAX}$ and a shallow dip to $26{,}634\text{ AVAX-days}$)?
-2. **Delegator Firewall Under ACP-273:** Does Ava Labs intend to preserve the 14-day delegator firewall ($A_{\text{del}}(d) = 0$ for $d < 14\text{d}$) under ACP-273, ensuring retail delegators do not participate in 48-hour consensus churn?
-3. **Decentralization Floor:** For annual commitments, does the Foundation prefer the aggressive $500\text{ AVAX}$ target (Package P / EM2) or the cost-buffered $600\text{ AVAX}$ tier (Package B-600) to insulate solo operators against VPS hosting cost shocks?
-4. **Quantized Implementation Schedule:** Does the PlatformVM team agree with embedding the 8-tier discrete integer schedule (`nAVAX` and nanoseconds) directly into syntactic transaction validation (`vms/platformvm`), or is there an alternative preference for fee-based dynamic pacing?
+#### Question 1: Ecosystem Continuity vs. Short-End Churn Defense
+- **The Evidence:** Historical records demonstrate that 16.38% of all stints cluster at exactly 14 days and 2,000 AVAX. Setting an anchor of $14{,}000\text{ AVAX}$ at 48 hours allows exact continuity at $(14\text{d}, 2{,}000\text{ AVAX})$ while maintaining $p = 1.110 \ge 1$ (Scenario P). However, achieving strict uniform commitment parity ($K(d) \ge 28{,}000\text{ AVAX-days}$ across every continuous day) requires elevating the 48-hour barrier to $\approx 19{,}402\text{ AVAX}$ (Scenario EM2).
+- **The Trade-off:** A lower short-end anchor provides greater liquidity optionality for institutional participants but introduces a minor commitment discount (up to 4.88%) at intermediate tenors (3–10 days). A higher short-end anchor guarantees absolute capital-time parity but increases entry frictions for short-duration stakers.
+- **Knowns & Unknowns:** Closed-form parity trajectories are known with certainty. The elasticity of institutional demand for 48-hour consensus slots under an $18{,}000\text{--}19{,}400\text{ AVAX}$ requirement is unknown and unobserved in pre-Helicon data.
+- **Guidance Needed:** Does the Foundation prioritize absolute uniform capital-time parity ($K(d) \ge 28{,}000\text{ AVAX-days}$), or is an anchor-point parity design (with exact continuity at 14 days and 48 hours, and a controlled intermediate dip) preferred to maximize capital efficiency?
+
+#### Question 2: Delegator Time-Matching Firewall under ACP-273
+- **The Evidence:** Delegations currently account for 46% of P-Chain transaction volume. Under existing rules, delegator lockups require a minimum of 14 days. If ACP-273 enables 48-hour validator stints, a validator staking for 48 hours cannot accept a 14-day delegation unless delegation mechanics are modified.
+- **The Trade-off:** Enforcing a strict firewall ($A_{\text{del}}(d) = 0$ for $d < 14\text{d}$) prevents short-duration validators from accessing retail delegation pools, insulating the delegation market from high-frequency churn. Relaxing the firewall would require creating short-duration delegation tenors, significantly increasing P-Chain staking transaction volume.
+- **Knowns & Unknowns:** The mathematical access ratio $A_{\text{del}}(d) = \max(0, (d - 14)/d)$ is formally derived. The willingness of retail delegators to accept 48-hour re-delegation friction is unmeasured.
+- **Guidance Needed:** Does Ava Labs intend to maintain the 14-day delegator firewall under ACP-273, restricting sub-14-day validation strictly to sovereign self-stake?
+
+#### Question 3: Long-End Floor Calibration & Operational Solvency
+- **The Evidence:** Physical bare-metal hosting costs for reliable solo validation baseline at $\approx 600\text{ USD/year}$. At conservative token valuations (\$15 AVAX) and baseline uptime, a validator with $500\text{ AVAX}$ self-stake earns $\approx 466\text{ USD/year}$, leaving a modest operational deficit unless supported by higher token prices, delegation commissions, or subsidized infrastructure. A $600\text{ AVAX}$ floor provides break-even solvency at \$15 AVAX.
+- **The Trade-off:** A lower floor ($500\text{ AVAX}$) maximizes marketing accessibility and decentralization optics for sovereign operators, relying on price appreciation or home hardware to achieve solvency. A cost-buffered floor ($600\text{ AVAX}$) provides a greater economic buffer against hardware cost inflation.
+- **Knowns & Unknowns:** Nominal server pricing tiers are well-documented. The percentage of potential home validators utilizing existing non-dedicated hardware (reducing marginal hosting cost to near zero) is unknown.
+- **Guidance Needed:** Does the Foundation prefer calibrating the 365-day terminal floor strictly to the round $500\text{ AVAX}$ threshold, or should simulation models incorporate a cost-buffered floor ($600\text{ AVAX}$) to prioritize long-term solo validator economic solvency?
+
+#### Question 4: Consensus Rule Enforcement vs. Fee-Based Pacing
+- **The Evidence:** Floating-point curves cannot execute deterministically in PlatformVM, requiring discrete integer quantization.
+- **The Trade-off:** Implementing $S_{\min}(d)$ as a strict consensus validity rule directly restricts block validity and drops invalid transactions during mempool verification. An alternative architectural approach would enforce admission pacing via multi-dimensional transaction fees (e.g., ACP-103), charging higher registration fees for short-duration stints while keeping nominal stake requirements flat.
+- **Knowns & Unknowns:** The 8-tier discrete integer table format is verified for deterministic Go execution. The economic incidence of upfront burning fees versus locked staking bonds across differing operator classes requires further comparative modeling.
+- **Guidance Needed:** Does the Foundation view duration-dependent admission primarily as a **consensus validity rule** governing bonded stake weight ($S_{\min}(d)$), or as a candidate for **fee-based admission pacing** within the transaction fee architecture?
