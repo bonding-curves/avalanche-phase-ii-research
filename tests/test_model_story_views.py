@@ -57,3 +57,16 @@ def test_each_plot_returns_a_nonempty_holoviews_object():
         assert isinstance(plot, hv.core.dimension.ViewableTree | hv.Overlay)
         assert len(plot) > 0
     assert len(curves) > 0 and set(curves.mechanism) == {"Chain today", "Quadratic curve"}
+
+
+def test_display_names_reach_the_legends_and_keep_the_colors():
+    supply = 465_000_000 * 10**9
+    curves = mr.mechanism_table([ChainReward(), QuadraticReward()], supply, datetime(2026, 12, 22, tzinfo=UTC))
+    issuance = pd.DataFrame({"mechanism": ["Chain today", "Quadratic curve"], "issuance_avax": [1e7, 9e6], "change_vs_chain": [0.0, -0.1]})
+    names = {"Chain today": "the chain at its 7.5% floor"}
+    left = mr.mechanism_plot(curves, issuance, names=names)[0]
+    assert {c.label for c in left} == {"the chain at its 7.5% floor", "Quadratic curve"}
+    sweep = pd.DataFrame({"response": [0.0], "mechanism": ["Chain today"], "validators_mean": [1300], "validators_p10": [1290],
+                          "validators_p90": [1310], "issuance_million_avax": [5.2]})
+    panel = mr.sweep_plot(sweep, names={"Chain today": "Chain before ACP-285"})[0]
+    assert "Chain before ACP-285" in {layer.label for layer in panel}

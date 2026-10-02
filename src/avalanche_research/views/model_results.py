@@ -62,26 +62,33 @@ def mechanism_table(mechanisms: list[RewardMechanism], supply_navax: int, priced
     return pd.concat(frames, ignore_index=True)[["mechanism", "duration_days", "weeks", "annual_rate_pct"]]
 
 
-def mechanism_plot(curves: pd.DataFrame, issuance: pd.DataFrame) -> hv.Layout:
-    """Left: annual reward rate by committed duration. Right: AVAX each design mints for the reference cohort."""
+def mechanism_plot(curves: pd.DataFrame, issuance: pd.DataFrame, names: dict[str, str] | None = None) -> hv.Layout:
+    """Left: annual reward rate by committed duration. Right: AVAX each design mints for the reference cohort.
+
+    ``names`` maps a mechanism label to the name a reader sees, for example "the chain at its 7.5% floor".
+    """
+    names = names or {}
     lines = []
     for label in curves.mechanism.unique():
         part = curves[curves.mechanism == label]
         chain = label == "Chain today"
-        lines.append(hv.Curve(part, "weeks", ["annual_rate_pct", "mechanism"], label=label).opts(
+        lines.append(hv.Curve(part, "weeks", ["annual_rate_pct", "mechanism"], label=names.get(label, label)).opts(
             color=MECHANISM_COLORS.get(label, MUTED), line_width=4 if chain else 3, line_dash="solid" if chain else "dashed",
             tools=["hover"]))
     left = hv.Overlay(lines).opts(
         width=560, height=460, title="Annual reward rate by committed duration (%)", xlabel="Committed duration (weeks)",
         ylabel="Annual reward rate (%)", legend_position="bottom_right", xlim=(2, 52), **MEMO)
     bars = issuance.assign(issuance_million_avax=issuance.issuance_avax / 1e6,
-                           change=["today" if m == "Chain today" else ("same" if abs(v) < 5e-4 else f"{v * 100:+.1f}%") for m, v in zip(issuance.mechanism, issuance.change_vs_chain)])
+                           change=["baseline" if m == "Chain today" else ("same" if abs(v) < 5e-4 else f"{v * 100:+.1f}%") for m, v in zip(issuance.mechanism, issuance.change_vs_chain)])
     order = list(curves.mechanism.unique())[::-1]
     bars["mechanism"] = pd.Categorical(bars.mechanism, categories=order, ordered=True)
     bars = bars.sort_values("mechanism")
+    colors = {names.get(k, k): v for k, v in MECHANISM_COLORS.items()}
+    bars["mechanism"] = pd.Categorical([names.get(m, m) for m in bars.mechanism.astype(str)],
+                                       categories=[names.get(m, m) for m in order], ordered=True)
     right = hv.Bars(bars, "mechanism", ["issuance_million_avax", "change"]).opts(
         invert_axes=True, width=470, height=460, color="mechanism",
-        cmap={k: v for k, v in MECHANISM_COLORS.items()}, show_legend=False, line_color=None,
+        cmap=colors, show_legend=False, line_color=None,
         title="AVAX minted (million)", xlabel="", ylabel="Million AVAX", tools=["hover"], **MEMO)
     labels = hv.Labels(bars.assign(x=bars.mechanism.astype(str), y=bars.issuance_million_avax * 0.5), ["x", "y"], "change").opts(
         invert_axes=True, text_color="white", text_font_size="11pt", text_font_style="bold")
@@ -115,8 +122,12 @@ def response_sweep(periods_path: str, origin: date = ORIGINS["Fortuna"], timeste
     return pd.DataFrame(rows)
 
 
-def sweep_plot(frame: pd.DataFrame) -> hv.Layout:
-    """Validators after 180 days against AVAX issued, one panel per response strength, 10 to 90 percent bars."""
+def sweep_plot(frame: pd.DataFrame, names: dict[str, str] | None = None) -> hv.Layout:
+    """Validators after 180 days against AVAX issued, one panel per response strength, 10 to 90 percent bars.
+
+    ``names`` maps a mechanism label to the name a reader sees.
+    """
+    names = names or {}
     panels = []
     responses = sorted(frame.response.unique())
     for response in responses:
@@ -127,7 +138,7 @@ def sweep_plot(frame: pd.DataFrame) -> hv.Layout:
             color = MECHANISM_COLORS[label]
             layers.append(hv.ErrorBars((row.issuance_million_avax, row.validators_mean, row.validators_mean - row.validators_p10,
                                         row.validators_p90 - row.validators_mean), vdims=["y", "yerrneg", "yerrpos"]).opts(color=color, line_width=2))
-            layers.append(hv.Scatter(row, "issuance_million_avax", ["validators_mean", "mechanism"], label=label).opts(
+            layers.append(hv.Scatter(row, "issuance_million_avax", ["validators_mean", "mechanism"], label=names.get(label, label)).opts(
                 color=color, size=13, line_color="white", tools=["hover"]))
         title = f"Response to reward: {response:g}"
         panels.append(hv.Overlay(layers).opts(
