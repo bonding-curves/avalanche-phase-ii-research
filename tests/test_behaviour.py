@@ -166,6 +166,16 @@ def test_the_renewal_label_is_the_registered_measure(periods):
     assert mine == pytest.approx(measure["renewal_share"])
 
 
+def test_an_ending_inside_the_renewal_window_is_never_labelled():
+    cut = T0 + 100 * DAY
+    near = pd.DataFrame([period("n1", "x", 67, 30), period("n2", "x", 99, 30),
+                         period("m1", "y", 66, 30)])
+    events = ev.decision_events(near, observed_through=cut).set_index("transaction_hash")
+    # n1 ended 3 days before the cut and renewed 1 day before it; m1 ended 4 days before and has not. Neither is known.
+    assert events.loc[["n1", "m1"], "renewed"].isna().all()
+    assert events.loc["n1", "outcome"] == "renew"
+
+
 def test_the_principal_flow_conserves_stake(periods):
     cut = T0 + 600 * DAY
     events = ev.decision_events(periods, observed_through=cut)

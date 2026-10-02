@@ -61,7 +61,8 @@ def decision_events(periods: pd.DataFrame, observed_through=LOCKBOX_START, renew
          horizon_passed],
         ["overlap", "renew", "return", "leave"], default="censored")
     events["outcome"] = pd.Categorical(outcome, categories=[*OUTCOMES, "overlap", "censored"])
-    renew_known = (has_next & events.gap_days.le(renew_days)) | events.end_time.add(renew_days * DAY).le(cutoff)
+    # Known only once the whole window has passed, so an ending just before the cut is never labelled by its outcome.
+    renew_known = events.end_time.add(renew_days * DAY).le(cutoff)
     events["renewed"] = np.where(renew_known & ~events.outcome.eq("overlap"),
                                  events.outcome.eq("renew").astype(float), np.nan)
     events["next_duration_class"] = duration_class(events.next_duration_days)
