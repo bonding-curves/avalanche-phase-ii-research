@@ -1,0 +1,332 @@
+---
+title: "Source Proposal: ACP-247 Delegation Multiplier Increase"
+description: "The ACP-247 proposal, Delegation Multiplier Increase, replicated word for word from the avalanche-foundation/ACPs repository at commit b80ea34."
+source_url: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/247-delegation-multiplier-increase/README.md"
+source_commit: "b80ea34682b419603f0241f114560dea5d61e03a"
+captured: 2026-09-29
+licence: "CC0 1.0 Universal"
+---
+
+*Captured on 2026-09-29 from [https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/247-delegation-multiplier-increase/README.md](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/247-delegation-multiplier-increase/README.md) at commit [`b80ea34`](https://github.com/avalanche-foundation/ACPs/blob/b80ea34682b419603f0241f114560dea5d61e03a/ACPs/247-delegation-multiplier-increase/README.md), published under CC0 1.0 Universal.*
+
+| ACP | 247 |
+| :--- | :--- |
+| **Title** | Delegation Multiplier Increase |
+| **Authors** | Giacomo Barbieri ([@ijaack94](https://x.com/ijaack94)), BENQI ([@benqifinance](https://x.com/benqifinance)) |
+| **Status** | Implementable ([Discussion](https://github.com/avalanche-foundation/ACPs/discussions/248)) |
+| **Track** | Standards |
+
+## Abstract
+
+This Avalanche Community Proposal advocates for one targeted adjustment to Primary Network validator staking parameters: increasing the delegation multiplier from 5x to **24x** to enable validators to efficiently serve larger delegated bases within the new weight constraint. These changes maintain the 2,000 AVAX minimum validator stake and focus on improving capital efficiency for existing, well-capitalized validators rather than broadening participation.
+
+## Motivation
+
+### Current Capital Efficiency Problem
+
+The Avalanche Primary Network currently limits validators to a **4x delegation multiplier**, creating suboptimal infrastructure utilization. A validator with 2,000 AVAX self-stake can accept only 8,000 AVAX in delegations (4x multiplier), yielding a total weight of 10,000 AVAX.
+
+**Economic Reality at Current 4x Multiplier** (at \$20 AVAX, 8.25% APY, 5% delegation fee):
+
+| Metric | Value |
+|--------|-------|
+| Self-stake | 2,000 AVAX |
+| Max delegations | 8,000 AVAX |
+| Total weight | 10,000 AVAX |
+| Monthly rewards | \$1,375 |
+| Validator self-share (20% of weight) | \$275 |
+| Delegation fee income (5%) | \$55 |
+| **Total validator monthly income** | **\$330** |
+| **Monthly operational costs** | **\$150** |
+| **Net monthly profit** | **\$180** |
+
+This marginal profitability (~55% margin) creates structural problems:
+- Many validators operate below capacity (not 8,000 AVAX fully delegated)
+- Some validators forced to run multiple nodes to achieve sufficient scale
+- Infrastructure investment is heavily underutilized
+- Validator economics are fragile, attracting only well-funded entities
+- Sensitive to delegation fee pressure (any reduction below 5% hurts profitability)
+
+### Real Network Evidence: Validator Underutilization
+
+Real validator distribution data (as of October 28, 2025) provides empirical evidence of the problem:
+
+| Metric | Count | Percentage |
+|--------|-------|-----------|
+| **Total validators** | 854 | 100% |
+| **Validators with ZERO delegations** | 451 | **52.8%** |
+| **Validators with <1k AVAX delegated** | 501 | **58.7%** |
+| **Validators with 100+ delegations** | 105 | 12.3% |
+| **Validators with 1-5 delegations** | 138 | 16.2% |
+
+**Critical Finding**: Over half of all validators have zero delegations despite having the technical capacity for up to 8,000 AVAX under current 4x multiplier. This reveals:
+
+1. **Validators don't put much effort into collecting delegations** because they can't really make a business out of it
+2. **Delegation is highly concentrated** among only ~100 top-performing validators
+3. **Current system severely underutilizes validator infrastructure** across the network
+4. **Small validators (2k-5k AVAX self-stake)** cannot compete for delegations
+
+**Validator Self-Stake Distribution**:
+- 447 validators (52.3%) have only 2k-5k AVAX self-stake
+- Most of these are probably unprofitable or barely breaking even
+- They cannot attract delegations at current economics
+- Our profitability calculations (\$180/month) match their behavior
+
+### Proposed Solution
+
+Implement two complementary changes:
+
+2. **Increase delegation multiplier to 24x** - Increases the maximum _potential_ rewards that validators could receive from delegations, not changing any of the underlying incentives of delegation if not flipping the perception of maximum rewards for validators on Avalanche.
+
+**Resulting Economics at 24x Multiplier** (at \$20 AVAX, 2,000 AVAX self-stake, 8.25% APY, 5% delegation fee):
+
+| Metric | Current (4x) | Proposed (24x) | Change |
+|--------|-------------|---|---|
+| Max delegations | 8,000 AVAX | 48,000 AVAX | +500% |
+| Total weight | 10,000 AVAX | 50,000 AVAX | +400% |
+| Monthly rewards total | \$1,375 | \$6,875 | +400% |
+| Validator income | \$330 | \$605 | +83% |
+| Net monthly profit | \$180 | \$455 | +153% |
+| Profit margin | 55% | 75% | +20 pp |
+
+This transformation:
+- **Makes validators economically viable** at 50%+ delegation capacity
+- **Eliminates need for multi-node operations** for profitability
+- **Unlocks dormant validator capacity** (current 52.8% with zero delegations)
+- **Enables sustainable single-node operations** at scale
+
+## Specification
+
+### Technical Changes
+
+**Current Parameter**:
+```
+DelegationMultiplier = 4
+```
+
+**Proposed Parameter**:
+```
+DelegationMultiplier = 24
+```
+
+**Calculation Formula**:
+```
+MaxDelegatorStake(validator) = Min(ValidatorStake * 24, MaxValidatorWeight - ValidatorStake)
+
+Example for 2,000 AVAX validator:
+MaxDelegatorStake = Min(2,000 * 24, 3,000,000 - 2,000)
+MaxDelegatorStake = Min(48,000, 998,000)
+MaxDelegatorStake = 48,000 AVAX
+```
+
+**Implementation Details**:
+- Applies uniformly to all validators
+- Only validators with 120,000+ AVAX self-stake cannot utilize full 24x due to 3M weight cap
+- All 2,000 AVAX validators can deploy full 24x multiplier
+- Non-breaking for existing delegation relationships
+
+#### Unchanged Parameters
+
+The following parameters remain **UNCHANGED**:
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Minimum validator stake | 2,000 AVAX | No reduction |
+| Minimum delegator stake | 25 AVAX | Unchanged |
+| Minimum staking duration | 2 weeks | Unchanged |
+| Maximum staking duration | 1 year | Unchanged |
+| Uptime requirement | 80% | Unchanged |
+| Slashing penalty | None | Unchanged |
+| Reward formula | Same | APY calculations unchanged |
+
+## Economic Impact Analysis
+
+### Validator Profitability Scenarios
+
+All scenarios calculated at:
+- **AVAX Price**: \$20 USD
+- **Annual APY**: 8.25% (average, varies by network conditions)
+- **Delegation Fee**: 5% (fee validator charges on delegator rewards)
+- **Monthly operational costs**: \$150 (cloud hosting, bandwidth, monitoring)
+
+#### Scenario 1: Solo Validator (No Delegation)
+
+| Metric | Current (4x) | Proposed (24x) |
+|--------|-------------|---|
+| Self-stake | 2,000 AVAX | 2,000 AVAX |
+| Delegations | 0 | 0 |
+| Total weight | 2,000 AVAX | 2,000 AVAX |
+| Monthly rewards | \$275 | \$275 |
+| Monthly costs | \$150 | \$150 |
+| **Net profit** | **\$125** | **\$125** |
+
+**Conclusion**: Solo operation equally profitable in both cases; validators must attract delegations for profitability.
+
+#### Scenario 2: 50% Delegation Capacity
+
+| Metric | Current (4x) | Proposed (24x) |
+|--------|-------------|---|
+| Self-stake | 2,000 AVAX | 2,000 AVAX |
+| Delegations | 4,000 AVAX | 24,000 AVAX |
+| Total weight | 6,000 AVAX | 26,000 AVAX |
+| Monthly rewards | \$825 | \$3,575 |
+| Validator income | \$302.50 | \$440 |
+| Monthly costs | \$150 | \$150 |
+| **Net profit** | **\$152.50** | **\$290** |
+
+**Conclusion**: 24x multiplier increases profitability by **90.2%** at 50% delegation capacity. Validators reach break-even and profitability much more easily.
+
+**Real Network Impact**: Current data shows 52.8% of validators (451) have ZERO delegations. At 50% capacity with 24x, these validators become economically viable, incentivizing them to accept delegations.
+
+#### Scenario 3: Full Delegation Capacity (100%)
+
+| Metric | Current (4x) | Proposed (24x) |
+|--------|-------------|---|
+| Self-stake | 2,000 AVAX | 2,000 AVAX |
+| Delegations | 8,000 AVAX | 48,000 AVAX |
+| Total weight | 10,000 AVAX | 50,000 AVAX |
+| Monthly rewards | \$1,375 | \$6,875 |
+| Validator self-share | \$275 | \$275 |
+| Delegation fee income (5%) | \$55 | \$330 |
+| Total validator income | \$330 | \$605 |
+| Monthly costs | \$150 | \$150 |
+| **Net profit** | **\$180** | **\$455** |
+
+**Conclusion**: 24x multiplier increases profitability by **+152.8%** at full delegation. Transforms validators from barely-profitable to highly profitable operations.
+
+### Sensitivity Analysis: Impact of Different Delegation Fees
+
+**With 50% delegation capacity filled:**
+
+| Delegation Fee | Current (4x) | Proposed (24x) | Multiplier Advantage |
+|---|---|---|---|
+| 2% (minimum) | \$89.38 | \$185 | 2.07x |
+| 3% | \$96.88 | \$245 | 2.53x |
+| 5% (assumed) | **\$152.50** | **\$290** | 1.90x |
+| 7% | \$208.13 | \$335 | 1.61x |
+| 10% (high) | \$271.88 | \$425 | 1.56x |
+
+**Key insight**: 24x multiplier provides 1.5-2.5x better economics across all fee rates. Current model is highly sensitive to fee compression; 24x multiplier provides a financial buffer.
+
+### Fee Market Implications
+
+**Current 4x Model**:
+- Validators barely profitable even at 5% fees
+- Significant pressure to accept low fees to attract delegations
+- Unsustainable economics push toward multi-node operations
+- 52.8% of validators choose NOT to accept delegations (uneconomical)
+
+**Proposed 24x Model**:
+- Validators achieve healthy profits at standard 5% fees
+- Can sustain competitive fee discovery without margin pressure
+- Enables single-node operations at scale
+- Market-based fee competition works as intended
+- Expected outcome: More validators accept delegations, earning fees
+
+## Network Impact Analysis
+
+### P-Chain Load Considerations
+
+The 24x multiplier change has **minimal impact** on P-Chain resources:
+
+| Resource | Current State | Projected (24x) | Change |
+|----------|---|---|---|
+| Validator registry size | ~854 validators | ~854 validators | No change |
+| Delegation transactions | Existing pattern | More delegations expected | Variable |
+| BLS signature aggregation | Baseline | Baseline | Minimal |
+| Storage requirements | Baseline | Baseline | Negligible |
+
+**Why minimal impact?**
+- Validator count unchanged (no new validators)
+- Each validator has same duty requirements
+- Delegations already tracked; multiplier doesn't add overhead
+- Maximum weight cap prevents runaway growth
+
+### Consensus Security
+
+**Sybil Resistance**: Unchanged
+- 2,000 AVAX minimum stake maintained
+- Economic cost to create malicious validator unchanged
+
+## Consequences Analysis
+
+### Positive Consequences
+
+**1. Validator Capital Efficiency Improves** (Very High probability, High severity)
+- Single validators serve 6x larger delegated bases (8K -> 48K AVAX)
+- Infrastructure investment better utilized
+- Eliminates need for multiple-node operations
+
+**2. Validator Profitability Increases Substantially** (Very High probability, High severity)
+- Fully delegated validators earn 152.8% more (\$180 -> \$455/month)
+- At 50% delegation: +90.2% improvement
+- Makes validator operations genuinely profitable
+- Attracts professional infrastructure operators
+
+**3. Unlocks Dormant Validator Capacity** (Very High probability, High severity)
+- 52.8% of validators (451) currently have zero delegations
+- Improved economics incentivize these validators to accept delegations
+- Converts uneconomical validators into active, capital-efficient operations
+- Significantly increases network capital deployment
+
+**4. Fee Market Stabilizes** (High probability, Medium severity)
+- Validators can maintain 5%+ fees without margin pressure
+- Sustainable economics support long-term operations
+- Delegators benefit from stable, profitable validators
+- Competitive fee discovery enabled
+
+**5. Minimal Network Disruption** (Very High probability, Medium severity)
+- No new validator cohort entering (no min stake change)
+- Validator count unchanged (~854)
+- P-Chain load impact minimal
+- Easy implementation (2 parameters only)
+
+### Negative Consequences
+
+**1. Geographic Diversity Unchanged** (High probability, Low severity)
+- Entry barrier remains \$40,000 (unchanged)
+- Validator count unlikely to increase (~854 baseline)
+- Cloud provider concentration persists
+
+**Mitigation**: This proposal optimizes efficiency only; separate initiatives address diversity.
+
+**3. Fee Market Competition May Decrease** (Medium probability, Low severity)
+- Fewer new validators entering (no min stake reduction)
+- Existing validators less pressured on fees
+- Delegators have same validator options
+
+**Mitigation**: 24x efficiency enables competitive fee discovery without external pressure.
+
+**4. Network Accessibility Unchanged** (Very High probability, Low severity)
+- \$40,000 entry barrier maintained
+- Small token holders cannot become validators
+- No improvement for less wealthy participants
+
+**Mitigation**: This proposal optimizes efficiency, not accessibility. Different ACPs can address participation barriers.
+
+## Backwards Compatibility
+
+### Breaking Changes: None
+
+This proposal maintains full backwards compatibility:
+
+1. **Existing Validators**: All continue operating normally
+2. **Existing Delegations**: No modifications required
+3. **Reward Calculations**: Formula unchanged
+4. **Staking Durations**: All parameters unchanged
+5. **Uptime Requirements**: 80% threshold unchanged
+
+## Open Questions
+
+**Core Question**: "Should Avalanche prioritize validator capital efficiency through multiplier increase and weight cap reduction?"
+
+**Supporting Questions**:
+
+1. Is 24x multiplier appropriate?
+2. Should minimum stake remain at 2,000 AVAX?
+   - YES: Maintain current barrier (approved)
+   - NO: Lower it (pursue separate ACP)
+
+## Copyright
+
+Copyright and related rights waived via [CC0](https://creativecommons.org/publicdomain/zero/1.0/).

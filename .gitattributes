@@ -1,0 +1,6 @@
+* text=auto eol=lf
+
+# Research archives and derived content must retain their recorded byte hashes.
+sources/** -text
+content/** -text
+*.pdf binary

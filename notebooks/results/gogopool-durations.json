@@ -1,0 +1,214 @@
+{
+  "inputs": [
+    {
+      "dataset_id": "derived.staking-periods",
+      "run": "staking-periods-2026-09-30",
+      "parquet_sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8"
+    },
+    {
+      "dataset_id": "derived.operators",
+      "run": "operators-2026-09-30",
+      "parquet_sha256": "31036a9f8ddb9b7f8d55f5e594513311a3b1447f8e4745c1222321ab9ad0abfc"
+    }
+  ],
+  "definitions": {
+    "unit": "one accepted validator commitment; equal count weight",
+    "accepted_before_utc": "2025-11-19T16:00:00Z",
+    "era_assignment": "acceptance time, using staking-periods.regime",
+    "short_duration": "duration_days < 16, a descriptive bin, not exactly the protocol minimum",
+    "operator_attribution": "latest reward-address grouping in the September 30 operator run; retrospective, not known at each historical origin",
+    "inference": "descriptive composition; no causal estimate or fitted behavioral parameter"
+  },
+  "by_era": [
+    {
+      "era": "banff",
+      "group": "All",
+      "commitments": 3431,
+      "under_16_days": 323,
+      "under_16_days_share": 0.09414164966482075,
+      "nodes": 1360,
+      "median_days": 31.00474537037037,
+      "under_16_days_avax_days_share": 0.011062636505868037
+    },
+    {
+      "era": "banff",
+      "group": "GoGoPool",
+      "commitments": 40,
+      "under_16_days": 13,
+      "under_16_days_share": 0.325,
+      "nodes": 14,
+      "median_days": 26.35833912037037,
+      "under_16_days_avax_days_share": 0.25471895575876263
+    },
+    {
+      "era": "banff",
+      "group": "Other",
+      "commitments": 3391,
+      "under_16_days": 310,
+      "under_16_days_share": 0.09141846063108228,
+      "nodes": 1346,
+      "median_days": 31.005555555555556,
+      "under_16_days_avax_days_share": 0.010988018533636535
+    },
+    {
+      "era": "cortina",
+      "group": "All",
+      "commitments": 9101,
+      "under_16_days": 2744,
+      "under_16_days_share": 0.30150532908471595,
+      "nodes": 2388,
+      "median_days": 29.752164351851853,
+      "under_16_days_avax_days_share": 0.008851941717733354
+    },
+    {
+      "era": "cortina",
+      "group": "GoGoPool",
+      "commitments": 2233,
+      "under_16_days": 2143,
+      "under_16_days_share": 0.9596954769368562,
+      "nodes": 480,
+      "median_days": 15.0,
+      "under_16_days_avax_days_share": 0.855711633142261
+    },
+    {
+      "era": "cortina",
+      "group": "Other",
+      "commitments": 6868,
+      "under_16_days": 601,
+      "under_16_days_share": 0.08750728013977868,
+      "nodes": 1908,
+      "median_days": 30.716255787037035,
+      "under_16_days_avax_days_share": 0.007936487280341152
+    },
+    {
+      "era": "durango",
+      "group": "All",
+      "commitments": 12657,
+      "under_16_days": 7849,
+      "under_16_days_share": 0.620131152721814,
+      "nodes": 2672,
+      "median_days": 14.999976851851851,
+      "under_16_days_avax_days_share": 0.03247630180028107
+    },
+    {
+      "era": "durango",
+      "group": "GoGoPool",
+      "commitments": 6317,
+      "under_16_days": 6268,
+      "under_16_days_share": 0.9922431533955992,
+      "nodes": 944,
+      "median_days": 14.999953703703703,
+      "under_16_days_avax_days_share": 0.8899677781830165
+    },
+    {
+      "era": "durango",
+      "group": "Other",
+      "commitments": 6340,
+      "under_16_days": 1581,
+      "under_16_days_share": 0.24936908517350156,
+      "nodes": 1728,
+      "median_days": 30.001284722222223,
+      "under_16_days_avax_days_share": 0.0290895660674716
+    },
+    {
+      "era": "etna",
+      "group": "All",
+      "commitments": 5179,
+      "under_16_days": 3573,
+      "under_16_days_share": 0.6899015253910021,
+      "nodes": 1762,
+      "median_days": 14.999953703703703,
+      "under_16_days_avax_days_share": 0.03399840113156943
+    },
+    {
+      "era": "etna",
+      "group": "GoGoPool",
+      "commitments": 3153,
+      "under_16_days": 3152,
+      "under_16_days_share": 0.9996828417380272,
+      "nodes": 832,
+      "median_days": 14.999918981481482,
+      "under_16_days_avax_days_share": 0.9981791500784867
+    },
+    {
+      "era": "etna",
+      "group": "Other",
+      "commitments": 2026,
+      "under_16_days": 421,
+      "under_16_days_share": 0.20779861796643634,
+      "nodes": 930,
+      "median_days": 30.95511574074074,
+      "under_16_days_avax_days_share": 0.029289495652834164
+    },
+    {
+      "era": "fortuna",
+      "group": "All",
+      "commitments": 7775,
+      "under_16_days": 4916,
+      "under_16_days_share": 0.6322829581993569,
+      "nodes": 2012,
+      "median_days": 14.999930555555556,
+      "under_16_days_avax_days_share": 0.05099988503847653
+    },
+    {
+      "era": "fortuna",
+      "group": "GoGoPool",
+      "commitments": 3643,
+      "under_16_days": 3640,
+      "under_16_days_share": 0.9991765028822399,
+      "nodes": 790,
+      "median_days": 14.999895833333333,
+      "under_16_days_avax_days_share": 0.994986699467933
+    },
+    {
+      "era": "fortuna",
+      "group": "Other",
+      "commitments": 4132,
+      "under_16_days": 1276,
+      "under_16_days_share": 0.30880929332042595,
+      "nodes": 1222,
+      "median_days": 29.965208333333333,
+      "under_16_days_avax_days_share": 0.04854669055860527
+    },
+    {
+      "era": "Durango–Fortuna",
+      "group": "All",
+      "commitments": 25611,
+      "under_16_days": 16338,
+      "under_16_days_share": 0.6379290148764203,
+      "nodes": 3988,
+      "median_days": 14.999965277777777,
+      "under_16_days_avax_days_share": 0.03925096999167887
+    },
+    {
+      "era": "Durango–Fortuna",
+      "group": "GoGoPool",
+      "commitments": 13113,
+      "under_16_days": 13060,
+      "under_16_days_share": 0.9959582094105086,
+      "nodes": 1739,
+      "median_days": 14.999930555555556,
+      "under_16_days_avax_days_share": 0.9412817246713271
+    },
+    {
+      "era": "Durango–Fortuna",
+      "group": "Other",
+      "commitments": 12498,
+      "under_16_days": 3278,
+      "under_16_days_share": 0.2622819651144183,
+      "nodes": 2249,
+      "median_days": 30.00125,
+      "under_16_days_avax_days_share": 0.03597311497332514
+    }
+  ],
+  "persistent_short_nodes": {
+    "eras": [
+      "durango",
+      "etna",
+      "fortuna"
+    ],
+    "minimum_commitments": 5,
+    "all_nodes": 773,
+    "gogopool_nodes": 731
+  }
+}

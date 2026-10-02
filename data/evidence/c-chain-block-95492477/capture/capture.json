@@ -1,0 +1,183 @@
+{
+  "block_height": 95492477,
+  "capture_id": "capture:avalanche-c-chain-rpc:2026-09-21T23:11:27Z:539af6d13fa7",
+  "completed_at": "2026-09-21T23:11:27Z",
+  "contract_sha256": "ad171e7bf51d8c4ba93a6f2e4078700d8d3e1396b644e6d044946e05fcffacec",
+  "dataset_id": "c-chain-rpc.receipt-gap-repairs",
+  "responses": [
+    {
+      "bytes": 2479,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getBlockByNumber",
+      "path": "raw/block.json",
+      "request_json": {
+        "id": 0,
+        "jsonrpc": "2.0",
+        "method": "eth_getBlockByNumber",
+        "params": [
+          "0x5b1197d",
+          false
+        ]
+      },
+      "sha256": "e1897ce73ba20e965e528d88115a360484f9a9c5373502082595858b939567dd",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    {
+      "bytes": 3158,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getTransactionReceipt",
+      "path": "raw/receipt-00000.json",
+      "request_json": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "eth_getTransactionReceipt",
+        "params": [
+          "0xf1d15728e5858de5cd4f48fc80b5c519b1da3e44534d19c15404b54b035a1c2d"
+        ]
+      },
+      "sha256": "b3da2328b9421f8d76947add98d0a91f82a228f23aa099c220b82ae867093076",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    {
+      "bytes": 1630,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getTransactionReceipt",
+      "path": "raw/receipt-00001.json",
+      "request_json": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "method": "eth_getTransactionReceipt",
+        "params": [
+          "0x39562598b101cee1456c8b8bbd12dc3fb4d2b1922d45d92dac365b527a51ccbe"
+        ]
+      },
+      "sha256": "323805e7027239746012516883811feae9a51a1008a67e6c18b2aadf8898d67d",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    {
+      "bytes": 1027,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getTransactionReceipt",
+      "path": "raw/receipt-00002.json",
+      "request_json": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "method": "eth_getTransactionReceipt",
+        "params": [
+          "0xc10301ad11e421ce499240358ce396623601d23fdc7ff2f5ff71f45804761618"
+        ]
+      },
+      "sha256": "6fdc2eb51a49ef0780814ef05fa537a22bf3b7294383fc251c16ff15c038c84a",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    {
+      "bytes": 1028,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getTransactionReceipt",
+      "path": "raw/receipt-00003.json",
+      "request_json": {
+        "id": 4,
+        "jsonrpc": "2.0",
+        "method": "eth_getTransactionReceipt",
+        "params": [
+          "0xc031339dfdbd676c5f0001404b1e578d032fc697a8589826aa7eb402e2052ffc"
+        ]
+      },
+      "sha256": "1b5d0453510f60469deffceffc693b758fc1cfb0889b4b28abeb19e7626f239e",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    {
+      "bytes": 1030,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getTransactionReceipt",
+      "path": "raw/receipt-00004.json",
+      "request_json": {
+        "id": 5,
+        "jsonrpc": "2.0",
+        "method": "eth_getTransactionReceipt",
+        "params": [
+          "0x046e8f0fc1c3e70f801b4ba9cb1fb4248db2d87f042c980a1afa74ada3887921"
+        ]
+      },
+      "sha256": "7d31edacdd887a43b55215fab88165c91e805a40e470c00f24ec1ab0401aeea1",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    {
+      "bytes": 1029,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getTransactionReceipt",
+      "path": "raw/receipt-00005.json",
+      "request_json": {
+        "id": 6,
+        "jsonrpc": "2.0",
+        "method": "eth_getTransactionReceipt",
+        "params": [
+          "0x94d16e057b06efddd65c70369950119363b3e58288ab1b7afb309aea2d0cdbce"
+        ]
+      },
+      "sha256": "c566f8a2f99d96ba4ba4e4de5dfe65688bd094c717f756af7824fc537eb370a3",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    {
+      "bytes": 1029,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getTransactionReceipt",
+      "path": "raw/receipt-00006.json",
+      "request_json": {
+        "id": 7,
+        "jsonrpc": "2.0",
+        "method": "eth_getTransactionReceipt",
+        "params": [
+          "0x033a98a7492d812fe19d90d96fb66d5e19c9e8273b6613b9cdcb48c1b3a73aec"
+        ]
+      },
+      "sha256": "daa59beebe5386219677075b7f5fcbda3f793016b243333dbae69256b0fce7d8",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    {
+      "bytes": 1029,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getTransactionReceipt",
+      "path": "raw/receipt-00007.json",
+      "request_json": {
+        "id": 8,
+        "jsonrpc": "2.0",
+        "method": "eth_getTransactionReceipt",
+        "params": [
+          "0xd75d5e71a268d8f0fe99db2681dd186b984b4c2fdcc50c6fe7316c5ded983d2e"
+        ]
+      },
+      "sha256": "250a3d7ed0369375303533415066a23b7247c4b9b620dd70d82f0a19adc7bdfb",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    },
+    {
+      "bytes": 1028,
+      "content_type": "application/json;charset=utf-8",
+      "http_status": 200,
+      "method": "eth_getTransactionReceipt",
+      "path": "raw/receipt-00008.json",
+      "request_json": {
+        "id": 9,
+        "jsonrpc": "2.0",
+        "method": "eth_getTransactionReceipt",
+        "params": [
+          "0x829f2fb11945592394d0e86fd1b3157e146891bbe1e2c9d7a601fcdd7ef6d6bd"
+        ]
+      },
+      "sha256": "a2e9d3dee3f29945a828191201b6279887a233f7e68e4ab7657b2deae1257a66",
+      "url": "https://api.avax.network/ext/bc/C/rpc"
+    }
+  ],
+  "schema_version": "c-chain-rpc-capture/v1",
+  "source_id": "avalanche-c-chain-rpc",
+  "tool": "avalanche-research@0.1.0.dev0"
+}

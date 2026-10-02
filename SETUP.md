@@ -1,0 +1,131 @@
+# Setup
+
+These steps take a fresh machine from nothing to the tests passing, the notebooks open, and the research site running. Each step gives the command and what you should see.
+
+The commands are for macOS and Linux. On Windows, run them inside WSL.
+
+## 1. Prerequisites
+
+| Tool | Version | Used for |
+| --- | --- | --- |
+| `git` | any recent | Cloning the repository |
+| [uv](https://docs.astral.sh/uv/getting-started/installation/) | a recent release, last tested with 0.12 | The Python environment. uv installs a suitable Python by itself |
+| Python | 3.11 to 3.14 | The package, tests, and notebooks. The tests were last run on Python 3.13 |
+| [Node.js](https://nodejs.org/) | 22 or later, with npm 10.9.2 or later | The research site |
+| [Graphviz](https://graphviz.org/download/) | any recent | The `dot` command draws the model's structure diagram in `model-story.ipynb` |
+
+Install Graphviz with `brew install graphviz` on macOS or `sudo apt install graphviz` on Debian and Ubuntu. If uv is missing, install it with `curl -LsSf https://astral.sh/uv/install.sh | sh` and open a new terminal.
+
+Check each tool:
+
+```sh
+git --version
+uv --version
+node --version
+npm --version
+dot -V
+```
+
+Each command prints a version. Plan for about 2 GB of free disk space, most of it for the Python environment and the site's Node packages.
+
+## 2. Clone the repository
+
+```sh
+git clone --branch phase-ii git@github.com:AVL-Foundation/ext-bcrg-validator-research.git
+cd ext-bcrg-validator-research
+```
+
+Every later command runs from this folder unless a step says otherwise.
+
+## 3. Install the Python environment
+
+```sh
+uv sync --locked --group model --group notebook
+```
+
+This installs the package with its test tools (the `dev` group, installed by default), the model engine (`model`: cadCAD, NumPy, and Param), and JupyterLab with the charting libraries (`notebook`). `--locked` installs the exact versions in `uv.lock`. If it fails with a lock error, run `git status` and make sure no file changed after cloning.
+
+## 4. Run the tests
+
+```sh
+uv run pytest -q
+```
+
+The suite holds 652 tests and takes 2 to 3 minutes. Without the input data the last line reads `649 passed, 3 skipped`, followed by a count of warnings. The three skipped tests replay the model against the built staking periods, which arrive with the input set (see step 7). With the input set in place, all 652 pass.
+
+## 5. Query the model from the command line
+
+```sh
+uv run avalanche model describe
+```
+
+This needs no data. The first line reads `PASS | model describe | 13 mechanisms`, followed by the mainnet staking parameters and the upgrade schedule the model uses.
+
+Two other commands work without data:
+
+```sh
+uv run avalanche model reward --help
+uv run avalanche data list
+```
+
+`avalanche model reward` computes the Primary Network potential reward for one stake. `avalanche data list` prints the data catalog's sources and datasets.
+
+## 6. Open the notebooks
+
+| Notebook | What it shows |
+| --- | --- |
+| `notebooks/model-story.ipynb` | Model v0.7: its structure traced from the code, the reward designs it compares, the validator response to issuance, a test of the lifecycle model across five protocol upgrades, and the model's version roadmap |
+| `notebooks/mechanism-explorer.ipynb` | Reward and admission mechanisms compared on one reference cohort of real stakes: reward rate by duration, the AVAX each would mint, and admission by duration |
+
+Both notebooks are saved with their outputs. GitHub shows their text and code but does not draw their interactive charts.
+
+Trust the notebooks, then start JupyterLab:
+
+```sh
+uv run jupyter trust notebooks/model-story.ipynb notebooks/mechanism-explorer.ipynb
+uv run jupyter lab notebooks/
+```
+
+JupyterLab opens in the browser. Open a notebook and read it without running it. Jupyter draws saved interactive charts only in a notebook you have trusted, which is why the first command is needed.
+
+Do not choose **Run All** before the input set is in place. The notebooks read the staking periods built from the Avalanche Foundation's Snowflake data share, which are too large for Git. Run without them, a notebook stops at its first data cell with a `DataError` that names the missing run, for example `no built run for derived.staking-periods named staking-periods-2026-09-30`. JupyterLab saves notebooks automatically, so restore the saved outputs afterward with `git checkout -- notebooks/`.
+
+## 7. Run the notebooks with data
+
+The model's input data, a pinned input set, follows on 2026-10-07. Extract it into `data/runs/`, so each run is one folder such as `data/runs/staking-periods-2026-09-30/`. Then check it and run both notebooks:
+
+```sh
+uv run python scripts/verify_notebooks.py
+```
+
+This checks each data run against its receipt and runs both notebooks into a temporary folder, so the saved copies are not changed. Every line starts with `PASS` and the last line reads `All checks passed.` A `FAIL` line names the problem. After that, **Run > Run All Cells** works in JupyterLab.
+
+[`data/README.md`](data/README.md) describes the run layout, and [`data/data-catalog.json`](data/data-catalog.json) defines every dataset.
+
+## 8. Run the research site
+
+The site renders `content/` with Quartz. Its build scripts call Python, so run them through uv:
+
+```sh
+cd .site
+npm ci
+uv run --project .. npm run dev
+```
+
+`npm ci` installs the pinned Node packages. The last command builds the site and serves it at <http://localhost:8844>. It rebuilds when a page under `content/` changes. Stop it with Ctrl+C.
+
+## 9. Build and check the site without serving it
+
+From `.site/`:
+
+```sh
+uv run --project .. npm run build
+```
+
+This writes the static site to `.site/public/`, which any static file server can host.
+
+```sh
+uv run --project .. npm run verify
+```
+
+This runs the site's script tests, builds the site, checks the published content, and checks every rendered link against the known-failure list in `data/quartz-link-baseline.json`. It exits non-zero on a new failure.

@@ -1,0 +1,1081 @@
+"""Source-linked Avalanche Primary Network staking and reward rules.
+
+Every rule cites the pinned ACP text (avalanche-foundation/ACPs at b80ea34682b419603f0241f114560dea5d61e03a)
+and the AvalancheGo v1.15.0 code path (ava-labs/avalanchego at 70bd6d063b7343fd2cd8217200aaf77b57f19f68).
+Integer arithmetic reproduces the Go big-integer operation order exactly, so results are consensus values,
+not floating-point approximations.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from .types import (
+    NANOSECONDS_PER_SECOND, NAVAX_PER_AVAX, PERCENT_DENOMINATOR, SECONDS_PER_DAY, Mechanism, ModelError,
+    DynamicFeeConfig, RewardConfig, StakingConfig, Upgrade, UpgradeSchedule, ValidatorFeeConfig, as_utc,
+)
+
+
+ACPS = "https://github.com/avalanche-foundation/ACPs/blob/b80ea34682b419603f0241f114560dea5d61e03a/ACPs"
+AVALANCHEGO = "https://github.com/ava-labs/avalanchego/blob/70bd6d063b7343fd2cd8217200aaf77b57f19f68"
+
+# genesis/genesis_mainnet.go MainnetParams.StakingConfig
+MAINNET_REWARD = RewardConfig(
+    max_consumption_rate=120_000,
+    min_consumption_rate=100_000,
+    minting_period_seconds=365 * SECONDS_PER_DAY,
+    supply_cap_navax=720_000_000 * NAVAX_PER_AVAX,
+)
+MAINNET = StakingConfig(
+    uptime_requirement=0.8,
+    min_validator_stake_navax=2_000 * NAVAX_PER_AVAX,
+    max_validator_stake_navax=3_000_000 * NAVAX_PER_AVAX,
+    min_delegator_stake_navax=25 * NAVAX_PER_AVAX,
+    min_delegation_fee_shares=20_000,
+    min_stake_duration_seconds=14 * SECONDS_PER_DAY,
+    max_stake_duration_seconds=365 * SECONDS_PER_DAY,
+    helicon_min_stake_duration_seconds=48 * 3_600,
+    reward=MAINNET_REWARD,
+)
+
+# genesis/genesis_mainnet.go MainnetParams.ValidatorFeeConfig: price doubles each day of excess
+MAINNET_L1_VALIDATOR_FEE = ValidatorFeeConfig(
+    capacity=20_000,
+    target=10_000,
+    min_price_navax=512,
+    excess_conversion_constant=1_246_488_515,
+)
+MAX_UINT64 = 2**64 - 1
+# genesis/genesis_mainnet.go MainnetParams.DynamicFeeConfig: price doubles every 30 seconds of excess
+MAINNET_P_CHAIN_FEE = DynamicFeeConfig(
+    weights=(1, 1_000, 1_000, 4),
+    max_capacity=1_000_000,
+    max_per_second=100_000,
+    target_per_second=50_000,
+    min_price_navax=1,
+    excess_conversion_constant=2_164_043,
+)
+# vms/platformvm/txs/fee/calculator_test.go reference Primary Network transactions (one input, one signature):
+# (bandwidth bytes, database reads, database writes, compute) from their intrinsic complexities in complexity.go.
+ADD_PERMISSIONLESS_VALIDATOR_TX_COMPLEXITY = (691, 2, 6, 1_250)
+ADD_PERMISSIONLESS_DELEGATOR_TX_COMPLEXITY = (499, 2, 5, 200)
+
+# upgrade/upgrade.go Mainnet
+MAINNET_UPGRADES = UpgradeSchedule((
+    Upgrade("apricot_phase_1", datetime(2021, 3, 31, 14, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_2", datetime(2021, 5, 10, 11, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_3", datetime(2021, 8, 24, 14, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_4", datetime(2021, 9, 22, 21, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_5", datetime(2021, 12, 2, 18, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_pre_6", datetime(2022, 9, 5, 1, 30, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_6", datetime(2022, 9, 6, 20, tzinfo=timezone.utc)),
+    Upgrade("apricot_phase_post_6", datetime(2022, 9, 7, 3, tzinfo=timezone.utc)),
+    Upgrade("banff", datetime(2022, 10, 18, 16, tzinfo=timezone.utc)),
+    Upgrade("cortina", datetime(2023, 4, 25, 15, tzinfo=timezone.utc)),
+    Upgrade("durango", datetime(2024, 3, 6, 16, tzinfo=timezone.utc)),
+    Upgrade("etna", datetime(2024, 12, 16, 17, tzinfo=timezone.utc)),
+    Upgrade("fortuna", datetime(2025, 4, 8, 15, tzinfo=timezone.utc)),
+    Upgrade("granite", datetime(2025, 11, 19, 16, tzinfo=timezone.utc)),
+    Upgrade("helicon", datetime(2026, 9, 22, 15, tzinfo=timezone.utc)),
+))
+
+# ACP-285 and vms/platformvm/reward/calculator.go configForStakeStart
+ACP285_TARGET_MIN_CONSUMPTION_RATE = 75_000
+ACP285_RAMP_SECONDS = 90 * SECONDS_PER_DAY
+# genesis/params.go ACP267UptimeRequirement
+ACP267_UPTIME_REQUIREMENT = 0.9
+# ACP-247 README: current DelegationMultiplier = 4, proposed 24 (not part of Helicon)
+ACP247_CURRENT_DELEGATION_MULTIPLIER = 4
+ACP247_PROPOSED_DELEGATION_MULTIPLIER = 24
+
+MECHANISMS = (
+    Mechanism(
+        "protocol", "Primary Network staking reward", None, "stake duration, amount, and current supply",
+        (f"{AVALANCHEGO}/vms/platformvm/reward/calculator.go", f"{AVALANCHEGO}/genesis/genesis_mainnet.go"),
+    ),
+    Mechanism(
+        "ACP-285", "Minimum consumption rate 10% to 7.5% over a 90-day ramp", "helicon", "stake start time",
+        (f"{ACPS}/285-reduce-minimum-consumption-rate/README.md", f"{AVALANCHEGO}/vms/platformvm/reward/calculator.go"),
+    ),
+    Mechanism(
+        "ACP-273", "Minimum validator duration 14 days to 48 hours", "helicon", "chain time when the validator is added",
+        (f"{ACPS}/273-reduce-minimum-staking-duration/README.md", f"{AVALANCHEGO}/genesis/genesis_mainnet.go",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification_helpers.go"),
+    ),
+    Mechanism(
+        "ACP-267", "Uptime requirement 80% to 90%", "helicon", "validator start time",
+        (f"{ACPS}/267-uptime-requirement-increase/README.md", f"{AVALANCHEGO}/genesis/params.go",
+         f"{AVALANCHEGO}/vms/platformvm/block/executor/options.go"),
+    ),
+    Mechanism(
+        "ACP-247", "Delegation multiplier 4 to 24", None,
+        "not scheduled; a scenario upgrade named acp247, read at the chain time of delegation verification",
+        (f"{ACPS}/247-delegation-multiplier-increase/README.md",),
+    ),
+    Mechanism(
+        "protocol", "Current supply: potential reward added at stake start, removed when uptime fails", None,
+        "stake start and stake end",
+        (f"{AVALANCHEGO}/vms/platformvm/txs/executor/standard_tx_executor.go#L1508-L1533",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/proposal_tx_executor.go#L505-L520"),
+    ),
+    Mechanism(
+        "protocol", "Delegation fees deferred to the validator's end", "cortina", "validator start time",
+        (f"{AVALANCHEGO}/vms/platformvm/txs/executor/proposal_tx_executor.go#L667-L708",),
+    ),
+    Mechanism(
+        "ACP-41", "Stakes start at acceptance; the pending staker set is removed", "durango",
+        "chain time when the stake is verified",
+        (f"{ACPS}/41-remove-pending-stakers/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/standard_tx_executor.go#L1482-L1534",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L1036-L1052"),
+    ),
+    Mechanism(
+        "ACP-62", "AddValidatorTx and AddDelegatorTx disabled", "durango", "chain time when the transaction is verified",
+        (f"{ACPS}/62-disable-addvalidatortx-and-adddelegatortx/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L105-L108",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L406-L409"),
+    ),
+    Mechanism(
+        "ACP-77", "Subnets convert to L1s; L1 validators need no Primary Network stake", "etna",
+        "chain time when the transaction is verified",
+        (f"{ACPS}/77-reinventing-subnets/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L50-L90",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/subnet_tx_verification.go#L27-L56"),
+    ),
+    Mechanism(
+        "ACP-77", "Continuous L1 validator fee", "etna", "seconds between P-Chain blocks",
+        (f"{ACPS}/77-reinventing-subnets/README.md", f"{AVALANCHEGO}/vms/platformvm/validators/fee/fee.go",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/state_changes.go#L343-L390"),
+    ),
+    Mechanism(
+        "ACP-103", "P-Chain dynamic transaction fees", "etna", "chain time when the transaction is verified",
+        (f"{ACPS}/103-dynamic-fees/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/state/chain_time_helpers.go#L141-L157",
+         f"{AVALANCHEGO}/vms/components/gas/gas.go#L85-L121"),
+    ),
+    Mechanism(
+        "ACP-236", "Auto-renewed staking with the reward recomputed each cycle", "helicon",
+        "chain time when added; each cycle end",
+        (f"{ACPS}/236-auto-renewed-staking/README.md",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/staker_tx_verification.go#L874-L1033",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/proposal_tx_executor.go#L414-L503",
+         f"{AVALANCHEGO}/vms/platformvm/txs/executor/proposal_tx_executor.go#L786-L950"),
+    ),
+)
+
+
+def reward_config_for_stake_start(
+    stake_start: datetime,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> RewardConfig:
+    """ACP-285 ramp: vms/platformvm/reward/calculator.go configForStakeStart.
+
+    Stakes starting before Helicon keep the genesis configuration. From activation the minimum consumption rate
+    moves linearly toward 75,000 millionths over 90 days, evaluated once at the stake's start time, with the
+    change truncated to an integer. Networks whose maximum is below the target keep their configuration.
+    """
+    start = as_utc(stake_start)
+    if not upgrades.activated("helicon", start) or config.min_consumption_rate == ACP285_TARGET_MIN_CONSUMPTION_RATE:
+        return config
+    if config.max_consumption_rate < ACP285_TARGET_MIN_CONSUMPTION_RATE:
+        return config
+    full_change = abs(config.min_consumption_rate - ACP285_TARGET_MIN_CONSUMPTION_RATE)
+    change = full_change
+    elapsed_ns = int((start - upgrades.time("helicon")).total_seconds()) * NANOSECONDS_PER_SECOND
+    ramp_ns = ACP285_RAMP_SECONDS * NANOSECONDS_PER_SECOND
+    if elapsed_ns < ramp_ns:
+        change = full_change * elapsed_ns // ramp_ns
+    if config.min_consumption_rate < ACP285_TARGET_MIN_CONSUMPTION_RATE:
+        minimum = config.min_consumption_rate + change
+    else:
+        minimum = config.min_consumption_rate - change
+    return RewardConfig(config.max_consumption_rate, minimum, config.minting_period_seconds, config.supply_cap_navax)
+
+
+def potential_reward(
+    stake_navax: int,
+    duration_seconds: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+) -> int:
+    """vms/platformvm/reward/calculator.go Calculate, with the Go big-integer operation order.
+
+    Reward = RemainingSupply * (StakedAmount / CurrentSupply) * MintingRate * (Duration / MintingPeriod), where
+    MintingRate = MinRate + (MaxRate - MinRate) * Duration / MintingPeriod. Durations are nanoseconds in Go, so
+    the seconds given here are scaled before the arithmetic. The result is capped at the remaining supply.
+    """
+    if stake_navax < 0 or duration_seconds < 0 or current_supply_navax <= 0:
+        raise ModelError("stake and duration must be non-negative and current supply positive")
+    if current_supply_navax > config.supply_cap_navax:
+        raise ModelError("current supply exceeds the supply cap")
+    duration_ns = duration_seconds * NANOSECONDS_PER_SECOND
+    minting_period_ns = config.minting_period_nanoseconds
+    numerator = (config.max_consumption_rate - config.min_consumption_rate) * duration_ns
+    numerator += config.min_consumption_rate * minting_period_ns
+    denominator = minting_period_ns * PERCENT_DENOMINATOR
+    remaining = config.supply_cap_navax - current_supply_navax
+    reward = remaining * numerator * stake_navax * duration_ns
+    reward //= denominator
+    reward //= current_supply_navax
+    reward //= minting_period_ns
+    if reward >= 2**64:
+        return remaining
+    return min(remaining, reward)
+
+
+def primary_network_reward(
+    stake_start: datetime,
+    duration_seconds: int,
+    stake_navax: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> int:
+    """vms/platformvm/reward/calculator.go primaryNetworkCalculator.Calculate: ACP-285 applied per stake start."""
+    return potential_reward(stake_navax, duration_seconds, current_supply_navax, reward_config_for_stake_start(stake_start, config, upgrades))
+
+
+def annualized_reward_rate(
+    stake_start: datetime,
+    duration_seconds: int,
+    stake_navax: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> float:
+    """Reward per unit staked, scaled to the minting period. Matches the ARR tables in ACP-285."""
+    if stake_navax <= 0 or duration_seconds <= 0:
+        raise ModelError("annualized rate needs a positive stake and duration")
+    reward = primary_network_reward(stake_start, duration_seconds, stake_navax, current_supply_navax, config, upgrades)
+    return reward / stake_navax * config.minting_period_seconds / duration_seconds
+
+
+def split_reward(total_navax: int, shares: int) -> tuple[int, int]:
+    """vms/platformvm/reward/calculator.go Split: (amount from shares, remainder).
+
+    For a delegation reward, the first value is the validator's fee and the second the delegator's payout.
+    """
+    if not 0 <= shares <= PERCENT_DENOMINATOR or total_navax < 0:
+        raise ModelError("shares must lie in [0, PercentDenominator] and the amount must be non-negative")
+    remainder_shares = PERCENT_DENOMINATOR - shares
+    remainder = remainder_shares * (total_navax // PERCENT_DENOMINATOR)
+    optimistic = remainder_shares * total_navax
+    if optimistic < 2**64:
+        remainder = optimistic // PERCENT_DENOMINATOR
+    return total_navax - remainder, remainder
+
+
+def supply_after_stake_start(
+    current_supply_navax: int,
+    potential_reward_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+) -> int:
+    """Current supply after a stake starts: the potential reward is added before it is earned.
+
+    AvalancheGo 70bd6d0 adds it at every Primary Network stake start: vms/platformvm/txs/executor/
+    standard_tx_executor.go L1533 (putStaker, from Durango) and L1382-L1409 (AddAutoRenewedValidatorTx),
+    state_changes.go L196 (pending staker promotion before Durango), and proposal_tx_executor.go L915-L920 (each
+    ACP-236 renewal). Calculate caps the reward at the remaining supply, so the counter never passes the cap.
+    """
+    if current_supply_navax <= 0 or potential_reward_navax < 0:
+        raise ModelError("current supply must be positive and the potential reward non-negative")
+    supply = current_supply_navax + potential_reward_navax
+    if supply > config.supply_cap_navax:
+        raise ModelError("current supply would exceed the supply cap")
+    return supply
+
+
+def supply_after_stake_end(current_supply_navax: int, potential_reward_navax: int, rewarded: bool) -> int:
+    """Current supply after a stake ends: unchanged when rewarded, minus the potential reward when not.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L505-L520 undoSupplyMintOnAbort, called
+    for validators and delegators (L394) and for auto-renewed cycles (L454). The commit branch keeps the reward
+    minted at the start. No other path lowers the counter: burned fees never reach it.
+    """
+    if current_supply_navax <= 0 or potential_reward_navax < 0:
+        raise ModelError("current supply must be positive and the potential reward non-negative")
+    if rewarded:
+        return current_supply_navax
+    if potential_reward_navax > current_supply_navax:
+        raise ModelError("potential reward exceeds the current supply")
+    return current_supply_navax - potential_reward_navax
+
+
+def start_stake(
+    stake_start: datetime,
+    duration_seconds: int,
+    stake_navax: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[int, int]:
+    """(potential reward, current supply after the start) for one Primary Network stake.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/standard_tx_executor.go L1508-L1533 putStaker: the reward is
+    computed from the supply before the start and then added to it.
+    """
+    reward = primary_network_reward(stake_start, duration_seconds, stake_navax, current_supply_navax, config, upgrades)
+    return reward, supply_after_stake_start(current_supply_navax, reward, config)
+
+
+def start_stakes_in_order(
+    stakes: Iterable[tuple[datetime, int, int]],
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[tuple[int, ...], int]:
+    """Potential rewards and the final current supply for stakes (start, duration seconds, amount) in event order.
+
+    Each start reads the supply left by the previous one, so order changes every reward after the first
+    (AvalancheGo 70bd6d0 vms/platformvm/txs/executor/state_changes_test.go L453-L530
+    TestAdvanceTimeTo_PromotePendingDelegatorAndValidator_PreservesRewardOrder). The caller supplies the order.
+    """
+    rewards = []
+    supply = current_supply_navax
+    for stake_start, duration_seconds, stake_navax in stakes:
+        reward, supply = start_stake(stake_start, duration_seconds, stake_navax, supply, config, upgrades)
+        rewards.append(reward)
+    return tuple(rewards), supply
+
+
+STAKER_ROLES = ("validator", "delegator")
+
+
+ERR_TIMESTAMP_NOT_BEFORE_START_TIME = "ErrTimestampNotBeforeStartTime"
+# vms/platformvm/txs/priorities.go L7-L13 and each transaction's PendingPriority: Apricot delegators are promoted
+# before validators, which are promoted before Banff (permissionless) delegators at the same start time.
+PENDING_PRIORITY = {
+    "AddDelegatorTx": 1,
+    "AddValidatorTx": 2,
+    "AddPermissionlessValidatorTx": 2,
+    "AddPermissionlessDelegatorTx": 3,
+}
+
+
+def effective_stake_start(
+    chain_time: datetime,
+    requested_start: datetime,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> datetime:
+    """When a stake starts: the requested start before Durango, the chain time of acceptance from Durango (ACP-41).
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L546-L549 and L675-L681, and
+    standard_tx_executor.go L1489-L1502 putStaker, which placed pre-Durango stakers in the pending set.
+    """
+    if upgrades.activated("durango", chain_time):
+        return as_utc(chain_time)
+    return as_utc(requested_start)
+
+
+def staker_start_time_error(
+    chain_time: datetime,
+    requested_start: datetime,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """Before Durango a stake's requested start must be strictly after the chain time. From Durango it is ignored.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L1036-L1052 verifyStakerStartTime.
+    """
+    if upgrades.activated("durango", chain_time) or as_utc(chain_time) < as_utc(requested_start):
+        return None
+    return ERR_TIMESTAMP_NOT_BEFORE_START_TIME
+
+
+def promote_pending_stakes(
+    stakes: Sequence[tuple[str, datetime, datetime, int]],
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[tuple[int, ...], int]:
+    """Potential rewards, in input order, and the final supply for pending stakes (tx type, start, end, amount).
+
+    Before Durango a stake's reward was computed when chain time reached its start, from the supply at that moment,
+    in pending-iterator order: start time, then PENDING_PRIORITY, then transaction ID. AvalancheGo 70bd6d0
+    vms/platformvm/txs/executor/state_changes.go L159-L197 and vms/platformvm/state/staker.go L79-L95 Less. Ties on
+    start and priority keep input order, so pass them in transaction ID byte order.
+    """
+    items = list(stakes)
+    for tx_type, _, _, _ in items:
+        if tx_type not in PENDING_PRIORITY:
+            raise ModelError(f"no pending priority for {tx_type}")
+    order = sorted(range(len(items)), key=lambda index: (as_utc(items[index][1]), PENDING_PRIORITY[items[index][0]]))
+    ordered = []
+    for index in order:
+        _, start, end, amount = items[index]
+        seconds = (as_utc(end) - as_utc(start)).total_seconds()
+        if seconds < 0 or seconds != int(seconds):
+            raise ModelError("pending stakes need whole-second durations and start <= end")
+        ordered.append((as_utc(start), int(seconds), amount))
+    rewards, supply = start_stakes_in_order(ordered, current_supply_navax, config, upgrades)
+    by_input = [0] * len(items)
+    for index, reward in zip(order, rewards, strict=True):
+        by_input[index] = reward
+    return tuple(by_input), supply
+
+
+def min_stake_duration_seconds(
+    at: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+    role: str = "validator",
+) -> int:
+    """Minimum Primary Network stake duration for a stake verified at chain time ``at``, by role.
+
+    Validators follow ACP-273: 48 hours from Helicon, AvalancheGo 70bd6d0 vms/platformvm/txs/executor/
+    staker_tx_verification_helpers.go L27-L32 primaryNetworkValidatorMinStakeDuration, also used for every
+    ACP-236 period (staker_tx_verification.go L918-L920 and L1011). Delegators keep MinStakeDuration, 14 days,
+    after Helicon: getDelegatorRules L79-L87.
+    """
+    if role not in STAKER_ROLES:
+        raise ModelError(f"role must be one of {STAKER_ROLES}")
+    if role == "validator" and upgrades.activated("helicon", at):
+        return config.helicon_min_stake_duration_seconds
+    return config.min_stake_duration_seconds
+
+
+def delegation_within_validator_period(
+    delegation_start: datetime,
+    delegation_end: datetime,
+    validator_start: datetime,
+    validator_end: datetime,
+) -> bool:
+    """A delegation must lie inside its validator's current period, bounds included.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/validator.go L60-L62 BoundedBy, applied at staker_tx_verification.go
+    L736-L743 (AddPermissionlessDelegatorTx) and L470-L477 (AddDelegatorTx). For an ACP-236 validator the period is
+    the current cycle, so a delegation cannot span a renewal.
+    """
+    start, end = as_utc(delegation_start), as_utc(delegation_end)
+    return start >= as_utc(validator_start) and end <= as_utc(validator_end) and end >= start
+
+
+def delegation_window_open(
+    delegation_start: datetime,
+    validator_start: datetime,
+    validator_end: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> bool:
+    """Whether a delegation of the minimum delegator duration starting at ``delegation_start`` fits the validator.
+
+    Combines the delegator minimum (min_stake_duration_seconds, role ``delegator``) with BoundedBy. A validator
+    with less than 14 days left, and any period or ACP-236 cycle shorter than 14 days, cannot take a new delegation.
+    From Durango the delegation starts at the chain time of verification (staker_tx_verification.go L675-L681).
+    """
+    minimum = min_stake_duration_seconds(delegation_start, config, upgrades, role="delegator")
+    earliest_end = as_utc(delegation_start) + timedelta(seconds=minimum)
+    return delegation_within_validator_period(delegation_start, earliest_end, validator_start, validator_end)
+
+
+def uptime_requirement(
+    validator_start: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> float:
+    """ACP-267: 90% for validation periods starting at or after Helicon, else the genesis 80%."""
+    if upgrades.activated("helicon", validator_start):
+        return ACP267_UPTIME_REQUIREMENT
+    return config.uptime_requirement
+
+
+def uptime_fraction(up_seconds: int, since_validator_start_seconds: int) -> float:
+    """Uptime as the node's up time over the time since its validator period started, 1 for an empty window.
+
+    AvalancheGo 70bd6d0 snow/uptime/manager.go L176-L187 CalculateUptimePercentFrom, which divides the two
+    durations as float64 nanosecond counts. The protocol keeps only the pass or fail result.
+    """
+    if up_seconds < 0 or since_validator_start_seconds < 0:
+        raise ModelError("up time and window must be non-negative")
+    if since_validator_start_seconds == 0:
+        return 1.0
+    return float(up_seconds * NANOSECONDS_PER_SECOND) / float(since_validator_start_seconds * NANOSECONDS_PER_SECOND)
+
+
+def uptime_passes(
+    uptime: float,
+    validator_start: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> bool:
+    """Whether a stake ending now is rewarded: uptime at or above the requirement for the validator's start.
+
+    AvalancheGo 70bd6d0 vms/platformvm/block/executor/options.go L146-L194 prefersCommit. A delegation is judged
+    on its node's Primary Network validator: the validator's start time sets the threshold (80%, or 90% from
+    Helicon under ACP-267) and its uptime from that start decides, whenever the delegation itself started.
+    """
+    return uptime >= uptime_requirement(validator_start, config, upgrades)
+
+
+def validator_rewards_at_end(potential_reward_navax: int, delegatee_reward_navax: int, passed: bool) -> tuple[int, int]:
+    """(validation reward paid, delegation fees paid) when a non-renewing validator ends.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L522-L603 rewardValidatorTx. A failed
+    uptime check forfeits the potential reward (and undoes its supply mint, supply_after_stake_end), but the
+    deferred delegation fees in ``delegatee_reward_navax`` are paid on both branches because they were earned by
+    delegations that already succeeded. The stake itself is returned on both branches.
+    """
+    if potential_reward_navax < 0 or delegatee_reward_navax < 0:
+        raise ModelError("rewards must be non-negative")
+    return (potential_reward_navax if passed else 0), delegatee_reward_navax
+
+
+def delegator_rewards_at_end(potential_reward_navax: int, delegation_fee_shares: int, passed: bool) -> tuple[int, int]:
+    """(delegator reward, validator fee) when a delegation ends, judged on its validator's uptime.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L605-L661 rewardDelegatorTx: the
+    commit branch splits the potential reward by the validator's delegation shares (split_reward). The abort branch
+    pays neither, and the potential reward leaves the supply (L394). The fee is paid now or deferred (L667-L708).
+    """
+    if not passed:
+        if potential_reward_navax < 0:
+            raise ModelError("rewards must be non-negative")
+        return 0, 0
+    fee, delegator = split_reward(potential_reward_navax, delegation_fee_shares)
+    return delegator, fee
+
+
+def delegation_fee_deferred(validator_start: datetime, upgrades: UpgradeSchedule = MAINNET_UPGRADES) -> bool:
+    """Whether a validator's delegation fees wait until its own end. Keyed to the validator's start, not the
+    delegation's: AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L668 (Cortina)."""
+    return upgrades.activated("cortina", validator_start)
+
+
+def settle_delegation_fee(
+    fee_navax: int,
+    delegatee_reward_navax: int,
+    validator_start: datetime,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[int, int]:
+    """(fee paid at the delegation's end, validator's accrued delegatee reward after) for one rewarded delegation.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L667-L708 rewardDelegatorTx. For a
+    validator that started at or after Cortina the fee is added to its delegatee reward, which is paid when the
+    validator ends whatever its uptime (validator_rewards_at_end), or split and restaked at an ACP-236 cycle end
+    (auto_renew_restake). For earlier validators the fee is paid when the delegation ends.
+    """
+    if fee_navax < 0 or delegatee_reward_navax < 0:
+        raise ModelError("fees must be non-negative")
+    if delegation_fee_deferred(validator_start, upgrades):
+        return 0, delegatee_reward_navax + fee_navax
+    return fee_navax, delegatee_reward_navax
+
+
+def auto_renew_continues(passed: bool, next_period_seconds: int) -> bool:
+    """Whether an ACP-236 validator starts another cycle at its cycle end.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L414-L503 RewardAutoRenewedValidatorTx:
+    a failed uptime check (abort) always removes the validator, and a next period of 0 is a graceful exit on commit.
+    """
+    if next_period_seconds < 0:
+        raise ModelError("next period must be non-negative")
+    return passed and next_period_seconds > 0
+
+
+def auto_renew_exit_rewards(
+    potential_reward_navax: int,
+    delegatee_reward_navax: int,
+    accrued_validation_rewards_navax: int,
+    accrued_delegatee_rewards_navax: int,
+    passed: bool,
+) -> tuple[int, int]:
+    """(validation rewards paid, delegatee rewards paid) when an ACP-236 validator leaves at a cycle end.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L459-L503 and L712-L733. Rewards
+    restaked in earlier cycles are paid out on either branch. A failed uptime check (forced exit) forfeits only the
+    current cycle's potential reward. The original stake is returned on both branches.
+    """
+    values = (potential_reward_navax, delegatee_reward_navax, accrued_validation_rewards_navax, accrued_delegatee_rewards_navax)
+    if min(values) < 0:
+        raise ModelError("rewards must be non-negative")
+    validation = accrued_validation_rewards_navax + (potential_reward_navax if passed else 0)
+    return validation, delegatee_reward_navax + accrued_delegatee_rewards_navax
+
+
+def auto_renew_restake(
+    potential_reward_navax: int,
+    delegatee_reward_navax: int,
+    auto_compound_shares: int,
+    weight_navax: int,
+    config: StakingConfig = MAINNET,
+) -> tuple[int, int, int, int]:
+    """(restaked validation, restaked delegatee, withdrawn validation, withdrawn delegatee) at a renewal.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L786-L888
+    restakeAutoRenewedValidatorOnCommit. Each reward is split by the auto-compound shares (split_reward). If the
+    restaked total would lift the weight above MaxValidatorStake, only the remaining capacity is restaked: the
+    validation part is floor(V * C / T) (intmath.MulDiv) and the delegatee part takes the rest of the capacity.
+    Everything not restaked is paid out. The new weight is the old weight plus both restaked parts.
+    """
+    if weight_navax > config.max_validator_stake_navax:
+        raise ModelError("weight exceeds the maximum validator stake")
+    validation, _ = split_reward(potential_reward_navax, auto_compound_shares)
+    delegatee, _ = split_reward(delegatee_reward_navax, auto_compound_shares)
+    capacity = config.max_validator_stake_navax - weight_navax
+    total = validation + delegatee
+    if total > capacity:
+        validation = validation * capacity // total
+        delegatee = capacity - validation
+    return validation, delegatee, potential_reward_navax - validation, delegatee_reward_navax - delegatee
+
+
+def auto_renew_next_cycle(
+    previous_end: datetime,
+    next_period_seconds: int,
+    weight_navax: int,
+    current_supply_navax: int,
+    config: RewardConfig = MAINNET_REWARD,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> tuple[datetime, int, int]:
+    """(cycle end, potential reward, current supply after) for the next ACP-236 cycle.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/proposal_tx_executor.go L890-L930: the next cycle starts at
+    the previous cycle's end, and its reward is recomputed from the post-restake weight, the current supply at
+    that instant, and the reward configuration for that start, so the ACP-285 ramp applies cycle by cycle.
+    """
+    if next_period_seconds <= 0:
+        raise ModelError("a renewed cycle needs a positive period")
+    start = as_utc(previous_end)
+    reward, supply = start_stake(start, next_period_seconds, weight_navax, current_supply_navax, config, upgrades)
+    return start + timedelta(seconds=next_period_seconds), reward, supply
+
+
+def max_validator_weight_navax(
+    self_stake_navax: int,
+    delegation_multiplier: int = ACP247_CURRENT_DELEGATION_MULTIPLIER,
+    config: StakingConfig = MAINNET,
+) -> int:
+    """Total weight a validator may carry: self stake plus delegations up to the multiplier, capped by the maximum stake.
+
+    ACP-247 README: MaxDelegatorStake = Min(ValidatorStake * multiplier, MaxValidatorWeight - ValidatorStake).
+    """
+    if self_stake_navax < 0 or delegation_multiplier < 0:
+        raise ModelError("self stake and multiplier must be non-negative")
+    return min(self_stake_navax * (1 + delegation_multiplier), config.max_validator_stake_navax)
+
+
+ACP247_SCENARIO_UPGRADE = "acp247"
+
+
+def with_scenario_upgrade(upgrades: UpgradeSchedule, name: str, activated_at: datetime) -> UpgradeSchedule:
+    """The schedule with one hypothetical upgrade added in time order, for policy scenarios such as ACP-247.
+
+    Not an AvalancheGo rule: MAINNET_UPGRADES stays the observed schedule.
+    """
+    if any(item.name == name for item in upgrades.upgrades):
+        raise ModelError(f"upgrade {name} is already scheduled")
+    added = Upgrade(name, as_utc(activated_at))
+    ordered = sorted((*upgrades.upgrades, added), key=lambda item: item.activated_at)
+    return UpgradeSchedule(tuple(ordered))
+
+
+def delegation_multiplier(chain_time: datetime, upgrades: UpgradeSchedule = MAINNET_UPGRADES) -> int:
+    """Delegation allowed per unit of self-stake at the chain time a delegation is verified: 4, or 24 once a
+    scenario schedule has activated ACP-247.
+
+    AvalancheGo 70bd6d0 reads the factor only when a delegation is verified: MaxValidatorWeightFactor 5
+    (proposal_tx_executor.go L32, used at staker_tx_verification.go L727-L734). ACP-247 (README L93-L108) proposes
+    24 times the self-stake with the 3,000,000 AVAX cap kept. It has no activation in v1.15.0, so keying the change
+    to verification time is this kernel's assumption.
+    """
+    scheduled = any(item.name == ACP247_SCENARIO_UPGRADE for item in upgrades.upgrades)
+    if scheduled and upgrades.activated(ACP247_SCENARIO_UPGRADE, chain_time):
+        return ACP247_PROPOSED_DELEGATION_MULTIPLIER
+    return ACP247_CURRENT_DELEGATION_MULTIPLIER
+
+
+def delegation_weight_limit_navax(
+    validator_weight_navax: int,
+    chain_time: datetime,
+    delegation_multiplier: int = ACP247_CURRENT_DELEGATION_MULTIPLIER,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> int:
+    """Total weight a delegation may not push its validator above, at the chain time of verification.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L461-L468 (AddDelegatorTx) and
+    L727-L734 (AddPermissionlessDelegatorTx): MaxValidatorWeightFactor (5, proposal_tx_executor.go L32) times the
+    validator's weight, capped at MaxValidatorStake from Apricot Phase 3. For an ACP-236 validator the weight is the
+    current cycle's weight after restaking.
+    """
+    if upgrades.activated("apricot_phase_3", chain_time):
+        return max_validator_weight_navax(validator_weight_navax, delegation_multiplier, config)
+    if validator_weight_navax < 0 or delegation_multiplier < 0:
+        raise ModelError("validator weight and multiplier must be non-negative")
+    return validator_weight_navax * (1 + delegation_multiplier)
+
+
+def peak_validator_weight_navax(
+    validator_weight_navax: int,
+    delegations: Iterable[tuple[datetime, datetime, int]],
+    start: datetime,
+    end: datetime,
+) -> int:
+    """Largest total weight on a validator between ``start`` and ``end`` given its delegations (start, end, weight).
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification_helpers.go L143-L226 GetMaxWeight.
+    Delegation starts and ends are applied in time order, a start before an end at the same instant
+    (vms/platformvm/state/staker_diff_iterator.go L69-L78). The weight is sampled before each change inside
+    [start, end] and once after the last change at or before ``end``, so a delegation that ends at ``start`` or
+    begins at ``end`` still counts. Pass every current and pending delegation on the validator.
+    """
+    if as_utc(end) <= as_utc(start):
+        raise ModelError("the interval must have start < end")
+    changes = []
+    for delegation_start, delegation_end, weight in delegations:
+        if weight < 0 or as_utc(delegation_end) < as_utc(delegation_start):
+            raise ModelError("delegations need a non-negative weight and start <= end")
+        changes.append((as_utc(delegation_start), 0, weight))
+        changes.append((as_utc(delegation_end), 1, -weight))
+    changes.sort(key=lambda change: (change[0], change[1]))
+    current, peak = validator_weight_navax, 0
+    for instant, _, delta in changes:
+        if instant > as_utc(end):
+            break
+        if instant >= as_utc(start):
+            peak = max(peak, current)
+        current += delta
+    return max(peak, current)
+
+
+def over_delegated(
+    validator_weight_navax: int,
+    delegations: Iterable[tuple[datetime, datetime, int]],
+    delegation_weight_navax: int,
+    start: datetime,
+    end: datetime,
+    weight_limit_navax: int,
+) -> bool:
+    """AvalancheGo 70bd6d0 staker_tx_verification_helpers.go L120-L141 overDelegated: peak weight plus the new
+    delegation above the limit (delegation_weight_limit_navax) rejects the delegation."""
+    peak = peak_validator_weight_navax(validator_weight_navax, delegations, start, end)
+    return peak + delegation_weight_navax > weight_limit_navax
+
+
+# Admission rejections, named as the AvalancheGo errors in vms/platformvm/txs/executor
+ERR_WEIGHT_TOO_SMALL = "ErrWeightTooSmall"
+ERR_WEIGHT_TOO_LARGE = "ErrWeightTooLarge"
+ERR_INSUFFICIENT_DELEGATION_FEE = "ErrInsufficientDelegationFee"
+ERR_STAKE_TOO_SHORT = "ErrStakeTooShort"
+ERR_STAKE_TOO_LONG = "ErrStakeTooLong"
+ERR_PERIOD_MISMATCH = "ErrPeriodMismatch"
+ERR_OVER_DELEGATED = "ErrOverDelegated"
+ERR_HELICON_NOT_ACTIVE = "errHeliconUpgradeNotActive"
+
+
+def validator_admission_error(
+    weight_navax: int,
+    delegation_fee_shares: int,
+    start: datetime,
+    end: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """First parameter rule a Primary Network validator breaks, or None. ``start`` is the effective start: the
+    chain time of verification from Durango, the requested start before it.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L562-L581
+    (AddPermissionlessValidatorTx) and L121-L141 (AddValidatorTx), in that order: stake minimum, stake maximum,
+    delegation fee floor, minimum duration (ACP-273 from Helicon), maximum duration.
+    """
+    duration = as_utc(end) - as_utc(start)
+    if weight_navax < config.min_validator_stake_navax:
+        return ERR_WEIGHT_TOO_SMALL
+    if weight_navax > config.max_validator_stake_navax:
+        return ERR_WEIGHT_TOO_LARGE
+    if delegation_fee_shares < config.min_delegation_fee_shares:
+        return ERR_INSUFFICIENT_DELEGATION_FEE
+    if duration < timedelta(seconds=min_stake_duration_seconds(start, config, upgrades)):
+        return ERR_STAKE_TOO_SHORT
+    if duration > timedelta(seconds=config.max_stake_duration_seconds):
+        return ERR_STAKE_TOO_LONG
+    return None
+
+
+def auto_renewed_validator_admission_error(
+    weight_navax: int,
+    delegation_fee_shares: int,
+    period_seconds: int,
+    chain_time: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """First rule an AddAutoRenewedValidatorTx breaks, or None.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L882-L925: Helicon must be active,
+    then the validator rules in the same order, with the period in whole seconds.
+    """
+    if not upgrades.activated("helicon", chain_time):
+        return ERR_HELICON_NOT_ACTIVE
+    start = as_utc(chain_time)
+    return validator_admission_error(
+        weight_navax, delegation_fee_shares, start, start + timedelta(seconds=period_seconds), config, upgrades)
+
+
+def auto_renewed_config_error(
+    period_seconds: int,
+    chain_time: datetime,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """First rule a SetAutoRenewedValidatorConfigTx period breaks, or None. A period of 0 requests exit.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L967-L969 and L1010-L1015.
+    """
+    if not upgrades.activated("helicon", chain_time):
+        return ERR_HELICON_NOT_ACTIVE
+    if 0 < period_seconds < min_stake_duration_seconds(chain_time, config, upgrades):
+        return ERR_STAKE_TOO_SHORT
+    if period_seconds > config.max_stake_duration_seconds:
+        return ERR_STAKE_TOO_LONG
+    return None
+
+
+def delegator_admission_error(
+    weight_navax: int,
+    start: datetime,
+    end: datetime,
+    chain_time: datetime,
+    validator_start: datetime,
+    validator_end: datetime,
+    validator_weight_navax: int,
+    delegations: Iterable[tuple[datetime, datetime, int]],
+    delegation_multiplier: int = ACP247_CURRENT_DELEGATION_MULTIPLIER,
+    config: StakingConfig = MAINNET,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> str | None:
+    """First rule a Primary Network delegation breaks, or None. ``start`` is the effective start.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L694-L757
+    (AddPermissionlessDelegatorTx): stake minimum, 14-day minimum, maximum duration, containment in the validator
+    period, peak weight. Before Durango AddDelegatorTx checks the durations before the stake (L425-L437). The
+    pre-Durango start-time rule and a missing validator are outside this function.
+    """
+    duration = as_utc(end) - as_utc(start)
+    too_small = weight_navax < config.min_delegator_stake_navax
+    too_short = duration < timedelta(seconds=min_stake_duration_seconds(chain_time, config, upgrades, role="delegator"))
+    too_long = duration > timedelta(seconds=config.max_stake_duration_seconds)
+    checks = [(too_small, ERR_WEIGHT_TOO_SMALL), (too_short, ERR_STAKE_TOO_SHORT), (too_long, ERR_STAKE_TOO_LONG)]
+    if not upgrades.activated("durango", chain_time):
+        checks = checks[1:] + checks[:1]
+    for failed, error in checks:
+        if failed:
+            return error
+    if not delegation_within_validator_period(start, end, validator_start, validator_end):
+        return ERR_PERIOD_MISMATCH
+    limit = delegation_weight_limit_navax(validator_weight_navax, chain_time, delegation_multiplier, config, upgrades)
+    if over_delegated(validator_weight_navax, delegations, weight_navax, start, end, limit):
+        return ERR_OVER_DELEGATED
+    return None
+
+
+def gas_price(min_price: int, excess: int, excess_conversion_constant: int) -> int:
+    """minPrice * e^(excess / K) by the EIP-4844 fake exponential, capped at MaxUint64.
+
+    AvalancheGo 70bd6d0 vms/components/gas/gas.go L85-L121 CalculatePrice. Used by the ACP-77 L1 validator fee and
+    the ACP-103 P-Chain gas price.
+    """
+    if min(min_price, excess) < 0 or excess_conversion_constant <= 0:
+        raise ModelError("price inputs must be non-negative and the conversion constant positive")
+    output, accumulator, index = 0, min_price * excess_conversion_constant, 1
+    ceiling = excess_conversion_constant * MAX_UINT64
+    while accumulator > 0:
+        output += accumulator
+        if output >= ceiling:
+            return MAX_UINT64
+        accumulator = accumulator * excess // excess_conversion_constant // index
+        index += 1
+    return output // excess_conversion_constant
+
+
+def fee_excess_after(current: int, excess: int, target: int, seconds: int) -> int:
+    """Excess after ``seconds`` at a constant usage: (current - target) per second, floored at 0, capped at
+    MaxUint64. AvalancheGo 70bd6d0 vms/platformvm/validators/fee/fee.go L29-L44 AdvanceTime and
+    vms/components/gas/gas.go L28-L56."""
+    if min(current, excess, target, seconds) < 0:
+        raise ModelError("fee state values must be non-negative")
+    return min(max(excess + (current - target) * seconds, 0), MAX_UINT64)
+
+
+def l1_validator_fee_navax(
+    active_validators: int,
+    excess: int,
+    seconds: int,
+    config: ValidatorFeeConfig = MAINNET_L1_VALIDATOR_FEE,
+) -> int:
+    """nAVAX one active L1 validator pays over ``seconds`` with a constant active count, capped at MaxUint64.
+
+    ACP-77 continuous fee: AvalancheGo 70bd6d0 vms/platformvm/validators/fee/fee.go L46-L93 CostOf, charged per
+    second at the price after that second's excess update. The fee is burned and never lowers the current supply
+    (supply_after_stake_end). L1 validators need no Primary Network stake. The network-wide accrued fee advances by
+    this cost (vms/platformvm/txs/executor/state_changes.go L343-L390).
+    """
+    if seconds < 0:
+        raise ModelError("seconds must be non-negative")
+    if active_validators == config.target:
+        return min(seconds * gas_price(config.min_price_navax, excess, config.excess_conversion_constant), MAX_UINT64)
+    cost = 0
+    for elapsed in range(seconds):
+        excess = fee_excess_after(active_validators, excess, config.target, 1)
+        if excess == 0:
+            return min(cost + config.min_price_navax * (seconds - elapsed), MAX_UINT64)
+        cost += gas_price(config.min_price_navax, excess, config.excess_conversion_constant)
+        if cost > MAX_UINT64:
+            return MAX_UINT64
+    return cost
+
+
+def l1_validator_seconds_remaining(
+    active_validators: int,
+    excess: int,
+    balance_navax: int,
+    max_seconds: int,
+    config: ValidatorFeeConfig = MAINNET_L1_VALIDATOR_FEE,
+) -> int:
+    """Seconds an L1 validator balance lasts before the validator is deactivated, capped at ``max_seconds``.
+
+    AvalancheGo 70bd6d0 vms/platformvm/validators/fee/fee.go L95-L137 SecondsRemaining.
+    """
+    if min(balance_navax, max_seconds) < 0:
+        raise ModelError("balance and max seconds must be non-negative")
+    if config.min_price_navax == 0:
+        return max_seconds
+    if active_validators == config.target:
+        price = gas_price(config.min_price_navax, excess, config.excess_conversion_constant)
+        return min(balance_navax // price, max_seconds)
+    for elapsed in range(max_seconds):
+        excess = fee_excess_after(active_validators, excess, config.target, 1)
+        if excess == 0:
+            return min(elapsed + balance_navax // config.min_price_navax, max_seconds)
+        price = gas_price(config.min_price_navax, excess, config.excess_conversion_constant)
+        if price > balance_navax:
+            return elapsed
+        balance_navax -= price
+    return max_seconds
+
+
+def p_chain_gas(complexity: tuple[int, int, int, int], weights: tuple[int, int, int, int]) -> int:
+    """Gas of a transaction: its complexity dimensions weighted and summed.
+
+    AvalancheGo 70bd6d0 vms/components/gas/dimensions.go L57-L70 ToGas, which rejects a uint64 overflow.
+    """
+    if len(complexity) != 4 or len(weights) != 4 or min(*complexity, *weights) < 0:
+        raise ModelError("complexity and weights need four non-negative dimensions")
+    gas = sum(value * weight for value, weight in zip(complexity, weights, strict=True))
+    if gas > MAX_UINT64:
+        raise ModelError("gas overflows uint64")
+    return gas
+
+
+def p_chain_fee_state_after(
+    capacity: int,
+    excess: int,
+    seconds: int,
+    config: DynamicFeeConfig = MAINNET_P_CHAIN_FEE,
+) -> tuple[int, int]:
+    """(capacity, excess) after ``seconds`` without transactions: capacity refills at MaxPerSecond up to
+    MaxCapacity and excess drains at TargetPerSecond to 0. AvalancheGo 70bd6d0 vms/components/gas/state.go L29-L42
+    AdvanceTime, applied each block at vms/platformvm/txs/executor/state_changes.go L325-L338."""
+    if min(capacity, excess, seconds) < 0:
+        raise ModelError("fee state values must be non-negative")
+    refilled = min(capacity + config.max_per_second * seconds, MAX_UINT64, config.max_capacity)
+    return refilled, max(excess - config.target_per_second * seconds, 0)
+
+
+def p_chain_consume_gas(capacity: int, excess: int, gas: int) -> tuple[int, int]:
+    """(capacity, excess) after a block consumes ``gas``: capacity falls and excess rises, capped at MaxUint64.
+
+    AvalancheGo 70bd6d0 vms/components/gas/state.go L44-L67 ConsumeGas. A block above capacity is invalid.
+    """
+    if min(capacity, excess, gas) < 0:
+        raise ModelError("fee state values must be non-negative")
+    if gas > capacity:
+        raise ModelError("insufficient capacity")
+    return capacity - gas, min(excess + gas, MAX_UINT64)
+
+
+def p_chain_tx_fee_navax(
+    complexity: tuple[int, int, int, int],
+    excess: int,
+    chain_time: datetime,
+    config: DynamicFeeConfig = MAINNET_P_CHAIN_FEE,
+    upgrades: UpgradeSchedule = MAINNET_UPGRADES,
+) -> int:
+    """Fee burned by one P-Chain transaction, such as a stake or an ACP-236 config change.
+
+    AvalancheGo 70bd6d0 vms/platformvm/state/chain_time_helpers.go L141-L157 PickFeeCalculator: before Etna the
+    Primary Network staking transactions paid no fee (simple calculator with fee 0). From Etna (ACP-103) the fee is
+    gas times the price at the current excess (vms/platformvm/txs/fee/dynamic_calculator.go L37-L63). The burn does
+    not lower the current supply.
+    """
+    if not upgrades.activated("etna", chain_time):
+        return 0
+    gas = p_chain_gas(complexity, config.weights)
+    fee = gas * gas_price(config.min_price_navax, excess, config.excess_conversion_constant)
+    if fee > MAX_UINT64:
+        raise ModelError("fee overflows uint64")
+    return fee
+
+
+ERR_NOT_VALIDATOR = "ErrNotValidator"
+ERR_IS_IMMUTABLE = "errIsImmutable"
+
+
+def subnet_validator_admission_error(
+    start: datetime,
+    end: datetime,
+    primary_validator_period: tuple[datetime, datetime] | None,
+    subnet_converted: bool,
+    config: StakingConfig = MAINNET,
+) -> str | None:
+    """First rule an AddSubnetValidatorTx breaks, or None. ``start`` is the effective start.
+
+    AvalancheGo 70bd6d0 vms/platformvm/txs/executor/staker_tx_verification.go L221-L266: MinStakeDuration and
+    MaxStakeDuration (the ACP-273 minimum does not apply), then the node must be a Primary Network validator whose
+    period contains the Subnet period (L50-L90), then the Subnet must not have converted to an L1 under ACP-77
+    (subnet_tx_verification.go L47-L53). A converted Subnet's validators are L1 validators with no Primary Network
+    stake, so a node that only served such a Subnet has no protocol reason to keep 2,000 AVAX staked.
+    """
+    duration = as_utc(end) - as_utc(start)
+    if duration < timedelta(seconds=config.min_stake_duration_seconds):
+        return ERR_STAKE_TOO_SHORT
+    if duration > timedelta(seconds=config.max_stake_duration_seconds):
+        return ERR_STAKE_TOO_LONG
+    if primary_validator_period is None:
+        return ERR_NOT_VALIDATOR
+    if not delegation_within_validator_period(start, end, *primary_validator_period):
+        return ERR_PERIOD_MISMATCH
+    if subnet_converted:
+        return ERR_IS_IMMUTABLE
+    return None
+
+
+def describe(config: StakingConfig = MAINNET, upgrades: UpgradeSchedule = MAINNET_UPGRADES) -> dict[str, Any]:
+    return {
+        "staking": {
+            "uptime_requirement": config.uptime_requirement,
+            "min_validator_stake_avax": config.min_validator_stake_navax // NAVAX_PER_AVAX,
+            "max_validator_stake_avax": config.max_validator_stake_navax // NAVAX_PER_AVAX,
+            "min_delegator_stake_avax": config.min_delegator_stake_navax // NAVAX_PER_AVAX,
+            "min_delegation_fee_shares": config.min_delegation_fee_shares,
+            "min_stake_duration_days": config.min_stake_duration_seconds / SECONDS_PER_DAY,
+            "helicon_min_stake_duration_days": config.helicon_min_stake_duration_seconds / SECONDS_PER_DAY,
+            "max_stake_duration_days": config.max_stake_duration_seconds / SECONDS_PER_DAY,
+        },
+        "reward": {
+            "max_consumption_rate": config.reward.max_consumption_rate,
+            "min_consumption_rate": config.reward.min_consumption_rate,
+            "acp285_target_min_consumption_rate": ACP285_TARGET_MIN_CONSUMPTION_RATE,
+            "acp285_ramp_days": ACP285_RAMP_SECONDS / SECONDS_PER_DAY,
+            "minting_period_days": config.reward.minting_period_seconds / SECONDS_PER_DAY,
+            "supply_cap_avax": config.reward.supply_cap_navax // NAVAX_PER_AVAX,
+            "percent_denominator": PERCENT_DENOMINATOR,
+        },
+        "upgrades": [{"name": item.name, "activated_at": item.activated_at.isoformat().replace("+00:00", "Z")} for item in upgrades.upgrades],
+        "mechanisms": [
+            {"acp": item.acp, "name": item.name, "upgrade": item.upgrade, "keyed_by": item.keyed_by, "sources": list(item.sources)}
+            for item in MECHANISMS
+        ],
+    }

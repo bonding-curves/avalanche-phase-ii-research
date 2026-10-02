@@ -1,0 +1,93 @@
+[project]
+name = "avalanche-phase-ii-research"
+version = "0.1.0.dev0"
+description = "Reproducible Avalanche economic research and data tools"
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+dependencies = [
+  "click>=8.2,<9",
+  "duckdb>=1.4,<2",
+  "jsonschema>=4.25,<5",
+  "pandas>=2.2,<3",
+]
+
+[project.scripts]
+avalanche = "avalanche_research.cli:main"
+
+[project.optional-dependencies]
+snowflake = [
+    "snowflake-connector-python>=3.15,<5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/avalanche_research"]
+
+[dependency-groups]
+dev = [
+  "import-linter>=2.15,<3",
+  "pytest>=8.4,<9",
+]
+model = [
+  "cadCAD==0.5.3",
+  "numpy>=2,<3",
+  "param>=2.4,<3",
+]
+notebook = [
+  "bokeh>=3.9,<4",
+  "holoviews>=1.23,<2",
+  "hvplot>=0.12,<1",
+  "ipykernel>=7,<8",
+  "jupyterlab>=4.6,<5",
+  "nbconvert>=7.17,<8",
+  "numpy>=2,<3",
+  "panel>=1.9,<2",
+  "param>=2.4,<3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# The package's import direction, as import-linter contracts K1 to K5. A layer in parentheses is optional: it does
+# not exist yet, and the parentheses come off as each subpackage lands. tests/test_architecture.py runs these in
+# report mode against architecture-baseline.txt until the package restructure is complete.
+[tool.importlinter]
+root_package = "avalanche_research"
+
+[[tool.importlinter.contracts]]
+id = "K1"
+name = "One direction"
+type = "layers"
+containers = ["avalanche_research"]
+layers = ["views | cli", "datasets | model", "sources | domain", "core"]
+
+[[tool.importlinter.contracts]]
+id = "K2"
+name = "Experiments import the engine, never the reverse. The engine and estimation never import each other"
+type = "layers"
+containers = ["avalanche_research.model"]
+layers = ["(experiments)", "engine | (estimation)", "blocks | (mechanisms)"]
+
+[[tool.importlinter.contracts]]
+id = "K3"
+name = "Mechanisms do not import the engine"
+type = "forbidden"
+source_modules = ["avalanche_research.mechanisms"]
+forbidden_modules = ["avalanche_research.model.engine", "avalanche_research.model.lifecycle"]
+
+[[tool.importlinter.contracts]]
+id = "K4"
+name = "The rules and the model run without the catalog"
+type = "forbidden"
+source_modules = ["avalanche_research.domain", "avalanche_research.model"]
+forbidden_modules = ["avalanche_research.catalog", "avalanche_research.core.catalog"]
+
+[[tool.importlinter.contracts]]
+id = "K5"
+name = "The rules and the model never import data code"
+type = "forbidden"
+source_modules = ["avalanche_research.domain", "avalanche_research.model"]
+forbidden_modules = ["avalanche_research.sources", "avalanche_research.datasets"]

@@ -1,0 +1,29 @@
+---
+title: "3.2 Scenario Playbook"
+description: "Guidance of the form: if a given market condition holds, adjust a given parameter this way."
+status: not started
+source: signed-grant-agreement
+tags: ["market-conditions", "parameter-selection-under-uncertainty"]
+---
+
+## Contract requirement
+
+> If X market condition, then Y parameter adjustment
+
+Milestone 3 success criterion:
+
+> Final Parameter Report delivered and Code Repository transferred
+
+Quoted from the [Signed Grant Agreement](/Phase-II/Milestones/Milestone-0/Signed-Grant-Agreement).
+
+## Status
+
+Not started as of 2026-09-28.
+
+## Result
+
+When delivered, this page will show a table that pairs each market condition with the parameter adjustment the analysis supports, then explain the evidence behind each row. The proposal's conditions are external yields, market sentiment, and network growth.
+
+## How it was built
+
+Added when the result is delivered.
