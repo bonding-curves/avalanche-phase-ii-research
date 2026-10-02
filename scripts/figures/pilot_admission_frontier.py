@@ -13,7 +13,7 @@ duration. The script solves for it with the class.
 
 The top panel is the density of validator commitments accepted before Granite (2025-11-19 16:00 UTC) in the pinned
 run `staking-periods-2026-09-30`, by duration and stake, with the frontier and today's flat 2,000 AVAX rule on top.
-The commitments shorter than 14 days begun since Helicon (run `helicon-commitments-2026-10-01`, first cycles) are
+The commitments shorter than 14 days begun since Helicon (run `helicon-commitments-2026-10-02`, first cycles) are
 marked by whether they clear the frontier. The bottom panel is the capital behind the minimum seat, in AVAX-days.
 
 Writes `admission-frontier.html`, `admission-frontier.csv` (the curves), `helicon-short-commitments.csv`, and
@@ -35,7 +35,7 @@ from avalanche_research.mechanisms import BoundedHarmonicFrontier
 from avalanche_research.palette import QUANTITY_COLORS
 
 PERIODS_RUN = "staking-periods-2026-09-30"
-HELICON_RUN = "helicon-commitments-2026-10-01"
+HELICON_RUN = "helicon-commitments-2026-10-02"
 GRANITE = pd.Timestamp("2025-11-19 16:00:00")
 HELICON = pd.Timestamp("2026-09-22 15:00:00")
 PARITY_AVAX_DAYS = 2_000 * 14
