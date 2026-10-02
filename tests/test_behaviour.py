@@ -148,6 +148,37 @@ def test_the_null_sample_keeps_marginals_and_correlations():
     assert np.allclose(null[["a", "b", "c"]].corr().to_numpy(), x[["a", "b", "c"]].corr().to_numpy(), atol=0.08)
 
 
+def test_the_trailing_year_benchmark_uses_only_the_year_before_the_origin():
+    origin = pd.Timestamp("2024-01-01")
+    end_time = pd.to_datetime(["2022-03-01", "2022-06-01", "2023-03-01", "2023-09-01"])
+    model = sv.TrailingYear().fit(pd.DataFrame(index=range(4)), np.array([0, 0, 1, 1]), end_time=end_time,
+                                  origin=origin)
+    assert model.predict_proba(pd.DataFrame(index=range(2)))[:, 1] == pytest.approx([1.0, 1.0])
+
+
+def test_expected_calibration_error():
+    rng = np.random.default_rng(0)
+    p = rng.uniform(size=20000)
+    assert sv.expected_calibration_error(rng.uniform(size=20000) < p, p) < 0.02
+    assert sv.expected_calibration_error(np.zeros(100), np.full(100, 0.9)) == pytest.approx(0.9)
+
+
+def test_row_losses_average_to_the_fold_score():
+    rng = np.random.default_rng(1)
+    n = 400
+    X = pd.DataFrame({"period_number": rng.integers(1, 5, n), "prior_renew_share": rng.uniform(size=n),
+                      "duration_days": rng.uniform(14, 365, n)})
+    y = pd.Series((rng.uniform(size=n) < 0.7).astype(float))
+    meta = pd.DataFrame({"end_time": pd.date_range("2023-01-01", periods=n, freq="D")})
+    folds = [sv.Fold("f", pd.Timestamp("2023-11-01"), pd.Timestamp("2024-02-05"),
+                     np.arange(0, 290), np.arange(304, 400))]
+    candidates = {"prior": sv.models()["prior"], "trailing_year": sv.TrailingYear()}
+    scores, predictions = sv.evaluate(X, y, meta, folds, candidates)
+    mean_rows = predictions.groupby("model").log_loss.mean()
+    assert mean_rows.to_dict() == pytest.approx(scores.set_index("model").log_loss.to_dict())
+    assert scores.ece.notna().all()
+
+
 def test_the_duration_benchmark_is_a_transition_table():
     X = pd.DataFrame({"duration_days": [14, 14, 14, 90, 90]})
     y = np.array(["up to 3 weeks", "up to 3 weeks", "3 to 6 weeks", "6 weeks to 3 months", "6 weeks to 3 months"])

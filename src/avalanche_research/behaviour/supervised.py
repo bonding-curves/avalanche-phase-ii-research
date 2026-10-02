@@ -118,6 +118,37 @@ class NodeHistory(ClassifierMixin, BaseEstimator):
         return self.classes_[(self.predict_proba(X)[:, 1] >= 0.5).astype(int)]
 
 
+class TrailingYear(ClassifierMixin, BaseEstimator):
+    """v0.7's renewal block: the rate among training labels that ended in the ``days`` before the fold origin."""
+
+    def __init__(self, days: int = 365):
+        self.days = days
+
+    def fit(self, X, y, end_time=None, origin=None):
+        y = np.asarray(y, dtype=float)
+        self.classes_ = np.array([0.0, 1.0])
+        recent = np.ones(len(y), dtype=bool)
+        if end_time is not None and origin is not None:
+            start = pd.Timestamp(origin) - self.days * DAY
+            recent = pd.Series(pd.to_datetime(end_time)).ge(start).to_numpy()
+        self.rate_ = float(np.mean(y[recent])) if recent.any() else float(np.mean(y))
+        return self
+
+    def predict_proba(self, X):
+        return np.tile([1 - self.rate_, self.rate_], (len(X), 1))
+
+    def predict(self, X):
+        return self.classes_[(self.predict_proba(X)[:, 1] >= 0.5).astype(int)]
+
+
+def expected_calibration_error(y_true, p, bins: int = 10) -> float:
+    """Gap between predicted and observed rates over equal-count bins of ``p``, weighted by bin size."""
+    frame = pd.DataFrame({"y": np.asarray(y_true, dtype=float), "p": np.asarray(p, dtype=float)})
+    frame["bin"] = pd.qcut(frame.p.rank(method="first"), q=min(bins, len(frame)), labels=False)
+    table = frame.groupby("bin").agg(y=("y", "mean"), p=("p", "mean"), n=("y", "size"))
+    return float(np.sum(table.n * (table.y - table.p).abs()) / table.n.sum())
+
+
 class DurationTransition(ClassifierMixin, BaseEstimator):
     """Persistence for duration: the training frequency of each next class given the current period's class."""
 
@@ -160,6 +191,7 @@ def models(binary: bool = True, target: str | None = None) -> dict[str, object]:
                                              early_stopping=True, validation_fraction=0.15, random_state=SEED)
     chosen = {"prior": DummyClassifier(strategy="prior")}
     if binary:
+        chosen["trailing_year"] = TrailingYear()
         chosen["history"] = NodeHistory()
     if target == "next_duration":
         chosen["persistence"] = DurationTransition()
@@ -177,6 +209,7 @@ def _scores(y_true, proba, classes) -> dict[str, float]:
         out["roc_auc"] = roc_auc_score(onehot[:, 1], proba[:, 1]) if onehot[:, 1].std() > 0 else float("nan")
         # The minority class, not renewing, is the one worth ranking, so precision is measured for it.
         out["average_precision_not_renewed"] = average_precision_score(onehot[:, 0], proba[:, 0])
+        out["ece"] = expected_calibration_error(onehot[:, 1], proba[:, 1])
     else:
         present = onehot.sum(0) > 0
         out["roc_auc"] = roc_auc_score(onehot[:, present], proba[:, present], average="macro") if present.sum() > 1 \
@@ -191,12 +224,17 @@ def evaluate(X: pd.DataFrame, y: pd.Series, meta: pd.DataFrame, folds: list[Fold
     for fold in folds:
         Xtr, ytr, Xte, yte = X.iloc[fold.train], y.iloc[fold.train], X.iloc[fold.test], y.iloc[fold.test]
         for name, candidate in candidates.items():
-            model = clone(candidate).fit(Xtr, ytr)
+            extra = ({"end_time": meta.end_time.iloc[fold.train].to_numpy(), "origin": fold.start}
+                     if isinstance(candidate, TrailingYear) else {})
+            model = clone(candidate).fit(Xtr, ytr, **extra)
             proba = model.predict_proba(Xte)
             classes = list(model.classes_)
             rows.append({"fold": fold.name, "model": name, "train": len(fold.train), "test": len(fold.test),
                          **_scores(yte.to_numpy(), proba, classes)})
             frame = pd.DataFrame(proba, columns=[f"p_{c}" for c in classes], index=Xte.index)
+            # Per-row loss, so a paired test against a benchmark can resample rows by operator and origin.
+            truth = np.searchsorted(np.asarray(classes), yte.to_numpy())
+            frame["log_loss"] = -np.log(np.clip(proba[np.arange(len(proba)), truth], 1e-15, 1))
             predictions.append(frame.assign(fold=fold.name, model=name, y=yte.to_numpy(),
                                             end_time=meta.end_time.iloc[fold.test].to_numpy()))
     scores = pd.DataFrame(rows)
@@ -230,8 +268,8 @@ def run(events: pd.DataFrame, features: pd.DataFrame, target: str, keep: pd.Seri
 
 def summarise(scores: pd.DataFrame) -> pd.DataFrame:
     """Mean of each score over folds, weighted by test size, with the last fold before the lockbox beside it."""
-    numeric = [c for c in ("log_loss", "brier", "roc_auc", "average_precision_not_renewed", "accuracy", "skill_vs_prior")
-               if c in scores]
+    numeric = [c for c in ("log_loss", "brier", "roc_auc", "average_precision_not_renewed", "ece", "accuracy",
+                           "skill_vs_prior") if c in scores]
     weighted = scores.groupby("model").apply(
         lambda g: pd.Series({c: np.average(g[c], weights=g.test) for c in numeric}), include_groups=False)
     last = scores.loc[scores.fold.eq(scores.fold.max())].set_index("model")[numeric].add_prefix("last_fold_")
