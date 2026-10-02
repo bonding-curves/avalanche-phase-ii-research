@@ -1,6 +1,6 @@
 ---
 title: Data
-description: The sources behind the research, how each dataset is captured, built, and checked, and how to load the published data release.
+description: The sources behind the research, how each dataset is captured, built, and checked, and how to load the built data.
 tags: ["issuance-and-rewards", "staking-duration-and-liquidity", "fees-and-value-capture"]
 ---
 
@@ -76,29 +76,15 @@ db.execute("SELECT role, count(*) FROM staking_periods GROUP BY role").fetchall(
 
 `datasets.connect()` creates one view per dataset over its newest run. A view name drops the source prefix and any `primary-` prefix, so `derived.staking-periods` is `staking_periods` and `snowflake.primary-validator-stakes` is `validator_stakes`.
 
-## The data release
+## The pinned input set
 
-The built tables are too large for Git. The seven runs the notebooks read are attached to the repository's GitHub release `v0.1.0` as `data-2026-09-22.tar.gz`, about 700 MB, with a `SHA256SUMS` file. Step 4 of `SETUP.md` downloads the archive, checks it, and extracts it into `data/runs/`. After that, `uv run avalanche data runs` lists seven runs.
-
-| Run | Dataset | Rows | Captured |
-| --- | --- | ---: | --- |
-| `staking-periods-2026-09-22` | `derived.staking-periods` | 7,114,358 | 2026-09-22 |
-| `node-table-2026-09-22b` | `derived.node-table` | 7,644 | 2026-09-22 |
-| `validator-stakes-2026-09-22` | `snowflake.primary-validator-stakes` | 57,560 | 2026-09-22 |
-| `validator-stakes-2026-09-19` | `snowflake.primary-validator-stakes` | 57,521 | 2026-09-19 |
-| `avax-price-helicon-baseline-early` | `defillama.avax-price-daily` | 2,188 | 2026-09-21 |
-| `avax-market-helicon-baseline-early` | `coingecko.avax-market-daily` | 366 | 2026-09-21 |
-| `monetary-daily-2026-09-24-interim` | `derived.avax-monetary-daily` | 2,204 | 2026-09-24 |
-
-Every run in the release passed its check. `scripts/verify_notebooks.py` checks each of the seven against its build receipt before it runs the notebooks.
+The built tables are too large for Git. The pinned input set, the built runs the notebooks read, follows on 2026-10-07. Until then, the notebooks' saved outputs show every result. Both notebooks read one run, `staking-periods-2026-09-30` of `derived.staking-periods`, which passed its check. `scripts/verify_notebooks.py` checks that run against its build receipt before it runs the notebooks.
 
 ## Limits
 
-The Snowflake data is the Avalanche Foundation's own share, read with authorized credentials. Its redistribution terms have not been assessed. Anyone without access to the share can use the built runs in the release but cannot capture new ones.
+The Snowflake data is the Avalanche Foundation's own share, read with authorized credentials. Its redistribution terms have not been assessed. Anyone without access to the share can use built runs but cannot capture new ones.
 
-The release leaves out three large Snowflake inputs: `snowflake.primary-delegator-stakes`, `snowflake.primary-staking-rewards`, and `snowflake.primary-staking-supply`. Their rows are joined into `derived.staking-periods`, which has one row per commitment, validators and delegators together. A commitment is the period of one staking transaction. The article notebook's data table marks the three inputs as not in the data release. Rebuilding `derived.staking-periods` needs all four Snowflake staking runs.
-
-The monetary ledger in the release is an interim run. It writes a checked total supply only through 2023-10-05, because its C-Chain fee data is incomplete from 2023-10-06 on. Stake is checked over more days than supply. The article notebook reports how many days each mean covers.
+`derived.staking-periods` joins four Snowflake staking datasets, `snowflake.primary-validator-stakes`, `snowflake.primary-delegator-stakes`, `snowflake.primary-staking-rewards`, and `snowflake.primary-staking-supply`, into one row per commitment, validators and delegators together. A commitment is the period of one staking transaction. Rebuilding `derived.staking-periods` needs all four Snowflake staking runs.
 
 CoinGecko's keyless API serves only the trailing 365 days, so the full price history comes from DefiLlama and Binance. Current-state sources such as the P-Chain RPC, the Data API supply endpoint, and Builder Hub hold no history. Their datasets are dated snapshots, and history exists only from the first capture on.
 

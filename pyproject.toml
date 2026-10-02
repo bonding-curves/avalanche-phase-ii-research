@@ -51,9 +51,9 @@ notebook = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
-# The package's import direction (the restructure note's K1 to K4, and K5). A layer in parentheses is optional: it
-# does not exist yet, and the parentheses come off as each subpackage lands. tests/test_architecture.py runs these in
-# report mode against architecture-baseline.txt until the restructure's last step.
+# The package's import direction, as import-linter contracts K1 to K5. A layer in parentheses is optional: it does
+# not exist yet, and the parentheses come off as each subpackage lands. tests/test_architecture.py runs these in
+# report mode against architecture-baseline.txt until the package restructure is complete.
 [tool.importlinter]
 root_package = "avalanche_research"
 

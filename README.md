@@ -1,150 +1,83 @@
-# Avalanche Phase II Research
+# Avalanche Phase II: Staking Economics Research
 
-This repository is the client-facing research environment for Avalanche staking economics. It connects economic questions, observed data, published research, validator evidence, protocol mechanisms, and reproducible simulations into clear decision support for the Avalanche Foundation.
+This repository holds the Phase II research on Avalanche staking economics, carried out for the Avalanche Foundation by BCRG, the Bonding Curve Research Group. The research asks how validator and delegator behavior, the reward design, and protocol changes together set the network's economic security. Its aim is a calibrated model of Primary Network staking that tests reward parameters and mechanisms before the Foundation changes them.
 
-Phase II focuses on validator and delegator behavior, staking rewards, economic security, protocol changes, and the conditions under which alternative parameter choices succeed or fail. Research is organized so every result can be inspected through exploratory data analysis, independent reproduction, and dynamic modeling.
+The repository contains the model and data code, its tests, two notebooks, and a research site that maps every deliverable in the grant agreement to its evidence and status.
 
-## Table of contents
+## What is in it
 
-- [Executive summary](#executive-summary)
-- [Start here](#start-here)
-- [Milestone evidence](#milestone-evidence)
-- [Research program](#research-program)
-- [Research method](#research-method)
-- [Repository map](#repository-map)
-- [Run and verify](#run-and-verify)
-- [Current limitations](#current-limitations)
-- [Contributing](#contributing)
-
-## Executive summary
-
-The repository currently provides the Phase II requirements, the Phase I research archive, six Essential Reading source editions, one initialized validator-rewards study, a reproducible Snowpeer network-summary dataset, and a standalone Quartz research site. The Essential Readings establish the Foundation's Measure, Capture, Distribute agenda, value-accrual and ecosystem-income frameworks, a published model of validator and delegator choices, ACP-285 community discussion, and the January staking-and-price model artifacts.
-
-The research implementation remains in development. Published claims have not yet been independently reproduced here, the dynamic Avalanche model is not complete, and the milestone pages are evidence maps rather than assertions of contractual acceptance. Source publication, implementation verification, empirical validation, research review, and client acceptance are separate states.
-
-## Start here
-
-| Reader | Recommended path |
+| Folder | Contents |
 | --- | --- |
-| Avalanche economic team | Begin with the [Phase II overview](<content/Phase II/index.md>), then inspect the [Essential Readings](<content/Phase II/Studies/Essential Readings/index.md>) and [milestone evidence](<content/Phase II/Milestone 0/index.md>). |
-| Research reviewer | Open the [validator-rewards study package](<content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md>) to read its source and, when published, its research components. |
-| Engineer or agent | Read [AGENTS.md](AGENTS.md), run the verification command below, and follow links from the [research program](<content/Phase II/index.md>). |
-| Phase I reviewer | Open the preserved [Phase I research overview](<content/Phase I/index.md>) and [source index](<content/Phase I/source-index.md>). |
+| [`src/avalanche_research/`](src/avalanche_research/) | The Python package: data sources and builds, the protocol staking rules, the staking model, reward and admission mechanisms, chart views, and the `avalanche` command line tool |
+| [`tests/`](tests/) | The test suite for the package |
+| [`notebooks/`](notebooks/) | Two notebooks saved with their outputs |
+| [`content/`](content/) | The research site's pages: Phase II milestones and deliverables, briefs, reference pages, source collections, and the Phase I archive |
+| [`.site/`](.site/) | The site engine, Quartz, pinned with its Node dependencies |
+| [`data/`](data/) | The data catalog, its JSON schema, the SQL queries behind each Snowflake dataset, and the data guide. Data files are not stored in Git |
+| [`scripts/`](scripts/) | Site checks, milestone page and figure builders, and the notebook check |
 
-## Milestone evidence
+## Deliverables
 
-The signed agreement and accepted proposal are preserved under Milestone 0. Each later milestone page maps the verbatim deliverables to the research and evidence that will support review.
+| Deliverable | Where it lives |
+| --- | --- |
+| Milestone pages | [`content/Phase II/Milestones/`](<content/Phase II/Milestones/index.md>). Each deliverable in the agreement has its own page with its status and evidence |
+| Milestone 1 | [Milestone 1](<content/Phase II/Milestones/Milestone 1/index.md>). [1.1 Data Ingestion](<content/Phase II/Milestones/Milestone 1/1-1 Data Ingestion/index.md>) and [1.2 Data Manifest](<content/Phase II/Milestones/Milestone 1/1-2 Data Manifest/index.md>) are delivered for review. 1.3 Staking Model Spec, 1.4 Behavioral Calibration, and the Preliminary Validation Report are being rebuilt within Milestone 2 |
+| Status of every deliverable | [Phase II overview](<content/Phase II/index.md>) |
+| Staking model v0.7 | [`src/avalanche_research/model/`](src/avalanche_research/model/) and [`src/avalanche_research/mechanisms/`](src/avalanche_research/mechanisms/). The protocol reward rules, the validator lifecycle model on cadCAD and Param, and the reward and admission mechanisms it compares |
+| Model notebook | [`notebooks/model-story.ipynb`](notebooks/model-story.ipynb). Model v0.7's structure traced from its code, the reward designs it compares, the validator response to issuance, a test of the lifecycle model across five protocol upgrades, and the model's version roadmap |
+| Mechanism notebook | [`notebooks/mechanism-explorer.ipynb`](notebooks/mechanism-explorer.ipynb). Reward and admission mechanisms compared on one reference cohort of real stakes |
+| Reports and briefs | [Briefs](<content/Phase II/Wiki/Briefs/index.md>) and the reference pages on [data](<content/Phase II/Wiki/Reference/Data.md>) and [glossary and notation](<content/Phase II/Wiki/Reference/Glossary and Notation.md>) |
+| Governing documents | [Milestone 0](<content/Phase II/Milestones/Milestone 0/index.md>): the signed agreement and proposal v2.5 |
+| Phase I archive | [Phase I](<content/Phase I/index.md>), the 2025 research as delivered |
 
-| Milestone | Scope | Current repository state |
-| --- | --- | --- |
-| [Milestone 0](<content/Phase II/Milestone 0/index.md>) | Project authorization and governing documents | Signed agreement and accepted proposal available |
-| [Milestone 1](<content/Phase II/Milestone 1/index.md>) | Data ingestion, data manifest, staking model specification, and behavioral calibration | Requirement and evidence pages available; research evidence remains under development |
-| [Milestone 2](<content/Phase II/Milestone 2/index.md>) | PSUU, simulations, KPIs, validation, sensitivity, risk surfaces, workshop, and mechanism evaluation | Requirement pages available; final results not yet published |
-| [Milestone 3](<content/Phase II/Milestone 3/index.md>) | Recommendations, scenario playbook, open-source release, and knowledge transfer | Requirement pages available; final deliverables not yet published |
+The pages under `content/` are best read on the research site, where links, charts, and diagrams render. GitHub shows their text.
 
-## Research program
+## Quick start
 
-### Essential Readings
+You need `git`, [uv](https://docs.astral.sh/uv/), Node.js 22 or later, and Graphviz. [SETUP.md](SETUP.md) gives every step for a fresh machine.
 
-The [six-source collection](<content/Phase II/Studies/Essential Readings/index.md>) is the current research foundation:
-
-1. The Avalanche Foundation's economic research agenda.
-2. AVAX value accrual as an equilibrium outcome.
-3. Validator and delegator responses to staking rewards.
-4. Gross Chain Product and Gross Chain Income.
-5. The ACP-285 community call on the staking reward curve.
-6. The January staking-and-price model reconstruction.
-
-Each study package preserves its source evidence boundary and adds research components only after they become reviewable.
-
-### Current study
-
-[How Do Avalanche Validators Actually Think About Staking Rewards?](<content/Phase II/Studies/Essential Readings/How Do Avalanche Validators Actually Think About Staking Rewards/index.md>) is the first initialized research node. Its source is published; EDA, Reproduction, and Dynamic Model work remains private until reviewed.
-
-### Next research collections
-
-The next source program covers Economic ACPs and their proposals, discussions, implementations, activation evidence, and observed effects. Supplementary Research Papers provide the theoretical and methodological comparison set. Validator Interviews will add structured operator evidence while preserving consent, attribution, and publication boundaries.
-
-## Research method
-
-```text
-decision question
-  -> source and claim map
-  -> data contract and exploratory analysis
-  -> independent reproduction
-  -> smallest useful dynamic model
-  -> bounded experiments and uncertainty analysis
-  -> reviewed findings and decision support
+```sh
+git clone --branch phase-ii git@github.com:AVL-Foundation/ext-bcrg-validator-research.git
+cd ext-bcrg-validator-research
+uv sync --locked --group model --group notebook
+uv run pytest -q
+uv run avalanche model describe
 ```
 
-Not every source requires every analytical method. A study may classify a component as blocked or not applicable when the evidence does not support it. The repository favors the smallest model that answers the decision question and adds complexity only when it changes the result or resolves a measured limitation.
+The suite has 652 tests and takes 2 to 3 minutes. Without the input data, 649 pass and 3 skip. `avalanche model describe` needs no data. It prints the mainnet staking parameters and upgrade schedule the model uses.
 
-## Repository map
+Open the notebooks:
 
-| Path | Purpose |
-| --- | --- |
-| [`content/`](content/) | Phase I archive, Phase II studies, milestone evidence, and the source-linked Wiki |
-| [`data/`](data/) | Data-source contracts, dataset schemas, reproducible capture instructions, and research navigation |
-| [`src/avalanche_research/`](src/avalanche_research/) | Reusable data retrieval, transformation, and validation code |
-| [`scripts/`](scripts/) | Deterministic content, link, site, and publication checks |
-| [`.site/`](.site/) | Pinned Quartz publication engine and Node environment |
-| [`.codex/`](.codex/) | Client-safe agent instructions and reusable capabilities |
+```sh
+uv run jupyter trust notebooks/model-story.ipynb notebooks/mechanism-explorer.ipynb
+uv run jupyter lab notebooks/
+```
 
-Quartz is publication infrastructure, not the research product. Research notebooks and the reusable modeling package will appear only after their interfaces and evidence contracts are exercised.
+GitHub shows the notebooks' text and code but does not draw their interactive charts. In JupyterLab, a trusted notebook draws its saved charts without running any cell. Do not run the notebooks before the input data arrives (see below).
 
-## Run and verify
+Run the research site:
 
-Install the pinned site dependencies and start the local research site:
-
-```bash
+```sh
 cd .site
 npm ci
-npm run dev
+uv run --project .. npm run dev
 ```
 
-Open <http://127.0.0.1:8844>. Content changes rebuild automatically.
+Open <http://localhost:8844>.
 
-Run the independent content, collection, site, and publication checks:
+## Data availability
 
-```bash
-cd .site
-npm run verify
-```
+Data files are too large for Git and are not stored here. The [data guide](data/README.md) and the [data catalog](data/data-catalog.json) define every dataset, its source, and how it is captured and checked.
 
-Install the Python environment and inspect the implemented data sources:
+The model's input data, a pinned input set, follows on 2026-10-07. Until then the notebooks show their saved outputs and cannot be rerun. Run without the data, a notebook stops at its first data cell with a `DataError` that names the missing run. Without it, 3 of the 652 tests skip.
 
-```bash
-uv sync --locked
-uv run --locked pytest
-uv run --locked avalanche data list
-uv run --locked avalanche data manifest
-uv run --locked avalanche model describe
-```
+## Versions
 
-The `avalanche model` commands expose the source-linked Primary Network staking rules: the reward formula with the ACP-285 ramp, the ACP-273 minimum duration, the ACP-267 uptime requirement, and the ACP-247 delegation multiplier. `avalanche model check` recomputes every captured potential reward from the formula and reports disagreement by protocol regime.
+| Item | Version |
+| --- | --- |
+| Python package `avalanche-phase-ii-research` | 0.1 (`0.1.0.dev0` in [`pyproject.toml`](pyproject.toml)) |
+| Staking model | v0.7. Each model run records `MODEL_VERSION = "0.7.0"` |
 
-See the [`data/` guide](data/) for the preview, capture, build, and validation workflow.
+## License
 
-The generated site is written to `.site/public/`. Generated output and installed dependencies are not committed.
-
-### Writing links
-
-Link to the route readers get from Quartz, not merely to a source file. For example, `[Phase II context](/Wiki/Avalanche/phase-ii-context)` targets a published page; a link to a private or unpublished Markdown file does not. A folder link needs a published index page, and a `#fragment` must match an ID in the rendered HTML. Publish a new target in the same change as its incoming link.
-
-After editing content or navigation, run `npm run verify` from `.site/` before committing. The link check distinguishes existing known failures from **new** ones. Fix new failures in the owning source and hand off another agent's uncommitted failure; never refresh `data/quartz-link-baseline.json` simply to pass the check. The baseline is reduced only after a verified repair.
-
-## Current limitations
-
-- Only one Essential Reading currently has an initialized study package.
-- No published empirical result has yet been independently reproduced and accepted in this repository.
-- The integrated cadCAD model, PSUU results, data adapters beyond Snowpeer and the Snowflake staking datasets, and main synthesis notebook remain under development.
-- Milestone pages preserve requirements and evidence structure; their presence does not establish completion or acceptance.
-- The ACP-285 page is a timestamped analytical video summary, not a verified verbatim transcript.
-- The January model is reconstructed from three indirectly attributed images with material definitions still missing.
-- AVAX price history since 2020 comes from DefiLlama's CoinGecko-derived series; the direct CoinGecko dataset covers the trailing 365 days the public API serves and cross-checks it.
-
-## Contributing
-
-Read [AGENTS.md](AGENTS.md) before changing the repository. Contributions should address one bounded research or engineering question, preserve source and result provenance, run the documented checks, and arrive as focused reviewable commits.
-
-Repository release: pre-`0.1.0` research baseline. See [LICENSE.txt](LICENSE.txt) for reuse terms.
+Copyright (c) 2026 Longtail Financial Corp., operating as the Bonding Curve Research Group (BCRG). All rights reserved. See [LICENSE.md](LICENSE.md). The site engine in `.site/` is Quartz, under its own MIT license in [`.site/LICENSE.txt`](.site/LICENSE.txt).

@@ -26,9 +26,9 @@ How long stake is committed, what locking costs, and the option to exit.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [Data](/Phase-II/Wiki/Reference/Data) | BCRG |  | The sources behind the research, how each dataset is captured, built, and checked, and how to load the published data release. |
+| [Data](/Phase-II/Wiki/Reference/Data) | BCRG |  | The sources behind the research, how each dataset is captured, built, and checked, and how to load the built data. |
 | [Glossary and Notation](/Phase-II/Wiki/Reference/Glossary-and-Notation) | BCRG |  | The terms, symbols, units, and network upgrades used across the notebooks, datasets, and milestone pages of this research, each defined once. |
-| [Notebooks](/Phase-II/Wiki/Reference/Notebooks) | BCRG |  | What the two research notebooks answer and show, which datasets they read, and how to run them. |
+| [Notebooks](/Phase-II/Wiki/Reference/Notebooks) | BCRG |  | What the two notebooks of the staking model v0.7 show, how to open their saved outputs, and how to run them once the input data is published. |
 
 ## Interviews
 

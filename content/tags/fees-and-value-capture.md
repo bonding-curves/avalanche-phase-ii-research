@@ -17,7 +17,7 @@ Gas pricing, the fee burn, fee revenue, and mechanisms that capture value for AV
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [Data](/Phase-II/Wiki/Reference/Data) | BCRG |  | The sources behind the research, how each dataset is captured, built, and checked, and how to load the published data release. |
+| [Data](/Phase-II/Wiki/Reference/Data) | BCRG |  | The sources behind the research, how each dataset is captured, built, and checked, and how to load the built data. |
 
 ## Essential Readings
 

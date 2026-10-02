@@ -17,7 +17,7 @@ Recovering preferences from observed choices and fitting a model to data.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [Notebooks](/Phase-II/Wiki/Reference/Notebooks) | BCRG |  | What the two research notebooks answer and show, which datasets they read, and how to run them. |
+| [Notebooks](/Phase-II/Wiki/Reference/Notebooks) | BCRG |  | What the two notebooks of the staking model v0.7 show, how to open their saved outputs, and how to run them once the input data is published. |
 
 ## Essential Readings
 

@@ -173,9 +173,9 @@ class ACP285Ramp(RewardMechanism):
 
 
 class TenureBoost(RewardMechanism):
-    """A reward that rises with a validator's tenure, Eric's written research question of 2026-05-07.
+    """A reward that rises with a validator's tenure, the Foundation's written research question of 2026-05-07.
 
-    Tenure is counted as the node's completed validation periods before this one. Eric has not yet said
+    Tenure is counted as the node's completed validation periods before this one. The Foundation has not yet said
     whether tenure means span, days staked, or the current streak, so the count is a declared choice.
     """
 
