@@ -28,6 +28,7 @@ SNAPSHOT_RUNS = ("etf-snapshot-2026-09-28", "etf-snapshot-2026-09-29", "etf-snap
 START = pd.Timestamp("2026-09-01")
 NAMES = {"AVAX": "21Shares Avalanche Staking ETP", "BAVA": "Bitwise BAVA", "VAVX": "VanEck VAVX"}
 COLOURS = {"AVAX": "#1f5fa8", "BAVA": "#d95f02", "VAVX": "#1b9e77"}
+SHORT = {"AVAX": "21Shares ETP", "BAVA": "Bitwise BAVA", "VAVX": "VanEck VAVX"}
 
 
 def table() -> pd.DataFrame:
@@ -43,21 +44,29 @@ def table() -> pd.DataFrame:
 
 
 def chart(frame: pd.DataFrame) -> hv.Overlay:
-    curves = [hv.Curve(group, "valuation_date", "avax_held", label=NAMES[ticker]).opts(color=COLOURS[ticker], line_width=3,
-                                                                                    interpolation="steps-post")
+    curves = [hv.Curve(group, "valuation_date", "avax_held").opts(color=COLOURS[ticker], line_width=3, interpolation="steps-post")
               * hv.Scatter(group, "valuation_date", "avax_held").opts(color=COLOURS[ticker], size=7)
               for ticker, group in frame.groupby("ticker")]
-    steps = frame[(frame.ticker == "AVAX") & (frame.change_avax.abs() > 100_000)]
     marks = []
+    for ticker, group in frame.groupby("ticker"):
+        last = group.iloc[-1]
+        marks.append(hv.Text(last.valuation_date + pd.Timedelta(hours=14), last.avax_held,
+                             f"{SHORT[ticker]}  {last.avax_held / 1e6:.2f}M", halign="left", fontsize=12).opts(color=COLOURS[ticker]))
+    first_us = frame[frame.ticker == "BAVA"].iloc[0]
+    marks.append(hv.Text(first_us.valuation_date - pd.Timedelta(hours=14), first_us.avax_held,
+                         "US funds: daily capture starts 25 Sep", halign="right", fontsize=11).opts(color="#666666"))
+    steps = frame[(frame.ticker == "AVAX") & (frame.change_avax.abs() > 100_000)]
     for _, row in steps.iterrows():
-        marks.append(hv.VLine(row.valuation_date).opts(color="#888888", line_dash="dashed"))
+        before = row.avax_held - row.change_avax
         rising = row.change_avax > 0
-        marks.append(hv.Text(row.valuation_date + pd.Timedelta(hours=-12 if rising else 12), row.avax_held + (280_000 if rising else -150_000),
-                             f"{row.change_avax:+,.0f} AVAX on {row.valuation_date:%d %b}", halign="right" if rising else "left", fontsize=12))
+        x = row.valuation_date + pd.Timedelta(hours=-10 if rising else 14)
+        y = (before + row.avax_held) / 2 if rising else row.avax_held - 200_000
+        marks.append(hv.Text(x, y, f"{row.change_avax:+,.0f} AVAX on {row.valuation_date:%d %b}", halign="right" if rising else "left",
+                             fontsize=12).opts(color=COLOURS["AVAX"]))
     return hv.Overlay(curves + marks).opts(
-        width=1000, height=520, fontscale=1.2, toolbar=None, show_grid=True, legend_position="bottom_left",
-        ylim=(0, 3_200_000), xlim=(START, pd.Timestamp("2026-10-09")), yformatter=NumeralTickFormatter(format="0.[0]a"),
-        xlabel="Valuation date. BAVA and VAVX from daily snapshots, which start 25 Sep. Data as of 2026-10-01 14:00 UTC",
+        width=1000, height=520, fontscale=1.2, toolbar=None, show_grid=True, show_legend=False,
+        ylim=(0, 3_200_000), xlim=(START, pd.Timestamp("2026-10-11")), yformatter=NumeralTickFormatter(format="0.[0]a"),
+        xlabel="Valuation date. Data as of 2026-10-01 14:00 UTC",
         ylabel="AVAX held",
         title="AVAX held by each fund, daily, September 2026")
 
