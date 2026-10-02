@@ -67,3 +67,15 @@ def test_a_flat_frontier_admits_exactly_what_the_chain_admits_after_helicon():
     for stake_avax in (1_999, 2_000, 2_500):
         for days in (2, 3, 14, 90, 365):
             assert flat.admits(stake_avax * AVAX, days * SECONDS_PER_DAY, AFTER) == ChainAdmission().admits(stake_avax * AVAX, days * SECONDS_PER_DAY, AFTER)
+
+
+def test_through_holds_the_seat_exactly():
+    rule = BoundedHarmonicFrontier.through(2_000, 14, s_floor_avax=500, p=1.282)
+    assert abs(rule.min_stake_avax(14) - 2_000) < 1e-6
+    assert round(rule.s_short_avax) == 19_477
+    assert min(rule.min_stake_avax(d) * d for d in [2 + i * 0.5 for i in range(726)]) >= 28_000 - 1e-6
+
+
+def test_through_refuses_an_endpoint():
+    with pytest.raises(ValueError):
+        BoundedHarmonicFrontier.through(2_000, 2, s_floor_avax=500)

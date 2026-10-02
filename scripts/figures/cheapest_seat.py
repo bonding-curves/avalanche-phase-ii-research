@@ -25,9 +25,7 @@ FLOOR_AVAX, AT_14_DAYS_AVAX, CURVATURE = 500.0, 2_000.0, 1.282
 
 
 def frontier() -> BoundedHarmonicFrontier:
-    rule = BoundedHarmonicFrontier(label="Duration-dependent minimum", s_short_avax=10_000, s_floor_avax=FLOOR_AVAX, p=CURVATURE)
-    s_short = FLOOR_AVAX + (AT_14_DAYS_AVAX - FLOOR_AVAX) / rule.eta(14) ** CURVATURE
-    return BoundedHarmonicFrontier(label=rule.label, s_short_avax=float(s_short), s_floor_avax=FLOOR_AVAX, p=CURVATURE)
+    return BoundedHarmonicFrontier.through(AT_14_DAYS_AVAX, 14, label="Duration-dependent minimum", s_floor_avax=FLOOR_AVAX, p=CURVATURE)
 
 
 def seats() -> pd.DataFrame:

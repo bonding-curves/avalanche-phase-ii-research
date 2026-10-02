@@ -101,6 +101,20 @@ class BoundedHarmonicFrontier(AdmissionRule):
     def duration_bounds_days(self, start: datetime) -> tuple[float, float]:
         return self.d_min_days, self.d_max_days
 
+    @classmethod
+    def through(cls, stake_avax: float, at_days: float, **params) -> BoundedHarmonicFrontier:
+        """The frontier that asks exactly ``stake_avax`` at ``at_days``, with its other settings from ``params``.
+
+        It solves the short-duration stake instead of taking a rounded one, so the seat at ``at_days`` holds exactly
+        ``stake_avax`` times ``at_days`` AVAX-days. For example, ``through(2_000, 14, s_floor_avax=500, p=1.282)``.
+        """
+        shape = cls(**{**params, "s_short_avax": 3_000_000.0})
+        eta = shape.eta(at_days)
+        if not 0 < eta < 1:
+            raise ValueError(f"{at_days} days is not strictly between the shortest and longest durations")
+        s_short = shape.s_floor_avax + (stake_avax - shape.s_floor_avax) / eta**shape.p
+        return cls(**{**params, "s_short_avax": float(s_short)})
+
     def eta(self, duration_days: float) -> float:
         inverse = 1 / duration_days
         return (inverse - 1 / self.d_max_days) / (1 / self.d_min_days - 1 / self.d_max_days)
