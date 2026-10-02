@@ -28,6 +28,7 @@ from sklearn.metrics import accuracy_score, average_precision_score, log_loss, r
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, QuantileTransformer
 
+from ..model.protocol import MAINNET_UPGRADES
 from . import features as feature_registry
 from .events import duration_class
 from .inputs import LOCKBOX_START
@@ -94,6 +95,40 @@ def forward_folds(meta: pd.DataFrame, target: str, first: str = "2022-11-19 16:0
         if len(test):
             folds.append(Fold(f"{start:%Y-%m}", start, end, train, test))
         start = end
+    return folds
+
+
+UPGRADE_ORIGINS = ("banff", "cortina", "durango", "etna", "fortuna")
+HORIZONS = (30, 90, 180)
+
+
+def protocol_origins(first_quarter: str = "2022-01-01", last_quarter: str = "2025-04-01") -> pd.Series:
+    """The validation protocol's origins: the five upgrade activations and every quarter start, in time order."""
+    upgrades = {u.name: pd.Timestamp(u.activated_at).tz_localize(None) for u in MAINNET_UPGRADES.upgrades
+                if u.name in UPGRADE_ORIGINS}
+    quarters = {f"{q:%Y}-Q{(q.month - 1) // 3 + 1}": q for q in pd.date_range(first_quarter, last_quarter, freq="QS")}
+    return pd.Series({**upgrades, **quarters}).sort_values()
+
+
+def protocol_folds(meta: pd.DataFrame, target: str, origins: pd.Series | None = None, horizons=HORIZONS,
+                   observed_through=LOCKBOX_START) -> list[Fold]:
+    """One fold per origin and horizon: trained on every label known by the origin, tested on the endings in the
+    ``horizon`` days after it. A horizon that would reach past ``observed_through`` is left out."""
+    follow = TARGETS[target].follow_up_days * DAY
+    cutoff = pd.Timestamp(observed_through)
+    origins = protocol_origins() if origins is None else origins
+    end_time = meta.end_time
+    folds = []
+    for name, origin in origins.items():
+        train = np.flatnonzero((end_time + follow).le(origin).to_numpy())
+        for days in horizons:
+            stop = origin + days * DAY
+            if stop > cutoff:
+                continue
+            inside = end_time.ge(origin) & end_time.lt(stop) & (end_time + follow).le(cutoff)
+            test = np.flatnonzero(inside.to_numpy())
+            if len(train) and len(test):
+                folds.append(Fold(f"{name}+{days}d", origin, stop, train, test))
     return folds
 
 
@@ -266,14 +301,15 @@ class Run:
     predictions: pd.DataFrame
 
 
-def run(events: pd.DataFrame, features: pd.DataFrame, target: str, keep: pd.Series | None = None, columns=None) -> Run:
+def run(events: pd.DataFrame, features: pd.DataFrame, target: str, keep: pd.Series | None = None, columns=None,
+        scheme: str = "protocol") -> Run:
     """One target end to end: the rows whose label is observed, optionally only those ``keep`` marks, every model,
-    every forward fold."""
+    every fold of ``scheme``: the protocol's origins and horizons, or the v0 ``six_month`` windows."""
     X, y, meta = dataset(events, features, target, columns)
     if keep is not None:
         mask = keep.loc[X.index].to_numpy(dtype=bool)
         X, y, meta = X[mask], y[mask], meta[mask]
-    folds = forward_folds(meta, target)
+    folds = protocol_folds(meta, target) if scheme == "protocol" else forward_folds(meta, target)
     scores, predictions = evaluate(X, y, meta, folds, models(binary=target == "renewed", target=target))
     return Run(target, X, y, meta, folds, scores, predictions)
 

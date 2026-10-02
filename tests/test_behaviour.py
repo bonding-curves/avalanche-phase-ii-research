@@ -203,6 +203,29 @@ def test_early_stopping_holds_out_the_latest_training_rows():
     assert set(seen["val"]) == set(np.sort(train_days)[-45:])
 
 
+def test_the_protocol_origins_are_the_upgrades_and_quarter_starts():
+    origins = sv.protocol_origins()
+    assert len(origins) == 19
+    assert origins.is_monotonic_increasing
+    assert origins["durango"] == pd.Timestamp("2024-03-06 16:00")
+    assert origins["fortuna"] == pd.Timestamp("2025-04-08 15:00")
+    assert origins["2022-Q1"] == pd.Timestamp("2022-01-01") and origins["2025-Q2"] == pd.Timestamp("2025-04-01")
+
+
+def test_protocol_folds_train_on_what_is_known_and_test_inside_the_horizon():
+    meta = pd.DataFrame({"end_time": pd.date_range("2021-01-01", "2025-11-30", freq="12h")})
+    folds = sv.protocol_folds(meta, "renewed")
+    follow = 7 * DAY
+    cutoff = pd.Timestamp("2025-11-19 16:00")
+    assert {f.name for f in folds} >= {"banff+30d", "fortuna+180d", "2025-Q2+180d"}
+    assert len(folds) == 19 * 3
+    for fold in folds:
+        train, test = meta.end_time.iloc[fold.train], meta.end_time.iloc[fold.test]
+        assert (train + follow).le(fold.start).all()
+        assert test.ge(fold.start).all() and test.lt(fold.end).all() and (test + follow).le(cutoff).all()
+        assert fold.end <= cutoff
+
+
 def test_the_duration_benchmark_is_a_transition_table():
     X = pd.DataFrame({"duration_days": [14, 14, 14, 90, 90]})
     y = np.array(["up to 3 weeks", "up to 3 weeks", "3 to 6 weeks", "6 weeks to 3 months", "6 weeks to 3 months"])
