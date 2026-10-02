@@ -179,6 +179,30 @@ def test_row_losses_average_to_the_fold_score():
     assert scores.ece.notna().all()
 
 
+def test_early_stopping_holds_out_the_latest_training_rows():
+    from sklearn.ensemble import HistGradientBoostingClassifier
+
+    seen = {}
+
+    class Spy(HistGradientBoostingClassifier):
+        def fit(self, X, y, **kwargs):
+            seen["fit"], seen["val"] = X.index, kwargs["X_val"].index
+            return super().fit(X, y, **kwargs)
+
+    rng = np.random.default_rng(2)
+    n = 400
+    X = pd.DataFrame({"a": rng.normal(size=n)}, index=rng.permutation(n))
+    y = pd.Series((rng.uniform(size=n) < 0.6).astype(float), index=X.index)
+    meta = pd.DataFrame({"end_time": pd.Timestamp("2023-01-01") + pd.to_timedelta(X.index, unit="D")}, index=X.index)
+    folds = [sv.Fold("f", pd.Timestamp("2024-01-01"), pd.Timestamp("2024-03-01"),
+                     np.arange(0, 300), np.arange(300, 400))]
+    sv.evaluate(X, y, meta, folds, {"boosted": Spy(early_stopping=True, validation_fraction=0.15, max_iter=20)})
+    train_days = X.index[:300]
+    assert len(seen["val"]) == 45
+    assert seen["val"].min() > seen["fit"].max()
+    assert set(seen["val"]) == set(np.sort(train_days)[-45:])
+
+
 def test_the_duration_benchmark_is_a_transition_table():
     X = pd.DataFrame({"duration_days": [14, 14, 14, 90, 90]})
     y = np.array(["up to 3 weeks", "up to 3 weeks", "3 to 6 weeks", "6 weeks to 3 months", "6 weeks to 3 months"])

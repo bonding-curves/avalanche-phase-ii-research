@@ -217,6 +217,14 @@ def _scores(y_true, proba, classes) -> dict[str, float]:
     return out
 
 
+def _latest_held_out(X: pd.DataFrame, y: pd.Series, end_time: pd.Series, fraction: float):
+    """Early stopping on the latest ``fraction`` of the training window in time, not a random sample of it."""
+    order = np.argsort(end_time.to_numpy(), kind="stable")
+    cut = len(order) - max(1, int(round(len(order) * fraction)))
+    fit, held = order[:cut], order[cut:]
+    return X.iloc[fit], y.iloc[fit], {"X_val": X.iloc[held], "y_val": y.iloc[held]}
+
+
 def evaluate(X: pd.DataFrame, y: pd.Series, meta: pd.DataFrame, folds: list[Fold], candidates: dict[str, object]):
     """Fit every candidate on every fold. Returns per-fold scores and the test predictions."""
     from sklearn.base import clone
@@ -224,9 +232,13 @@ def evaluate(X: pd.DataFrame, y: pd.Series, meta: pd.DataFrame, folds: list[Fold
     for fold in folds:
         Xtr, ytr, Xte, yte = X.iloc[fold.train], y.iloc[fold.train], X.iloc[fold.test], y.iloc[fold.test]
         for name, candidate in candidates.items():
-            extra = ({"end_time": meta.end_time.iloc[fold.train].to_numpy(), "origin": fold.start}
-                     if isinstance(candidate, TrailingYear) else {})
-            model = clone(candidate).fit(Xtr, ytr, **extra)
+            fit_X, fit_y, extra = Xtr, ytr, {}
+            if isinstance(candidate, TrailingYear):
+                extra = {"end_time": meta.end_time.iloc[fold.train].to_numpy(), "origin": fold.start}
+            elif isinstance(candidate, HistGradientBoostingClassifier) and candidate.early_stopping:
+                fit_X, fit_y, extra = _latest_held_out(Xtr, ytr, meta.end_time.iloc[fold.train],
+                                                       candidate.validation_fraction)
+            model = clone(candidate).fit(fit_X, fit_y, **extra)
             proba = model.predict_proba(Xte)
             classes = list(model.classes_)
             rows.append({"fold": fold.name, "model": name, "train": len(fold.train), "test": len(fold.test),
