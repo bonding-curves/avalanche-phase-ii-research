@@ -148,8 +148,12 @@ def lifecycle_scores(periods_path: str, origins: dict[str, date] = ORIGINS, runs
     return pd.concat(frames, ignore_index=True)
 
 
-def score_plot(scores: pd.DataFrame) -> hv.Layout:
-    """Absolute error as a percent of the actual value: the model's mean of 20 runs against holding the origin value."""
+def score_plot(scores: pd.DataFrame, coverage: bool = True) -> hv.Layout:
+    """Absolute error as a percent of the actual value: the model's mean of 20 runs against holding the origin value.
+
+    With ``coverage``, a square at the right edge marks whether the 10th to 90th percentile band of the runs covers the
+    actual value.
+    """
     panels = []
     for variable, title, color in (("active_validators", "Active validators", QUANTITY_COLORS["nodes"]),
                                    ("active_validator_stake_navax", "Validator stake", QUANTITY_COLORS["stake"])):
@@ -166,13 +170,15 @@ def score_plot(scores: pd.DataFrame) -> hv.Layout:
             color="white", line_color=MUTED, line_width=2, size=13)
         model = hv.Scatter(part, "model_pct", ["y", "row"], label="Model, mean of 20 runs").opts(
             color=color, line_color="white", size=14, tools=["hover"])
-        xmax = float(max(part.model_pct.max(), part.hold_pct.max())) * 1.15 + 0.5
-        marked = part.assign(x=xmax)
-        covers = hv.Scatter(marked[marked.covered], "x", ["y"], label="Band covers actual").opts(
-            marker="square", size=10, color=INK, line_color=INK)
-        spans = hv.Scatter(marked[~marked.covered], "x", ["y"], label="Band misses actual").opts(
-            marker="square", size=10, color="white", line_color=INK)
-        panels.append((segments * hold * model * covers * spans).opts(
+        xmax = float(max(part.model_pct.max(), part.hold_pct.max())) * (1.15 if coverage else 1.0) + 0.5
+        layers = [segments, hold, model]
+        if coverage:
+            marked = part.assign(x=xmax)
+            layers.append(hv.Scatter(marked[marked.covered], "x", ["y"], label="Band covers actual").opts(
+                marker="square", size=10, color=INK, line_color=INK))
+            layers.append(hv.Scatter(marked[~marked.covered], "x", ["y"], label="Band misses actual").opts(
+                marker="square", size=10, color="white", line_color=INK))
+        panels.append(hv.Overlay(layers).opts(
             width=540, height=520, title=f"{title}: absolute error, % of actual", xlabel="Absolute error (% of the actual value)",
             ylabel="", yticks=[(v, k) for k, v in y.items()], xlim=(0, xmax * 1.08), legend_position="bottom",
             legend_cols=2, show_legend=True, **MEMO))
