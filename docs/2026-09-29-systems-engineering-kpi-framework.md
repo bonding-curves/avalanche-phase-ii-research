@@ -76,7 +76,7 @@ against the empirical renewal telemetry (`01-renewal-panel.parquet`, $N = 57{,}0
 | Parameter | Domain / Search Space | Systems Engineering Role | Governing Metric |
 | :--- | :--- | :--- | :--- |
 | **$S_{\text{short}}$** | $[14{,}000, 20{,}000] \text{ AVAX}$ | Minimum self-stake anchor required at shortest lockup ($d_{\min} = 2\text{d}$). Bounds flash-staking Sybil vectors and P2P connection flooding. | **MOE 1: Sybil Parity Ratio** ($R_{\text{sybil}}(d_{\min}) \ge 1.0$) |
-| **$S_{\text{floor}}$** | $[500, 2{,}000] \text{ AVAX}$ | Baseline entry barrier at maximum lockup ($d_{\max} = 365\text{d}$). Enforces ACP-49 accessibility. | **MOE 2: Terminal Entry Friction** ($F_{\text{terminal}} \equiv 1.0$) |
+| **$S_{\text{floor}}$** | $[500, 2{,}000] \text{ AVAX}$ | Baseline entry barrier at maximum lockup ($d_{\max} = 365\text{d}$). Enforces community decentralization accessibility. | **MOE 2: Terminal Entry Friction** ($F_{\text{terminal}} \equiv 1.0$) |
 | **$p$** | $[1.00, 3.00]$ | Curvature decay exponent. Determines rate of barrier decay and establishes intermediate thresholds ($S_{\min}(14\text{d})$ retail gate). | **MOE 3: Off-Peak Turnover Rate** ($N_{\text{turnover}} \le \text{Baseline}$) |
 
 ---

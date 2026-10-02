@@ -19,7 +19,7 @@
 The purpose of this document is to specify the **functional, economic, mathematical, and architectural requirements** for the **Duration-Dependent Stake Admission Frontier** $S_{\min}(d)$ on the Avalanche Primary Network.
 
 This mechanism resolves a multi-policy deadlock between competing Avalanche Community Proposals:
-1. **ACP-49:** Proposes reducing minimum validator self-stake from $2{,}000\text{ AVAX}$ to $500\text{ AVAX}$ to lower capital barriers and expand node accessibility.
+1. **Community 500 AVAX Proposals:** Proposes reducing minimum validator self-stake from $2{,}000\text{ AVAX}$ to $500\text{ AVAX}$ to lower capital barriers and expand node accessibility.
 2. **ACP-273:** Proposes reducing minimum staking duration from $14\text{ days}$ to $2\text{ days}$ to enhance validator capital efficiency.
 3. **The Sybil Catastrophe:** Permitting $500\text{ AVAX}$ at $2\text{ days}$ creates a critical vulnerability where an attacker can spin up ephemeral consensus nodes for only $1{,}000\text{ AVAX-days}$ ($96.4\%$ cheaper than Mainnet's $28{,}000\text{ AVAX-days}$ baseline), risking sybil disruption.
 4. **The Target Horizon:** Historical empirical data indicates that $2{,}000\text{ AVAX}$ retail validators average only **$37.1\text{ days}$ ($5.3\text{ weeks}$)**, while whale stakers average **$64.8\text{ days}$ ($9.3\text{ weeks}$)**. The system objective is to systematically improve duration commitments across **all capital tiers** without disenfranchising the physical node operator base.
@@ -49,11 +49,11 @@ From DefiLlama historical oracle data (`defillama__savax_yield_history.parquet`)
 
 ---
 
-## 3. The Dual Solution: Lowering Barriers (ACP-49) & Delegation Offset
+## 3. The Dual Solution: Lowering Barriers (Community Proposals) & Delegation Offset
 
 To preserve node decentralization ($6{,}440$ physical nodes), the mechanism must incorporate two balancing forces:
 
-1. **Lowering Barrier to Entry (ACP-49):**
+1. **Lowering Barrier to Entry (Community 500 AVAX Floor):**
    - At $365\text{ days}$, the bond requirement drops to **$500\text{ AVAX}$**, where gross yield is **$6.38\%$**.
    - Operators who commit long-term earn a **$+188\text{ bps}$ premium over sAVAX**, overcoming cloud costs.
 2. **Community Delegation Matching (Offsetting Opportunity Cost):**
@@ -77,7 +77,7 @@ To preserve node decentralization ($6{,}440$ physical nodes), the mechanism must
 4. **14-Day Transition Harmony:**
    - **Smooth Bridge:** $S(14\text{d}) \approx 4{,}387 - 5{,}043\text{ AVAX}$.
    - **BENQI Harmony:** $S(14\text{d}) \equiv 6{,}000\text{ AVAX}$.
-5. **Exact ACP-49 Boundary Preservation:**
+5. **Exact Asymptotic Floor Preservation:**
    $$S_{\min}(365) \equiv 500\text{ AVAX}$$
 
 ---

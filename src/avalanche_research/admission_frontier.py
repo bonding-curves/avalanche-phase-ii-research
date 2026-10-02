@@ -2,7 +2,7 @@
 
 This module formalizes the mechanism design of duration-dependent admission barriers S_min(d)
 for the Avalanche Primary Network, resolving the multi-policy tension between:
-- ACP-49: Lowering minimum self-stake threshold from 2,000 AVAX to 500 AVAX.
+- Community proposals: Lowering minimum self-stake threshold from 2,000 AVAX to 500 AVAX.
 - ACP-273 / ACP-275: Lowering minimum staking duration from 14 days to 2 days (or 1 day).
 
 Key design principle:
@@ -28,7 +28,7 @@ class CurveFamily(str, Enum):
 @dataclass(frozen=True)
 class AdmissionConfig:
     """Parameter specification for the duration-dependent admission frontier."""
-    s_floor: float = 500.0          # Target asymptotic stake floor at 365 days (ACP-49)
+    s_floor: float = 500.0          # Target asymptotic stake floor at 365 days (community proposals)
     s_short: float = 20000.0        # Minimum stake required at shortest duration d_min (AVAX)
     d_min: float = 2.0              # Minimum protocol lockup duration in days (ACP-273)
     d_max: float = 365.0            # Maximum protocol lockup duration in days
@@ -121,7 +121,7 @@ def evaluate_admission_frontier(
     capital_time = s_min * d
     annual_turnover = 365.0 / d
     mainnet_flat = np.full_like(d, 2000.0)
-    flat_acp49 = np.full_like(d, config.s_floor)
+    flat_500 = np.full_like(d, config.s_floor)
     
     # Sybil cost ratio relative to current Mainnet (2,000 AVAX * 14 days = 28,000 AVAX-days)
     baseline_commitment = 2000.0 * 14.0
@@ -138,7 +138,7 @@ def evaluate_admission_frontier(
         "sybil_parity_ratio": np.round(sybil_parity_ratio, 3),
         "barrier_relief_pct": np.round(barrier_relief_pct, 1),
         "mainnet_baseline_stake": mainnet_flat,
-        "naive_flat_acp49_stake": flat_acp49,
+        "naive_flat_500_stake": flat_500,
     })
 
 
