@@ -9,8 +9,8 @@ that address as its delegator (run `delegator-stakes-helicon-plus-7d`, to 2026-0
 when the P-Chain walk names it as the stake owner (run `p-chain-blocks-2026-10-01`). Start, end and stake of every
 delegation come from `staking-periods-2026-10-01`, accepted to 2026-10-01 02:28 UTC.
 
-The days from Granite (2025-11-19 16:00 UTC) to Helicon's activation (2026-09-22 15:00 UTC) are held back for the model's
-one-time out-of-sample test and are not drawn. Writes `benqi-delegation-share.csv`, `.html` and `.png`. With
+Every day is drawn, including Granite to Helicon, on Shawn's decision of 2026-10-02 that people may review all data and
+only the model's fitting and selection are held back. Helicon's activation is marked. Writes `benqi-delegation-share.csv`, `.html` and `.png`. With
 `--from-csv`, the chart is redrawn from the CSV already in the output folder, without reading the runs again.
 """
 
@@ -54,7 +54,6 @@ def table() -> pd.DataFrame:
     delegations = periods[periods.role == "delegator"][["transaction_hash", "start_time", "end_time", "stake_avax"]].copy()
     delegations["benqi"] = delegations.transaction_hash.isin(benqi_transactions())
     days = pd.date_range("2021-01-01", LAST_DAY, freq="D")
-    days = days[(days < GRANITE) | (days >= HELICON)]
     rows = {"day": days}
     for name, part in (("benqi", delegations[delegations.benqi]), ("others", delegations[~delegations.benqi])):
         starts = np.sort(part.start_time.values)
@@ -71,13 +70,11 @@ def table() -> pd.DataFrame:
 
 
 def chart(frame: pd.DataFrame) -> hv.Overlay:
-    before = frame[frame.day < GRANITE]
-    after = frame[frame.day >= HELICON]
     line = {"color": "#1f5fa8", "line_width": 2}
-    held = hv.VSpan(GRANITE, HELICON).opts(color="#dddddd", alpha=0.6)
-    note = hv.Text(GRANITE - pd.Timedelta(days=15), 92, "Shaded: held back for the\nmodel's one-time test", halign="right", fontsize=12)
-    return (held * hv.Curve(before, "day", "benqi_share_pct").opts(**line) * hv.Curve(after, "day", "benqi_share_pct").opts(**line)
-            * hv.Scatter(after, "day", "benqi_share_pct").opts(color="#1f5fa8", size=6) * note).opts(
+    marks = [hv.VLine(day).opts(color="#888888", line_dash="dotted") for day in (GRANITE, HELICON)]
+    labels = [hv.Text(day - pd.Timedelta(days=10), 95, name, halign="right", fontsize=11).opts(color="#555555")
+              for day, name in ((GRANITE, "Granite"), (HELICON, "Helicon"))]
+    return (hv.Curve(frame, "day", "benqi_share_pct").opts(**line) * hv.Overlay(marks) * hv.Overlay(labels)).opts(
         width=1000, height=520, fontscale=1.2, toolbar=None, show_grid=True, ylim=(0, 100),
         title="Share of delegated AVAX held by BENQI's address, daily, against all other delegators",
         xlabel="Day, 00:00 UTC. Data as of 2026-10-01 02:28 UTC", xlim=(pd.Timestamp("2021-01-01"), pd.Timestamp("2026-10-15")),
@@ -96,7 +93,7 @@ def main() -> None:
     hv.save(chart(frame), out / "benqi-delegation-share.html")
     save_png(out / "benqi-delegation-share.html", out / "benqi-delegation-share.png", 1040, 580)
     shown = frame.set_index("day")
-    print(shown.loc[[d for d in ("2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01", "2025-11-19") if pd.Timestamp(d) in shown.index]].round(1).to_string())
+    print(shown.loc[[d for d in ("2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01", "2025-11-19", "2026-03-01", "2026-06-01", "2026-09-21") if pd.Timestamp(d) in shown.index]].round(1).to_string())
     print(shown[shown.index >= HELICON].round(1).to_string())
 
 
