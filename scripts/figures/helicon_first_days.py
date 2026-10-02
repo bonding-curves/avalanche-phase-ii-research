@@ -61,7 +61,7 @@ def chart(frame: pd.DataFrame) -> hv.Bars:
         width=1000, height=520, fontscale=1.2, toolbar=None, show_grid=True, ylim=(0, 85), cmap=["#9aa5b1", "#1f5fa8"], hooks=[hook],
         color="window", show_legend=True, legend_position="top_right", multi_level=True,
         title="New validator commitments by duration: 30 days before Helicon and since its activation",
-        xlabel=f"Commitment duration. Runs {HELICON_RUN} (to 2026-10-02 00:15 UTC) and {PERIODS_RUN}",
+        xlabel="Commitment duration. Data as of 2026-10-02 00:15 UTC",
         ylabel="Share of new validator commitments (%)")
     return bars
 

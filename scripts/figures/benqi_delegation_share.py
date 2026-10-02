@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BENQI's share of delegated AVAX, daily, against all other delegators: the brief's GR5.
 
-    uv run --group notebook python scripts/figures/benqi_delegation_share.py <output folder>
+    uv run --group notebook python scripts/figures/benqi_delegation_share.py <output folder> [--from-csv]
 
 BENQI is the funding and stake-owning address avax1tnuesf6cqwnjw7fxjyk7lhch0vhf0v95wj5jvy, named at tier AS1 by the
 attribution rows OA9 and OA10 in data/operator-attributions.json. A delegation is BENQI's when the Snowflake share names
@@ -10,7 +10,8 @@ when the P-Chain walk names it as the stake owner (run `p-chain-blocks-2026-10-0
 delegation come from `staking-periods-2026-10-01`, accepted to 2026-10-01 02:28 UTC.
 
 The days from Granite (2025-11-19 16:00 UTC) to Helicon's activation (2026-09-22 15:00 UTC) are held back for the model's
-one-time out-of-sample test and are not drawn. Writes `benqi-delegation-share.csv`, `.html` and `.png`.
+one-time out-of-sample test and are not drawn. Writes `benqi-delegation-share.csv`, `.html` and `.png`. With
+`--from-csv`, the chart is redrawn from the CSV already in the output folder, without reading the runs again.
 """
 
 from __future__ import annotations
@@ -78,8 +79,8 @@ def chart(frame: pd.DataFrame) -> hv.Overlay:
     return (held * hv.Curve(before, "day", "benqi_share_pct").opts(**line) * hv.Curve(after, "day", "benqi_share_pct").opts(**line)
             * hv.Scatter(after, "day", "benqi_share_pct").opts(color="#1f5fa8", size=6) * note).opts(
         width=1000, height=520, fontscale=1.2, toolbar=None, show_grid=True, ylim=(0, 100),
-        title="Share of delegated AVAX held by BENQI's address (tier AS1), daily, against all other delegators",
-        xlabel=f"Day, 00:00 UTC. Runs {PERIODS_RUN}, {SHARE_RUN}, {WALK_RUN}", xlim=(pd.Timestamp("2021-01-01"), pd.Timestamp("2026-10-15")),
+        title="Share of delegated AVAX held by BENQI's address, daily, against all other delegators",
+        xlabel="Day, 00:00 UTC. Data as of 2026-10-01 02:28 UTC", xlim=(pd.Timestamp("2021-01-01"), pd.Timestamp("2026-10-15")),
         ylabel="BENQI's share of delegated AVAX (%)")
 
 
@@ -87,8 +88,11 @@ def main() -> None:
     out = Path(sys.argv[1])
     out.mkdir(parents=True, exist_ok=True)
     hv.extension("bokeh")
-    frame = table()
-    frame.to_csv(out / "benqi-delegation-share.csv", index=False)
+    if "--from-csv" in sys.argv:
+        frame = pd.read_csv(out / "benqi-delegation-share.csv", parse_dates=["day"])
+    else:
+        frame = table()
+        frame.to_csv(out / "benqi-delegation-share.csv", index=False)
     hv.save(chart(frame), out / "benqi-delegation-share.html")
     save_png(out / "benqi-delegation-share.html", out / "benqi-delegation-share.png", 1040, 580)
     shown = frame.set_index("day")

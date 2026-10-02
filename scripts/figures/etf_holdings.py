@@ -51,12 +51,14 @@ def chart(frame: pd.DataFrame) -> hv.Overlay:
     marks = []
     for _, row in steps.iterrows():
         marks.append(hv.VLine(row.valuation_date).opts(color="#888888", line_dash="dashed"))
-        marks.append(hv.Text(row.valuation_date - pd.Timedelta(hours=12), row.avax_held + (280_000 if row.change_avax > 0 else -220_000),
-                             f"{row.change_avax:+,.0f} AVAX on {row.valuation_date:%d %b}", halign="right", fontsize=12))
+        rising = row.change_avax > 0
+        marks.append(hv.Text(row.valuation_date + pd.Timedelta(hours=-12 if rising else 12), row.avax_held + (280_000 if rising else -150_000),
+                             f"{row.change_avax:+,.0f} AVAX on {row.valuation_date:%d %b}", halign="right" if rising else "left", fontsize=12))
     return hv.Overlay(curves + marks).opts(
         width=1000, height=520, fontscale=1.2, toolbar=None, show_grid=True, legend_position="bottom_left",
-        ylim=(0, 3_200_000), xlim=(START, pd.Timestamp("2026-10-02")), yformatter=NumeralTickFormatter(format="0.0a"),
-        xlabel="Valuation date. BAVA and VAVX from their daily snapshots, which start 25 Sep", ylabel="AVAX held",
+        ylim=(0, 3_200_000), xlim=(START, pd.Timestamp("2026-10-09")), yformatter=NumeralTickFormatter(format="0.[0]a"),
+        xlabel="Valuation date. BAVA and VAVX from daily snapshots, which start 25 Sep. Data as of 2026-10-01 14:00 UTC",
+        ylabel="AVAX held",
         title="AVAX held by each fund, daily, September 2026")
 
 
