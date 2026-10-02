@@ -3,11 +3,11 @@
 
     uv run --group notebook python scripts/figures/helicon_first_days.py <memo folder>
 
-Reads two pinned runs through avalanche_research.datasets: `helicon-commitments-2026-10-01`, every validator cycle
-started from Helicon's activation on 2026-09-22 15:00 UTC through the snapshot of 2026-10-01 00:15 UTC, and
+Reads two pinned runs through avalanche_research.datasets: `helicon-commitments-2026-10-02`, every validator cycle
+started from Helicon's activation on 2026-09-22 15:00 UTC through the snapshot of 2026-10-02 00:15 UTC, and
 `staking-periods-2026-09-30`, for the validator periods started in the 30 days before activation. A new commitment is a
-transaction's first cycle, so an auto-renewal is not counted twice. Writes `helicon-first-days.csv` and
-`helicon-first-days.html`, and prints the table.
+transaction's first cycle, so an auto-renewal is not counted twice. Writes `helicon-first-days.csv`,
+`helicon-first-days.html` and `helicon-first-days.png`, and prints the table.
 """
 
 from __future__ import annotations
@@ -20,7 +20,10 @@ import pandas as pd
 
 from avalanche_research import datasets
 
-HELICON_RUN = "helicon-commitments-2026-10-01"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from png import save_png
+
+HELICON_RUN = "helicon-commitments-2026-10-02"
 PERIODS_RUN = "staking-periods-2026-09-30"
 ACTIVATION = pd.Timestamp("2026-09-22 15:00:00")
 BINS = [("48h to 7d", 0, 7), ("7d to 14d", 7, 14), ("14d to 30d", 14, 30), ("30d to 90d", 30, 90), ("90d to 180d", 90, 180),
@@ -57,8 +60,9 @@ def chart(frame: pd.DataFrame) -> hv.Bars:
     bars = hv.Bars(frame, ["duration", "window"], "commitments_share_pct").opts(
         width=1000, height=520, fontscale=1.2, toolbar=None, show_grid=True, ylim=(0, 85), cmap=["#9aa5b1", "#1f5fa8"], hooks=[hook],
         color="window", show_legend=True, legend_position="top_right", multi_level=True,
-        title="Since Helicon, 1 in 8 new validator commitments is under 7 days; before it, none was",
-        xlabel="Commitment duration", ylabel="Share of new validator commitments (%)")
+        title="New validator commitments by duration: 30 days before Helicon and since its activation",
+        xlabel=f"Commitment duration. Runs {HELICON_RUN} (to 2026-10-02 00:15 UTC) and {PERIODS_RUN}",
+        ylabel="Share of new validator commitments (%)")
     return bars
 
 
@@ -68,6 +72,7 @@ def main() -> None:
     frame = table()
     frame.to_csv(out / "helicon-first-days.csv", index=False)
     hv.save(chart(frame), out / "helicon-first-days.html")
+    save_png(out / "helicon-first-days.html", out / "helicon-first-days.png", 1040, 580)
     print(frame.round(2).to_string(index=False))
 
 
