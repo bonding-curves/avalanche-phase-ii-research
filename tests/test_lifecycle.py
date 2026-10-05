@@ -130,7 +130,8 @@ def test_a_ramp_that_starts_at_the_origin_widens_the_daily_yield_gap():
     ramp = model(mechanism=ACP285Ramp(activation=datetime(2025, 4, 8, 16, tzinfo=UTC)), origin=origin, timesteps=100, runs=1,
                  supply0_navax=440_000_000 * 10**9)
     table = run(ramp)
-    gaps = path(table, "yield_gap_pp")[1:]
+    rows = table[(table["variable"] == "active_validators") & (table["run"] == 1)].sort_values("timestep")
+    gaps = rows["yield_gap_pp"].tolist()[1:]
     assert gaps[0] < 0 and gaps[0] > gaps[45] > gaps[95]
     assert gaps[95] == pytest.approx(gaps[99])
 
@@ -192,3 +193,19 @@ def test_the_lifecycle_clock_is_one_day_per_step():
 
     with pytest.raises(ValueError):
         ValidatorLifecycle(dt=2.0)
+
+
+def test_the_long_table_keeps_whole_navax_exact_beside_the_float_yield_gap():
+    """RB2: with the gap melted into ``value``, day one's supply rise came out 4 nAVAX short of the amount issued."""
+    from datetime import date
+
+    supply = 440_000_000 * 10**9
+    m = model(initial_stakes=np.array([], dtype=np.int64), initial_days_left=np.array([], dtype=np.int64),
+              draw_durations=np.array([14]), draw_stakes=np.array([2_000 * 10**9]), renewal_probability=0.8,
+              entry_rate_per_day=4.0, timesteps=1, runs=1, origin=date(2025, 4, 8), supply0_navax=supply)
+    table = run(m)
+    assert str(table["value"].dtype) == "int64"
+    issued, total = path(table, "issued_navax")[1], path(table, "supply_navax")[1]
+    assert issued > 0
+    assert total - supply == issued
+    assert "yield_gap_pp" in table.columns and "yield_gap_pp" not in set(table["variable"])

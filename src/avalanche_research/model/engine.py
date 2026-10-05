@@ -6,7 +6,8 @@ policies and state updates: they receive the settings as the plain ``params`` di
 
 ``run`` executes one model. ``sweep`` executes one model per combination of setting values. Both return
 the same long table, one row per setting combination, run, timestep, and state variable, with the
-settings as columns, so a plot can group or facet by any of them.
+settings as columns, so a plot can group or facet by any of them. A state variable that is not a whole number is a
+column of its own rather than a row, so ``value`` holds whole amounts exactly.
 """
 
 from __future__ import annotations
@@ -57,6 +58,11 @@ class SimulationModel(param.Parameterized):
 
     def state_variables(self) -> list[str]:
         return list(self.initial_state())
+
+    def float_variables(self) -> list[str]:
+        """State variables that are not whole numbers. The long table gives each its own column, so ``value`` keeps
+        whole nAVAX amounts exact instead of rounding them to the nearest float."""
+        return []
 
     def invariants(self) -> list[tuple[str, Any]]:
         """Named checks on each new state. The engine stops the run at the first one that fails."""
@@ -157,7 +163,7 @@ def _long_table(raw: pd.DataFrame, models: list[SimulationModel]) -> pd.DataFram
     last = raw.groupby(INDEX)["substep"].transform("max")
     rows = raw[raw["substep"] == last]
     variables = models[0].state_variables()
-    table = rows.melt(id_vars=INDEX, value_vars=variables, var_name="variable", value_name="value")
+    table = rows.melt(id_vars=INDEX + models[0].float_variables(), value_vars=variables, var_name="variable", value_name="value")
     settings = pd.DataFrame([{**{k: _column_value(v, models, k) for k, v in model.settings().items()}, "specification": model.specification_hash()} for model in models])
     settings.index.name = "simulation"
     table = table.merge(settings.reset_index(), on="simulation", how="left")

@@ -66,7 +66,10 @@ class FittedLifecycle(SimulationModel):
     supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="The P-Chain reward counter at the origin, nAVAX. The reward formula reads it")
 
     def state_variables(self):
-        return ["active_validators", "active_validator_stake_navax", "returning_nodes", "supply_navax", "issued_navax", "yield_gap_pp"]
+        return ["active_validators", "active_validator_stake_navax", "returning_nodes", "supply_navax", "issued_navax"]
+
+    def float_variables(self):
+        return ["yield_gap_pp"]
 
     def __init__(self, **params):
         super().__init__(**params)
