@@ -208,6 +208,56 @@ def _whole_days(us: pd.Series) -> pd.Series:
     return (us - INSTANT_US + US_PER_DAY - 1) // US_PER_DAY
 
 
+def validator_periods(periods_parquet: str, through_us: int) -> pd.DataFrame:
+    """Validator commitments that started by ``through_us``, each with its node's neighbours and the terms the blocks read.
+
+    ``done`` counts the node's commitments before this one. ``after_return`` marks a commitment that began more than
+    seven days after the node's last one ended. ``renewed`` marks one followed on the same node within seven days of
+    its end, by a commitment that started by ``through_us``.
+    """
+    rows = duckdb.execute(
+        f"""SELECT node_id, stake_navax, s, e, prev_e, next_s, next_e, next_stake, done FROM (
+              SELECT node_id, stake_navax, epoch_us(start_time) AS s, epoch_us(end_time) AS e, start_time, transaction_hash,
+                     lag(epoch_us(end_time)) OVER w AS prev_e,
+                     lead(epoch_us(start_time)) OVER w AS next_s,
+                     lead(epoch_us(end_time)) OVER w AS next_e,
+                     lead(stake_navax) OVER w AS next_stake,
+                     row_number() OVER w - 1 AS done
+              FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL AND start_time <= make_timestamp({through_us})
+              WINDOW w AS (PARTITION BY node_id ORDER BY start_time, transaction_hash))
+            ORDER BY start_time, transaction_hash""",
+        [periods_parquet],
+    ).df()
+    if rows["node_id"].isna().any():
+        raise ValueError("a validator period has no node_id, so its renewals and tenure cannot be counted")
+    for column in ("prev_e", "next_s", "next_e", "next_stake"):
+        rows[column] = rows[column].astype("float64")
+    follow = RENEWAL_DAYS * US_PER_DAY
+    rows["days"] = ((rows["e"] - rows["s"]) / US_PER_DAY).round().clip(lower=1).astype(np.int64)
+    rows["after_return"] = rows["prev_e"].notna() & (rows["s"] > rows["prev_e"] + follow)
+    rows["renewed"] = rows["next_s"].notna() & (rows["next_s"] >= rows["e"]) & (rows["next_s"] <= rows["e"] + follow)
+    rows["leave_day"] = _whole_days(rows["e"])
+    return rows
+
+
+def renewal_endings(rows: pd.DataFrame, after_us: int, through_us: int) -> pd.DataFrame:
+    """The renewal decisions of commitments that ended after ``after_us`` and by ``through_us``, as ``AM2`` counts them.
+
+    A commitment overlapped by the node's next one made no decision and is left out. Its label needs seven days of
+    follow-up, so ``rows`` must reach seven days past ``through_us``.
+    """
+    overlapped = rows["next_s"].notna() & (rows["next_s"] < rows["e"])
+    return rows[(rows["e"] > after_us) & (rows["e"] <= through_us) & ~overlapped]
+
+
+def renewal_inputs(endings: pd.DataFrame) -> dict[str, np.ndarray]:
+    """The inputs :class:`RenewalLogit` reads, from rows of :func:`renewal_endings`."""
+    return {
+        "done": endings["done"].to_numpy(), "after_return": endings["after_return"].to_numpy(),
+        "days": endings["days"].to_numpy(), "stake_navax": endings["stake_navax"].to_numpy(),
+    }
+
+
 def fitted_inputs(periods_parquet: str, origin: date, run: str = "") -> dict:
     """Every input of a v0.8 run from ``origin``, fitted on staking periods that started by the origin's end.
 
@@ -226,23 +276,7 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "") -> dict:
         raise ValueError(f"origin {origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
     day = _day(origin)
     cutoff = day * US_PER_DAY + INSTANT_US
-    rows = duckdb.execute(
-        f"""SELECT node_id, stake_navax, s, e, prev_e, next_s, next_e, next_stake, done FROM (
-              SELECT node_id, stake_navax, epoch_us(start_time) AS s, epoch_us(end_time) AS e, start_time, transaction_hash,
-                     lag(epoch_us(end_time)) OVER w AS prev_e,
-                     lead(epoch_us(start_time)) OVER w AS next_s,
-                     lead(epoch_us(end_time)) OVER w AS next_e,
-                     lead(stake_navax) OVER w AS next_stake,
-                     row_number() OVER w - 1 AS done
-              FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL AND start_time <= make_timestamp({cutoff})
-              WINDOW w AS (PARTITION BY node_id ORDER BY start_time, transaction_hash))
-            ORDER BY start_time, transaction_hash""",
-        [periods_parquet],
-    ).df()
-    if rows["node_id"].isna().any():
-        raise ValueError("a validator period has no node_id, so its renewals and tenure cannot be counted")
-    for column in ("prev_e", "next_s", "next_e", "next_stake"):
-        rows[column] = rows[column].astype("float64")
+    rows = validator_periods(periods_parquet, cutoff)
     pending = duckdb.execute(
         f"""SELECT p.node_id, p.stake_navax, epoch_us(p.start_time) AS s, epoch_us(p.end_time) AS e
             FROM read_parquet(?) p WHERE role = 'validator' AND stake_navax IS NOT NULL
@@ -251,19 +285,11 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "") -> dict:
         [periods_parquet],
     ).df()
     follow = RENEWAL_DAYS * US_PER_DAY
-    rows["days"] = ((rows["e"] - rows["s"]) / US_PER_DAY).round().clip(lower=1).astype(np.int64)
-    rows["after_return"] = rows["prev_e"].notna() & (rows["s"] > rows["prev_e"] + follow)
-    rows["renewed"] = rows["next_s"].notna() & (rows["next_s"] >= rows["e"]) & (rows["next_s"] <= rows["e"] + follow)
     overlapped = rows["next_s"].notna() & (rows["next_s"] < rows["e"])
-    rows["leave_day"] = _whole_days(rows["e"])
 
-    ended = rows[(rows["e"] > cutoff - 365 * US_PER_DAY - follow) & (rows["e"] <= cutoff - follow) & ~overlapped]
+    ended = renewal_endings(rows, cutoff - 365 * US_PER_DAY - follow, cutoff - follow)
     window = f"{run or 'staking periods'}, endings from {pd.Timestamp(int(cutoff - 365 * US_PER_DAY - follow), unit='us').date()} to {pd.Timestamp(int(cutoff - follow), unit='us').date()}"
-    renewal = RenewalLogit.fit(
-        {"done": ended["done"].to_numpy(), "after_return": ended["after_return"].to_numpy(),
-         "days": ended["days"].to_numpy(), "stake_navax": ended["stake_navax"].to_numpy()},
-        ended["renewed"].to_numpy(), f"{window}: {len(ended)} endings, {int(ended['renewed'].sum())} renewed",
-    )
+    renewal = RenewalLogit.fit(renewal_inputs(ended), ended["renewed"].to_numpy(), f"{window}: {len(ended)} endings, {int(ended['renewed'].sum())} renewed")
 
     lapsed = rows[(rows["e"] > cutoff - 730 * US_PER_DAY) & (rows["e"] <= cutoff) & ~overlapped & ~rows["renewed"]]
     came_back = lapsed["next_s"].notna()
