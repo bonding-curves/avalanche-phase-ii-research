@@ -53,6 +53,8 @@ class FittedLifecycle(SimulationModel):
 
     origin = param.CalendarDate(default=date(2024, 3, 6), doc="Last observed day. The run starts at its end")
     renewal = param.ClassSelector(class_=RenewalLogit, default=RenewalLogit(), doc="The renewal block")
+    renewal_large = param.ClassSelector(class_=RenewalLogit, default=None, allow_None=True, doc="The renewal block for commitments above large_above_avax. None uses the one renewal block for every commitment")
+    large_above_avax = param.Number(default=None, allow_None=True, bounds=(0, None), doc="The stake line above which renewal_large decides")
     arrivals = param.ClassSelector(class_=Arrivals, default=Arrivals(), doc="The first-ever arrival block")
     returns = param.ClassSelector(class_=ReturnHazard, default=ReturnHazard(), doc="The return block")
     seed = param.Integer(default=0, bounds=(0, None), doc="Base seed. Run r on day t draws from default_rng([seed, r, t])")
@@ -114,6 +116,8 @@ class FittedLifecycle(SimulationModel):
         days = [self.origin + timedelta(days=t + 1) for t in range(self.timesteps)]
         gaps = [(self.yield_gap_pp(day, self.renewal_tenure), self.yield_gap_pp(day, 0)) for day in days]
         renewal, arrivals, returns, mechanism = self.renewal, self.arrivals, self.returns, self.mechanism
+        renewal_large = self.renewal_large
+        large_navax = None if renewal_large is None or self.large_above_avax is None else int(self.large_above_avax * 10**9)
         renewal_response, entry_response, seed, origin = self.renewal_response, self.entry_response, self.seed, self.origin
         moves, first = self.moves, self.first_commitments
         continuation = Continuation(moves["previous_days"], moves["next_days"], moves["previous_stake_navax"], moves["next_stake_navax"])
@@ -130,10 +134,14 @@ class FittedLifecycle(SimulationModel):
             ending = days_left <= 0
             decide = ending & ~state["handed_on"]
             ended = {name: state[name][decide] for name in ("stakes", "done", "after_return", "days", "returns")}
-            renews = renewal.sample({
+            decision_inputs = {
                 "done": ended["done"], "after_return": ended["after_return"], "days": ended["days"],
                 "stake_navax": ended["stakes"], "returns": ended["returns"], "shift": renewal_response * renewal_gap,
-            }, rng)
+            }
+            renews = renewal.sample(decision_inputs, rng)
+            if large_navax is not None:
+                large = ended["stakes"] > large_navax
+                renews[large] = renewal_large.sample({k: (v[large] if isinstance(v, np.ndarray) else v) for k, v in decision_inputs.items()}, rng)
 
             out_days = state["out_days"] + 1
             comes_back = returns.sample({"stake_navax": state["out_stakes"], "days_since_end": out_days}, rng)
@@ -279,10 +287,11 @@ def renewal_inputs(endings: pd.DataFrame) -> dict[str, np.ndarray]:
     }
 
 
-def fitted_inputs(periods_parquet: str, origin: date, run: str = "") -> dict:
+def fitted_inputs(periods_parquet: str, origin: date, run: str = "", large_above_avax: float | None = None) -> dict:
     """Every input of a v0.8 run from ``origin``, fitted on staking periods that started by the origin's end.
 
     * Renewal: endings in the 365 days before the origin with seven days of follow-up before it, as ``AM2`` counts them.
+      With ``large_above_avax``, one renewal block is fitted on the endings at or below that stake and another above it.
     * Returns: endings in the 730 days before the origin that did not renew, each followed until it returned or the
       origin came, so a node out at the origin is censored there.
     * Arrivals: daily counts of first-ever commitments in the 365 days before the origin.
@@ -311,6 +320,12 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "") -> dict:
     ended = renewal_endings(rows, cutoff - 365 * US_PER_DAY - follow, cutoff - follow)
     window = f"{run or 'staking periods'}, endings from {pd.Timestamp(int(cutoff - 365 * US_PER_DAY - follow), unit='us').date()} to {pd.Timestamp(int(cutoff - follow), unit='us').date()}"
     renewal = RenewalLogit.fit(renewal_inputs(ended), ended["renewed"].to_numpy(), f"{window}: {len(ended)} endings, {int(ended['renewed'].sum())} renewed")
+    renewal_large = None
+    if large_above_avax is not None:
+        big = ended["stake_navax"] > large_above_avax * 10**9
+        small, large = ended[~big], ended[big]
+        renewal = RenewalLogit.fit(renewal_inputs(small), small["renewed"].to_numpy(), f"{window}, at or below {large_above_avax:,.0f} AVAX: {len(small)} endings")
+        renewal_large = RenewalLogit.fit(renewal_inputs(large), large["renewed"].to_numpy(), f"{window}, above {large_above_avax:,.0f} AVAX: {len(large)} endings")
 
     lapsed = rows[(rows["e"] > cutoff - 730 * US_PER_DAY) & (rows["e"] <= cutoff) & ~overlapped & ~rows["renewed"]]
     came_back = lapsed["next_s"].notna()
@@ -377,6 +392,7 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "") -> dict:
     return {
         "origin": origin,
         "renewal": renewal,
+        **({"renewal_large": renewal_large, "large_above_avax": large_above_avax} if renewal_large is not None else {}),
         "arrivals": arrivals,
         "returns": returns,
         "initial": initial,
