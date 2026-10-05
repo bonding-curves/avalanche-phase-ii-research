@@ -292,8 +292,11 @@ class Continuation:
 
     Durations come from a transition table: the next duration is drawn among moves whose previous duration fell in
     the same bin (up to 20, 21 to 40, 41 to 100, over 100 days), which keeps a node's habit. The stake is the
-    previous stake times a ratio drawn among moves in the same return stake band, kept within the protocol's
-    validator bounds of 2,000 and 3,000,000 AVAX.
+    previous stake times a ratio drawn among moves in the same return stake band, each move weighted by its previous
+    stake, kept within the protocol's validator bounds of 2,000 and 3,000,000 AVAX. The weight makes the expected stake
+    after a move equal the band's total stake after its moves over its total before. An unweighted draw averages
+    ratios instead, and a few small nodes that raise their stake many times over lift every node's expected stake: by
+    about 10% a move on the year before each development origin, where the stake actually fell 1% to 6% in most years.
     """
 
     MIN_STAKE_NAVAX = 2_000 * AVAX
@@ -305,15 +308,17 @@ class Continuation:
         previous_stake = np.asarray(previous_stake_navax, dtype=float)
         self.stake_band = np.digitize(previous_stake / AVAX, RETURN_STAKE_EDGES, right=True)
         self.ratio = np.asarray(next_stake_navax, dtype=float) / previous_stake
+        self.weight = previous_stake
         if len(self.next_days) == 0:
             raise ValueError("a continuation table needs at least one observed move")
 
-    def _draw(self, keys: np.ndarray, table_keys: np.ndarray, values: np.ndarray, rng) -> np.ndarray:
+    def _draw(self, keys: np.ndarray, table_keys: np.ndarray, values: np.ndarray, rng, weights: np.ndarray | None = None) -> np.ndarray:
         out = np.empty(len(keys), dtype=values.dtype)
         for key in np.unique(keys):
             rows = keys == key
-            pool = values[table_keys == key]
-            out[rows] = rng.choice(pool if len(pool) else values, size=int(rows.sum()))
+            match = table_keys == key if (table_keys == key).any() else np.ones(len(values), bool)
+            p = None if weights is None else weights[match] / weights[match].sum()
+            out[rows] = rng.choice(values[match], size=int(rows.sum()), p=p)
         return out
 
     def durations(self, previous_days: np.ndarray, rng) -> np.ndarray:
@@ -323,5 +328,5 @@ class Continuation:
     def stakes(self, previous_stake_navax: np.ndarray, rng) -> np.ndarray:
         previous = np.asarray(previous_stake_navax, dtype=np.int64)
         keys = np.digitize(previous / AVAX, RETURN_STAKE_EDGES, right=True)
-        ratio = self._draw(keys, self.stake_band, self.ratio, rng)
+        ratio = self._draw(keys, self.stake_band, self.ratio, rng, self.weight)
         return np.clip(np.round(previous * ratio), self.MIN_STAKE_NAVAX, self.MAX_STAKE_NAVAX).astype(np.int64)
