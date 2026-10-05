@@ -47,7 +47,9 @@ QUARTERS = {f"{y}-{m:02d}-01": date(y, m, 1) for y in (2022, 2023, 2024, 2025) f
             if date(2022, 7, 1) <= date(y, m, 1) <= date(2025, 10, 1)}
 HORIZON_DAYS = 90
 FOLLOW_US = 7 * US_PER_DAY
-LAST_LABELLED_US = int(LOCKBOX_START.timestamp() * 1_000_000) - FOLLOW_US
+LOCKBOX_US = int(LOCKBOX_START.timestamp() * 1_000_000)
+# An ending is scored only if its whole follow-up week, and so any successor that labels it, falls before the lockbox.
+LAST_LABELLED_US = LOCKBOX_US - FOLLOW_US - 1
 BOOTSTRAPS = 2_000
 BLOCKS = ("v0.7", "M1", "v0.8")
 
@@ -65,7 +67,7 @@ def main() -> None:
     out = Path(sys.argv[1])
     out.mkdir(parents=True, exist_ok=True)
     periods = str(datasets.parquet_path("derived.staking-periods", RUN))
-    rows = validator_periods(periods, LAST_LABELLED_US + FOLLOW_US)
+    rows = validator_periods(periods, LOCKBOX_US - 1)
     scored = []
     for name, origin in {**UPGRADES, **QUARTERS}.items():
         cutoff = (pd.Timestamp(origin) - pd.Timestamp(0)).days * US_PER_DAY + INSTANT_US

@@ -95,6 +95,14 @@ def test_the_return_hazard_recovers_known_daily_rates_under_censoring():
     assert fitted.large_8_30 == pytest.approx(0.03, rel=0.06)
 
 
+def test_a_return_after_a_year_is_censored_at_a_year_not_counted():
+    """RV-20261005-01 F1: a node back on day 400 stayed out for the whole window, so it adds exposure and no return."""
+    late = ReturnHazard.fit([2_000 * AVAX], [400], [True], "synthetic")
+    stayed = ReturnHazard.fit([2_000 * AVAX], [365], [False], "synthetic")
+    assert late.hazards().tolist() == stayed.hazards().tolist() == [0.0] * 9
+    assert late.sources()["minimum_91_365"]["evidence"] == stayed.sources()["minimum_91_365"]["evidence"]
+
+
 def test_no_node_returns_inside_its_renewal_week_or_after_a_year():
     cells = return_cell(np.full(4, 50_000 * AVAX), np.array([7, 8, 365, 366]))
     assert cells.tolist() == [-1, 3, 5, -1]

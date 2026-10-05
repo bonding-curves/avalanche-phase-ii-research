@@ -263,11 +263,13 @@ class ReturnHazard(BehaviourBlock):
         """Returns over node-days at risk in each cell, the maximum-likelihood daily hazard.
 
         ``days_out`` is how many days after its end each node was last seen out: the day it returned, or the day
-        observation stopped. A node is at risk from day 8 to that day, capped at 365.
+        observation stopped. A node is at risk from day 8 to that day, capped at 365. A return after day 365 is a node
+        that stayed out for the whole window, censored at 365, as the simulator drops it then.
         """
         stake = np.asarray(stake_navax)
-        days_out = np.minimum(np.asarray(days_out, dtype=np.int64), RETURN_DAYS)
-        returned = np.asarray(returned, dtype=bool)
+        seen = np.asarray(days_out, dtype=np.int64)
+        returned = np.asarray(returned, dtype=bool) & (seen <= RETURN_DAYS)
+        days_out = np.minimum(seen, RETURN_DAYS)
         at_risk = np.zeros(len(RETURN_CELLS))
         events = np.zeros(len(RETURN_CELLS))
         band = np.digitize(np.asarray(stake, dtype=float) / AVAX, RETURN_STAKE_EDGES, right=True)
