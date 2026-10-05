@@ -35,6 +35,7 @@ model = [
   "cadCAD==0.5.3",
   "numpy>=2,<3",
   "param>=2.4,<3",
+  "scipy>=1.14,<2",
 ]
 notebook = [
   "bokeh>=3.9,<4",
@@ -46,6 +47,7 @@ notebook = [
   "numpy>=2,<3",
   "panel>=1.9,<2",
   "param>=2.4,<3",
+  "scipy>=1.14,<2",
 ]
 
 [tool.pytest.ini_options]
