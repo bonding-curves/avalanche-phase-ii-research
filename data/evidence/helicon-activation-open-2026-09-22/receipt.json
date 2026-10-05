@@ -1,0 +1,38 @@
+{
+  "activation_utc": "2026-09-22T15:00:00Z",
+  "inputs": [
+    {
+      "capture_id": "capture:derived:2026-10-02T03:09:57Z:72a282c93bf5",
+      "dataset_id": "derived.staking-periods",
+      "parquet_sha256": "c53c6b73f3d24b4dbb7864c4774be981d4c4a3c661ff22703e8fa697705d048d",
+      "run": "staking-periods-2026-10-02"
+    },
+    {
+      "capture_id": "capture:avalanche-p-chain-rpc:2026-09-22T16:22:07Z:963065f3adf9",
+      "dataset_id": "p-chain-rpc.current-validators",
+      "parquet_sha256": "d23f088f081a210c53261a3d5fcb9f2fbd252e8144d7993626bdafaa7caea246",
+      "run": "current-validators-2026-09-22"
+    }
+  ],
+  "nodes": 602,
+  "open_commitments": 602,
+  "outputs": [
+    {
+      "path": "open-commitments.csv",
+      "sha256": "7467dda4a1897c272d586962e656a37407ed20cb3c63d2bb9bd78945382f3da8"
+    }
+  ],
+  "reconciliation": {
+    "ended_between_activation_and_snapshot": 1,
+    "node_stake_or_end_differs": 0,
+    "open_and_running_but_missing_from_snapshot": 0,
+    "passed": true,
+    "repeated_transactions": 0,
+    "snapshot_observed_at_utc": "2026-09-22T16:22:07Z",
+    "snapshot_rows_started_after_activation": 3,
+    "snapshot_rows_started_before_activation_not_in_list": 0
+  },
+  "rule": "validator period accepted before activation, started at or before it, ending after it",
+  "schema": "helicon-activation-open/v1",
+  "stake_navax": 165951387212409563
+}
