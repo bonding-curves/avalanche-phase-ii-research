@@ -70,3 +70,14 @@ def test_display_names_reach_the_legends_and_keep_the_colors():
                           "validators_p90": [1310], "issuance_million_avax": [5.2]})
     panel = mr.sweep_plot(sweep, names={"Chain today": "Chain before ACP-285"})[0]
     assert "Chain before ACP-285" in {layer.label for layer in panel}
+
+
+def test_the_development_score_plot_draws_each_model_and_simple_forecast_once():
+    rows = [{"variable": "active_validator_stake_navax", "horizon_days": h, "model": m, "benchmark": b,
+             "model_mase": h / 10 + (m == "v0.7"), "benchmark_mase": h / 20 + int(b[1])}
+            for h in (30, 90, 180) for m in ("v0.7", "v0.8") for b in ("N1", "N2", "N3")]
+    overlay = mr.development_score_plot(pd.DataFrame(rows))
+    labels = {element.label for element in overlay if isinstance(element, hv.Scatter)}
+    assert labels == {"Model v0.7", "Model v0.8", "Hold the origin value", "180-day trend", "Weekly AR(1)"}
+    v07 = next(e for e in overlay if isinstance(e, hv.Scatter) and e.label == "Model v0.7")
+    assert v07.dframe()["scaled error"].tolist() == [4.0, 10.0, 19.0]

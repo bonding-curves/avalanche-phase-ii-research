@@ -196,6 +196,40 @@ def score_plot(scores: pd.DataFrame, coverage: bool = True) -> hv.Layout:
     return hv.Layout(panels).cols(2).opts(toolbar=None)
 
 
+MODEL_COLORS = {"v0.7": "#b85c00", "v0.8": "#3566a3"}
+BENCHMARK_NAMES = {"N1": "Hold the origin value", "N2": "180-day trend", "N3": "Weekly AR(1)"}
+BENCHMARK_MARKERS = {"N1": "circle", "N2": "square", "N3": "triangle"}
+
+
+def development_score_plot(summary: pd.DataFrame, variable: str = "active_validator_stake_navax",
+                           title: str = "Validator stake: mean scaled error at the 19 development origins") -> hv.Overlay:
+    """Mean scaled error by horizon for each model and each simple forecast, from ``model_development_scores.py``.
+
+    Lower is better. A scaled error of 1 is the error of a forecast as far off as one average day's change. The models
+    are drawn in colour and the simple forecasts in grey, each told apart by its marker and named at its right end.
+    """
+    part = summary[summary.variable == variable]
+    lines = {m: part[(part.model == m) & (part.benchmark == "N1")].set_index("horizon_days").model_mase for m in MODEL_COLORS}
+    lines |= {b: part[(part.model == "v0.7") & (part.benchmark == b)].set_index("horizon_days").benchmark_mase for b in BENCHMARK_NAMES}
+    layers, labels = [], []
+    for name, series in lines.items():
+        frame = pd.DataFrame({"horizon": series.index.to_numpy(), "scaled error": series.to_numpy(),
+                              "forecast": BENCHMARK_NAMES.get(name, f"Model {name}")})
+        model = name in MODEL_COLORS
+        color = MODEL_COLORS.get(name, MUTED)
+        layers.append(hv.Curve(frame, "horizon", ["scaled error", "forecast"]).opts(
+            color=color, line_width=3 if model else 1.5, line_dash="solid" if model else "dashed"))
+        layers.append(hv.Scatter(frame, "horizon", ["scaled error", "forecast"], label=frame.forecast[0]).opts(
+            color=color if model else "white", line_color=color, line_width=2, size=12 if model else 10,
+            marker=BENCHMARK_MARKERS.get(name, "circle"), tools=["hover"]))
+        labels.append(hv.Text(float(series.index[-1]), float(series.iloc[-1]), f"  {frame.forecast[0]}", halign="left").opts(
+            text_color=INK if model else MUTED, text_font_size="11pt"))
+    top = max(float(s.max()) for s in lines.values())
+    return hv.Overlay(layers + labels).opts(
+        width=900, height=460, title=title, xlabel="Days after the origin", ylabel="Mean scaled error (lower is better)",
+        ylim=(0, top * 1.12), legend_position="top_left", show_legend=True, xlim=(10, 255), xticks=[(h, f"{h} days") for h in (30, 90, 180)], **MEMO)
+
+
 # The roadmap ------------------------------------------------------------------------------------------------
 
 def roadmap_plot(versions: tuple[Version, ...] = VERSIONS, events=EVENTS, today: date | None = None) -> hv.Overlay:
