@@ -75,6 +75,10 @@ class FittedLifecycle(SimulationModel):
         doc="Change in the log of the arrival rate per percentage point of annual rate above the chain's, for a 30-day stake with no tenure",
     )
     renewal_tenure = param.Integer(default=4, bounds=(0, 100), doc="Completed commitments at which the renewal response prices the yield gap")
+    hold_above_avax = param.Number(
+        default=None, allow_None=True, bounds=(0, None),
+        doc="A commitment above this stake renews at its stake and duration with no draw, so large holders are held as they are rather than modeled. None models every commitment",
+    )
     supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="The P-Chain reward counter at the origin, nAVAX. The reward formula reads it")
 
     def state_variables(self):
@@ -115,6 +119,7 @@ class FittedLifecycle(SimulationModel):
         gaps = [(self.yield_gap_pp(day, self.renewal_tenure), self.yield_gap_pp(day, 0)) for day in days]
         renewal, arrivals, returns, mechanism = self.renewal, self.arrivals, self.returns, self.mechanism
         renewal_response, entry_response, seed, origin = self.renewal_response, self.entry_response, self.seed, self.origin
+        hold_navax = None if self.hold_above_avax is None else int(self.hold_above_avax * 10**9)
         moves, first = self.moves, self.first_commitments
         continuation = Continuation(moves["previous_days"], moves["next_days"], moves["previous_stake_navax"], moves["next_stake_navax"])
         first_days, first_stakes = _array(first["days"]), _array(first["stake_navax"])
@@ -129,6 +134,8 @@ class FittedLifecycle(SimulationModel):
             days_left = state["days_left"] - 1
             ending = days_left <= 0
             decide = ending & ~state["handed_on"]
+            held = decide & (state["stakes"] > hold_navax) if hold_navax is not None else np.zeros(len(decide), bool)
+            decide = decide & ~held
             ended = {name: state[name][decide] for name in ("stakes", "done", "after_return", "days", "returns")}
             renews = renewal.sample({
                 "done": ended["done"], "after_return": ended["after_return"], "days": ended["days"],
@@ -141,18 +148,20 @@ class FittedLifecycle(SimulationModel):
 
             started = {
                 "stakes": np.concatenate([
+                    state["stakes"][held],
                     continuation.stakes(ended["stakes"][renews], rng),
                     continuation.stakes(state["out_stakes"][comes_back], rng),
                     rng.choice(first_stakes, size=n_new) if n_new else np.zeros(0, dtype=np.int64),
                 ]),
                 "days": np.concatenate([
+                    state["days"][held],
                     continuation.durations(ended["days"][renews], rng),
                     continuation.durations(state["out_last_days"][comes_back], rng),
                     rng.choice(first_days, size=n_new) if n_new else np.zeros(0, dtype=np.int64),
                 ]),
-                "done": np.concatenate([ended["done"][renews] + 1, state["out_done"][comes_back], np.zeros(n_new, dtype=np.int64)]),
-                "after_return": np.concatenate([np.zeros(int(renews.sum()), bool), np.ones(int(comes_back.sum()), bool), np.zeros(n_new, bool)]),
-                "returns": np.concatenate([ended["returns"][renews], state["out_returns"][comes_back] + 1, np.zeros(n_new, dtype=np.int64)]),
+                "done": np.concatenate([state["done"][held] + 1, ended["done"][renews] + 1, state["out_done"][comes_back], np.zeros(n_new, dtype=np.int64)]),
+                "after_return": np.concatenate([np.zeros(int(held.sum() + renews.sum()), bool), np.ones(int(comes_back.sum()), bool), np.zeros(n_new, bool)]),
+                "returns": np.concatenate([state["returns"][held], ended["returns"][renews], state["out_returns"][comes_back] + 1, np.zeros(n_new, dtype=np.int64)]),
             }
             issued = sum(
                 mechanism.potential_reward_navax(int(stake), int(d) * 86_400, state["supply_navax"], start, int(periods))

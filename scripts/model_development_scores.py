@@ -10,6 +10,7 @@ from 2025-11-19, is skipped. Each forecast and each benchmark (`N1` persistence,
 AR(1)) gets its absolute error scaled by the mean one-day change before the origin. Writes `development-scores.csv`
 with one row per origin, variable, horizon and forecast, and `development-summary.csv` with the mean scaled error of
 each model by variable and horizon and a Diebold-Mariano test of it against each benchmark and of v0.8 against v0.7.
+``v0.8-d`` is v0.8 with every commitment above 1M AVAX held at its stake and duration rather than modeled.
 """
 
 from __future__ import annotations
@@ -38,7 +39,8 @@ QUARTERS = {f"{y}-{m:02d}-01": date(y, m, 1) for y in (2022, 2023, 2024, 2025) f
             if date(2022, 7, 1) <= date(y, m, 1) <= date(2025, 10, 1)}
 HORIZONS = (30, 90, 180)
 VARIABLES = ("active_validators", "active_validator_stake_navax")
-MODELS = ("v0.7", "v0.8")
+MODELS = ("v0.7", "v0.8", "v0.8-d")
+HOLD_ABOVE_AVAX = 1_000_000
 
 
 def main() -> None:
@@ -50,9 +52,11 @@ def main() -> None:
     last_day = pd.Timestamp(LOCKBOX_FIRST_DAY) - pd.Timedelta(1, unit="D")
     rows = []
     for name, origin in {**UPGRADES, **QUARTERS}.items():
+        fitted = fitted_inputs(periods, origin, RUN)
         tables = {
             "v0.7": run(ValidatorLifecycle(origin=origin, inputs_source=RUN, timesteps=max(HORIZONS), **origin_inputs(periods, origin))),
-            "v0.8": run(FittedLifecycle(timesteps=max(HORIZONS), **fitted_inputs(periods, origin, RUN))),
+            "v0.8": run(FittedLifecycle(timesteps=max(HORIZONS), **fitted)),
+            "v0.8-d": run(FittedLifecycle(timesteps=max(HORIZONS), hold_above_avax=HOLD_ABOVE_AVAX, **fitted)),
         }
         for variable in VARIABLES:
             series = actual[variable].astype(float)

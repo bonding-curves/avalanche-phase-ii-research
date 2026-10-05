@@ -223,3 +223,12 @@ def test_the_node_record_is_recovered_with_its_prior_strength():
     assert fitted.node_prior_strength in (2.0, 5.0, 10.0, 20.0)
     assert fitted.log_prob(inputs, renewed.ravel()) > plain.log_prob(inputs, renewed.ravel()) + 100
     assert plain.node_record == 0.0
+
+
+def test_held_large_commitments_renew_unchanged_and_the_rest_are_modeled():
+    """Candidate v0.8-d: above the line a commitment is held; below it the renewal block decides."""
+    initial = pd.DataFrame({"stakes": [2_000_000 * AVAX, 10_000 * AVAX], "days_left": [1, 1], "done": [3, 3], "after_return": [False, False],
+                            "days": [30, 14], "handed_on": [False, False]})
+    table = run(model(initial=initial, hold_above_avax=1_000_000, timesteps=3, runs=1))
+    assert path(table, "active_validators") == [2, 1, 1, 1]
+    assert path(table, "active_validator_stake_navax")[1:] == [2_000_000 * AVAX] * 3
