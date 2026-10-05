@@ -28,7 +28,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy import special
 
 from avalanche_research import datasets
 from avalanche_research.core.clock import LOCKBOX_START

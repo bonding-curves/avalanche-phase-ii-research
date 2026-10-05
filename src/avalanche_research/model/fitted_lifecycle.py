@@ -22,7 +22,14 @@ import param
 
 from avalanche_research.mechanisms import ChainReward, RewardMechanism
 from avalanche_research.model.engine import SimulationModel
-from avalanche_research.model.fitted_blocks import RENEWAL_DAYS, RETURN_DAYS, Arrivals, Continuation, RenewalLogit, ReturnHazard
+from avalanche_research.model.fitted_blocks import (
+    RENEWAL_DAYS,
+    RETURN_DAYS,
+    Arrivals,
+    Continuation,
+    RenewalLogit,
+    ReturnHazard,
+)
 from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
 
 US_PER_DAY = 86_400_000_000
