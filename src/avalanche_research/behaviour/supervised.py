@@ -31,7 +31,7 @@ from sklearn.preprocessing import OneHotEncoder, QuantileTransformer
 from ..model.protocol import MAINNET_UPGRADES
 from . import features as feature_registry
 from .events import duration_class
-from .inputs import LOCKBOX_START
+from .inputs import LOCKBOX_START, check_cutoff
 
 SEED = 20261001
 DAY = pd.Timedelta(days=1)
@@ -85,13 +85,13 @@ def forward_folds(meta: pd.DataFrame, target: str, first: str = "2022-11-19 16:0
                   observed_through=LOCKBOX_START) -> list[Fold]:
     """Six-month test windows from ``first`` to the lockbox, each trained on labels known by its start."""
     follow = TARGETS[target].follow_up_days * DAY
-    cutoff = pd.Timestamp(observed_through)
+    cutoff = check_cutoff(observed_through, allow_lockbox=True)
     folds, start = [], pd.Timestamp(first)
     while start < cutoff:
         end = min(start + pd.DateOffset(months=months), cutoff)
         train = np.flatnonzero((meta.end_time + follow).le(start).to_numpy())
         test = np.flatnonzero((meta.end_time.ge(start) & meta.end_time.lt(end)
-                               & (meta.end_time + follow).le(cutoff)).to_numpy())
+                               & (meta.end_time + follow).lt(cutoff)).to_numpy())
         if len(test):
             folds.append(Fold(f"{start:%Y-%m}", start, end, train, test))
         start = end
@@ -115,7 +115,7 @@ def protocol_folds(meta: pd.DataFrame, target: str, origins: pd.Series | None = 
     """One fold per origin and horizon: trained on every label known by the origin, tested on the endings in the
     ``horizon`` days after it. A horizon that would reach past ``observed_through`` is left out."""
     follow = TARGETS[target].follow_up_days * DAY
-    cutoff = pd.Timestamp(observed_through)
+    cutoff = check_cutoff(observed_through, allow_lockbox=True)
     origins = protocol_origins() if origins is None else origins
     end_time = meta.end_time
     folds = []
@@ -125,7 +125,7 @@ def protocol_folds(meta: pd.DataFrame, target: str, origins: pd.Series | None = 
             stop = origin + days * DAY
             if stop > cutoff:
                 continue
-            inside = end_time.ge(origin) & end_time.lt(stop) & (end_time + follow).le(cutoff)
+            inside = end_time.ge(origin) & end_time.lt(stop) & (end_time + follow).lt(cutoff)
             test = np.flatnonzero(inside.to_numpy())
             if len(train) and len(test):
                 folds.append(Fold(f"{name}+{days}d", origin, stop, train, test))

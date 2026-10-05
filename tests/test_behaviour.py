@@ -267,3 +267,52 @@ def test_the_principal_flow_conserves_stake(periods):
     assert by["Added at renewal", "Renewed in place"] == 1000
     assert by["Returned within a year", "Fresh principal"] == 2000
     assert by["First period of a new node", "Fresh principal"] == 6000
+
+
+def boundary_period(tx, node, end):
+    # One 14-day period that ends at ``end``, in the shape of data science's DS3 fixtures.
+    begin = end - 14 * DAY
+    return {**period(tx, node, 0, 14), "accepted_at": begin, "start_time": begin, "end_time": end}
+
+
+def test_nothing_touching_the_lockbox_is_an_event_or_a_label():
+    # DS3 F1: a follow-up window that ends at the lockbox's first instant is not complete, and an ending there is not
+    # an event. The cutoff is the first instant not observed.
+    cut = LOCKBOX_START
+    touch = ev.decision_events(pd.DataFrame([boundary_period("touch", "A", cut - 7 * DAY)]), observed_through=cut)
+    assert touch.renewed.isna().all()
+    assert ev.decision_events(pd.DataFrame([boundary_period("at", "A", cut)]), observed_through=cut).empty
+    inside = ev.decision_events(pd.DataFrame([boundary_period("in", "A", cut - 7 * DAY - pd.Timedelta(seconds=1))]),
+                                observed_through=cut)
+    assert inside.renewed.tolist() == [0.0]
+
+
+def test_both_fold_schemes_leave_out_a_follow_up_that_reaches_the_lockbox():
+    cut = LOCKBOX_START
+    origin = cut - 30 * DAY
+    meta = pd.DataFrame({"end_time": [origin - 8 * DAY, cut - 7 * DAY]})
+    protocol = sv.protocol_folds(meta, "renewed", origins=pd.Series({"o": origin}), horizons=(30,), observed_through=cut)
+    assert all(1 not in fold.test for fold in protocol)
+    forward = sv.forward_folds(meta, "renewed", first=str(origin), observed_through=cut)
+    assert all(1 not in fold.test for fold in forward)
+
+
+@pytest.mark.parametrize("change", ["duplicate", "node", "end", "start", "transaction"])
+def test_periods_that_cannot_be_keyed_are_refused(change):
+    # DS3 F2.
+    base = pd.DataFrame([boundary_period("valid", "A", LOCKBOX_START - 40 * DAY)])
+    bad = {
+        "duplicate": pd.concat([base, base], ignore_index=True),
+        "node": base.assign(node_id=None),
+        "end": base.assign(end_time=pd.NaT),
+        "start": base.assign(start_time=pd.NaT),
+        "transaction": base.assign(transaction_hash=None),
+    }[change]
+    with pytest.raises(ValueError):
+        ev.decision_events(bad, observed_through=LOCKBOX_START)
+
+
+@pytest.mark.parametrize("value", [None, pd.NaT, float("nan")])
+def test_a_missing_cutoff_is_refused(value):
+    with pytest.raises(ValueError, match="required"):
+        check_cutoff(value)

@@ -32,14 +32,30 @@ def duration_class(days: pd.Series) -> pd.Series:
     return pd.cut(days, bins=bins, labels=[label for _, _, label in DURATION_CLASSES], right=False)
 
 
+def _check_identity(periods: pd.DataFrame) -> None:
+    """Refuse periods that cannot be keyed or ordered: a repeated transaction, or a missing node, start or end."""
+    duplicated = periods.transaction_hash.duplicated(keep=False)
+    if duplicated.any():
+        raise ValueError(f"{int(duplicated.sum())} periods repeat a transaction hash")
+    for column in ("transaction_hash", "node_id", "start_time", "end_time"):
+        missing = periods[column].isna()
+        if missing.any():
+            raise ValueError(f"{int(missing.sum())} periods miss {column}")
+
+
 def decision_events(periods: pd.DataFrame, observed_through=LOCKBOX_START, renew_days: int = 7,
                     horizon_days: int = 365, allow_lockbox: bool = False) -> pd.DataFrame:
-    """Every validator period that ended by ``observed_through``, with its node's next period and the outcome."""
+    """Every validator period that ended before ``observed_through``, with its node's next period and the outcome.
+
+    ``observed_through`` is the first instant not observed. A period, a next start, or a follow-up window counts only if
+    it lies strictly before it, so nothing touching the lockbox's first instant is an event or a label.
+    """
     cutoff = check_cutoff(observed_through, allow_lockbox)
     columns = ["transaction_hash", "node_id", "start_time", "end_time", "duration_days", "stake_avax", "fee_rate"]
     missing = set(columns) - set(periods.columns)
     if missing:
         raise ValueError(f"periods lack columns {sorted(missing)}")
+    _check_identity(periods)
     known = periods.loc[periods.accepted_at.lt(cutoff)] if "accepted_at" in periods else periods
     rows = known.sort_values(["node_id", "start_time", "transaction_hash"]).reset_index(drop=True)
     by_node = rows.groupby("node_id", sort=False)
@@ -47,13 +63,13 @@ def decision_events(periods: pd.DataFrame, observed_through=LOCKBOX_START, renew
     for name in ("transaction_hash", "start_time", "duration_days", "stake_avax", "fee_rate"):
         rows[f"next_{name}"] = by_node[name].shift(-1)
     # A next period only counts once it has started by the cut: an accepted future start is not yet a return.
-    late = rows.next_start_time.gt(cutoff)
+    late = rows.next_start_time.ge(cutoff)
     rows.loc[late, [c for c in rows.columns if c.startswith("next_")]] = np.nan
     rows["next_start_time"] = pd.to_datetime(rows.next_start_time)
-    events = rows.loc[rows.end_time.le(cutoff)].copy()
+    events = rows.loc[rows.end_time.lt(cutoff)].copy()
     events["gap_days"] = (events.next_start_time - events.end_time) / DAY
     has_next = events.next_start_time.notna()
-    horizon_passed = events.end_time.add(horizon_days * DAY).le(cutoff)
+    horizon_passed = events.end_time.add(horizon_days * DAY).lt(cutoff)
     outcome = np.select(
         [has_next & events.gap_days.lt(0),
          has_next & events.gap_days.le(renew_days),
@@ -61,8 +77,8 @@ def decision_events(periods: pd.DataFrame, observed_through=LOCKBOX_START, renew
          horizon_passed],
         ["overlap", "renew", "return", "leave"], default="censored")
     events["outcome"] = pd.Categorical(outcome, categories=[*OUTCOMES, "overlap", "censored"])
-    # Known only once the whole window has passed, so an ending just before the cut is never labelled by its outcome.
-    renew_known = events.end_time.add(renew_days * DAY).le(cutoff)
+    # Known only once the whole window has passed before the cut, so a window that reaches the cut is never labelled.
+    renew_known = events.end_time.add(renew_days * DAY).lt(cutoff)
     events["renewed"] = np.where(renew_known & ~events.outcome.eq("overlap"),
                                  events.outcome.eq("renew").astype(float), np.nan)
     events["next_duration_class"] = duration_class(events.next_duration_days)

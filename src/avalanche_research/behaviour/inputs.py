@@ -66,6 +66,9 @@ class Inputs:
 
 
 def check_cutoff(observed_through: Any, allow_lockbox: bool = False) -> pd.Timestamp:
+    # The cutoff is the first instant not observed: everything used must lie strictly before it.
+    if observed_through is None or pd.isna(observed_through):
+        raise ValueError("observed_through is required; pass the instant the data is cut at")
     cutoff = pd.Timestamp(observed_through)
     if cutoff.tzinfo is not None:
         cutoff = cutoff.tz_convert("UTC").tz_localize(None)
