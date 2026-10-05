@@ -273,8 +273,13 @@ def evaluate(X: pd.DataFrame, y: pd.Series, meta: pd.DataFrame, folds: list[Fold
             elif isinstance(candidate, HistGradientBoostingClassifier) and candidate.early_stopping:
                 fit_X, fit_y, extra = _latest_held_out(Xtr, ytr, meta.end_time.iloc[fold.train],
                                                        candidate.validation_fraction)
-            model = clone(candidate).fit(fit_X, fit_y, **extra)
-            proba = model.predict_proba(Xte)
+            # A feature with no observed value in the rows a model is fitted on carries nothing, and the boosted
+            # model's binning refuses it: at the earliest origins the 90-day price return precedes the price history.
+            observed = [column for column in fit_X.columns if fit_X[column].notna().any()]
+            if "X_val" in extra:
+                extra = {**extra, "X_val": extra["X_val"][observed]}
+            model = clone(candidate).fit(fit_X[observed], fit_y, **extra)
+            proba = model.predict_proba(Xte[observed])
             classes = list(model.classes_)
             rows.append({"fold": fold.name, "model": name, "train": len(fold.train), "test": len(fold.test),
                          **_scores(yte.to_numpy(), proba, classes)})

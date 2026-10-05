@@ -211,6 +211,28 @@ def test_early_stopping_holds_out_the_latest_training_rows():
     assert set(seen["val"]) == set(np.sort(train_days)[-45:])
 
 
+def test_a_feature_unobserved_in_the_fitted_rows_is_left_out_of_that_fit():
+    # At the earliest origins the 90-day price return has no value on any training row. The boosted model's binning
+    # refuses such a column, so a fold fits without it. Before the fix this raised "window shape cannot be larger".
+    from sklearn.ensemble import HistGradientBoostingClassifier
+
+    seen = {}
+
+    class Spy(HistGradientBoostingClassifier):
+        def fit(self, X, y, **kwargs):
+            seen["columns"] = list(X.columns)
+            return super().fit(X, y, **kwargs)
+
+    rng = np.random.default_rng(3)
+    n = 400
+    X = pd.DataFrame({"a": rng.normal(size=n), "late": np.r_[np.full(300, np.nan), rng.normal(size=100)]})
+    y = pd.Series((rng.uniform(size=n) < 0.6).astype(float))
+    meta = pd.DataFrame({"end_time": pd.Timestamp("2023-01-01") + pd.to_timedelta(np.arange(n), unit="D")})
+    folds = [sv.Fold("f", pd.Timestamp("2024-01-01"), pd.Timestamp("2024-03-01"), np.arange(0, 300), np.arange(300, 400))]
+    scores, _ = sv.evaluate(X, y, meta, folds, {"boosted": Spy(early_stopping=True, validation_fraction=0.15, max_iter=20)})
+    assert seen["columns"] == ["a"] and len(scores) == 1
+
+
 def test_the_protocol_origins_are_the_upgrades_and_quarter_starts():
     origins = sv.protocol_origins()
     assert len(origins) == 19
