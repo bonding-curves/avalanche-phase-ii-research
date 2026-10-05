@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,7 +15,13 @@ from avalanche_research.behaviour import features as ft
 from avalanche_research.behaviour import lifetimes as lt
 from avalanche_research.behaviour import supervised as sv
 from avalanche_research.behaviour import unsupervised as un
-from avalanche_research.behaviour.inputs import LOCKBOX_START, Inputs, check_cutoff
+from avalanche_research.behaviour.inputs import (
+    LOCKBOX_START,
+    Inputs,
+    check_cutoff,
+    regime_at,
+    registered_actors,
+)
 
 T0 = pd.Timestamp("2023-01-01")
 DAY = pd.Timedelta(days=1)
@@ -316,3 +324,34 @@ def test_periods_that_cannot_be_keyed_are_refused(change):
 def test_a_missing_cutoff_is_refused(value):
     with pytest.raises(ValueError, match="required"):
         check_cutoff(value)
+
+
+def test_the_regime_is_the_upgrade_in_force_when_the_period_ends():
+    # EX14: the rule set of a decision is the one in force at its end, not at the ended period's acceptance.
+    times = pd.Series([pd.Timestamp(t) for t in ("2020-09-15", "2025-11-19 15:59:59", "2025-11-19 16:00:00", "2026-10-01")])
+    assert regime_at(times).tolist() == ["genesis", "fortuna", "granite", "helicon"]
+
+
+def attribution(identifier, subject, tier, kind_class, name):
+    return {"attribution_id": identifier, "subject_kind": "reward-address", "subject": subject, "name": name,
+            "statement": "fixture", "tier": tier, "class": kind_class, "source": "https://example.org", "supporting_sources": [],
+            "captured_on": "2026-10-05", "data_run": None, "agent": "data-engineer", "replaces": None}
+
+
+def test_a_period_is_set_apart_by_its_own_address_from_the_evidence_date(tmp_path):
+    # EX13 and MV7: the period's own reward address, not the node's latest, and only from the evidence date on. An
+    # inferred label never selects rows, and a registry row with no evidence date stays pooled.
+    path = tmp_path / "attributions.json"
+    path.write_text(json.dumps({"schema_version": "operator-attributions/v1", "description": "fixture", "attributions": [
+        attribution("OA1", "addr-gg", "AS1", "EVIDENCE", "GoGoPool"),
+        attribution("OA3", "addr-inferred", "AS4", "INFERENCE", "Someone"),
+        attribution("OA10", "addr-undated", "AS1", "EVIDENCE", "Undated"),
+    ]}))
+    periods = pd.DataFrame({
+        "node_id": ["A", "A", "B", "C"],
+        "reward_address": ["addr-other", "addr-gg", "addr-inferred", "addr-undated"],
+        "end_time": pd.to_datetime(["2023-05-01", "2023-06-01", "2024-01-01", "2024-01-01"]),
+    })
+    before = periods.assign(end_time=pd.to_datetime(["2023-03-01", "2023-04-01", "2024-01-01", "2024-01-01"]))
+    assert registered_actors(periods, path).where(lambda v: v.notna(), None).tolist() == [None, "GoGoPool", None, None]
+    assert registered_actors(before, path).isna().all()

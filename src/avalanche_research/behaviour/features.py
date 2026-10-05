@@ -14,7 +14,7 @@ import duckdb
 import numpy as np
 import pandas as pd
 
-from .inputs import Inputs
+from .inputs import Inputs, regime_at
 
 DAY = pd.Timedelta(days=1)
 
@@ -39,8 +39,8 @@ REGISTRY: tuple[Feature, ...] = (
     Feature("pending_start", "period", "1 if the period was accepted before it started", "staking-periods.start_kind"),
     Feature("at_stake_floor", "period", "1 if the stake is the 2,000 AVAX minimum", "staking-periods.stake_avax"),
     Feature("fee_at_floor", "period", "1 if the fee is the 2% minimum", "staking-periods.delegation_fee_rate"),
-    Feature("regime", "period", "Network upgrade regime when the period was accepted", "staking-periods.regime",
-            "categorical"),
+    Feature("regime", "period", "Network upgrade in force when the period ended, the rule set of the decision",
+            "staking-periods.end_time", "categorical"),
     # The node's history up to and including this period.
     Feature("period_number", "history", "This period's place in the node's sequence, from 1", "staking-periods"),
     Feature("node_age_days", "history", "Days from the node's first start to this end", "staking-periods"),
@@ -178,7 +178,7 @@ def build(events: pd.DataFrame, inputs: Inputs) -> pd.DataFrame:
     out["pending_start"] = e.start_kind.eq("pending").astype(int)
     out["at_stake_floor"] = e.stake_avax.round(6).eq(2000).astype(int)
     out["fee_at_floor"] = e.fee_rate.round(6).eq(0.02).astype(int)
-    out["regime"] = pd.Categorical(e.regime)
+    out["regime"] = pd.Categorical(regime_at(e.end_time))
     out = out.join(_history(e))
 
     d = inputs.delegations.set_index("transaction_hash").reindex(e.transaction_hash)

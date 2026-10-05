@@ -11,9 +11,12 @@ from pathlib import Path
 from typing import Any
 
 import duckdb
+import numpy as np
 import pandas as pd
 
 from .. import datasets
+from ..attributions import load_attributions
+from ..model.protocol import MAINNET_UPGRADES
 from ..staking_renewal import LOCKBOX_START as _LOCKBOX_START
 
 # The data from this instant on is held back to test the model once. One definition, the renewal measure's, as naive
@@ -78,6 +81,33 @@ def check_cutoff(observed_through: Any, allow_lockbox: bool = False) -> pd.Times
     return cutoff
 
 
+# Attribution rows that may set a period apart: a registry (tier AS1, EVIDENCE) on the period's own reward address,
+# from the date the evidence first existed. A name inferred from a later snapshot (AS4, AS5) never selects rows, and an
+# AS1 row with no date here stays pooled. OA1: GoGoPool's contracts write each minipool's record when its stake is made,
+# so the evidence exists from the address's first stake, 2023-04-12. OA5: the genesis allocation, known at launch.
+# OA10 (BENQI) stays pooled until IN8 finds its evidence in data from before Granite (modeling lead, MV7).
+EVIDENCE_DATES = {"OA1": pd.Timestamp("2023-04-12"), "OA5": pd.Timestamp("2020-09-10")}
+
+
+def regime_at(times: pd.Series) -> pd.Series:
+    """The network upgrade in force at each time: the rule set a decision at that instant was made under."""
+    names = ["genesis"] + [upgrade.name for upgrade in MAINNET_UPGRADES.upgrades]
+    edges = [pd.Timestamp(upgrade.activated_at).tz_convert("UTC").tz_localize(None) for upgrade in MAINNET_UPGRADES.upgrades]
+    index = np.searchsorted(np.array(edges, dtype="datetime64[ns]"), times.to_numpy(dtype="datetime64[ns]"), side="right")
+    return pd.Series(np.array(names, dtype=object)[index], index=times.index)
+
+
+def registered_actors(periods: pd.DataFrame, path: Path | None = None) -> pd.Series:
+    """The registered actor behind each period, read from its own reward address and only from the evidence date on."""
+    rows, _ = load_attributions() if path is None else load_attributions(path)
+    named = {row["subject"]: (row["name"], EVIDENCE_DATES[row["attribution_id"]]) for row in rows
+             if row["subject_kind"] == "reward-address" and row["tier"] == "AS1" and row["class"] == "EVIDENCE"
+             and row["attribution_id"] in EVIDENCE_DATES}
+    name = periods.reward_address.map(lambda address: named.get(address, (None, None))[0])
+    since = pd.to_datetime(periods.reward_address.map(lambda address: named.get(address, (None, None))[1]))
+    return name.where(periods.end_time.ge(since))
+
+
 def _paths(runs: dict[str, str], root: Path | None) -> dict[str, str]:
     return {dataset_id: str(datasets.parquet_path(dataset_id, run, root=root)) for dataset_id, run in runs.items()}
 
@@ -131,13 +161,11 @@ def load(runs: dict[str, str] | None = None, observed_through: Any = LOCKBOX_STA
         ORDER BY date""").df()
     daily["date"] = pd.to_datetime(daily["date"])
     daily["tbill_pct"] = daily["tbill_pct"].ffill()
-    # Named operators carry the evidence for their label in the attribution file. Only a name resting on a registry
-    # (tier AS1, EVIDENCE: a contract's addresses, the genesis allocation) was knowable when a node made its decisions,
-    # so only those mark a node as a registered actor, to be modelled separately. A name inferred from a later
-    # snapshot (AS4, AS5) describes the node today and is used only to read results, never to select rows.
+    periods["registered_actor"] = registered_actors(periods)
+    # Named operators from the operators run describe each node today and are used only to read results. A node's
+    # registered actor is the one on its latest period accepted before the cut, which was knowable at the cut.
     nodes = con.sql(f"""SELECT node_id, named_agent, named_agent_evidence FROM '{paths[OPERATORS]}'""").df()
     nodes = nodes.set_index("node_id")
-    registered = nodes.named_agent_evidence.fillna("").str.match(r"^\S+ AS1 EVIDENCE")
-    nodes["registered_actor"] = nodes.named_agent.where(registered)
+    nodes["registered_actor"] = periods.groupby("node_id").registered_actor.last().reindex(nodes.index)
     return Inputs(periods=periods, delegations=delegations, daily=daily, nodes=nodes, observed_through=cutoff,
                   runs=runs)
