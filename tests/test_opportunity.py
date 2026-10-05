@@ -21,7 +21,7 @@ def connection_with_inputs() -> duckdb.DuckDBPyConnection:
     )
     connection.execute("CREATE TABLE tbill AS SELECT * FROM (VALUES (DATE '2026-09-28', 4.0), (DATE '2026-09-30', 4.1)) AS t(date_utc, discount_rate_pct)")
     connection.execute(
-        "CREATE TABLE treasury AS SELECT * FROM (VALUES (DATE '2026-09-28', '1y', 3.9), (DATE '2026-09-28', '10y', 4.3)) "
+        "CREATE TABLE treasury AS SELECT * FROM (VALUES (DATE '2026-09-28', '1y', 0.039), (DATE '2026-09-28', '10y', 0.043)) "
         "AS t(observation_date, tenor, yield_rate)"
     )
     connection.execute(
@@ -49,6 +49,8 @@ def test_each_alternative_sits_beside_the_native_rate_of_its_day():
     assert beside == native and spread == pytest.approx(4.0 - native)
     # The ledger has no supply on 09-30, so the bill keeps its rate without a native rate. Gaps stay gaps.
     assert rows[(date(2026, 9, 30), "tbill-3m")][1] is None
-    assert (date(2026, 9, 28), "treasury-1y") in rows and not any(series == "unknown" for _, series in rows)
+    # The Treasury feed stores fractions. Every rate in the table is percent.
+    assert rows[(date(2026, 9, 28), "treasury-1y")][0] == pytest.approx(3.9)
+    assert not any(series == "unknown" for _, series in rows)
     assert rows[(date(2026, 9, 29), "savax")][0] == 3.8
     assert opportunity.summarize(connection)["rows"] == len(rows)

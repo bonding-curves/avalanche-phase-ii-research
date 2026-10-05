@@ -10,7 +10,8 @@ day, for 14 and 365 days, against the supply open of that day on the monetary le
 uptime, so it is what the protocol offers, not what a staker received. A day with no ledger supply has no native rate.
 An alternative appears only on the days its source reports. Gaps stay gaps.
 
-Rates are percent per year. The 3-month bill is FRED's DTB3, a discount rate, not a bond-equivalent yield.
+Rates are percent per year. The Treasury feed's fractions are scaled to percent. The 3-month bill is FRED's DTB3, a discount
+rate, not a bond-equivalent yield.
 """
 
 from __future__ import annotations
@@ -133,7 +134,7 @@ def compute(connection: Any) -> None:
         SELECT date_utc, 'tbill-3m', 'dollar-risk-free', discount_rate_pct, '{INPUTS["tbill"]}' FROM tbill
         WHERE discount_rate_pct IS NOT NULL
         UNION ALL
-        SELECT observation_date, 'treasury-1y', 'dollar-risk-free', yield_rate, '{INPUTS["treasury"]}' FROM treasury
+        SELECT observation_date, 'treasury-1y', 'dollar-risk-free', yield_rate * 100, '{INPUTS["treasury"]}' FROM treasury
         WHERE tenor = '1y' AND yield_rate IS NOT NULL
         UNION ALL
         SELECT p.observation_date, p.label, m.category, p.apy, '{INPUTS["pools"]}'

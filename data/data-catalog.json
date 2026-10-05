@@ -6173,7 +6173,7 @@
           "name": "rate_pct",
           "type": "number",
           "unit": "percent per year",
-          "derivation": "native: the kernel's annualized reward rate; tbill-3m: DTB3 discount rate; treasury-1y: par yield; pools: DefiLlama apy"
+          "derivation": "native: the kernel's annualized reward rate; tbill-3m: DTB3 discount rate; treasury-1y: par yield times 100; pools: DefiLlama apy"
         },
         {
           "name": "native_14d_pct",
