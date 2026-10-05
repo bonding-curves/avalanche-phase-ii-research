@@ -200,9 +200,9 @@ def test_the_renewal_fit_counts_the_same_endings_as_v07():
 
 def test_the_stake_after_a_move_is_unbiased_for_the_band_total():
     """A small node raising its stake ten times must not lift a large node's expected stake (candidate v0.8-b)."""
-    table = Continuation([14] * 3, [14] * 3, [2_500 * AVAX, 50_000 * AVAX, 50_000 * AVAX], [25_000 * AVAX, 45_000 * AVAX, 45_000 * AVAX])
+    table = Continuation([14] * 3, [14] * 3, [30_000 * AVAX, 50_000 * AVAX, 50_000 * AVAX], [300_000 * AVAX, 45_000 * AVAX, 45_000 * AVAX])
     draws = table.stakes(np.full(20_000, 50_000 * AVAX), np.random.default_rng(7))
-    band_ratio = (25_000 + 45_000 + 45_000) / (2_500 + 50_000 + 50_000)
+    band_ratio = (300_000 + 45_000 + 45_000) / (30_000 + 50_000 + 50_000)
     assert draws.mean() / (50_000 * AVAX) == pytest.approx(band_ratio, rel=0.03)
     assert band_ratio < (10 + 0.9 + 0.9) / 3
 

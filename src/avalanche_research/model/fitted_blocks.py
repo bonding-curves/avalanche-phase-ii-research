@@ -32,6 +32,8 @@ TENURE_BINS = ("1", "2", "3 to 6", "7 to 9", "10 or more")
 DURATION_EDGES = (20, 40, 100)
 RENEWAL_STAKE_EDGES = (2_100, 100_000, 1_000_000)
 RETURN_STAKE_EDGES = (2_100, 100_000)
+# Log-spaced from 2,100 to 2,000,000 AVAX: the stake bands within which a moving node draws its stake ratio.
+MOVE_STAKE_EDGES = tuple(float(x) for x in np.exp(np.linspace(np.log(2_100), np.log(2_000_000), 9)))
 RETURN_DAY_EDGES = (30, 90)
 
 RENEWAL_TERMS = (
@@ -337,11 +339,11 @@ class Continuation:
 
     Durations come from a transition table: the next duration is drawn among moves whose previous duration fell in
     the same bin (up to 20, 21 to 40, 41 to 100, over 100 days), which keeps a node's habit. The stake is the
-    previous stake times a ratio drawn among moves in the same return stake band, each move weighted by its previous
-    stake, kept within the protocol's validator bounds of 2,000 and 3,000,000 AVAX. The weight makes the expected stake
-    after a move equal the band's total stake after its moves over its total before. An unweighted draw averages
-    ratios instead, and a few small nodes that raise their stake many times over lift every node's expected stake: by
-    about 10% a move on the year before each development origin, where the stake actually fell 1% to 6% in most years.
+    previous stake times a ratio drawn among moves in the same stake band, one of nine log-spaced bands from 2,100 to
+    2,000,000 AVAX, each move weighted by its previous stake, kept within the protocol's validator bounds of 2,000 and
+    3,000,000 AVAX. On the training moves of the 19 development origins, with the bounds applied, this design puts the
+    expected stake after a move a mean absolute 1.2% from the actual, against 1.8% for three bands unweighted and 4.3%
+    for three bands weighted (review RV-20261005-03).
     """
 
     MIN_STAKE_NAVAX = 2_000 * AVAX
@@ -351,7 +353,7 @@ class Continuation:
         self.previous_bin = np.digitize(np.asarray(previous_days), DURATION_EDGES, right=True)
         self.next_days = np.asarray(next_days, dtype=np.int64)
         previous_stake = np.asarray(previous_stake_navax, dtype=float)
-        self.stake_band = np.digitize(previous_stake / AVAX, RETURN_STAKE_EDGES, right=True)
+        self.stake_band = np.digitize(previous_stake / AVAX, MOVE_STAKE_EDGES, right=True)
         self.ratio = np.asarray(next_stake_navax, dtype=float) / previous_stake
         self.weight = previous_stake
         if len(self.next_days) == 0:
@@ -372,6 +374,6 @@ class Continuation:
 
     def stakes(self, previous_stake_navax: np.ndarray, rng) -> np.ndarray:
         previous = np.asarray(previous_stake_navax, dtype=np.int64)
-        keys = np.digitize(previous / AVAX, RETURN_STAKE_EDGES, right=True)
+        keys = np.digitize(previous / AVAX, MOVE_STAKE_EDGES, right=True)
         ratio = self._draw(keys, self.stake_band, self.ratio, rng, self.weight)
         return np.clip(np.round(previous * ratio), self.MIN_STAKE_NAVAX, self.MAX_STAKE_NAVAX).astype(np.int64)
