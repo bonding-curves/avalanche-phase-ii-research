@@ -461,7 +461,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
     manifest = runner.invoke(cli.cli, ["data", "manifest", "--json"])
     assert [item["id"] for item in json.loads(manifest.output)["records"]] == [
         "snowpeer.network-summary", *snowflake.DATASET_IDS, "coingecko.avax-market-daily", "binance.avax-usdt-daily", "defillama.avax-price-daily",
-        "c-chain-rpc.receipt-gap-repairs", "p-chain-rpc.current-validators", "p-chain-rpc.transactions", "p-chain-rpc.blocks", "x-chain-rpc.blocks", "data-api.p-chain-staking-transactions", "p-chain-rpc.reward-utxos", "data-api.c-chain-block-list", "data-api.p-chain-block-list", "c-chain-rpc.atomic-transactions", "defillama.pool-yields", "defillama.avalanche-fees-daily", "us-treasury.par-yield-daily", "fred.tbill-3m-daily",
+        "c-chain-rpc.receipt-gap-repairs", "p-chain-rpc.current-validators", "p-chain-rpc.transactions", "p-chain-rpc.blocks", "x-chain-rpc.blocks", "data-api.p-chain-staking-transactions", "p-chain-rpc.reward-utxos", "data-api.c-chain-block-list", "data-api.p-chain-block-list", "c-chain-rpc.atomic-transactions", "defillama.pool-yields", "defillama.pool-history", "defillama.lend-borrow", "defillama.avalanche-fees-daily", "us-treasury.par-yield-daily", "fred.tbill-3m-daily",
             "metrics-api.primary-staking-daily", "metrics-api.c-chain-activity-daily", "data-api.avax-supply",
         "data-api.validators-active",
         "data-api.validators-completed",

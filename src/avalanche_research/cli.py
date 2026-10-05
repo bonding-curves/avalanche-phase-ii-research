@@ -35,6 +35,7 @@ from . import operators
 from . import pblocks
 from . import pburns
 from . import pchain
+from . import pool_history
 from . import pins
 from . import pstakers
 from . import pstaking
@@ -74,6 +75,7 @@ MODULES = {
     **{dataset_id: seam for dataset_id in seam.DATASET_IDS},
     catx.DATASET_ID: catx,
     yields.DATASET_ID: yields,
+    **{dataset_id: pool_history for dataset_id in pool_history.DATASET_IDS},
     treasury.DATASET_ID: treasury,
     derived.DATASET_ID: derived,
     nodes.DATASET_ID: nodes,

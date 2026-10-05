@@ -93,6 +93,8 @@ def test_catalog_schema_and_references_are_valid():
         "data-api.p-chain-block-list",
         "c-chain-rpc.atomic-transactions",
         "defillama.pool-yields",
+        "defillama.pool-history",
+        "defillama.lend-borrow",
         "defillama.avalanche-fees-daily",
         "us-treasury.par-yield-daily",
         "fred.tbill-3m-daily",

@@ -173,6 +173,90 @@
           "response_fields": [
             "totalDataChart"
           ]
+        },
+        {
+          "id": "pool-chart-savax",
+          "url": "https://yields.llama.fi/chart/3790c3e5-8644-4f6b-8feb-12434d8b99f9",
+          "response_fields": [
+            "status",
+            "data"
+          ]
+        },
+        {
+          "id": "pool-chart-ggavax",
+          "url": "https://yields.llama.fi/chart/3efc0d84-53c6-4c6a-b1c3-c140502c7f26",
+          "response_fields": [
+            "status",
+            "data"
+          ]
+        },
+        {
+          "id": "pool-chart-aave-wavax",
+          "url": "https://yields.llama.fi/chart/a1e18d7d-9a5f-4251-acb4-a87e005fe2c5",
+          "response_fields": [
+            "status",
+            "data"
+          ]
+        },
+        {
+          "id": "pool-chart-aave-usdc",
+          "url": "https://yields.llama.fi/chart/c4b05318-88af-4536-a834-f5fc8940d2d3",
+          "response_fields": [
+            "status",
+            "data"
+          ]
+        },
+        {
+          "id": "pool-chart-aave-usdt",
+          "url": "https://yields.llama.fi/chart/e6692d08-85b6-4b50-952b-7c5c531862fe",
+          "response_fields": [
+            "status",
+            "data"
+          ]
+        },
+        {
+          "id": "pool-chart-benqi-avax",
+          "url": "https://yields.llama.fi/chart/38583317-5354-4767-8f1e-6a0ae3aa7b5d",
+          "response_fields": [
+            "status",
+            "data"
+          ]
+        },
+        {
+          "id": "pool-chart-benqi-usdc",
+          "url": "https://yields.llama.fi/chart/ff59b165-64e0-4868-a6db-6049b5135358",
+          "response_fields": [
+            "status",
+            "data"
+          ]
+        },
+        {
+          "id": "pool-chart-steth",
+          "url": "https://yields.llama.fi/chart/747c1d2a-c668-4682-b9f9-296708a3dd90",
+          "response_fields": [
+            "status",
+            "data"
+          ]
+        },
+        {
+          "id": "pool-chart-jitosol",
+          "url": "https://yields.llama.fi/chart/0e7d0722-9054-4907-8593-567b353c0900",
+          "response_fields": [
+            "status",
+            "data"
+          ]
+        },
+        {
+          "id": "lend-borrow",
+          "url": "https://yields.llama.fi/lendBorrow",
+          "content": "json-list",
+          "response_fields": [
+            "pool",
+            "apyBaseBorrow",
+            "totalSupplyUsd",
+            "totalBorrowUsd",
+            "ltv"
+          ]
         }
       ]
     },
@@ -3740,6 +3824,225 @@
           "type": "integer",
           "unit": "DefiLlama observations behind the estimates",
           "derivation": "data[i].count"
+        }
+      ]
+    },
+    {
+      "id": "defillama.pool-history",
+      "name": "DefiLlama daily yield history for declared liquid staking and lending pools",
+      "source_id": "defillama",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "What else could AVAX earn: outside options for validators and delegators"
+      ],
+      "description": "One row per declared pool and UTC day of DefiLlama's pool chart: sAVAX, ggAVAX, Aave v3 WAVAX, USDC and USDT, BENQI AVAX and USDC on Avalanche, with Lido stETH and JitoSOL as other chains' staking. Gaps stay gaps. The opportunity-cost study's daily alternatives to native staking.",
+      "endpoint_ids": [
+        "pool-chart-savax",
+        "pool-chart-ggavax",
+        "pool-chart-aave-wavax",
+        "pool-chart-aave-usdc",
+        "pool-chart-aave-usdt",
+        "pool-chart-benqi-avax",
+        "pool-chart-benqi-usdc",
+        "pool-chart-steth",
+        "pool-chart-jitosol"
+      ],
+      "fields": [
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC date",
+          "derivation": "the UTC day of data[i].timestamp; the latest point of a day when a pool reports twice"
+        },
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "data[i].timestamp"
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "unit": "BCRG pool label",
+          "derivation": "declared in pool_history.POOLS"
+        },
+        {
+          "name": "pool_id",
+          "type": "string",
+          "unit": "DefiLlama pool identifier",
+          "derivation": "declared in pool_history.POOLS, resolved from /pools on 2026-10-05"
+        },
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "DefiLlama chain name",
+          "derivation": "declared, as /pools reported it on 2026-10-05"
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "unit": "DefiLlama project slug",
+          "derivation": "declared, as /pools reported it on 2026-10-05"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "unit": "pool symbol",
+          "derivation": "declared, as /pools reported it on 2026-10-05"
+        },
+        {
+          "name": "tvl_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "data[i].tvlUsd"
+        },
+        {
+          "name": "apy",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apy"
+        },
+        {
+          "name": "apy_base",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apyBase"
+        },
+        {
+          "name": "apy_reward",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apyReward"
+        },
+        {
+          "name": "apy_base_7d",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "data[i].apyBase7d"
+        },
+        {
+          "name": "price_per_share",
+          "type": "number",
+          "unit": "underlying units per share; null for most pools",
+          "derivation": "data[i].pricePerShare"
+        }
+      ]
+    },
+    {
+      "id": "defillama.lend-borrow",
+      "name": "DefiLlama lending and borrowing rates on Avalanche, snapshot",
+      "source_id": "defillama",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "What else could AVAX earn: outside options for validators and delegators"
+      ],
+      "description": "One row per Avalanche lending pool at the capture instant, with its supply rate from /pools beside its borrow rate, supply, borrow and loan-to-value from /lendBorrow. DefiLlama serves no history of these rates without payment, so the series exists only through repeated captures.",
+      "endpoint_ids": [
+        "pool-yields",
+        "lend-borrow"
+      ],
+      "fields": [
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "capture completion time"
+        },
+        {
+          "name": "pool_id",
+          "type": "string",
+          "unit": "DefiLlama pool identifier",
+          "derivation": "lendBorrow[i].pool"
+        },
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "DefiLlama chain name",
+          "derivation": "pools data[j].chain, joined on pool"
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "unit": "DefiLlama project slug",
+          "derivation": "pools data[j].project"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "unit": "pool symbol",
+          "derivation": "pools data[j].symbol"
+        },
+        {
+          "name": "apy_supply",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "pools data[j].apy"
+        },
+        {
+          "name": "apy_base_supply",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "pools data[j].apyBase"
+        },
+        {
+          "name": "apy_reward_supply",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "pools data[j].apyReward"
+        },
+        {
+          "name": "apy_base_borrow",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "lendBorrow[i].apyBaseBorrow"
+        },
+        {
+          "name": "apy_reward_borrow",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "lendBorrow[i].apyRewardBorrow"
+        },
+        {
+          "name": "total_supply_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "lendBorrow[i].totalSupplyUsd"
+        },
+        {
+          "name": "total_borrow_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "lendBorrow[i].totalBorrowUsd"
+        },
+        {
+          "name": "debt_ceiling_usd",
+          "type": "number",
+          "unit": "USD",
+          "derivation": "lendBorrow[i].debtCeilingUsd"
+        },
+        {
+          "name": "ltv",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "lendBorrow[i].ltv"
+        },
+        {
+          "name": "borrowable",
+          "type": "boolean",
+          "unit": "DefiLlama flag",
+          "derivation": "lendBorrow[i].borrowable"
+        },
+        {
+          "name": "borrow_factor",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "lendBorrow[i].borrowFactor"
         }
       ]
     },

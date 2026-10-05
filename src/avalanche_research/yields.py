@@ -22,7 +22,7 @@ TABLE = "pool-yields"
 # DefiLlama project slugs for liquid and native proof-of-stake staking products across chains.
 PROOF_OF_STAKE_PROJECTS = (
     "benqi-staked-avax", "lido", "rocket-pool", "coinbase-wrapped-staked-eth", "frax-ether", "stakewise-v3", "stader",
-    "ankr", "jito", "marinade-finance", "stride", "persistence", "mantle-staked-eth", "ether.fi-stake", "renzo",
+    "ankr", "jito", "jito-liquid-staking", "marinade-finance", "marinade-liquid-staking", "stride", "persistence", "mantle-staked-eth", "ether.fi-stake", "renzo",
 )
 TABLE_COLUMNS = {
     "observed_at": "TIMESTAMP",

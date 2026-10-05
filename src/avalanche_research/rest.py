@@ -270,7 +270,10 @@ def read_capture(
             value = json.loads(body)
         except json.JSONDecodeError as error:
             raise DataError(f"captured response is not JSON: {item.get('path')}") from error
-        if not isinstance(value, dict):
+        if item["path"].endswith(".json-list"):
+            if not isinstance(value, list) or not all(isinstance(entry, dict) for entry in value):
+                raise DataError(f"captured response is not a list of objects: {item.get('path')}")
+        elif not isinstance(value, dict):
             raise DataError(f"captured response is not an object: {item.get('path')}")
         values[item["endpoint_id"]] = value
     expected = set(dataset(catalog, receipt["dataset_id"])["endpoint_ids"])
