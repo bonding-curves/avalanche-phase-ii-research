@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,7 +22,8 @@ def validator(node: str, tx: str, start: int, end: int, weight: int, uptime: str
     }
 
 
-NOW = 1789430000  # 2026-09-15T05:53:20Z, within every fixture period
+# The build checks each period against the capture's real completion time, so the fixture periods are set around today.
+NOW = int(time.time()) // 3_600 * 3_600
 VALIDATORS = [
     validator("NodeID-A", "tx-a", NOW - 86_400 * 10, NOW + 86_400 * 20, 2_000_000_000_000),
     validator("NodeID-B", "tx-b", NOW - 86_400 * 5, NOW + 86_400 * 100, 25_655_676_993_789, uptime="85.25", fee="100.0000", connected=False),
