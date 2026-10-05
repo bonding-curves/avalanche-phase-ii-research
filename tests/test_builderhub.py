@@ -130,7 +130,8 @@ def test_derived_merges_captures_and_marks_revisions(tmp_path):
 
 
 def test_import_wraps_the_preservation_copy(tmp_path):
-    end = END
+    # The preserved receipt completed at a fixed time, so the series ends before it, not relative to today.
+    end = datetime(2026, 9, 24, 8)
     source = tmp_path / "preserved"
     source.mkdir()
     (source / "validators.json").write_text(json.dumps([{"node_id": "NodeID-a"}]))
