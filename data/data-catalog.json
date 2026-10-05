@@ -1600,6 +1600,16 @@
           "id": "seamed-staking-rewards",
           "dataset_id": "derived.seamed-staking-rewards",
           "role": "staking rewards, the share before the seam and the P-Chain walk from it"
+        },
+        {
+          "id": "treasury-par-daily",
+          "dataset_id": "us-treasury.par-yield-daily",
+          "role": "the 1-year Treasury par yield, daily, a dollar alternative"
+        },
+        {
+          "id": "pool-history",
+          "dataset_id": "defillama.pool-history",
+          "role": "daily DeFi yields of the declared liquid staking, lending and other-chain pools"
         }
       ]
     },
@@ -6119,6 +6129,81 @@
           "type": "boolean",
           "unit": "flag",
           "derivation": "price_usdt exists; false in the first week, before AVAX traded"
+        }
+      ]
+    },
+    {
+      "id": "derived.opportunity-costs-daily",
+      "name": "Opportunity costs beside the native staking rate, daily",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "What else could AVAX earn: outside options for validators and delegators"
+      ],
+      "description": "One row per UTC day and series: the protocol's native staking rate at 14 and 365 days, or an alternative (the 3-month bill, the 1-year Treasury, AVAX liquid staking and lending, dollar lending, other chains' staking), each beside the native rates of the same day and its spread over them. The native rate is the kernel's offered rate, gross of fees and uptime. Alternatives appear only on days their source reports.",
+      "input_ids": [
+        "monetary-daily",
+        "tbill-3m-daily",
+        "treasury-par-daily",
+        "pool-history"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC date",
+          "derivation": "the day of the series observation"
+        },
+        {
+          "name": "series",
+          "type": "string",
+          "unit": "series name",
+          "derivation": "native-14d, native-365d, tbill-3m, treasury-1y, or a defillama.pool-history label"
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "unit": "series class",
+          "derivation": "avax-native-staking, dollar-risk-free, avax-liquid-staking, avax-lending, dollar-lending, other-chain-staking"
+        },
+        {
+          "name": "rate_pct",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "native: the kernel's annualized reward rate; tbill-3m: DTB3 discount rate; treasury-1y: par yield; pools: DefiLlama apy"
+        },
+        {
+          "name": "native_14d_pct",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "protocol kernel annualized_reward_rate for 2,000 AVAX staked 14 days from 00:00 UTC, against that day's supply open; null without ledger supply"
+        },
+        {
+          "name": "native_365d_pct",
+          "type": "number",
+          "unit": "percent per year",
+          "derivation": "as native_14d_pct, staked 365 days"
+        },
+        {
+          "name": "spread_vs_14d_pp",
+          "type": "number",
+          "unit": "percentage points",
+          "derivation": "rate_pct minus native_14d_pct"
+        },
+        {
+          "name": "spread_vs_365d_pp",
+          "type": "number",
+          "unit": "percentage points",
+          "derivation": "rate_pct minus native_365d_pct"
+        },
+        {
+          "name": "source_dataset",
+          "type": "string",
+          "unit": "dataset id",
+          "derivation": "the input dataset the rate is read from"
         }
       ]
     },

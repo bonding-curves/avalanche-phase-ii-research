@@ -32,6 +32,7 @@ from . import monetary
 from . import monetary_periods
 from . import nodes
 from . import operators
+from . import opportunity
 from . import pblocks
 from . import pburns
 from . import pchain
@@ -82,6 +83,7 @@ MODULES = {
     helicon.DATASET_ID: helicon,
     subnets.DATASET_ID: subnets,
     operators.DATASET_ID: operators,
+    opportunity.DATASET_ID: opportunity,
     attributions.DATASET_ID: attributions,
     monetary.DATASET_ID: monetary,
     monetary_periods.DATASET_ID: monetary_periods,

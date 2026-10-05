@@ -113,6 +113,7 @@ def test_catalog_schema_and_references_are_valid():
         "derived.validator-weeks",
         "derived.observed-delegations",
         "derived.market-weeks",
+        "derived.opportunity-costs-daily",
         "derived.avax-monetary-daily",
         "derived.monetary-periods",
         "builder-hub.validator-uptime",

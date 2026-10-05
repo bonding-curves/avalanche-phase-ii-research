@@ -474,6 +474,7 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "derived.validator-weeks",
         "derived.observed-delegations",
         "derived.market-weeks",
+        "derived.opportunity-costs-daily",
         "derived.avax-monetary-daily", "derived.monetary-periods",
         "builder-hub.validator-uptime",
         "derived.validator-uptime-hourly",
