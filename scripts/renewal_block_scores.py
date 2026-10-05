@@ -16,6 +16,8 @@ The tests are the ones written before the scores (roadmap research r4, S1):
 * ``S1-A3``: expected calibration error at most 0.02 over 10 quantile bins, and monthly renewal within 3 points
   mean absolute error.
 * ``S1-A4``: renewal at tenure 1, 2 and 7 within 3 points.
+* ``S1-A5``: a challenger replaces the logit only if it beats it as ``S1-A1`` asks and passes ``S1-A3``. The challenger
+  here is ``v0.8-c``, the logit with the node's own renewal record (``EX15``).
 
 Writes ``renewal-scores.csv`` (one row per origin and block), ``renewal-tenure.csv`` and ``renewal-tests.csv``.
 """
@@ -51,7 +53,7 @@ LOCKBOX_US = int(LOCKBOX_START.timestamp() * 1_000_000)
 # An ending is scored only if its whole follow-up week, and so any successor that labels it, falls before the lockbox.
 LAST_LABELLED_US = LOCKBOX_US - FOLLOW_US - 1
 BOOTSTRAPS = 2_000
-BLOCKS = ("v0.7", "M1", "v0.8")
+BLOCKS = ("v0.7", "M1", "v0.8", "v0.8-c")
 
 
 def previous_outcome(endings: pd.DataFrame) -> np.ndarray:
@@ -61,6 +63,46 @@ def previous_outcome(endings: pd.DataFrame) -> np.ndarray:
 def log_loss(p: np.ndarray, y: np.ndarray) -> np.ndarray:
     p = np.clip(p, 1e-12, 1 - 1e-12)
     return -(y * np.log(p) + (1 - y) * np.log1p(-p))
+
+
+def bootstrap_p(events: pd.DataFrame, block: str, against: str) -> float:
+    """Share of paired bootstrap replicates, resampling origins and nodes within them, in which ``block`` is no better."""
+    rng = np.random.default_rng(20261005)
+    nodes = events.assign(difference=events[f"loss_{block}"] - events[f"loss_{against}"]).groupby(["origin", "node_id"])["difference"].agg(["sum", "size"])
+    groups = [(g["sum"].to_numpy(), g["size"].to_numpy()) for _, g in nodes.groupby(level="origin")]
+    differences = np.empty(BOOTSTRAPS)
+    for i in range(BOOTSTRAPS):
+        total = count = 0.0
+        for sums, sizes in (groups[j] for j in rng.integers(0, len(groups), len(groups))):
+            picked = rng.integers(0, len(sums), len(sums))
+            total += sums[picked].sum()
+            count += sizes[picked].sum()
+        differences[i] = total / count
+    return float((differences >= 0).mean())
+
+
+def block_tests(events, by_origin, tenure, monthly, monthly_mae, pooled, block, against, code) -> list[dict]:
+    """``S1-A1`` (or ``S1-A5`` against another learner) to ``S1-A4`` for one renewal block."""
+    p = bootstrap_p(events, block, against)
+    lower_at = int((by_origin[f"loss_{block}"] < by_origin[f"loss_{against}"]).sum())
+    bins = pd.qcut(events[f"p_{block}"], 10, duplicates="drop")
+    calibration = events.groupby(bins, observed=True).agg(n=("renewed", "size"), observed=("renewed", "mean"), predicted=(f"p_{block}", "mean"))
+    ece = float((calibration["n"] * (calibration["observed"] - calibration["predicted"]).abs()).sum() / calibration["n"].sum())
+    gap = tenure[block] - tenure["observed"]
+    return [
+        {"block": block, "test": code, "measure": f"pooled log loss against {against}", "value": f"{pooled[block]:.4f} against {pooled[against]:.4f}",
+         "detail": f"bootstrap p {p:.4f}, lower at {lower_at} of {len(by_origin)} origins",
+         "passes": bool(pooled[block] < pooled[against] and p < 0.05 and lower_at >= 14)},
+        {"block": block, "test": "S1-A2", "measure": "pooled log loss against M1", "value": f"{pooled[block]:.4f} against {pooled['M1']:.4f}",
+         "detail": "all nodes, registered actors not yet set apart", "passes": bool(pooled[block] <= pooled["M1"])},
+        {"block": block, "test": "S1-A3", "measure": "expected calibration error, 10 quantile bins; monthly mean absolute error",
+         "value": f"{ece:.4f}; {monthly_mae[block]:.4f}", "detail": f"{len(monthly)} months; monthly error of v0.7 {monthly_mae['v0.7']:.4f}, M1 {monthly_mae['M1']:.4f}",
+         "passes": bool(ece <= 0.02 and monthly_mae[block] <= 0.03)},
+        {"block": block, "test": "S1-A4", "measure": "renewal at tenure 1, 2 and 7, predicted minus observed",
+         "value": "; ".join(f"{t} {g:+.4f}" for t, g in gap.items()),
+         "detail": "; ".join(f"{t} observed {o:.3f} of {n}, v0.7 {v:+.4f}" for t, o, n, v in zip(tenure.index, tenure["observed"], tenure["endings"], tenure["v0.7"] - tenure["observed"])),
+         "passes": bool((gap.abs() <= 0.03).all())},
+    ]
 
 
 def main() -> None:
@@ -75,12 +117,15 @@ def main() -> None:
         train = renewal_endings(known, cutoff - 365 * US_PER_DAY - FOLLOW_US, cutoff - FOLLOW_US)
         test = renewal_endings(rows, cutoff, min(cutoff + HORIZON_DAYS * US_PER_DAY, LAST_LABELLED_US))
         y_train = train["renewed"].to_numpy()
-        logit = RenewalLogit.fit(renewal_inputs(train), y_train, f"{RUN}, {len(train)} endings before {origin}")
+        plain = {k: v for k, v in renewal_inputs(train).items() if k != "returns"}
+        logit = RenewalLogit.fit(plain, y_train, f"{RUN}, {len(train)} endings before {origin}")
+        record = RenewalLogit.fit(renewal_inputs(train), y_train, f"{RUN}, {len(train)} endings before {origin}")
         shares = pd.Series(y_train).groupby(previous_outcome(train)).mean()
         predictions = {
             "v0.7": np.full(len(test), y_train.mean()),
             "M1": shares.reindex(previous_outcome(test)).fillna(y_train.mean()).to_numpy(),
-            "v0.8": logit.probability(renewal_inputs(test)),
+            "v0.8": logit.probability({k: v for k, v in renewal_inputs(test).items() if k != "returns"}),
+            "v0.8-c": record.probability(renewal_inputs(test)),
         }
         frame = test[["node_id", "e", "done", "stake_navax"]].assign(origin=name, origin_date=origin, renewed=test["renewed"].astype(int))
         for block, p in predictions.items():
@@ -97,47 +142,19 @@ def main() -> None:
     ).reset_index()
     by_origin.to_csv(out / "renewal-scores.csv", index=False)
 
-    rng = np.random.default_rng(20261005)
-    nodes = events.assign(difference=events["loss_v0.8"] - events["loss_v0.7"]).groupby(["origin", "node_id"])["difference"].agg(["sum", "size"])
-    groups = [(g["sum"].to_numpy(), g["size"].to_numpy()) for _, g in nodes.groupby(level="origin")]
-    differences = np.empty(BOOTSTRAPS)
-    for i in range(BOOTSTRAPS):
-        total = count = 0.0
-        for sums, sizes in (groups[j] for j in rng.integers(0, len(groups), len(groups))):
-            picked = rng.integers(0, len(sums), len(sums))
-            total += sums[picked].sum()
-            count += sizes[picked].sum()
-        differences[i] = total / count
-
     labels = np.where(events["done"] == 0, "1", np.where(events["done"] == 1, "2", np.where(events["done"] == 6, "7", "other")))
     tenure = events.assign(tenure=labels).query("tenure != 'other'").groupby("tenure").agg(
         endings=("renewed", "size"), observed=("renewed", "mean"), **{b: (f"p_{b}", "mean") for b in BLOCKS})
     tenure.to_csv(out / "renewal-tenure.csv")
-
-    bins = pd.qcut(events["p_v0.8"], 10, duplicates="drop")
-    calibration = events.groupby(bins, observed=True).agg(n=("renewed", "size"), observed=("renewed", "mean"), predicted=("p_v0.8", "mean"))
-    ece = float((calibration["n"] * (calibration["observed"] - calibration["predicted"]).abs()).sum() / calibration["n"].sum())
     month = pd.to_datetime(events["e"], unit="us").dt.to_period("M")
     monthly = events.groupby(month).agg(observed=("renewed", "mean"), n=("renewed", "size"), **{b: (f"p_{b}", "mean") for b in BLOCKS})
     monthly_mae = {b: float((monthly["observed"] - monthly[b]).abs().mean()) for b in BLOCKS}
-
     pooled = {b: float(events[f"loss_{b}"].mean()) for b in BLOCKS}
-    lower_at = int((by_origin["loss_v0.8"] < by_origin["loss_v0.7"]).sum())
-    tenure_gap = (tenure["v0.8"] - tenure["observed"]).abs()
-    tests = pd.DataFrame([
-        {"test": "S1-A1", "measure": "pooled log loss, v0.8 against v0.7", "value": f"{pooled['v0.8']:.4f} against {pooled['v0.7']:.4f}",
-         "detail": f"bootstrap p {float((differences >= 0).mean()):.4f}, lower at {lower_at} of {len(by_origin)} origins",
-         "passes": bool(pooled["v0.8"] < pooled["v0.7"] and (differences >= 0).mean() < 0.05 and lower_at >= 14)},
-        {"test": "S1-A2", "measure": "pooled log loss, v0.8 against M1", "value": f"{pooled['v0.8']:.4f} against {pooled['M1']:.4f}",
-         "detail": "all nodes, registered actors not yet set apart", "passes": bool(pooled["v0.8"] <= pooled["M1"])},
-        {"test": "S1-A3", "measure": "expected calibration error, 10 quantile bins; monthly mean absolute error",
-         "value": f"{ece:.4f}; {monthly_mae['v0.8']:.4f}", "detail": f"{len(monthly)} months; monthly error of v0.7 {monthly_mae['v0.7']:.4f}, M1 {monthly_mae['M1']:.4f}",
-         "passes": bool(ece <= 0.02 and monthly_mae["v0.8"] <= 0.03)},
-        {"test": "S1-A4", "measure": "renewal at tenure 1, 2 and 7, predicted minus observed",
-         "value": "; ".join(f"{t} {g:+.4f}" for t, g in (tenure["v0.8"] - tenure["observed"]).items()),
-         "detail": "; ".join(f"{t} observed {o:.3f} of {n}, v0.7 {v:+.4f}" for t, o, n, v in zip(tenure.index, tenure["observed"], tenure["endings"], tenure["v0.7"] - tenure["observed"])),
-         "passes": bool((tenure_gap <= 0.03).all())},
-    ])
+    rows = []
+    for block in ("v0.8", "v0.8-c"):
+        rows += block_tests(events, by_origin, tenure, monthly, monthly_mae, pooled, block, "v0.7", "S1-A1")
+    rows += block_tests(events, by_origin, tenure, monthly, monthly_mae, pooled, "v0.8-c", "v0.8", "S1-A5")[:1]
+    tests = pd.DataFrame(rows)
     tests.to_csv(out / "renewal-tests.csv", index=False)
     print(by_origin.round(4).to_string(index=False))
     print(tenure.round(4).to_string())

@@ -39,18 +39,18 @@ def synthetic_endings(n, rng):
 def test_the_renewal_logit_recovers_known_coefficients():
     rng = np.random.default_rng(1)
     inputs = synthetic_endings(200_000, rng)
-    truth = np.array([0.3, 0.5, 1.0, 1.2, 1.1, -1.2, 0.6, 0.1, -0.8, -0.4, -0.1, -1.4])
+    truth = np.array([0.3, 0.5, 1.0, 1.2, 1.1, -1.2, 0.6, 0.1, -0.8, -0.4, -0.1, -1.4, 0.0])
     p = special.expit(renewal_design(**inputs) @ truth)
     fitted = RenewalLogit.fit(inputs, rng.random(len(p)) < p, "synthetic", ridge=0.0)
     assert fitted.coefficients() == pytest.approx(truth, abs=0.08)
-    assert {meta["source"] for meta in fitted.sources().values()} == {"fitted"}
+    assert {fitted.sources()[term]["source"] for term in RENEWAL_TERMS} == {"fitted"}
     check_sources([fitted])
 
 
 def test_the_fitted_logit_scores_its_own_data_better_than_the_constant():
     rng = np.random.default_rng(2)
     inputs = synthetic_endings(20_000, rng)
-    p = special.expit(renewal_design(**inputs) @ np.array([0.0, 1, 1, 1, 1, -1, 0, 0, 0, 0, 0, -2]))
+    p = special.expit(renewal_design(**inputs) @ np.array([0.0, 1, 1, 1, 1, -1, 0, 0, 0, 0, 0, -2, 0]))
     decisions = rng.random(len(p)) < p
     fitted = RenewalLogit.fit(inputs, decisions, "synthetic")
     constant = RenewalLogit().with_value("intercept", float(special.logit(decisions.mean())), "observed moment", "synthetic")
@@ -195,7 +195,7 @@ def test_the_renewal_fit_counts_the_same_endings_as_v07():
     endings, renewed = (int(x) for x in evidence.split(": ")[1].replace(" renewed", "").split(" endings, "))
     assert renewed / endings == pytest.approx(v07["renewal_probability"], abs=1e-12)
     assert len(ours["initial"]) == len(v07["initial_stakes"])
-    assert sorted(RENEWAL_TERMS) == sorted(ours["renewal"].sources())
+    assert set(RENEWAL_TERMS) <= set(ours["renewal"].sources())
 
 
 def test_the_stake_after_a_move_is_unbiased_for_the_band_total():
@@ -205,3 +205,21 @@ def test_the_stake_after_a_move_is_unbiased_for_the_band_total():
     band_ratio = (25_000 + 45_000 + 45_000) / (2_500 + 50_000 + 50_000)
     assert draws.mean() / (50_000 * AVAX) == pytest.approx(band_ratio, rel=0.03)
     assert band_ratio < (10 + 0.9 + 0.9) / 3
+
+
+def test_the_node_record_is_recovered_with_its_prior_strength():
+    """Nodes differ in their own renewal propensity; the record of their earlier endings carries it (candidate v0.8-c)."""
+    rng = np.random.default_rng(8)
+    nodes, endings = 4_000, 12
+    propensity = rng.beta(8, 2, nodes)
+    renewed = rng.random((nodes, endings)) < propensity[:, None]
+    done = np.tile(np.arange(endings), nodes)
+    returns = np.concatenate([np.cumsum(np.concatenate([[0], ~row[:-1]])) for row in renewed])
+    inputs = {"done": done, "after_return": np.concatenate([np.concatenate([[False], ~row[:-1]]) for row in renewed]),
+              "days": np.full(done.size, 14), "stake_navax": np.full(done.size, 2_000 * AVAX), "returns": returns}
+    fitted = RenewalLogit.fit(inputs, renewed.ravel(), "synthetic")
+    plain = RenewalLogit.fit({k: v for k, v in inputs.items() if k != "returns"}, renewed.ravel(), "synthetic")
+    assert fitted.node_record > 0.5
+    assert fitted.node_prior_strength in (2.0, 5.0, 10.0, 20.0)
+    assert fitted.log_prob(inputs, renewed.ravel()) > plain.log_prob(inputs, renewed.ravel()) + 100
+    assert plain.node_record == 0.0

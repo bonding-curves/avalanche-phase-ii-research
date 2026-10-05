@@ -35,12 +35,17 @@ from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
 US_PER_DAY = 86_400_000_000
 INSTANT_US = 86_399_000_000
 
-COMMITMENT = ("stakes", "days_left", "done", "after_return", "days", "handed_on")
-OUT = ("out_stakes", "out_days", "out_done", "out_last_days")
+COMMITMENT = ("stakes", "days_left", "done", "after_return", "days", "handed_on", "returns")
+OUT = ("out_stakes", "out_days", "out_done", "out_last_days", "out_returns")
 
 
 def _array(value, dtype=np.int64) -> np.ndarray:
     return np.asarray(value if value is not None else [], dtype=dtype)
+
+
+def _column(frame: pd.DataFrame, name: str, dtype=np.int64) -> np.ndarray:
+    """A column as an array, or zeros when the frame does not have it, as for a table built before ``returns`` existed."""
+    return _array(frame[name], dtype) if name in frame else np.zeros(len(frame), dtype=dtype)
 
 
 class FittedLifecycle(SimulationModel):
@@ -56,7 +61,7 @@ class FittedLifecycle(SimulationModel):
     runs = param.Integer(default=20, bounds=(1, None), doc="Monte Carlo runs")
     initial = param.DataFrame(default=None, allow_None=True, precedence=-1, doc="Open commitments at the origin, one row each, with the columns of COMMITMENT")
     out_of_set = param.DataFrame(default=None, allow_None=True, precedence=-1, doc="Nodes out of the active set at the origin for at most 365 days, with the columns of OUT")
-    scheduled = param.DataFrame(default=None, allow_None=True, precedence=-1, doc="Commitments accepted by the origin that start after it: start_day, stakes, days, done, after_return")
+    scheduled = param.DataFrame(default=None, allow_None=True, precedence=-1, doc="Commitments accepted by the origin that start after it: start_day, stakes, days, done, after_return, returns")
     moves = param.DataFrame(default=None, allow_None=True, precedence=-1, doc="Renewals and returns of the year before the origin: previous_days, next_days, previous_stake_navax, next_stake_navax")
     first_commitments = param.DataFrame(default=None, allow_None=True, precedence=-1, doc="First-ever commitments of the year before the origin: days, stake_navax")
     inputs_source = param.String(default="", doc="The staking-periods run the inputs came from")
@@ -86,8 +91,8 @@ class FittedLifecycle(SimulationModel):
     def initial_state(self):
         initial = self.initial if self.initial is not None else pd.DataFrame(columns=COMMITMENT)
         out = self.out_of_set if self.out_of_set is not None else pd.DataFrame(columns=OUT)
-        state = {name: _array(initial[name], bool if name in ("after_return", "handed_on") else np.int64) for name in COMMITMENT}
-        state |= {name: _array(out[name]) for name in OUT}
+        state = {name: _column(initial, name, bool if name in ("after_return", "handed_on") else np.int64) for name in COMMITMENT}
+        state |= {name: _column(out, name) for name in OUT}
         return {
             **state,
             "active_validators": len(state["stakes"]),
@@ -113,7 +118,7 @@ class FittedLifecycle(SimulationModel):
         moves, first = self.moves, self.first_commitments
         continuation = Continuation(moves["previous_days"], moves["next_days"], moves["previous_stake_navax"], moves["next_stake_navax"])
         first_days, first_stakes = _array(first["days"]), _array(first["stake_navax"])
-        sched = self.scheduled if self.scheduled is not None else pd.DataFrame(columns=["start_day", "stakes", "days", "done", "after_return"])
+        sched = self.scheduled if self.scheduled is not None else pd.DataFrame(columns=["start_day", "stakes", "days", "done", "after_return", "returns"])
         sched_day = _array(sched["start_day"])
 
         def p_lifecycle(params, substep, history, state):
@@ -124,10 +129,10 @@ class FittedLifecycle(SimulationModel):
             days_left = state["days_left"] - 1
             ending = days_left <= 0
             decide = ending & ~state["handed_on"]
-            ended = {name: state[name][decide] for name in ("stakes", "done", "after_return", "days")}
+            ended = {name: state[name][decide] for name in ("stakes", "done", "after_return", "days", "returns")}
             renews = renewal.sample({
                 "done": ended["done"], "after_return": ended["after_return"], "days": ended["days"],
-                "stake_navax": ended["stakes"], "shift": renewal_response * renewal_gap,
+                "stake_navax": ended["stakes"], "returns": ended["returns"], "shift": renewal_response * renewal_gap,
             }, rng)
 
             out_days = state["out_days"] + 1
@@ -147,6 +152,7 @@ class FittedLifecycle(SimulationModel):
                 ]),
                 "done": np.concatenate([ended["done"][renews] + 1, state["out_done"][comes_back], np.zeros(n_new, dtype=np.int64)]),
                 "after_return": np.concatenate([np.zeros(int(renews.sum()), bool), np.ones(int(comes_back.sum()), bool), np.zeros(n_new, bool)]),
+                "returns": np.concatenate([ended["returns"][renews], state["out_returns"][comes_back] + 1, np.zeros(n_new, dtype=np.int64)]),
             }
             issued = sum(
                 mechanism.potential_reward_navax(int(stake), int(d) * 86_400, state["supply_navax"], start, int(periods))
@@ -164,10 +170,12 @@ class FittedLifecycle(SimulationModel):
                 "after_return": np.concatenate([state["after_return"][keep], started["after_return"], _array(sched["after_return"], bool)[due]]),
                 "days": np.concatenate([state["days"][keep], started["days"], _array(sched["days"])[due]]),
                 "handed_on": np.concatenate([state["handed_on"][keep], np.zeros(len(started["stakes"]) + int(due.sum()), bool)]),
+                "returns": np.concatenate([state["returns"][keep], started["returns"], _column(sched, "returns")[due]]),
                 "out_stakes": np.concatenate([state["out_stakes"][stay_out], ended["stakes"][left]]),
                 "out_days": np.concatenate([out_days[stay_out], np.zeros(int(left.sum()), dtype=np.int64)]),
                 "out_done": np.concatenate([state["out_done"][stay_out], ended["done"][left] + 1]),
                 "out_last_days": np.concatenate([state["out_last_days"][stay_out], ended["days"][left]]),
+                "out_returns": np.concatenate([state["out_returns"][stay_out], ended["returns"][left]]),
                 "issued_navax": int(issued),
                 "yield_gap_pp": float(renewal_gap),
             }
@@ -222,8 +230,9 @@ def validator_periods(periods_parquet: str, through_us: int) -> pd.DataFrame:
     """Validator commitments that started by ``through_us``, each with its node's neighbours and the terms the blocks read.
 
     ``done`` counts the node's commitments before this one. ``after_return`` marks a commitment that began more than
-    seven days after the node's last one ended. ``renewed`` marks one followed on the same node within seven days of
-    its end, by a commitment that started by ``through_us``.
+    seven days after the node's last one ended, and ``returns`` counts the node's commitments to this one that did.
+    ``renewed`` marks one followed on the same node within seven days of its end, by a commitment that started by
+    ``through_us``.
     """
     rows = duckdb.execute(
         f"""SELECT node_id, stake_navax, s, e, prev_e, next_s, next_e, next_stake, done FROM (
@@ -247,6 +256,7 @@ def validator_periods(periods_parquet: str, through_us: int) -> pd.DataFrame:
     rows["after_return"] = rows["prev_e"].notna() & (rows["s"] > rows["prev_e"] + follow)
     rows["renewed"] = rows["next_s"].notna() & (rows["next_s"] >= rows["e"]) & (rows["next_s"] <= rows["e"] + follow)
     rows["leave_day"] = _whole_days(rows["e"])
+    rows["returns"] = rows.groupby("node_id")["after_return"].cumsum().astype(np.int64)
     return rows
 
 
@@ -265,6 +275,7 @@ def renewal_inputs(endings: pd.DataFrame) -> dict[str, np.ndarray]:
     return {
         "done": endings["done"].to_numpy(), "after_return": endings["after_return"].to_numpy(),
         "days": endings["days"].to_numpy(), "stake_navax": endings["stake_navax"].to_numpy(),
+        "returns": endings["returns"].to_numpy(),
     }
 
 
@@ -332,6 +343,7 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "") -> dict:
         "after_return": open_now["after_return"].to_numpy(dtype=bool),
         "days": open_now["days"].to_numpy(dtype=np.int64),
         "handed_on": open_now["node_id"].isin(pending_nodes).to_numpy(),
+        "returns": open_now["returns"].to_numpy(dtype=np.int64),
     })
 
     latest = rows.groupby("node_id").tail(1)
@@ -341,9 +353,10 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "") -> dict:
         "out_days": (day - out["leave_day"]).to_numpy(dtype=np.int64),
         "out_done": (out["done"] + 1).to_numpy(dtype=np.int64),
         "out_last_days": out["days"].to_numpy(dtype=np.int64),
+        "out_returns": out["returns"].to_numpy(dtype=np.int64),
     })
 
-    last = rows.groupby("node_id").agg(last_done=("done", "max"), last_e=("e", "max"))
+    last = rows.groupby("node_id").agg(last_done=("done", "max"), last_e=("e", "max"), last_returns=("returns", "max"))
     pending = pending.join(last, on="node_id")
     start_day = _whole_days(pending["s"])
     scheduled = pd.DataFrame({
@@ -353,6 +366,7 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "") -> dict:
         "done": (pending["last_done"].fillna(-1) + 1).to_numpy(dtype=np.int64),
         "after_return": (pending["last_e"].notna() & (pending["s"] > pending["last_e"] + follow)).to_numpy(dtype=bool),
     })
+    scheduled["returns"] = (pending["last_returns"].fillna(0).to_numpy(dtype=np.int64) + scheduled["after_return"].to_numpy()).astype(np.int64)
 
     supply = duckdb.execute(
         f"SELECT supply_before_navax FROM read_parquet(?) WHERE start_time <= make_timestamp({cutoff}) "
