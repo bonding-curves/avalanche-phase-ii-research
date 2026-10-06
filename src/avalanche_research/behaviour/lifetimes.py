@@ -12,6 +12,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from .features import reward_failed
+
 DAY = pd.Timedelta(days=1)
 
 BEHAVIOUR = (
@@ -52,7 +54,8 @@ def build(events: pd.DataFrame, features: pd.DataFrame) -> pd.DataFrame:
     out["renew_share"] = e.outcome.eq("renew").where(known).groupby(e.node_id).mean()
     out["return_share"] = e.outcome.eq("return").where(known).groupby(e.node_id).mean()
     out["median_gap_days"] = e.gap_days.where(e.gap_days.ge(0)).groupby(e.node_id).median()
-    out["failed_share"] = (~e.rewarded.fillna(True).astype(bool)).groupby(e.node_id).mean()
+    # The share among outcomes known at their decisions; a node with none known has no share.
+    out["failed_share"] = reward_failed(e).groupby(e.node_id).mean()
     out["delegation_ratio_mean"] = g.delegation_ratio.mean()
     out["delegations_log"] = np.log1p(np.expm1(e.delegations_log).groupby(e.node_id).sum())
     # AVAX-weighted share of delegated stake from the largest delegator address, over the node's periods.

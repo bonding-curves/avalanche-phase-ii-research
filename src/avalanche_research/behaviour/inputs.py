@@ -122,7 +122,7 @@ def load(runs: dict[str, str] | None = None, observed_through: Any = LOCKBOX_STA
     cut = f"TIMESTAMP '{cutoff}'"
     periods = con.sql(f"""
         SELECT p.transaction_hash, p.node_id, p.accepted_at, p.start_time, p.end_time, p.duration_days, p.stake_avax,
-               p.delegation_fee_rate AS fee_rate, p.potential_reward_avax, p.rewarded, p.regime, p.start_kind,
+               p.delegation_fee_rate AS fee_rate, p.potential_reward_avax, p.rewarded, p.rewarded_at, p.regime, p.start_kind,
                v.reward_address
         FROM '{paths[PERIODS]}' p
         LEFT JOIN '{paths[VALIDATOR_STAKES]}' v USING (transaction_hash)

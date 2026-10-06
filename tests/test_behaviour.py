@@ -408,3 +408,19 @@ def test_the_calendar_dates_each_activation_and_the_ramp_end():
     ramp_end = calendar.loc[calendar.kind.eq("ramp_end"), "event_time"].item()
     assert ramp_end - activation["helicon"] == pd.Timedelta(days=90)
     assert set(calendar.loc[calendar.kind.eq("registered_actor_evidence"), "name"]) == {"OA1", "OA5"}
+
+
+def test_an_unknown_or_unsettled_reward_is_never_read_as_success():
+    # DS3 F4: a missing status, or one settled only after the decision, stays missing in every failure feature.
+    rows = pd.DataFrame([
+        {**period("ok", "A", 0, 14), "rewarded_at": T0 + 14 * DAY},
+        {**period("fail", "A", 15, 14, rewarded=False), "rewarded_at": T0 + 29 * DAY},
+        {**period("unknown", "A", 30, 14, rewarded=None), "rewarded_at": pd.NaT},
+        {**period("late", "B", 0, 14, rewarded=False), "rewarded_at": T0 + 20 * DAY},
+    ])
+    failed = ft.reward_failed(rows.assign(end_time=pd.to_datetime(rows.end_time)))
+    assert failed.iloc[0] == 0 and failed.iloc[1] == 1 and failed.iloc[2:].isna().all()
+    e = ev.decision_events(rows, observed_through=T0 + 400 * DAY).set_index("transaction_hash")
+    built = ft.build(e.reset_index(), inputs_for(rows, T0 + 400 * DAY)).set_index(e.index)
+    assert built.loc["fail", "failed_to_date"] == 1 and np.isnan(built.loc["unknown", "failed_to_date"])
+    assert np.isnan(built.loc["late", "failed"])

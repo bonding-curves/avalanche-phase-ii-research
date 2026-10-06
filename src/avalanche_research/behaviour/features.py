@@ -33,7 +33,8 @@ REGISTRY: tuple[Feature, ...] = (
     Feature("stake_log10", "period", "log10 of the period's stake, AVAX", "staking-periods.stake_avax"),
     Feature("duration_days", "period", "Length of the period, days", "staking-periods.duration_days"),
     Feature("fee_rate", "period", "Declared delegation fee, 0.02 to 1", "staking-periods.delegation_fee_rate"),
-    Feature("failed", "period", "1 if the period earned no reward, the uptime rule", "staking-periods.rewarded"),
+    Feature("failed", "period", "1 if the period earned no reward, the uptime rule; missing if unknown at its end",
+            "staking-periods.rewarded, rewarded_at"),
     Feature("reward_rate_annual", "period", "Potential reward over stake, annualised over the period",
             "staking-periods.potential_reward_avax"),
     Feature("pending_start", "period", "1 if the period was accepted before it started", "staking-periods.start_kind"),
@@ -55,7 +56,8 @@ REGISTRY: tuple[Feature, ...] = (
     Feature("stake_change_prev_log", "history", "log of this stake over the previous period's", "staking-periods"),
     Feature("stake_vs_max_log", "history", "log of this stake over the node's largest stake so far", "staking-periods"),
     Feature("fee_changes_to_date", "history", "Number of fee changes on the node so far", "staking-periods"),
-    Feature("failed_to_date", "history", "Number of the node's periods without reward so far", "staking-periods"),
+    Feature("failed_to_date", "history", "Known periods without reward so far; missing once any outcome is unknown",
+            "staking-periods"),
     # Delegation the period attracted.
     Feature("delegations_log", "delegation", "log1p of delegations to this period", "staking-periods delegator rows"),
     Feature("delegators_log", "delegation", "log1p of distinct delegator addresses", "seamed-delegator-stakes"),
@@ -103,6 +105,17 @@ def names(families: tuple[str, ...] | None = None) -> list[str]:
     return [f.name for f in REGISTRY if families is None or f.family in families]
 
 
+def reward_failed(e: pd.DataFrame) -> pd.Series:
+    """1.0 if the period earned no reward, 0.0 if it was rewarded, missing if its status is unknown or was not settled by
+    the decision at its end. A missing status is never read as a reward (DS3 ``F4``). Without ``rewarded_at`` (synthetic
+    frames) a known status counts as settled at the end."""
+    settled = e.rewarded.notna()
+    if "rewarded_at" in e:
+        settled &= e.rewarded_at.notna() & e.rewarded_at.le(e.end_time)
+    failed = (~e.rewarded.where(settled, True).astype(bool)).astype(float)
+    return failed.where(settled)
+
+
 def _history(events: pd.DataFrame) -> pd.DataFrame:
     e = events.sort_values(["node_id", "period_number"])
     g = e.groupby("node_id", sort=False)
@@ -129,7 +142,10 @@ def _history(events: pd.DataFrame) -> pd.DataFrame:
     out["stake_vs_max_log"] = np.log(e.stake_avax / g.stake_avax.cummax())
     changed = e.fee_rate.ne(g.fee_rate.shift(1)) & earlier.gt(0)
     out["fee_changes_to_date"] = changed.astype(int).groupby(e.node_id).cumsum()
-    out["failed_to_date"] = (~e.rewarded.fillna(True).astype(bool)).astype(int).groupby(e.node_id).cumsum()
+    # Known failures so far. Once any outcome on the node is unknown at its decision, the count is unknown too.
+    failed = reward_failed(e)
+    unknown_so_far = failed.isna().groupby(e.node_id).cumsum().gt(0)
+    out["failed_to_date"] = failed.fillna(0).groupby(e.node_id).cumsum().where(~unknown_so_far)
     return out.reindex(events.index)
 
 
@@ -173,7 +189,7 @@ def build(events: pd.DataFrame, inputs: Inputs) -> pd.DataFrame:
     out["stake_log10"] = np.log10(e.stake_avax)
     out["duration_days"] = e.duration_days
     out["fee_rate"] = e.fee_rate
-    out["failed"] = (~e.rewarded.fillna(True).astype(bool)).astype(int)
+    out["failed"] = reward_failed(e)
     out["reward_rate_annual"] = e.potential_reward_avax / e.stake_avax * 365 / e.duration_days
     out["pending_start"] = e.start_kind.eq("pending").astype(int)
     out["at_stake_floor"] = e.stake_avax.round(6).eq(2000).astype(int)
