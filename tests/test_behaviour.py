@@ -239,7 +239,8 @@ def test_the_protocol_origins_are_the_upgrades_and_quarter_starts():
     assert origins.is_monotonic_increasing
     assert origins["durango"] == pd.Timestamp("2024-03-06 16:00")
     assert origins["fortuna"] == pd.Timestamp("2025-04-08 15:00")
-    assert origins["2022-Q1"] == pd.Timestamp("2022-01-01") and origins["2025-Q2"] == pd.Timestamp("2025-04-01")
+    assert origins["2022-Q3"] == pd.Timestamp("2022-07-01") and origins["2025-Q4"] == pd.Timestamp("2025-10-01")
+    assert "2022-Q1" not in origins
 
 
 def test_protocol_folds_train_on_what_is_known_and_test_inside_the_horizon():
@@ -248,11 +249,12 @@ def test_protocol_folds_train_on_what_is_known_and_test_inside_the_horizon():
     follow = 7 * DAY
     cutoff = pd.Timestamp("2025-11-19 16:00")
     assert {f.name for f in folds} >= {"banff+30d", "fortuna+180d", "2025-Q2+180d"}
-    assert len(folds) == 19 * 3
+    # No horizon crosses the lockbox: 2025-Q3 loses its 180-day horizon and 2025-Q4 its 90- and 180-day ones.
+    assert len(folds) == 19 * 3 - 3 and "2025-Q4+90d" not in {f.name for f in folds}
     for fold in folds:
         train, test = meta.end_time.iloc[fold.train], meta.end_time.iloc[fold.test]
         assert (train + follow).le(fold.start).all()
-        assert test.ge(fold.start).all() and test.lt(fold.end).all() and (test + follow).le(cutoff).all()
+        assert test.ge(fold.start).all() and test.lt(fold.end).all() and (test + follow).lt(cutoff).all()
         assert fold.end <= cutoff
 
 

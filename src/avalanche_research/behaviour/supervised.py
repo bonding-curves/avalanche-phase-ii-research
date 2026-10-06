@@ -102,8 +102,9 @@ UPGRADE_ORIGINS = ("banff", "cortina", "durango", "etna", "fortuna")
 HORIZONS = (30, 90, 180)
 
 
-def protocol_origins(first_quarter: str = "2022-01-01", last_quarter: str = "2025-04-01") -> pd.Series:
-    """The validation protocol's origins: the five upgrade activations and every quarter start, in time order."""
+def protocol_origins(first_quarter: str = "2022-07-01", last_quarter: str = "2025-10-01") -> pd.Series:
+    """The validation protocol's origins: the five upgrade activations and every quarter start, in time order. The
+    quarters match modeling's development scoring, `scripts/model_development_scores.py` on client main."""
     upgrades = {u.name: pd.Timestamp(u.activated_at).tz_localize(None) for u in MAINNET_UPGRADES.upgrades
                 if u.name in UPGRADE_ORIGINS}
     quarters = {f"{q:%Y}-Q{(q.month - 1) // 3 + 1}": q for q in pd.date_range(first_quarter, last_quarter, freq="QS")}
