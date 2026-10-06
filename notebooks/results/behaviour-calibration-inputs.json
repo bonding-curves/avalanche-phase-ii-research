@@ -1,0 +1,547 @@
+{
+  "consumer": "assembled-model moment check B1.3 and scorecard; scripts/model_development_scores.py",
+  "development_cutoff_exclusive_utc": "2025-11-19T16:00:00Z",
+  "identification_limits": {
+    "reason": "Not causally identified; no model parameter is assigned.",
+    "reward_entry_response_slope": null
+  },
+  "limits": [
+    "Count/stake denominators describe repeated commitments, not active stock, persons or unique capital.",
+    "AM1 covers committed choices, including not-yet-ended periods; only validator duration mix is supplied.",
+    "Full-development moments are targets for pooled descriptive model checks, not fitted priors for earlier origins.",
+    "AM4 is unsupported as a hazard; the supplementary 365-day endpoint is not permanent exit.",
+    "Unsupported moments and standard errors remain null. No predictive, causal or full-feature approval is implied."
+  ],
+  "moments": [
+    {
+      "definition": {
+        "hash_basis": "UTF-8 SQL",
+        "sha256": "2509d4268c6f93473f0d80d1561e7fee5dff72e1ec8489f8b73c254e846e305b",
+        "sql": "WITH periods AS (\n SELECT duration_days,stake_navax FROM read_parquet(?)\n WHERE role='validator' AND accepted_at < TIMESTAMP '2025-11-19 16:00:00'\n), bins AS (SELECT * FROM (VALUES (0,21),(21,45),(45,100),(100,200),(200,400)) AS t(lower_days,upper_days))\nSELECT lower_days,upper_days,count(duration_days) AS commitments,\n coalesce(sum(stake_navax::HUGEINT),0) AS stake_navax\nFROM bins LEFT JOIN periods ON duration_days>=lower_days AND duration_days<upper_days\nGROUP BY lower_days,upper_days ORDER BY lower_days\n",
+        "text": "Validator commitment duration mix, by acceptance, using left-closed bins 0\u201321, 21\u201345, 45\u2013100, 100\u2013200 and 200\u2013400 days."
+      },
+      "details": {
+        "acceptance_cohorts": [
+          {
+            "acceptance_quarter_utc": "2020Q3",
+            "bin_commitments": [
+              178,
+              101,
+              138,
+              11,
+              88
+            ],
+            "commitments": 516,
+            "stake_navax": 206236403359441085
+          },
+          {
+            "acceptance_quarter_utc": "2020Q4",
+            "bin_commitments": [
+              255,
+              405,
+              329,
+              39,
+              115
+            ],
+            "commitments": 1143,
+            "stake_navax": 303552318836601561
+          },
+          {
+            "acceptance_quarter_utc": "2021Q1",
+            "bin_commitments": [
+              303,
+              491,
+              348,
+              66,
+              107
+            ],
+            "commitments": 1315,
+            "stake_navax": 247238498800817906
+          },
+          {
+            "acceptance_quarter_utc": "2021Q2",
+            "bin_commitments": [
+              352,
+              525,
+              325,
+              62,
+              55
+            ],
+            "commitments": 1319,
+            "stake_navax": 176639974460431765
+          },
+          {
+            "acceptance_quarter_utc": "2021Q3",
+            "bin_commitments": [
+              364,
+              577,
+              285,
+              174,
+              86
+            ],
+            "commitments": 1486,
+            "stake_navax": 232526125454510106
+          },
+          {
+            "acceptance_quarter_utc": "2021Q4",
+            "bin_commitments": [
+              648,
+              901,
+              311,
+              54,
+              100
+            ],
+            "commitments": 2014,
+            "stake_navax": 137192026046036694
+          },
+          {
+            "acceptance_quarter_utc": "2022Q1",
+            "bin_commitments": [
+              702,
+              1183,
+              325,
+              175,
+              115
+            ],
+            "commitments": 2500,
+            "stake_navax": 253019143137633726
+          },
+          {
+            "acceptance_quarter_utc": "2022Q2",
+            "bin_commitments": [
+              581,
+              976,
+              558,
+              124,
+              129
+            ],
+            "commitments": 2368,
+            "stake_navax": 242258178040596437
+          },
+          {
+            "acceptance_quarter_utc": "2022Q3",
+            "bin_commitments": [
+              383,
+              828,
+              319,
+              160,
+              74
+            ],
+            "commitments": 1764,
+            "stake_navax": 204674679103016506
+          },
+          {
+            "acceptance_quarter_utc": "2022Q4",
+            "bin_commitments": [
+              308,
+              755,
+              325,
+              191,
+              121
+            ],
+            "commitments": 1700,
+            "stake_navax": 230233860361996942
+          },
+          {
+            "acceptance_quarter_utc": "2023Q1",
+            "bin_commitments": [
+              297,
+              774,
+              355,
+              89,
+              121
+            ],
+            "commitments": 1636,
+            "stake_navax": 148824975685935735
+          },
+          {
+            "acceptance_quarter_utc": "2023Q2",
+            "bin_commitments": [
+              394,
+              698,
+              341,
+              117,
+              198
+            ],
+            "commitments": 1748,
+            "stake_navax": 229140494066299849
+          },
+          {
+            "acceptance_quarter_utc": "2023Q3",
+            "bin_commitments": [
+              495,
+              969,
+              375,
+              90,
+              98
+            ],
+            "commitments": 2027,
+            "stake_navax": 123952712064646633
+          },
+          {
+            "acceptance_quarter_utc": "2023Q4",
+            "bin_commitments": [
+              824,
+              1386,
+              378,
+              90,
+              78
+            ],
+            "commitments": 2756,
+            "stake_navax": 263743162769680241
+          },
+          {
+            "acceptance_quarter_utc": "2024Q1",
+            "bin_commitments": [
+              2088,
+              1573,
+              388,
+              80,
+              70
+            ],
+            "commitments": 4199,
+            "stake_navax": 194804358483443414
+          },
+          {
+            "acceptance_quarter_utc": "2024Q2",
+            "bin_commitments": [
+              3114,
+              844,
+              343,
+              166,
+              152
+            ],
+            "commitments": 4619,
+            "stake_navax": 311754825933190651
+          },
+          {
+            "acceptance_quarter_utc": "2024Q3",
+            "bin_commitments": [
+              2181,
+              742,
+              302,
+              119,
+              58
+            ],
+            "commitments": 3402,
+            "stake_navax": 213787449696825083
+          },
+          {
+            "acceptance_quarter_utc": "2024Q4",
+            "bin_commitments": [
+              2887,
+              686,
+              417,
+              64,
+              53
+            ],
+            "commitments": 4107,
+            "stake_navax": 169412651920498810
+          },
+          {
+            "acceptance_quarter_utc": "2025Q1",
+            "bin_commitments": [
+              2837,
+              704,
+              419,
+              57,
+              41
+            ],
+            "commitments": 4058,
+            "stake_navax": 251643612586088149
+          },
+          {
+            "acceptance_quarter_utc": "2025Q2",
+            "bin_commitments": [
+              2969,
+              798,
+              365,
+              69,
+              100
+            ],
+            "commitments": 4301,
+            "stake_navax": 269293552926340888
+          },
+          {
+            "acceptance_quarter_utc": "2025Q3",
+            "bin_commitments": [
+              1950,
+              624,
+              227,
+              53,
+              28
+            ],
+            "commitments": 2882,
+            "stake_navax": 228010565696618987
+          },
+          {
+            "acceptance_quarter_utc": "2025Q4",
+            "bin_commitments": [
+              610,
+              276,
+              159,
+              21,
+              15
+            ],
+            "commitments": 1081,
+            "stake_navax": 137626041911113468
+          }
+        ],
+        "bins": [
+          {
+            "commitment_stake_share": 0.1914372128732649,
+            "commitments": 24720,
+            "count_share": 0.46693488978296593,
+            "lower_days_inclusive": 0,
+            "stake_navax": 914220970528676878,
+            "upper_days_exclusive": 21
+          },
+          {
+            "commitment_stake_share": 0.2917212244571962,
+            "commitments": 16816,
+            "count_share": 0.31763661434427004,
+            "lower_days_inclusive": 21,
+            "stake_navax": 1393133847616298371,
+            "upper_days_exclusive": 45
+          },
+          {
+            "commitment_stake_share": 0.29145496111153585,
+            "commitments": 7332,
+            "count_share": 0.1384937949793166,
+            "lower_days_inclusive": 45,
+            "stake_navax": 1391862289539201897,
+            "upper_days_exclusive": 100
+          },
+          {
+            "commitment_stake_share": 0.1373005782535857,
+            "commitments": 2071,
+            "count_share": 0.03911901928561984,
+            "lower_days_inclusive": 100,
+            "stake_navax": 655687919925162706,
+            "upper_days_exclusive": 200
+          },
+          {
+            "commitment_stake_share": 0.08808602330441735,
+            "commitments": 2002,
+            "count_share": 0.037815681607827584,
+            "lower_days_inclusive": 200,
+            "stake_navax": 420660583732424784,
+            "upper_days_exclusive": 400
+          }
+        ],
+        "out_of_range": {
+          "commitments": 0,
+          "stake_navax": 0
+        }
+      },
+      "id": "AM1",
+      "n": 52941,
+      "regime": "pooled development, acceptance cohort",
+      "standard_error": null,
+      "standard_error_reason": "Descriptive source census; repeated nodes, unresolved operators and shared time shocks are not IID draws.",
+      "supported": true,
+      "unit": "probability per validator commitment",
+      "value": [
+        0.46693488978296593,
+        0.31763661434427004,
+        0.1384937949793166,
+        0.03911901928561984,
+        0.037815681607827584
+      ],
+      "window_bounds": "inclusive first and last observed acceptance timestamps",
+      "window_end": "2025-11-19T15:44:13Z",
+      "window_start": "2020-09-10T00:00:00Z"
+    },
+    {
+      "definition": {
+        "hash_basis": "UTF-8 SQL",
+        "sha256": "d76ec306859340510ea00c6581a511c996b4d7a0ebc2bdc5c1c3e8577dc32398",
+        "sql": "WITH periods AS (\n SELECT transaction_hash,node_id,start_time,end_time,duration_days,stake_navax\n FROM read_parquet(?)\n WHERE role='validator' AND accepted_at < TIMESTAMP '2025-11-19 16:00:00'\n), paired AS (\n SELECT *, lead(start_time) OVER (PARTITION BY node_id ORDER BY start_time,transaction_hash) AS next_start\n FROM periods\n)\nSELECT count(*) AS eligible_ends,\n count(*) FILTER (WHERE next_start BETWEEN end_time AND end_time+INTERVAL '7 days') AS renewed_ends,\n sum(stake_navax::HUGEINT) AS eligible_stake_navax,\n coalesce(sum(stake_navax::HUGEINT) FILTER (WHERE next_start BETWEEN end_time AND end_time+INTERVAL '7 days'),0) AS renewed_stake_navax\nFROM paired WHERE end_time+INTERVAL '7 days' < TIMESTAMP '2025-11-19 16:00:00'\n AND (next_start IS NULL OR next_start>=end_time)\n",
+        "text": "Same-node renewal within seven days among nonoverlapping validator endings whose entire seven-day follow-up finishes before the development cutoff."
+      },
+      "details": {
+        "censored_ends": 166,
+        "cohort_ends": 52129,
+        "commitment_stake_share": 0.7173764499934571,
+        "count_share": 0.7953889380701281,
+        "days": 7,
+        "eligible_ends": 51962,
+        "eligible_stake_navax": 4603127068827016627,
+        "overlapping_ends": 1,
+        "renewed_ends": 41330,
+        "renewed_stake_navax": 3302174955503912874
+      },
+      "id": "AM2",
+      "n": 51962,
+      "regime": "pooled development, ending cohort",
+      "sensitivity_14d": {
+        "definition": {
+          "hash_basis": "UTF-8 SQL",
+          "sha256": "589016a5183e0947d4dd4e72d720b8a67dd9bc68d8d197c3d59c8074aedf9916",
+          "sql": "WITH periods AS (\n SELECT transaction_hash,node_id,start_time,end_time,duration_days,stake_navax\n FROM read_parquet(?)\n WHERE role='validator' AND accepted_at < TIMESTAMP '2025-11-19 16:00:00'\n), paired AS (\n SELECT *, lead(start_time) OVER (PARTITION BY node_id ORDER BY start_time,transaction_hash) AS next_start\n FROM periods\n)\nSELECT count(*) AS eligible_ends,\n count(*) FILTER (WHERE next_start BETWEEN end_time AND end_time+INTERVAL '14 days') AS renewed_ends,\n sum(stake_navax::HUGEINT) AS eligible_stake_navax,\n coalesce(sum(stake_navax::HUGEINT) FILTER (WHERE next_start BETWEEN end_time AND end_time+INTERVAL '14 days'),0) AS renewed_stake_navax\nFROM paired WHERE end_time+INTERVAL '14 days' < TIMESTAMP '2025-11-19 16:00:00'\n AND (next_start IS NULL OR next_start>=end_time)\n",
+          "text": "Fourteen-day renewal sensitivity with its own strictly matured, nonoverlapping ending support."
+        },
+        "details": {
+          "censored_ends": 275,
+          "cohort_ends": 52129,
+          "commitment_stake_share": 0.7697040665096722,
+          "count_share": 0.8285730815960504,
+          "days": 14,
+          "eligible_ends": 51853,
+          "eligible_stake_navax": 4590745921314955776,
+          "overlapping_ends": 1,
+          "renewed_ends": 42964,
+          "renewed_stake_navax": 3533515803948812778
+        },
+        "n": 51853,
+        "value": 0.8285730815960504,
+        "window_bounds": "start inclusive, end exclusive",
+        "window_end": "2025-11-05T16:00:00Z",
+        "window_start": "2020-10-06T03:34:14Z"
+      },
+      "standard_error": null,
+      "standard_error_reason": "Descriptive source census; repeated nodes, unresolved operators and shared time shocks are not IID draws.",
+      "supported": true,
+      "unit": "probability per eligible validator ending",
+      "value": 0.7953889380701281,
+      "window_bounds": "start inclusive, end exclusive",
+      "window_end": "2025-11-12T16:00:00Z",
+      "window_start": "2020-10-06T03:34:14Z"
+    },
+    {
+      "definition": {
+        "hash_basis": "UTF-8 definition text",
+        "sha256": "9ffc4d0e8b2e0b6e5f9228c59a4ccc1f988952b0a045ba3e60f0f21011e08056",
+        "sql": null,
+        "text": "Weekly entry and comparable yield-spread relationship."
+      },
+      "id": "AM3",
+      "n": null,
+      "reason": "Weekly start decomposition and comparable yield/availability contract not audited in this package; no causal slope identified",
+      "regime": "not estimated",
+      "standard_error": null,
+      "supported": false,
+      "value": null,
+      "window_end": null,
+      "window_start": null
+    },
+    {
+      "definition": {
+        "hash_basis": "UTF-8 definition text",
+        "sha256": "d9f1a142f0ea3385ae19b3f2e25cbaef2a3f9fefe2ae977a5c96e28cc5af04ee",
+        "sql": null,
+        "text": "Origin-specific no-return hazard with defined risk-time exposure."
+      },
+      "id": "AM4",
+      "n": null,
+      "reason": "Risk-time and origin reconstruction contract not registered; endpoint census is supplied separately, not a hazard",
+      "regime": "not estimated",
+      "standard_error": null,
+      "supported": false,
+      "value": null,
+      "window_end": null,
+      "window_start": null
+    },
+    {
+      "definition": {
+        "hash_basis": "UTF-8 definition text",
+        "sha256": "f3a343967c9af1bca699b302fff3f2d3d8e27beefc1301320f133a9a0355f6ea",
+        "sql": null,
+        "text": "Staking ratio on complete daily common support and realized supply."
+      },
+      "id": "AM5",
+      "n": null,
+      "reason": "Complete daily common support and positive realized supply not independently checked in this validator-only package",
+      "regime": "not estimated",
+      "standard_error": null,
+      "supported": false,
+      "value": null,
+      "window_end": null,
+      "window_start": null
+    },
+    {
+      "definition": {
+        "hash_basis": "UTF-8 definition text",
+        "sha256": "bc3564a3ea0a1982ce5e9a831c88ddf8917fa21b2be615b3bba5e77ccd04f20a",
+        "sql": null,
+        "text": "Delegation by stratum and fee on checked identity/concurrency support."
+      },
+      "id": "AM6",
+      "n": null,
+      "reason": "Per-decision delegation/reward/address support remains conditional on checked source coverage and observation-time restrictions",
+      "regime": "not estimated",
+      "standard_error": null,
+      "supported": false,
+      "value": null,
+      "window_end": null,
+      "window_start": null
+    },
+    {
+      "definition": {
+        "hash_basis": "UTF-8 definition text",
+        "sha256": "7c60a5671d817242ef86fef5da901a5417d72a97ad2ba237d72d3432f8a3a5f4",
+        "sql": null,
+        "text": "Stake concentration on a complete active snapshot with dated identity tiers."
+      },
+      "id": "AM7",
+      "n": null,
+      "reason": "Complete active snapshot and historically dated entity support not included; repeated commitments are not active stake",
+      "regime": "not estimated",
+      "standard_error": null,
+      "supported": false,
+      "value": null,
+      "window_end": null,
+      "window_start": null
+    }
+  ],
+  "population": {
+    "accepted_commitment_stake_navax": 4775565611341764636,
+    "accepted_from_utc": "2020-09-10T00:00:00Z",
+    "accepted_periods": 52941,
+    "accepted_to_utc": "2025-11-19T15:44:13Z",
+    "distinct_nodes": 7379,
+    "ended_from_utc": "2020-10-06T03:34:14Z",
+    "ended_periods": 52129,
+    "ended_to_utc": "2025-11-19T15:43:52Z",
+    "invalid_inputs": {
+      "duplicates": 0,
+      "inconsistent": 0,
+      "invalid": 0,
+      "missing": 0
+    },
+    "not_yet_ended_periods": 812
+  },
+  "prototype": "cfdd9d373562200cb9ec6ef81c4715671cebefd3",
+  "role": "validator",
+  "run": "staking-periods-2026-10-02",
+  "schema_version": "behaviour-calibration-inputs/v1",
+  "sources": {
+    "build_sha256": "c19d734b1e31157e8cb5fb158931ae321510e39bcc33acc28c4b06db2bf53c5a",
+    "capture_id": "capture:derived:2026-10-02T03:09:57Z:72a282c93bf5",
+    "capture_sha256": "5a837fda4c2b5c8b00cbf5b1f69eb408eb285b3b06316f4dec5aefda2ce5f022",
+    "check_sha256": "b46b033e614130c9ff3eab2fb1396debb60b73e9c952f35463d92d70a095a4c6",
+    "contract_sha256": "562d525439d7681b86058535b2116267a04fd62b8bf30a98793ee3d020df7e98",
+    "dataset_id": "derived.staking-periods",
+    "parquet_sha256": "c53c6b73f3d24b4dbb7864c4774be981d4c4a3c661ff22703e8fa697705d048d",
+    "prototype_revision": "cfdd9d373562200cb9ec6ef81c4715671cebefd3",
+    "run_id": "staking-periods-2026-10-02",
+    "uv_lock_sha256": "f442a8a9c36ab92fb63000ef0fbc317ff16d00fcf35b63783c35742b72720aec"
+  },
+  "supplementary_365_day_endpoint": {
+    "commitment_stake_share": 0.08141532688377288,
+    "count_share": 0.11657148985227486,
+    "eligible_ends": 37299,
+    "eligible_stake_navax": 3619945464192810299,
+    "horizon_days": 365,
+    "interpretation": "No next start within 365 days, not permanent exit or a hazard rate",
+    "no_return_ends": 4348,
+    "no_return_stake_navax": 294719043268688608
+  },
+  "uncertainty": {
+    "budget": 0,
+    "interval": null,
+    "method": "descriptive finite-source census, no resampling or fitted uncertainty",
+    "reason": "Repeated nodes, unknown operators and common time shocks preclude an IID interval; fitted predictive uncertainty remains unsupported",
+    "seed": null
+  }
+}
