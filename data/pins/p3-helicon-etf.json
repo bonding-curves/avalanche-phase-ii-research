@@ -1,0 +1,87 @@
+{
+  "name": "p3-helicon-etf",
+  "pinned_at": "2026-10-06T16:33:47Z",
+  "runs": [
+    {
+      "bytes": 23841,
+      "capture_id": "capture:derived:2026-10-06T00:15:34Z:0af1de343ff8",
+      "captured_at": "2026-10-06T00:15:34Z",
+      "check": "pass",
+      "dataset_id": "derived.helicon-commitments",
+      "parquet": "helicon-commitments.parquet",
+      "run": "helicon-commitments-2026-10-06",
+      "sha256": "b95b891fa666ae1fd82760ac11fddfe20be8fa0b54009178500eb1cc855571a1"
+    },
+    {
+      "bytes": 434407,
+      "capture_id": "capture:derived:2026-10-06T03:20:31Z:ffa0cd8bdb0c",
+      "captured_at": "2026-10-06T03:20:31Z",
+      "check": "pass",
+      "dataset_id": "derived.operators",
+      "parquet": "operators.parquet",
+      "run": "operators-2026-10-06",
+      "sha256": "f5caca95ee974bde60110efd787dc038c3838af687d7470931cc80907a258588"
+    },
+    {
+      "bytes": 8118,
+      "capture_id": "capture:derived:2026-10-06T03:20:34Z:49759edcd7f5",
+      "captured_at": "2026-10-06T03:20:34Z",
+      "check": "pass",
+      "dataset_id": "derived.operator-attributions",
+      "parquet": "operator-attributions.parquet",
+      "run": "operator-attributions-2026-10-06",
+      "sha256": "a26548f3d2a50cb7bd7a12d4c0ba16deba6462ca03c3686cfb698acc2d8c9e89"
+    },
+    {
+      "bytes": 19889961,
+      "capture_id": "capture:avalanche-p-chain-rpc:2026-10-06T02:44:17Z:eccdd8c14c38",
+      "captured_at": "2026-10-06T02:44:17Z",
+      "check": "pass",
+      "dataset_id": "p-chain-rpc.blocks",
+      "parquet": "p-chain-blocks.parquet",
+      "run": "p-chain-blocks-2026-10-06",
+      "sha256": "73ca902d527c3b77271d1483393ec68131e25103a50dc8622990a4a5f9358f8c"
+    },
+    {
+      "bytes": 693969459,
+      "capture_id": "capture:derived:2026-10-06T03:19:52Z:c3711db5a416",
+      "captured_at": "2026-10-06T03:19:52Z",
+      "check": "pass",
+      "dataset_id": "derived.staking-periods",
+      "parquet": "staking-periods.parquet",
+      "run": "staking-periods-2026-10-06",
+      "sha256": "84d23a8a52a555d5b48786e5f2a1db48fdaa1e0a28888cb8bdcbbc6ec2c3b90a"
+    },
+    {
+      "bytes": 2727,
+      "capture_id": "capture:etf-issuers:2026-10-06T14:00:31Z:4e1f80b4dced",
+      "captured_at": "2026-10-06T14:00:31Z",
+      "check": "pass",
+      "dataset_id": "etf-issuers.avax-fund-snapshot",
+      "parquet": "avax-fund-snapshot.parquet",
+      "run": "etf-snapshot-2026-10-06",
+      "sha256": "9fbeb0444b0ce28d1e6622e21e2ec3e3d0c9177c68c2a3b091946e3abf50ec61"
+    },
+    {
+      "bytes": 90532,
+      "capture_id": "capture:etf-issuers:2026-10-06T14:00:35Z:9cab71a38ce2",
+      "captured_at": "2026-10-06T14:00:35Z",
+      "check": "pass",
+      "dataset_id": "etf-issuers.avax-fund-history",
+      "parquet": "avax-fund-history.parquet",
+      "run": "etf-history-2026-10-06",
+      "sha256": "84d1aa3c7ef8e0cab8ae12413b0d08a2cb9f6a1c6f52ba690b19be53759b66b8"
+    },
+    {
+      "bytes": 90357,
+      "capture_id": "capture:avalanche-p-chain-rpc:2026-09-22T16:22:07Z:963065f3adf9",
+      "captured_at": "2026-09-22T16:22:07Z",
+      "check": "pass",
+      "dataset_id": "p-chain-rpc.current-validators",
+      "parquet": "current-validators.parquet",
+      "run": "current-validators-2026-09-22",
+      "sha256": "d23f088f081a210c53261a3d5fcb9f2fbd252e8144d7993626bdafaa7caea246"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}

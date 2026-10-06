@@ -1,0 +1,27 @@
+{
+  "name": "p2-model-v0.8",
+  "pinned_at": "2026-10-06T16:33:32Z",
+  "runs": [
+    {
+      "bytes": 692906576,
+      "capture_id": "capture:derived:2026-09-30T17:25:46Z:e0b8a7f3be51",
+      "captured_at": "2026-09-30T17:25:46Z",
+      "check": "pass",
+      "dataset_id": "derived.staking-periods",
+      "parquet": "staking-periods.parquet",
+      "run": "staking-periods-2026-09-30",
+      "sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8"
+    },
+    {
+      "bytes": 233039,
+      "capture_id": "capture:derived:2026-09-30T18:42:56Z:7e2248466077",
+      "captured_at": "2026-09-30T18:42:56Z",
+      "check": "pass",
+      "dataset_id": "derived.avax-monetary-daily",
+      "parquet": "avax-monetary-daily.parquet",
+      "run": "avax-monetary-daily-2026-09-30",
+      "sha256": "838a3df7e74bec49cdc198c1432d39654a529a3dac9f20909be0ee37236dfe3e"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
