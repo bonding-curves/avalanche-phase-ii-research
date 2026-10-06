@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-"""AVAX held by each exchange-traded fund, daily in September 2026, with the two 21Shares steps marked.
+"""AVAX held by each exchange-traded fund, daily from September 2026, with the large 21Shares steps marked.
 
     uv run --group notebook python scripts/figures/etf_holdings.py <output folder>
 
-Reads `etf-history-2026-10-01` for the 21Shares Avalanche Staking ETP, which publishes AVAX held every valuation day, and
-the daily snapshot runs `etf-snapshot-2026-09-28` to `etf-snapshot-2026-10-01` for Bitwise's BAVA and VanEck's VAVX, whose
-histories carry no AVAX figure. Grayscale's GAVA reports quarterly, and two small baskets hold under 100,000 AVAX, so
-they are listed in the caption, not drawn. Writes `etf-holdings.csv`, `etf-holdings.html` and `etf-holdings.png`.
+Two sources, drawn apart. The 21Shares Avalanche Staking ETP publishes AVAX held every valuation day, read from the
+issuer history run `etf-history-2026-10-06` (pinned in `data/pins/p3-helicon-etf.json`); it is a solid line. Bitwise's
+BAVA and VanEck's VAVX publish no AVAX history, so their points are our own daily snapshot runs from
+`etf-snapshot-2026-09-28` to `etf-snapshot-2026-10-06`, dashed. A pin holds one run per dataset, so only the newest
+snapshot is pinned; `etf-holdings-runs.json` names every run read with its Parquet sha256. A change in holdings is a
+flow inferred from holdings, not a reported flow. Grayscale's GAVA reports quarterly, and two small baskets hold under
+100,000 AVAX, so they are not drawn. Writes `etf-holdings.csv`, `etf-holdings-runs.json`, `etf-holdings.html` and
+`etf-holdings.png`.
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -19,12 +24,16 @@ import pandas as pd
 from bokeh.models import NumeralTickFormatter
 
 from avalanche_research import datasets
+from avalanche_research.catalog import sha256
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from png import save_png
 
-HISTORY_RUN = "etf-history-2026-10-01"
-SNAPSHOT_RUNS = ("etf-snapshot-2026-09-28", "etf-snapshot-2026-09-29", "etf-snapshot-2026-09-30", "etf-snapshot-2026-10-01")
+HISTORY_RUN = "etf-history-2026-10-06"
+SNAPSHOT_RUNS = tuple(f"etf-snapshot-2026-{day}" for day in ("09-28", "09-29", "09-30", "10-01", "10-02", "10-03", "10-04", "10-05",
+                                                            "10-06"))
+DATA_AS_OF = "2026-10-05"
+SOURCE = {"AVAX": "issuer history", "BAVA": "our daily snapshots", "VAVX": "our daily snapshots"}
 START = pd.Timestamp("2026-09-01")
 NAMES = {"AVAX": "21Shares Avalanche Staking ETP", "BAVA": "Bitwise BAVA", "VAVX": "VanEck VAVX"}
 COLOURS = {"AVAX": "#1f5fa8", "BAVA": "#d95f02", "VAVX": "#1b9e77"}
@@ -44,7 +53,8 @@ def table() -> pd.DataFrame:
 
 
 def chart(frame: pd.DataFrame) -> hv.Overlay:
-    curves = [hv.Curve(group, "valuation_date", "avax_held").opts(color=COLOURS[ticker], line_width=3, interpolation="steps-post")
+    curves = [hv.Curve(group, "valuation_date", "avax_held").opts(color=COLOURS[ticker], line_width=3, interpolation="steps-post",
+                                                                 line_dash="solid" if ticker == "AVAX" else "dashed")
               * hv.Scatter(group, "valuation_date", "avax_held").opts(color=COLOURS[ticker], size=7)
               for ticker, group in frame.groupby("ticker")]
     marks = []
@@ -61,14 +71,14 @@ def chart(frame: pd.DataFrame) -> hv.Overlay:
         rising = row.change_avax > 0
         x = row.valuation_date + pd.Timedelta(hours=-10 if rising else 14)
         y = (before + row.avax_held) / 2 if rising else row.avax_held - 200_000
-        marks.append(hv.Text(x, y, f"{row.change_avax:+,.0f} AVAX on {row.valuation_date:%d %b}", halign="right" if rising else "left",
-                             fontsize=12).opts(color=COLOURS["AVAX"]))
+        marks.append(hv.Text(x, y, f"{row.change_avax:+,.0f} AVAX on {row.valuation_date:%d %b}, inferred from holdings",
+                             halign="right" if rising else "left", fontsize=12).opts(color=COLOURS["AVAX"]))
     return hv.Overlay(curves + marks).opts(
         width=1000, height=520, fontscale=1.2, toolbar=None, show_grid=True, show_legend=False,
-        ylim=(0, 3_200_000), xlim=(START, pd.Timestamp("2026-10-11")), yformatter=NumeralTickFormatter(format="0.[0]a"),
-        xlabel="Valuation date. Data as of 2026-10-01 14:00 UTC",
+        ylim=(0, 3_200_000), xlim=(START, pd.Timestamp("2026-10-20")), yformatter=NumeralTickFormatter(format="0.[0]a"),
+        xlabel=f"Valuation date. Solid: issuer history. Dashed: our daily snapshots. Data as of {DATA_AS_OF}",
         ylabel="AVAX held",
-        title="AVAX held by each fund, daily, September 2026")
+        title="AVAX held by each fund, daily, September and October 2026")
 
 
 def main() -> None:
@@ -76,7 +86,11 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     hv.extension("bokeh")
     frame = table()
-    frame.to_csv(out / "etf-holdings.csv", index=False)
+    frame.assign(source=frame.ticker.map(SOURCE)).to_csv(out / "etf-holdings.csv", index=False)
+    runs = {"etf-issuers.avax-fund-history": [HISTORY_RUN], "etf-issuers.avax-fund-snapshot": list(SNAPSHOT_RUNS)}
+    receipt = {dataset_id: [{"run": run, "parquet_sha256": sha256(datasets.parquet_path(dataset_id, run).read_bytes())} for run in names]
+               for dataset_id, names in runs.items()}
+    (out / "etf-holdings-runs.json").write_text(json.dumps(receipt, indent=1, sort_keys=True) + "\n")
     hv.save(chart(frame), out / "etf-holdings.html")
     save_png(out / "etf-holdings.html", out / "etf-holdings.png", 1040, 580)
     print(frame.round(0).to_string(index=False))

@@ -3,9 +3,10 @@
 
     uv run --group notebook python scripts/figures/helicon_first_days.py <memo folder>
 
-Reads two pinned runs through avalanche_research.datasets: `helicon-commitments-2026-10-02`, every validator cycle
-started from Helicon's activation on 2026-09-22 15:00 UTC through the snapshot of 2026-10-02 00:15 UTC, and
-`staking-periods-2026-09-30`, for the validator periods started in the 30 days before activation. A new commitment is a
+Reads two runs pinned in `data/pins/p3-helicon-etf.json` through avalanche_research.datasets:
+`helicon-commitments-2026-10-06`, every validator cycle started from Helicon's activation on 2026-09-22 15:00 UTC
+through the snapshot of 2026-10-06 00:15 UTC, and `staking-periods-2026-10-06`, for the validator periods started in
+the 30 days before activation. A new commitment is a
 transaction's first cycle, so an auto-renewal is not counted twice. Writes `helicon-first-days.csv`,
 `helicon-first-days.html` and `helicon-first-days.png`, and prints the table.
 """
@@ -26,6 +27,7 @@ from png import save_png
 HELICON_RUN = "helicon-commitments-2026-10-06"
 PERIODS_RUN = "staking-periods-2026-10-06"
 ACTIVATION = pd.Timestamp("2026-09-22 15:00:00")
+DATA_AS_OF = "2026-10-06 00:15 UTC"
 BINS = [("48h to 7d", 0, 7), ("7d to 14d", 7, 14), ("14d to 30d", 14, 30), ("30d to 90d", 30, 90), ("90d to 180d", 90, 180),
         ("180d to 365d", 180, 365.0001)]
 
@@ -61,7 +63,7 @@ def chart(frame: pd.DataFrame) -> hv.Bars:
         width=1000, height=520, fontscale=1.2, toolbar=None, show_grid=True, ylim=(0, 85), cmap=["#9aa5b1", "#1f5fa8"], hooks=[hook],
         color="window", show_legend=True, legend_position="top_right", multi_level=True,
         title="New validator commitments by duration: 30 days before Helicon and since its activation",
-        xlabel="Commitment duration. Data as of 2026-10-02 00:15 UTC",
+        xlabel=f"Commitment duration. Data as of {DATA_AS_OF}",
         ylabel="Share of new validator commitments (%)")
     return bars
 
