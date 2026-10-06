@@ -18,7 +18,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from .inputs import LOCKBOX_START, check_cutoff
-from .supervised import Fold, protocol_folds
+from .supervised import TARGETS, Fold, protocol_folds
 
 DAY = pd.Timedelta(days=1)
 EFFECT_COLUMNS = ["entity_id", "effect_id", "estimate", "sd", "n", "prior_id"]
@@ -60,17 +60,24 @@ class EntityFold:
 
 
 def entity_folds(decisions: pd.DataFrame, members: pd.DataFrame, target: str = "renewed", *, tier: str = "node",
-                 origins: pd.Series | None = None, horizons=(30, 90, 180), follow_up_days: int = 7,
+                 origins: pd.Series | None = None, horizons=(30, 90, 180),
                  observed_through=LOCKBOX_START) -> list[EntityFold]:
     """``FS1``: the protocol's folds over ``decisions``, each with the as-of entity history at its origin. Every learner
-    that needs an entity effect reads it from here, so no rung sees a different notion of the past."""
+    that needs an entity effect reads it from here, so no rung sees a different notion of the past.
+
+    The label column and its follow-up come from the registered target (``supervised.TARGETS``): ``next_duration``
+    reads ``next_duration_class``, and ``outcome`` and ``next_duration`` mature 365 days after a period ends. Each
+    fold's history holds exactly its training rows that carry a label."""
+    if target not in TARGETS:
+        raise ValueError(f"unknown target {target!r}; registered targets are {sorted(TARGETS)}")
+    spec = TARGETS[target]
     folds = protocol_folds(decisions, target, origins=origins, horizons=horizons, observed_through=observed_through)
     histories: dict[pd.Timestamp, pd.DataFrame] = {}
     out = []
     for fold in folds:
         if fold.start not in histories:
-            histories[fold.start] = entity_history(decisions, members, fold.start, tier=tier, label=target,
-                                                   follow_up_days=follow_up_days)
+            histories[fold.start] = entity_history(decisions, members, fold.start, tier=tier, label=spec.column,
+                                                   follow_up_days=spec.follow_up_days)
         out.append(EntityFold(fold, histories[fold.start]))
     return out
 
@@ -100,12 +107,20 @@ class EffectTable:
 
 
 def effects(fit, as_of, tier: str = "node", map_version: str = "node", allow_lockbox: bool = False) -> EffectTable:
-    """``EF4``'s writer: an ``EffectTable`` from a fit (``shrink.shrink``), with a receipt id that hashes its content."""
+    """``EF4``'s writer: an ``EffectTable`` from a fit (``shrink.shrink``), with a receipt id that hashes its content.
+
+    The fit must carry the cut of the history it was fitted on (``entity_history`` sets it), and ``as_of`` may not be
+    earlier: a table stamped before its own data were observable would hand the future to an earlier origin."""
     cut = check_cutoff(as_of, allow_lockbox)
+    if fit.as_of is None:
+        raise ValueError("the fit carries no as-of cut: fit it on a history from entity_history")
+    if cut < pd.Timestamp(fit.as_of):
+        raise ValueError(f"the fit used data observable before {fit.as_of}; a table cannot be stamped earlier, at {cut}")
     rows = fit.rows[EFFECT_COLUMNS].sort_values(["entity_id", "effect_id"]).reset_index(drop=True)
     prior = fit.prior[[c for c in EFFECT_COLUMNS if c != "entity_id"]].reset_index(drop=True)
-    content = {"as_of": str(cut), "tier": tier, "map_version": map_version, "family": fit.family,
-               "hyperparameters": fit.hyperparameters, "rows": rows.to_csv(index=False), "prior": prior.to_csv(index=False)}
+    content = {"as_of": str(cut), "fit_as_of": fit.as_of, "support": fit.support, "tier": tier, "map_version": map_version,
+               "family": fit.family, "categories": list(fit.categories), "hyperparameters": fit.hyperparameters,
+               "rows": rows.to_csv(index=False), "prior": prior.to_csv(index=False)}
     receipt_id = "effects:" + hashlib.sha256(json.dumps(content, sort_keys=True, default=str).encode()).hexdigest()[:16]
     return EffectTable(rows, prior, cut, tier, map_version, receipt_id)
 

@@ -1,5 +1,11 @@
 """The staking rules in force at an instant (``RT1``) and the dated calendar of rule events (``EV1``).
 
+The calendar keeps two clocks apart: ``event_time``, when the event takes effect, and ``available_at``, when it was
+public. ``calendar(as_of=...)`` returns only events public before ``as_of`` and refuses while any row's publication time
+is unsourced (``availability == "unsourced"``), unless the caller asks for ``retrospective=True``, a description of the
+past that no forecast at ``as_of`` could have read. Upgrade activations are unsourced until each release's publication
+time is captured; registered-actor rows are dated by their evidence, public from that date.
+
 Rules as features let a model read what changed at an upgrade, not only which era a decision fell in. Every value is
 computed by the protocol module, so a feature and the model's reward kernel cannot disagree. Columns:
 
@@ -40,7 +46,7 @@ SECONDS_PER_DAY = 86_400
 DATED_RULES = {f"rule_{m.acp.lower().replace('-', '')}_{m.upgrade}": m for m in MECHANISMS if m.upgrade}
 RULE_COLUMNS = ["regime", "reward_14d_pct", "reward_365d_pct", "duration_premium_pp", "min_validator_days",
                 "min_delegator_days", "uptime_requirement", *DATED_RULES, "ramp_position"]
-CALENDAR_COLUMNS = ["event_time", "kind", "name", "detail", "source"]
+CALENDAR_COLUMNS = ["event_time", "kind", "name", "detail", "source", "available_at", "availability"]
 
 
 def _utc(time: pd.Timestamp):
@@ -76,17 +82,30 @@ def rules_in_force(times: pd.Series) -> pd.DataFrame:
     return frame[RULE_COLUMNS]
 
 
-def calendar() -> pd.DataFrame:
+def calendar(as_of=None, *, retrospective: bool = False) -> pd.DataFrame:
     """``EV1``'s scripted rows: each upgrade's activation, ACP-285's ramp end, and each dated registered-actor rule.
 
-    Releases and ACP stages need their own sources and are not scripted here yet."""
+    Releases and ACP stages need their own sources and are not scripted here yet. With ``as_of``, only rows public
+    strictly before it; rows with an unsourced publication time are refused unless ``retrospective``."""
     rows = [{"event_time": pd.Timestamp(u.activated_at).tz_convert(UTC).tz_localize(None), "kind": "activation", "name": u.name,
              "detail": "; ".join(f"{m.acp}: {m.name}" for m in MECHANISMS if m.upgrade == u.name),
              "source": "model.protocol.MAINNET_UPGRADES"} for u in MAINNET_UPGRADES.upgrades]
     helicon = next(row for row in rows if row["name"] == "helicon")["event_time"]
     rows.append({"event_time": helicon + pd.Timedelta(seconds=ACP285_RAMP_SECONDS), "kind": "ramp_end", "name": "ACP-285",
                  "detail": "Minimum consumption rate reaches 7.5% for stakes starting from here", "source": "model.protocol"})
+    for row in rows:
+        row.update(available_at=pd.NaT, availability="unsourced")
     rows += [{"event_time": date, "kind": "registered_actor_evidence", "name": attribution,
-              "detail": "Periods on this attribution's reward address are set apart from here", "source": "behaviour.inputs.EVIDENCE_DATES"}
+              "detail": "Periods on this attribution's reward address are set apart from here", "source": "behaviour.inputs.EVIDENCE_DATES",
+              "available_at": date, "availability": "evidence date"}
              for attribution, date in EVIDENCE_DATES.items()]
-    return pd.DataFrame(rows, columns=CALENDAR_COLUMNS).sort_values(["event_time", "kind", "name"]).reset_index(drop=True)
+    table = pd.DataFrame(rows, columns=CALENDAR_COLUMNS).sort_values(["event_time", "kind", "name"]).reset_index(drop=True)
+    if as_of is None:
+        return table
+    cut = pd.Timestamp(as_of)
+    unsourced = table.availability.eq("unsourced")
+    if unsourced.any() and not retrospective:
+        raise ValueError(f"{int(unsourced.sum())} calendar rows have no sourced publication time; pass retrospective=True "
+                         "only for a description of the past, never for a forecast at as_of")
+    known = table.available_at.lt(cut) | (unsourced & table.event_time.lt(cut))
+    return table.loc[known].reset_index(drop=True)

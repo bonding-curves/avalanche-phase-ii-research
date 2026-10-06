@@ -89,7 +89,7 @@ def forward_folds(meta: pd.DataFrame, target: str, first: str = "2022-11-19 16:0
     folds, start = [], pd.Timestamp(first)
     while start < cutoff:
         end = min(start + pd.DateOffset(months=months), cutoff)
-        train = np.flatnonzero((meta.end_time + follow).le(start).to_numpy())
+        train = np.flatnonzero((meta.end_time + follow).lt(start).to_numpy())
         test = np.flatnonzero((meta.end_time.ge(start) & meta.end_time.lt(end)
                                & (meta.end_time + follow).lt(cutoff)).to_numpy())
         if len(test):
@@ -121,7 +121,8 @@ def protocol_folds(meta: pd.DataFrame, target: str, origins: pd.Series | None = 
     end_time = meta.end_time
     folds = []
     for name, origin in origins.items():
-        train = np.flatnonzero((end_time + follow).le(origin).to_numpy())
+        # Strictly before the origin, the first instant not observed, as every cut in this package.
+        train = np.flatnonzero((end_time + follow).lt(origin).to_numpy())
         for days in horizons:
             stop = origin + days * DAY
             if stop > cutoff:
