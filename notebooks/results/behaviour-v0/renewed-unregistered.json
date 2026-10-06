@@ -48,46 +48,382 @@
   "features_sha256": "4ecd9a78ce9605346f19fcb8aad500f7474035477ec8b9d6d26b897e2ca8f80e",
   "folds": [
     {
-      "end": "2023-05-19 16:00:00",
-      "name": "2022-11",
-      "start": "2022-11-19 16:00:00",
-      "test": 3233,
-      "train": 14051
+      "end": "2022-07-31 00:00:00",
+      "name": "2022-Q3+30d",
+      "start": "2022-07-01 00:00:00",
+      "test": 577,
+      "train": 11139
     },
     {
-      "end": "2023-11-19 16:00:00",
-      "name": "2023-05",
-      "start": "2023-05-19 16:00:00",
-      "test": 3079,
-      "train": 17265
+      "end": "2022-09-29 00:00:00",
+      "name": "2022-Q3+90d",
+      "start": "2022-07-01 00:00:00",
+      "test": 1711,
+      "train": 11139
     },
     {
-      "end": "2024-05-19 16:00:00",
-      "name": "2023-11",
-      "start": "2023-11-19 16:00:00",
-      "test": 3701,
-      "train": 20366
+      "end": "2022-12-28 00:00:00",
+      "name": "2022-Q3+180d",
+      "start": "2022-07-01 00:00:00",
+      "test": 3431,
+      "train": 11139
     },
     {
-      "end": "2024-11-19 16:00:00",
-      "name": "2024-05",
-      "start": "2024-05-19 16:00:00",
-      "test": 3348,
-      "train": 24033
+      "end": "2022-10-31 00:00:00",
+      "name": "2022-Q4+30d",
+      "start": "2022-10-01 00:00:00",
+      "test": 544,
+      "train": 13045
     },
     {
-      "end": "2025-05-19 16:00:00",
-      "name": "2024-11",
-      "start": "2024-11-19 16:00:00",
-      "test": 3419,
-      "train": 27392
+      "end": "2022-12-30 00:00:00",
+      "name": "2022-Q4+90d",
+      "start": "2022-10-01 00:00:00",
+      "test": 1620,
+      "train": 13045
     },
     {
-      "end": "2025-11-19 16:00:00",
-      "name": "2025-05",
-      "start": "2025-05-19 16:00:00",
-      "test": 3202,
-      "train": 30800
+      "end": "2023-03-30 00:00:00",
+      "name": "2022-Q4+180d",
+      "start": "2022-10-01 00:00:00",
+      "test": 3196,
+      "train": 13045
+    },
+    {
+      "end": "2022-11-17 16:00:00",
+      "name": "banff+30d",
+      "start": "2022-10-18 16:00:00",
+      "test": 608,
+      "train": 13453
+    },
+    {
+      "end": "2023-01-16 16:00:00",
+      "name": "banff+90d",
+      "start": "2022-10-18 16:00:00",
+      "test": 1724,
+      "train": 13453
+    },
+    {
+      "end": "2023-04-16 16:00:00",
+      "name": "banff+180d",
+      "start": "2022-10-18 16:00:00",
+      "test": 3266,
+      "train": 13453
+    },
+    {
+      "end": "2023-01-31 00:00:00",
+      "name": "2023-Q1+30d",
+      "start": "2023-01-01 00:00:00",
+      "test": 507,
+      "train": 14797
+    },
+    {
+      "end": "2023-04-01 00:00:00",
+      "name": "2023-Q1+90d",
+      "start": "2023-01-01 00:00:00",
+      "test": 1576,
+      "train": 14797
+    },
+    {
+      "end": "2023-06-30 00:00:00",
+      "name": "2023-Q1+180d",
+      "start": "2023-01-01 00:00:00",
+      "test": 3151,
+      "train": 14797
+    },
+    {
+      "end": "2023-05-01 00:00:00",
+      "name": "2023-Q2+30d",
+      "start": "2023-04-01 00:00:00",
+      "test": 616,
+      "train": 16363
+    },
+    {
+      "end": "2023-06-30 00:00:00",
+      "name": "2023-Q2+90d",
+      "start": "2023-04-01 00:00:00",
+      "test": 1575,
+      "train": 16363
+    },
+    {
+      "end": "2023-09-28 00:00:00",
+      "name": "2023-Q2+180d",
+      "start": "2023-04-01 00:00:00",
+      "test": 3125,
+      "train": 16363
+    },
+    {
+      "end": "2023-05-25 15:00:00",
+      "name": "cortina+30d",
+      "start": "2023-04-25 15:00:00",
+      "test": 579,
+      "train": 16859
+    },
+    {
+      "end": "2023-07-24 15:00:00",
+      "name": "cortina+90d",
+      "start": "2023-04-25 15:00:00",
+      "test": 1623,
+      "train": 16859
+    },
+    {
+      "end": "2023-10-22 15:00:00",
+      "name": "cortina+180d",
+      "start": "2023-04-25 15:00:00",
+      "test": 3123,
+      "train": 16859
+    },
+    {
+      "end": "2023-07-31 00:00:00",
+      "name": "2023-Q3+30d",
+      "start": "2023-07-01 00:00:00",
+      "test": 455,
+      "train": 18038
+    },
+    {
+      "end": "2023-09-29 00:00:00",
+      "name": "2023-Q3+90d",
+      "start": "2023-07-01 00:00:00",
+      "test": 1478,
+      "train": 18038
+    },
+    {
+      "end": "2023-12-28 00:00:00",
+      "name": "2023-Q3+180d",
+      "start": "2023-07-01 00:00:00",
+      "test": 3034,
+      "train": 18038
+    },
+    {
+      "end": "2023-10-31 00:00:00",
+      "name": "2023-Q4+30d",
+      "start": "2023-10-01 00:00:00",
+      "test": 448,
+      "train": 19566
+    },
+    {
+      "end": "2023-12-30 00:00:00",
+      "name": "2023-Q4+90d",
+      "start": "2023-10-01 00:00:00",
+      "test": 1491,
+      "train": 19566
+    },
+    {
+      "end": "2024-03-29 00:00:00",
+      "name": "2023-Q4+180d",
+      "start": "2023-10-01 00:00:00",
+      "test": 3332,
+      "train": 19566
+    },
+    {
+      "end": "2024-01-31 00:00:00",
+      "name": "2024-Q1+30d",
+      "start": "2024-01-01 00:00:00",
+      "test": 528,
+      "train": 21211
+    },
+    {
+      "end": "2024-03-31 00:00:00",
+      "name": "2024-Q1+90d",
+      "start": "2024-01-01 00:00:00",
+      "test": 1765,
+      "train": 21211
+    },
+    {
+      "end": "2024-06-29 00:00:00",
+      "name": "2024-Q1+180d",
+      "start": "2024-01-01 00:00:00",
+      "test": 3559,
+      "train": 21211
+    },
+    {
+      "end": "2024-04-05 16:00:00",
+      "name": "durango+30d",
+      "start": "2024-03-06 16:00:00",
+      "test": 698,
+      "train": 22392
+    },
+    {
+      "end": "2024-06-04 16:00:00",
+      "name": "durango+90d",
+      "start": "2024-03-06 16:00:00",
+      "test": 1849,
+      "train": 22392
+    },
+    {
+      "end": "2024-09-02 16:00:00",
+      "name": "durango+180d",
+      "start": "2024-03-06 16:00:00",
+      "test": 3509,
+      "train": 22392
+    },
+    {
+      "end": "2024-05-01 00:00:00",
+      "name": "2024-Q2+30d",
+      "start": "2024-04-01 00:00:00",
+      "test": 558,
+      "train": 23037
+    },
+    {
+      "end": "2024-06-30 00:00:00",
+      "name": "2024-Q2+90d",
+      "start": "2024-04-01 00:00:00",
+      "test": 1704,
+      "train": 23037
+    },
+    {
+      "end": "2024-09-28 00:00:00",
+      "name": "2024-Q2+180d",
+      "start": "2024-04-01 00:00:00",
+      "test": 3264,
+      "train": 23037
+    },
+    {
+      "end": "2024-07-31 00:00:00",
+      "name": "2024-Q3+30d",
+      "start": "2024-07-01 00:00:00",
+      "test": 519,
+      "train": 24844
+    },
+    {
+      "end": "2024-09-29 00:00:00",
+      "name": "2024-Q3+90d",
+      "start": "2024-07-01 00:00:00",
+      "test": 1516,
+      "train": 24844
+    },
+    {
+      "end": "2024-12-28 00:00:00",
+      "name": "2024-Q3+180d",
+      "start": "2024-07-01 00:00:00",
+      "test": 3155,
+      "train": 24844
+    },
+    {
+      "end": "2024-10-31 00:00:00",
+      "name": "2024-Q4+30d",
+      "start": "2024-10-01 00:00:00",
+      "test": 443,
+      "train": 26466
+    },
+    {
+      "end": "2024-12-30 00:00:00",
+      "name": "2024-Q4+90d",
+      "start": "2024-10-01 00:00:00",
+      "test": 1585,
+      "train": 26466
+    },
+    {
+      "end": "2025-03-30 00:00:00",
+      "name": "2024-Q4+180d",
+      "start": "2024-10-01 00:00:00",
+      "test": 3271,
+      "train": 26466
+    },
+    {
+      "end": "2025-01-15 17:00:00",
+      "name": "etna+30d",
+      "start": "2024-12-16 17:00:00",
+      "test": 531,
+      "train": 27918
+    },
+    {
+      "end": "2025-03-16 17:00:00",
+      "name": "etna+90d",
+      "start": "2024-12-16 17:00:00",
+      "test": 1698,
+      "train": 27918
+    },
+    {
+      "end": "2025-06-14 17:00:00",
+      "name": "etna+180d",
+      "start": "2024-12-16 17:00:00",
+      "test": 3449,
+      "train": 27918
+    },
+    {
+      "end": "2025-01-31 00:00:00",
+      "name": "2025-Q1+30d",
+      "start": "2025-01-01 00:00:00",
+      "test": 445,
+      "train": 28133
+    },
+    {
+      "end": "2025-04-01 00:00:00",
+      "name": "2025-Q1+90d",
+      "start": "2025-01-01 00:00:00",
+      "test": 1664,
+      "train": 28133
+    },
+    {
+      "end": "2025-06-30 00:00:00",
+      "name": "2025-Q1+180d",
+      "start": "2025-01-01 00:00:00",
+      "test": 3423,
+      "train": 28133
+    },
+    {
+      "end": "2025-05-01 00:00:00",
+      "name": "2025-Q2+30d",
+      "start": "2025-04-01 00:00:00",
+      "test": 503,
+      "train": 29816
+    },
+    {
+      "end": "2025-06-30 00:00:00",
+      "name": "2025-Q2+90d",
+      "start": "2025-04-01 00:00:00",
+      "test": 1759,
+      "train": 29816
+    },
+    {
+      "end": "2025-09-28 00:00:00",
+      "name": "2025-Q2+180d",
+      "start": "2025-04-01 00:00:00",
+      "test": 3306,
+      "train": 29816
+    },
+    {
+      "end": "2025-05-08 15:00:00",
+      "name": "fortuna+30d",
+      "start": "2025-04-08 15:00:00",
+      "test": 621,
+      "train": 29971
+    },
+    {
+      "end": "2025-07-07 15:00:00",
+      "name": "fortuna+90d",
+      "start": "2025-04-08 15:00:00",
+      "test": 1772,
+      "train": 29971
+    },
+    {
+      "end": "2025-10-05 15:00:00",
+      "name": "fortuna+180d",
+      "start": "2025-04-08 15:00:00",
+      "test": 3397,
+      "train": 29971
+    },
+    {
+      "end": "2025-07-31 00:00:00",
+      "name": "2025-Q3+30d",
+      "start": "2025-07-01 00:00:00",
+      "test": 426,
+      "train": 31595
+    },
+    {
+      "end": "2025-09-29 00:00:00",
+      "name": "2025-Q3+90d",
+      "start": "2025-07-01 00:00:00",
+      "test": 1517,
+      "train": 31595
+    },
+    {
+      "end": "2025-10-31 00:00:00",
+      "name": "2025-Q4+30d",
+      "start": "2025-10-01 00:00:00",
+      "test": 525,
+      "train": 33209
     }
   ],
   "inputs": {
@@ -108,60 +444,84 @@
   "rows": "without the registered actors (AS1)",
   "scores": {
     "boosted": {
-      "accuracy": 0.79997,
-      "average_precision_not_renewed": 0.473422,
-      "brier": 0.289678,
-      "last_fold_accuracy": 0.802311,
-      "last_fold_average_precision_not_renewed": 0.51663,
-      "last_fold_brier": 0.291259,
-      "last_fold_log_loss": 0.4517,
-      "last_fold_roc_auc": 0.774254,
-      "last_fold_skill_vs_prior": 0.149487,
-      "log_loss": 0.451202,
-      "roc_auc": 0.763175,
-      "skill_vs_prior": 0.136389
+      "accuracy": 0.79982,
+      "average_precision_not_renewed": 0.46048,
+      "brier": 0.289176,
+      "ece": 0.048125,
+      "last_fold_accuracy": 0.838036,
+      "last_fold_average_precision_not_renewed": 0.362215,
+      "last_fold_brier": 0.245702,
+      "last_fold_ece": 0.048593,
+      "last_fold_log_loss": 0.39788,
+      "last_fold_roc_auc": 0.774473,
+      "last_fold_skill_vs_prior": 0.119267,
+      "log_loss": 0.44991,
+      "roc_auc": 0.763998,
+      "skill_vs_prior": 0.133477
     },
     "history": {
-      "accuracy": 0.792213,
-      "average_precision_not_renewed": 0.438418,
-      "brier": 0.31026,
-      "last_fold_accuracy": 0.785447,
-      "last_fold_average_precision_not_renewed": 0.43781,
-      "last_fold_brier": 0.331031,
-      "last_fold_log_loss": 0.535999,
-      "last_fold_roc_auc": 0.71199,
-      "last_fold_skill_vs_prior": -0.00924,
-      "log_loss": 0.490185,
-      "roc_auc": 0.73922,
-      "skill_vs_prior": 0.062498
+      "accuracy": 0.793711,
+      "average_precision_not_renewed": 0.43812,
+      "brier": 0.306626,
+      "ece": 0.083039,
+      "last_fold_accuracy": 0.847065,
+      "last_fold_average_precision_not_renewed": 0.401407,
+      "last_fold_brier": 0.238158,
+      "last_fold_ece": 0.047088,
+      "last_fold_log_loss": 0.392839,
+      "last_fold_roc_auc": 0.751195,
+      "last_fold_skill_vs_prior": 0.130425,
+      "log_loss": 0.483574,
+      "roc_auc": 0.742199,
+      "skill_vs_prior": 0.070735
     },
     "logistic": {
-      "accuracy": 0.783205,
-      "average_precision_not_renewed": 0.428842,
-      "brier": 0.317546,
-      "last_fold_accuracy": 0.789819,
-      "last_fold_average_precision_not_renewed": 0.47145,
-      "last_fold_brier": 0.318301,
-      "last_fold_log_loss": 0.498225,
-      "last_fold_roc_auc": 0.753019,
-      "last_fold_skill_vs_prior": 0.061885,
-      "log_loss": 0.508099,
-      "roc_auc": 0.727233,
-      "skill_vs_prior": 0.024739
+      "accuracy": 0.789084,
+      "average_precision_not_renewed": 0.425628,
+      "brier": 0.335273,
+      "ece": 0.1229,
+      "last_fold_accuracy": 0.844244,
+      "last_fold_average_precision_not_renewed": 0.379407,
+      "last_fold_brier": 0.265921,
+      "last_fold_ece": 0.105671,
+      "last_fold_log_loss": 0.497441,
+      "last_fold_roc_auc": 0.723504,
+      "last_fold_skill_vs_prior": -0.101117,
+      "log_loss": 0.586638,
+      "roc_auc": 0.719132,
+      "skill_vs_prior": -0.127293
     },
     "prior": {
-      "accuracy": 0.783855,
-      "average_precision_not_renewed": 0.216145,
-      "brier": 0.339049,
-      "last_fold_accuracy": 0.776702,
-      "last_fold_average_precision_not_renewed": 0.223298,
-      "last_fold_brier": 0.3469,
-      "last_fold_log_loss": 0.531091,
+      "accuracy": 0.786421,
+      "average_precision_not_renewed": 0.213579,
+      "brier": 0.336172,
+      "ece": 0.034691,
+      "last_fold_accuracy": 0.839729,
+      "last_fold_average_precision_not_renewed": 0.160271,
+      "last_fold_brier": 0.276613,
+      "last_fold_ece": 0.06101,
+      "last_fold_log_loss": 0.45176,
       "last_fold_roc_auc": 0.5,
       "last_fold_skill_vs_prior": 0.0,
-      "log_loss": 0.522269,
+      "log_loss": 0.519016,
       "roc_auc": 0.5,
       "skill_vs_prior": 0.0
+    },
+    "trailing_year": {
+      "accuracy": 0.786421,
+      "average_precision_not_renewed": 0.213579,
+      "brier": 0.336315,
+      "ece": 0.035014,
+      "last_fold_accuracy": 0.839729,
+      "last_fold_average_precision_not_renewed": 0.160271,
+      "last_fold_brier": 0.272032,
+      "last_fold_ece": 0.040022,
+      "last_fold_log_loss": 0.444866,
+      "last_fold_roc_auc": 0.5,
+      "last_fold_skill_vs_prior": 0.015261,
+      "log_loss": 0.519196,
+      "roc_auc": 0.5,
+      "skill_vs_prior": -0.000169
     }
   },
   "seed": 20261001,
