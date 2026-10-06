@@ -57,6 +57,7 @@ class EntityFold:
 
     fold: Fold
     history: pd.DataFrame
+    support: dict
 
 
 def entity_folds(decisions: pd.DataFrame, members: pd.DataFrame, target: str = "renewed", *, tier: str = "node",
@@ -78,8 +79,20 @@ def entity_folds(decisions: pd.DataFrame, members: pd.DataFrame, target: str = "
         if fold.start not in histories:
             histories[fold.start] = entity_history(decisions, members, fold.start, tier=tier, label=spec.column,
                                                    follow_up_days=spec.follow_up_days)
-        out.append(EntityFold(fold, histories[fold.start]))
+        out.append(EntityFold(fold, histories[fold.start], _support(decisions, fold, histories[fold.start], spec.column)))
     return out
+
+
+def _support(decisions: pd.DataFrame, fold: Fold, history: pd.DataFrame, column: str) -> dict:
+    """Which training rows the history holds and why the rest are left out: a missing label or no entity in ``members``.
+    A comparison across learners freezes these IDs so every rung scores the same support."""
+    train = decisions.iloc[fold.train]
+    kept = set(history.transaction_hash)
+    unlabelled = train.loc[train[column].isna(), "transaction_hash"]
+    unmapped = train.loc[train[column].notna() & ~train.transaction_hash.isin(kept), "transaction_hash"]
+    digest = hashlib.sha256("\n".join(sorted(map(str, kept))).encode()).hexdigest()
+    return {"train_rows": len(train), "history_rows": len(kept), "history_sha256": digest,
+            "unlabelled": sorted(map(str, unlabelled)), "unmapped": sorted(map(str, unmapped))}
 
 
 @dataclass(frozen=True)

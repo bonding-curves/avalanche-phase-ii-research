@@ -169,7 +169,7 @@ def strata_history(values, effect, strata=("cold", "warm"), per=None):
     rows = [{"transaction_hash": f"{s}{i}", "entity_id": s.upper(), "end_time": ORIGIN - 20 * DAY, "stratum": s, effect: v}
             for s in strata for i, v in enumerate(values[:per])]
     history = pd.DataFrame(rows)
-    history.attrs.update(as_of=str(ORIGIN), follow_up_days=7)
+    history.attrs.update(as_of=str(ORIGIN), follow_up_days=7, label=effect)
     return history
 
 
@@ -193,7 +193,7 @@ def test_ec11_a_stratum_too_small_to_fit_takes_the_pooled_prior_and_says_so():
 def test_ec12_every_stratum_and_an_unseen_entity_share_one_category_vocabulary():
     history = strata_history(["short", "short"], "kind", strata=("a", "b"))
     history = pd.concat([history, strata_history(["long", "long"], "kind", strata=("c", "d"))], ignore_index=True)
-    history.attrs.update(as_of=str(ORIGIN), follow_up_days=7)
+    history.attrs.update(as_of=str(ORIGIN), follow_up_days=7, label="kind")
     history["stratum"] = history.entity_id.map({"A": "one", "B": "one", "C": "two", "D": "two"})
     fit = sh.shrink(history, "kind", family="dirichlet-multinomial", by="stratum")
     table = en.effects(fit, ORIGIN)
@@ -231,3 +231,46 @@ def test_ev1_the_calendar_separates_publication_from_effect_and_refuses_unsource
         rules.calendar(ORIGIN)
     past = rules.calendar(ORIGIN, retrospective=True)
     assert past.event_time.lt(ORIGIN).all() and len(past) < len(table)
+
+
+# Data science's rereview of 8b24529: F2 cut-guard witnesses, F3 latest missing stratum, F4 fold support.
+def test_f2_a_cut_without_its_row_clock_or_follow_up_is_refused():
+    history = cut_history(panel([ORIGIN - 30 * DAY, ORIGIN - 20 * DAY]))
+    for broken in (history.drop(columns="end_time"), history.copy()):
+        if "end_time" in broken:
+            broken.attrs = {k: v for k, v in history.attrs.items() if k != "follow_up_days"}
+        with pytest.raises(ValueError, match="must carry end_time"):
+            sh.shrink(broken, "renewed", family="beta-binomial")
+
+
+def test_f2_a_history_cut_for_a_short_label_cannot_fit_a_longer_target():
+    frame = panel([ORIGIN - 30 * DAY, ORIGIN - 20 * DAY], next_duration_class=["short", "long"], unregistered=[0.1, 0.2])
+    seven_day = cut_history(frame)
+    with pytest.raises(ValueError, match="needs its own history"):
+        sh.shrink(seven_day, "next_duration_class", family="dirichlet-multinomial")
+    with pytest.raises(ValueError, match="needs its own history"):
+        sh.shrink(seven_day, "unregistered", family="normal")
+    year = cut_history(panel([ORIGIN - 400 * DAY, ORIGIN - 380 * DAY], next_duration_class=["short", "long"]),
+                       label="next_duration_class", follow_up_days=365)
+    assert sh.shrink(year, "next_duration_class", family="dirichlet-multinomial").as_of == str(ORIGIN)
+
+
+def test_f3_a_missing_latest_stratum_takes_the_unknown_path():
+    history = strata_history([0.0, 1.0], "renewed", strata=("a", "b", "c"))
+    history["stratum"] = "known"
+    history["end_time"] = ORIGIN - 30 * DAY
+    later = history[history.entity_id == "A"].head(1).assign(end_time=ORIGIN - 20 * DAY, stratum=None, transaction_hash="late")
+    history = pd.concat([history, later], ignore_index=True)
+    history.attrs.update(as_of=str(ORIGIN), follow_up_days=7, label="renewed")
+    fit = sh.shrink(history, "renewed", family="beta-binomial", by="stratum")
+    assert fit.rows.set_index("entity_id").loc["A", "prior_id"] == "pooled" and fit.support["unknown"]["entities"] == 1
+
+
+def test_f4_each_fold_names_the_training_rows_its_history_leaves_out():
+    frame = panel([ORIGIN - 30 * DAY, ORIGIN - 20 * DAY, ORIGIN - 15 * DAY, ORIGIN + DAY])
+    frame.loc[1, "renewed"] = np.nan
+    frame.loc[2, "node_id"] = "UNMAPPED"
+    members = en.node_members(frame[frame.node_id == "A"])
+    fold = en.entity_folds(frame, members, origins=pd.Series({"o": ORIGIN}), horizons=(30,))[0]
+    assert fold.support["train_rows"] == 3 and fold.support["history_rows"] == 1
+    assert fold.support["unlabelled"] == ["t1"] and fold.support["unmapped"] == ["t2"]

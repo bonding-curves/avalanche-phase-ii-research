@@ -15,7 +15,8 @@ whose prior cannot be estimated. A type-mixture prior waits for the type model (
 
 Every fit carries where its data came from. ``as_of`` is the cut of the history it was fitted on, read from
 ``entities.entity_history`` and checked against the rows: a decision whose end plus follow-up is not before the cut is
-refused. ``entities.effects`` refuses to stamp a table earlier than that cut. ``support`` counts the
+refused, as is a history missing its row clock or follow-up, or an effect with a longer maturity than the label the
+history was cut for. ``entities.effects`` refuses to stamp a table earlier than that cut. ``support`` counts the
 rows and entities used, with a hash of their decision IDs. ``diagnostics`` reports, per prior, whether the optimizer
 converged, which parameters sit at a bound, and whether the variance split is identified.
 
@@ -162,6 +163,25 @@ def _support(history: pd.DataFrame) -> dict:
             "decisions_sha256": hashlib.sha256("\n".join(ids).encode()).hexdigest() if len(ids) else None}
 
 
+def _check_cut(history: pd.DataFrame, effect: str, as_of: str) -> None:
+    """A cut is checked against the rows, never trusted. It needs the history's row clock (``end_time``), its label and
+    that label's follow-up, as ``entities.entity_history`` records them. The effect must be that label, or a registered
+    target whose maturity is no longer than the history's follow-up. Every row must have matured before the cut."""
+    from .supervised import TARGETS
+
+    label, follow_up = history.attrs.get("label"), history.attrs.get("follow_up_days")
+    if "end_time" not in history or label is None or follow_up is None:
+        raise ValueError("a history with a cut must carry end_time, its label and its follow-up: build it with entity_history")
+    if effect != label:
+        maturity = {spec.column: spec.follow_up_days for spec in TARGETS.values()}.get(effect)
+        if maturity is None or maturity > follow_up:
+            raise ValueError(f"the history was cut for {label!r} with a {follow_up}-day follow-up; {effect!r} needs its own "
+                             "history from entity_history with its label and follow-up")
+    late = history.end_time.isna() | history.end_time.add(pd.Timedelta(days=follow_up)).ge(pd.Timestamp(as_of))
+    if late.any():
+        raise ValueError(f"{int(late.sum())} decisions were not observable before the history's cut {as_of}")
+
+
 def shrink(history: pd.DataFrame, effect: str, *, family: str, prior: str = "pooled", by: str | None = None,
            categories=None) -> EffectFit:
     """Shrunk effects of every entity in ``history`` (``entities.entity_history``), with the prior an unseen entity takes.
@@ -176,12 +196,8 @@ def shrink(history: pd.DataFrame, effect: str, *, family: str, prior: str = "poo
     if effect not in history:
         raise ValueError(f"history has no column {effect!r}")
     as_of = history.attrs.get("as_of")
-    if as_of is not None and "end_time" in history:
-        # The cut is checked against the data, not trusted: every decision's label must have been observable before it.
-        follow = pd.Timedelta(days=history.attrs.get("follow_up_days", 0))
-        late = history.end_time.add(follow).ge(pd.Timestamp(as_of))
-        if late.any():
-            raise ValueError(f"{int(late.sum())} decisions were not observable before the history's cut {as_of}")
+    if as_of is not None:
+        _check_cut(history, effect, as_of)
     history = history.loc[history[effect].notna()]
     if history.empty:
         raise ValueError(f"history has no decisions with a known {effect!r}")
@@ -199,7 +215,8 @@ def shrink(history: pd.DataFrame, effect: str, *, family: str, prior: str = "poo
     if by is None:
         return EffectFit(family, effect, pooled_rows, pooled_prior, {"pooled": pooled_hyper}, support=support,
                          diagnostics={"pooled": pooled_diag}, **common)
-    stratum = history.sort_values("end_time").groupby("entity_id")[by].last()
+    # Each entity's latest decision, null or not: groupby().last() would skip a missing latest stratum.
+    stratum = history.sort_values("end_time", kind="stable").groupby("entity_id").tail(1).set_index("entity_id")[by]
     rows, hyper, diagnostics = [], {"pooled": pooled_hyper}, {"pooled": pooled_diag}
     pooled_for = set(stratum.index[stratum.isna()])
     support["unknown"] = {"entities": len(pooled_for), "prior": "pooled"}
