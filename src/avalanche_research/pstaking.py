@@ -25,8 +25,10 @@ rows of stakes that started before the walk take the stake's type, node, times, 
 record, and every reward row takes the realized reward from the node's reward outputs.
 
 A delegation's validator is the newest period on its node that contains it: one the walk saw start, one the Data API
-records, one the Data API lists as ended, or one the node lists as current. A validator that started before the walk is
-known only from the last two, and once it ends only from the ended list, which must reach back to the walk's start.
+records, one the Data API lists as ended, or one the node lists as current in its newest or any earlier snapshot run. A
+validator that started before the walk is known only from the last two. Once it ends, the ended list should hold it, but
+the Data API's list has missed validators (one that ended 2026-10-03 left 19 delegations without their validator), so
+every earlier snapshot of the node's current list is read too.
 """
 
 from __future__ import annotations
@@ -76,6 +78,7 @@ CYCLE_COLUMNS = {
 }
 DATASET_ID = VALIDATORS_ID
 SOURCE_ID = "derived"
+EARLIER_CURRENT = "earlier-current-validators"
 INPUTS = {
     "blocks": "p-chain-rpc.blocks",
     "staking-records": "data-api.p-chain-staking-transactions",
@@ -131,6 +134,12 @@ def select_inputs(pinned: dict[str, str] | None, root: Path | None) -> list[dict
     if unknown:
         raise DataError(f"not an input of the P-Chain backup tables: {', '.join(unknown)}")
     inputs = [_describe(input_id, dataset_id, pinned.get(dataset_id), root) for input_id, dataset_id in INPUTS.items()]
+    # Every earlier snapshot of the current list, oldest first, so a validator that ended is still known.
+    current = next(item for item in inputs if item["input_id"] == "current-validators")
+    earlier = [_describe(EARLIER_CURRENT, current["dataset_id"], item["run"], root) for item in datasets.runs(current["dataset_id"], root)
+               if item["run"] != current["run"]]
+    inputs.extend(sorted((item for item in earlier if (item["captured_at"] or "") <= (current["captured_at"] or "")),
+                         key=lambda item: (item["captured_at"] or "", item["run"])))
     walk = inputs[0]
     for item in inputs[1:3]:
         blocks_capture = datasets.receipt(item["dataset_id"], item["run"], root)["capture"].get("blocks_capture_id")
@@ -179,8 +188,10 @@ def _load(inputs: list[dict[str, Any]]) -> dict[str, Any]:
             " FROM read_parquet(?) ORDER BY block_height, tx_index NULLS FIRST", [paths["blocks"]]).fetchall()
         records = {row[0]: row for row in connection.execute("SELECT * FROM read_parquet(?)", [paths["staking-records"]]).fetchall()}
         paid = {row[0]: row for row in connection.execute("SELECT * FROM read_parquet(?)", [paths["reward-utxos"]]).fetchall()}
-        current = connection.execute(
-            "SELECT transaction_hash, node_id, start_time, end_time FROM read_parquet(?)", [paths["current-validators"]]).fetchall()
+        # The newest snapshot first, so its periods win; earlier snapshots only add validators it no longer lists.
+        snapshots = [paths["current-validators"]] + [str(item["path"]) for item in inputs if item["input_id"] == EARLIER_CURRENT]
+        current = [row for path in snapshots for row in connection.execute(
+            "SELECT transaction_hash, node_id, start_time, end_time FROM read_parquet(?)", [path]).fetchall()]
         ended = connection.execute(
             "SELECT transaction_hash, node_id, start_time, end_time FROM read_parquet(?) WHERE validation_status = 'completed'",
             [paths["validators-completed-recent"]]).fetchall()

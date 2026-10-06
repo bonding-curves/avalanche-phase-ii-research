@@ -135,6 +135,18 @@ def test_a_delegation_keeps_its_validator_after_the_validator_ends(root):
     assert delegation["validator_transaction_hash"] == "V1"
 
 
+def test_a_delegation_keeps_its_validator_when_the_ended_list_misses_it(root):
+    # 2026-10-03: a validator left the node's current list and the Data API's ended list never listed it. An earlier
+    # snapshot of the current list still holds it, so its delegations keep their validator.
+    make_validators(root, "current-later", "p-chain-rpc.current-validators", CURRENT.replace("'V1'", "'V2'").replace("NodeID-A", "NodeID-B"))
+    pinned = {"p-chain-rpc.current-validators": "current-later"}
+    (delegation,) = rows(pstaking_run(root, pstaking.DELEGATORS_ID, pinned))
+    assert delegation["validator_transaction_hash"] == "V1"
+    receipt = json.loads((root / pstaking.DELEGATORS_ID / "capture" / "capture.json").read_text())
+    assert [item["run"] for item in receipt["inputs"] if item["input_id"] == pstaking.EARLIER_CURRENT] == ["current"]
+    assert pstaking.check(root / pstaking.DELEGATORS_ID / "capture", root / pstaking.DELEGATORS_ID / "dataset", root=root)["status"] == "pass"
+
+
 def test_an_ended_list_that_starts_after_the_walk_is_refused(root):
     make_validators(root, "ended-short", "data-api.validators-completed-recent", ENDED.replace("2025-12-01", "2027-06-01"))
     with pytest.raises(DataError, match="ended-validator list"):
