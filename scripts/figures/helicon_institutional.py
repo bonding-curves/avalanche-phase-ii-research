@@ -39,12 +39,12 @@ from avalanche_research import datasets
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from png import save_png
 
-COMMITMENTS_RUN = "helicon-commitments-2026-10-04"
-OPERATORS_RUN = "operators-2026-10-04"
-ATTRIBUTIONS_RUN = "operator-attributions-2026-10-04"
-PERIODS_RUN = "staking-periods-2026-10-02"
-WALK_RUN = "p-chain-blocks-2026-10-02"
-DATA_AS_OF = "2026-10-04 00:15 UTC"
+COMMITMENTS_RUN = "helicon-commitments-2026-10-06"
+OPERATORS_RUN = "operators-2026-10-06"
+ATTRIBUTIONS_RUN = "operator-attributions-2026-10-06"
+PERIODS_RUN = "staking-periods-2026-10-06"
+WALK_RUN = "p-chain-blocks-2026-10-06"
+DATA_AS_OF = "2026-10-06 00:15 UTC"
 ACTIVATION = pd.Timestamp("2026-09-22 15:00:00")
 BENQI = "avax1tnuesf6cqwnjw7fxjyk7lhch0vhf0v95wj5jvy"
 LARGE_AVAX = 100_000
@@ -64,9 +64,14 @@ DEFINITION_LINES = (
     "(b) The cycle's own validator stake is at least 100,000 AVAX, delegations not counted.",
 )
 DEFINITIONS = " ".join(DEFINITION_LINES)
-# Why bar (a) is empty: the three attributed operators and what each runs, from the numbers file of the same runs.
-ATTRIBUTED_NOTE = ("(a) is empty: GoGoPool had 1 active node and the genesis holder none, and BENQI delegates, where the "
-                   "minimum stays 14 days.")
+# What bar (a) holds, from the numbers file of the same runs. The note names the attributed cycles exactly, so a new one
+# stops the script until the note is rewritten.
+ATTRIBUTED_CYCLES = {"NodeID-E9Go62iMHzuZWTwGuFxzzwQ76F5qoCc2G": "new"}
+ATTRIBUTED_NOTE = (
+    "(a) holds one new node and no mover: on 2026-10-04 BENQI started a validator node paying its own rewards address, 2,000 AVAX for 14 days.",
+    "The 4 other active nodes in BENQI's operator group started before Helicon. GoGoPool had 1 active node and the genesis holder none.",
+    "BENQI's delegations stay at 14 days or longer.",
+)
 VIEWS = {
     "movers": {
         "file": "helicon-institutional-movers",
@@ -132,8 +137,8 @@ def tables() -> tuple[dict[str, pd.DataFrame], dict]:
     frame = cycles()
     movers = frame[(frame.node_status == "returning") & (frame.previous_duration_days >= PREVIOUS_DAYS[0]) & (frame.previous_duration_days < PREVIOUS_DAYS[1])]
     new = frame[frame.node_status == "new"]
-    if frame.attributed.any():
-        raise SystemExit("an attributed operator started a cycle: rewrite ATTRIBUTED_NOTE before drawing")
+    if dict(zip(frame[frame.attributed].node_id, frame[frame.attributed].node_status)) != ATTRIBUTED_CYCLES:
+        raise SystemExit("the attributed operators' cycles changed: rewrite ATTRIBUTED_NOTE and ATTRIBUTED_CYCLES before drawing")
     out = {"movers": summary(movers, "movers"), "new": summary(new, "new")}
     operators = attributed_operators()
     active = datasets.load("derived.operators", run=OPERATORS_RUN)
@@ -167,14 +172,14 @@ def chart(table: pd.DataFrame, view: str) -> hv.Overlay:
     counts = data.groupby("group", sort=False).group_cycles.first()
     shorts = data[data.duration == CLASSES[0][0]].set_index("group")
     labels = [hv.Text(group, top[group] + max(1.0, top.max() * 1.25) * 0.03,
-                      f"{counts[group]} cycles, {int(shorts.loc[group, 'cycles'])} at 48h to 7d", fontsize=11).opts(color="#333333")
+                      f"{counts[group]} {'cycle' if counts[group] == 1 else 'cycles'}, {int(shorts.loc[group, 'cycles'])} at 48h to 7d", fontsize=11).opts(color="#333333")
               for group in counts.index]
 
     def hook(plot, element):
         # The definitions print under the chart, one line each, in the order added.
         from bokeh.models import Title
         window = f"First cycle of each transaction started from Helicon's activation, 2026-09-22 15:00 UTC, to the snapshot of {DATA_AS_OF}."
-        lines = (*DEFINITION_LINES, ATTRIBUTED_NOTE, window)
+        lines = (*DEFINITION_LINES, *ATTRIBUTED_NOTE, window)
         for line in lines:
             plot.state.add_layout(Title(text=line, text_font_size="12px", text_font_style="normal", text_color="#444444"), "below")
 
@@ -194,7 +199,7 @@ def main() -> None:
         (out / "helicon-institutional.json").write_text(json.dumps(numbers, indent=1, sort_keys=True) + "\n")
     for view, spec in VIEWS.items():
         hv.save(chart(frames[view], view), out / f"{spec['file']}.html")
-        save_png(out / f"{spec['file']}.html", out / f"{spec['file']}.png", 1140, 620)
+        save_png(out / f"{spec['file']}.html", out / f"{spec['file']}.png", 1140, 660)
         print(frames[view].to_string(index=False))
 
 

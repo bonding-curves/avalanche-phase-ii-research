@@ -23,8 +23,8 @@ from avalanche_research import datasets
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from png import save_png
 
-HELICON_RUN = "helicon-commitments-2026-10-02"
-PERIODS_RUN = "staking-periods-2026-09-30"
+HELICON_RUN = "helicon-commitments-2026-10-06"
+PERIODS_RUN = "staking-periods-2026-10-06"
 ACTIVATION = pd.Timestamp("2026-09-22 15:00:00")
 BINS = [("48h to 7d", 0, 7), ("7d to 14d", 7, 14), ("14d to 30d", 14, 30), ("30d to 90d", 30, 90), ("90d to 180d", 90, 180),
         ("180d to 365d", 180, 365.0001)]
