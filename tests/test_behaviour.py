@@ -377,3 +377,32 @@ def test_a_period_is_set_apart_by_its_own_address_from_the_evidence_date(tmp_pat
     before = periods.assign(end_time=pd.to_datetime(["2023-03-01", "2023-04-01", "2024-01-01", "2024-01-01"]))
     assert registered_actors(periods, path).where(lambda v: v.notna(), None).tolist() == [None, "GoGoPool", None, None]
     assert registered_actors(before, path).isna().all()
+
+
+def test_the_rules_in_force_change_only_at_their_upgrades():
+    # RT1: rule features move at upgrades, never with supply or time between them.
+    from avalanche_research.behaviour import rules
+
+    times = pd.Series([pd.Timestamp(t) for t in ("2021-01-01", "2024-06-01", "2026-09-22 14:59:59", "2026-09-22 15:00:00",
+                                                 "2026-11-06 03:00:00", "2026-12-21 15:00:00", "2027-03-01")])
+    table = rules.rules_in_force(times)
+    assert list(table.columns) == rules.RULE_COLUMNS
+    assert table.reward_14d_pct.iloc[:4].nunique() == 1 and table.reward_365d_pct.nunique() == 1
+    assert table.min_validator_days.tolist() == [14, 14, 14, 2, 2, 2, 2] and set(table.min_delegator_days) == {14}
+    assert table.uptime_requirement.tolist() == [0.8, 0.8, 0.8, 0.9, 0.9, 0.9, 0.9]
+    assert table.ramp_position.tolist()[:4] == [0, 0, 0, 0] and 0.4 < table.ramp_position.iloc[4] < 0.6
+    assert table.ramp_position.iloc[5:].tolist() == [1, 1]
+    assert table.reward_14d_pct.iloc[5] == table.reward_14d_pct.iloc[6] < table.reward_14d_pct.iloc[4]
+    assert table.rule_acp41_durango.tolist() == [0, 1, 1, 1, 1, 1, 1]
+
+
+def test_the_calendar_dates_each_activation_and_the_ramp_end():
+    # EV1's scripted rows.
+    from avalanche_research.behaviour import rules
+
+    calendar = rules.calendar()
+    assert list(calendar.columns) == rules.CALENDAR_COLUMNS and calendar.event_time.is_monotonic_increasing
+    activation = calendar.loc[calendar.kind.eq("activation")].set_index("name").event_time
+    ramp_end = calendar.loc[calendar.kind.eq("ramp_end"), "event_time"].item()
+    assert ramp_end - activation["helicon"] == pd.Timedelta(days=90)
+    assert set(calendar.loc[calendar.kind.eq("registered_actor_evidence"), "name"]) == {"OA1", "OA5"}
