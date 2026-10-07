@@ -62,7 +62,7 @@ GROUPS = (
 CLASSES = (("48h to 7d", 0, 7), ("7d to 14d", 7, 14), ("14d or longer", 14, 366))
 COLORS = ["#d1495b", "#edae49", "#1f5fa8"]
 DEFINITION_LINES = (
-    "(a) The node's operator is named at tier AS1 to AS3 with class EVIDENCE in data/operator-attributions.json.",
+    "(a) The node's operator is named from public evidence, such as an on-chain registry, its own announcement or a filing.",
     "(b) The node's first commitment since Helicon stakes at least 100,000 AVAX of its own, delegations not counted.",
 )
 DEFINITIONS = " ".join(DEFINITION_LINES)
