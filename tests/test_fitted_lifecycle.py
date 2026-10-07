@@ -96,7 +96,7 @@ def test_the_return_hazard_recovers_known_daily_rates_under_censoring():
 
 
 def test_a_return_after_a_year_is_censored_at_a_year_not_counted():
-    """RV-20261005-01 F1: a node back on day 400 stayed out for the whole window, so it adds exposure and no return."""
+    """A node back on day 400 stayed out for the whole window, so it adds exposure and no return."""
     late = ReturnHazard.fit([2_000 * AVAX], [400], [True], "synthetic")
     stayed = ReturnHazard.fit([2_000 * AVAX], [365], [False], "synthetic")
     assert late.hazards().tolist() == stayed.hazards().tolist() == [0.0] * 9

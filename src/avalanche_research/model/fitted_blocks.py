@@ -363,7 +363,7 @@ class Continuation:
     2,000,000 AVAX, each move weighted by its previous stake, kept within the protocol's validator bounds of 2,000 and
     3,000,000 AVAX. On the training moves of the 19 development origins, with the bounds applied, this design puts the
     expected stake after a move a mean absolute 1.2% from the actual, against 1.8% for three bands unweighted and 4.3%
-    for three bands weighted (review RV-20261005-03).
+    for three bands weighted.
     """
 
     MIN_STAKE_NAVAX = 2_000 * AVAX
