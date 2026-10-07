@@ -19,7 +19,7 @@ from collections.abc import Mapping
 from math import lgamma
 
 import numpy as np
-from scipy import optimize, special
+from scipy import optimize, special, stats
 
 from avalanche_research.model.blocks import BehaviourBlock, _outcomes, behavioural
 
@@ -211,6 +211,16 @@ class Arrivals(BehaviourBlock):
         k = self.dispersion
         return int(rng.negative_binomial(k, k / (k + mean)))
 
+    def count_from_uniform(self, u: float, scale: float = 1.0) -> int:
+        """The day's count by inversion of one uniform: the negative binomial quantile, or the Poisson quantile when the
+        dispersion sits at its bound. Monotone in the mean, so a design with a higher mean never draws fewer."""
+        mean = self.mean_per_day * float(scale)
+        if mean == 0.0:
+            return 0
+        k = self.dispersion
+        count = stats.poisson.ppf(u, mean) if k >= 1e6 else stats.nbinom.ppf(u, k, k / (k + mean))
+        return max(0, int(count))
+
     def log_prob(self, inputs, decisions):
         counts = np.asarray(decisions)
         if counts.ndim != 1 or (counts < 0).any() or not np.equal(np.mod(counts, 1), 0).all():
@@ -376,4 +386,31 @@ class Continuation:
         previous = np.asarray(previous_stake_navax, dtype=np.int64)
         keys = np.digitize(previous / AVAX, MOVE_STAKE_EDGES, right=True)
         ratio = self._draw(keys, self.stake_band, self.ratio, rng, self.weight)
+        return np.clip(np.round(previous * ratio), self.MIN_STAKE_NAVAX, self.MAX_STAKE_NAVAX).astype(np.int64)
+
+    def _pick(self, keys: np.ndarray, table_keys: np.ndarray, u: np.ndarray, weights: np.ndarray | None = None) -> np.ndarray:
+        """Table rows by inversion: for each uniform, the first row of its key's matches whose cumulative weight passes it."""
+        n = len(table_keys)
+        out = np.empty(len(keys), dtype=np.int64)
+        for key in np.unique(keys):
+            rows = keys == key
+            match = np.flatnonzero(table_keys == key) if (table_keys == key).any() else np.arange(n)
+            if weights is None:
+                index = np.minimum((u[rows] * len(match)).astype(np.int64), len(match) - 1)
+            else:
+                cumulative = np.cumsum(weights[match])
+                index = np.minimum(np.searchsorted(cumulative, u[rows] * cumulative[-1], side="right"), len(match) - 1)
+            out[rows] = match[index]
+        return out
+
+    def durations_from_uniforms(self, previous_days: np.ndarray, u: np.ndarray) -> np.ndarray:
+        """:meth:`durations` by inversion of one uniform per node, for keyed streams."""
+        keys = np.digitize(np.asarray(previous_days), DURATION_EDGES, right=True)
+        return self.next_days[self._pick(keys, self.previous_bin, np.asarray(u, dtype=float))]
+
+    def stakes_from_uniforms(self, previous_stake_navax: np.ndarray, u: np.ndarray) -> np.ndarray:
+        """:meth:`stakes` by inversion of one uniform per node, for keyed streams."""
+        previous = np.asarray(previous_stake_navax, dtype=np.int64)
+        keys = np.digitize(previous / AVAX, MOVE_STAKE_EDGES, right=True)
+        ratio = self.ratio[self._pick(keys, self.stake_band, np.asarray(u, dtype=float), self.weight)]
         return np.clip(np.round(previous * ratio), self.MIN_STAKE_NAVAX, self.MAX_STAKE_NAVAX).astype(np.int64)

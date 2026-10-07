@@ -31,6 +31,14 @@ from avalanche_research.model.fitted_blocks import (
     ReturnHazard,
 )
 from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
+from avalanche_research.model.streams import (
+    KIND_ARRIVAL,
+    KIND_OPEN,
+    KIND_OUT,
+    KIND_SCHEDULED,
+    Streams,
+    node_keys,
+)
 
 US_PER_DAY = 86_400_000_000
 INSTANT_US = 86_399_000_000
@@ -57,7 +65,8 @@ class FittedLifecycle(SimulationModel):
     large_above_avax = param.Number(default=None, allow_None=True, bounds=(0, None), doc="The stake line above which renewal_large decides")
     arrivals = param.ClassSelector(class_=Arrivals, default=Arrivals(), doc="The first-ever arrival block")
     returns = param.ClassSelector(class_=ReturnHazard, default=ReturnHazard(), doc="The return block")
-    seed = param.Integer(default=0, bounds=(0, None), doc="Base seed. Run r on day t draws from default_rng([seed, r, t])")
+    seed = param.Integer(default=0, bounds=(0, None), doc="Base seed. Draws are keyed by seed, run, purpose and node (model.streams)")
+    random_streams = param.String(default="keyed-v1", constant=True, doc="The random-number scheme. Keyed streams from 2026-10, so no run made before shares a specification hash with one made after")
     dt = param.Number(default=1.0, bounds=(0, None), inclusive_bounds=(False, True), doc="Days per timestep. Only 1 is allowed")
     timesteps = param.Integer(default=90, bounds=(1, 3650), doc="Days after the origin")
     runs = param.Integer(default=20, bounds=(1, None), doc="Monte Carlo runs")
@@ -95,6 +104,8 @@ class FittedLifecycle(SimulationModel):
         out = self.out_of_set if self.out_of_set is not None else pd.DataFrame(columns=OUT)
         state = {name: _column(initial, name, bool if name in ("after_return", "handed_on") else np.int64) for name in COMMITMENT}
         state |= {name: _column(out, name) for name in OUT}
+        state["node_key"] = node_keys(KIND_OPEN, 0, np.arange(len(state["stakes"])))
+        state["out_node_key"] = node_keys(KIND_OUT, 0, np.arange(len(state["out_stakes"])))
         return {
             **state,
             "active_validators": len(state["stakes"]),
@@ -124,40 +135,55 @@ class FittedLifecycle(SimulationModel):
         first_days, first_stakes = _array(first["days"]), _array(first["stake_navax"])
         sched = self.scheduled if self.scheduled is not None else pd.DataFrame(columns=["start_day", "stakes", "days", "done", "after_return", "returns"])
         sched_day = _array(sched["start_day"])
+        sched_key = node_keys(KIND_SCHEDULED, 0, np.arange(len(sched_day)))
 
         def p_lifecycle(params, substep, history, state):
             t = state["timestep"]
-            rng = np.random.default_rng([seed, state["run"], t])
+            draw = Streams(seed, int(state["run"]))
             renewal_gap, entry_gap = gaps[t]
             start = datetime.combine(origin + timedelta(days=t + 1), time(12), tzinfo=UTC)
             days_left = state["days_left"] - 1
             ending = days_left <= 0
             decide = ending & ~state["handed_on"]
-            ended = {name: state[name][decide] for name in ("stakes", "done", "after_return", "days", "returns")}
+            ended = {name: state[name][decide] for name in ("stakes", "done", "after_return", "days", "returns", "node_key")}
             decision_inputs = {
                 "done": ended["done"], "after_return": ended["after_return"], "days": ended["days"],
                 "stake_navax": ended["stakes"], "returns": ended["returns"], "shift": renewal_response * renewal_gap,
             }
-            renews = renewal.sample(decision_inputs, rng)
+            # Every draw is a uniform keyed by its node and decision count, inverted through the block, so a decision that
+            # differs between two designs moves no other node's draws.
+            renews = draw.uniforms("renewal", ended["node_key"], ended["done"]) < renewal.probability(decision_inputs)
             if large_navax is not None:
                 large = ended["stakes"] > large_navax
-                renews[large] = renewal_large.sample({k: (v[large] if isinstance(v, np.ndarray) else v) for k, v in decision_inputs.items()}, rng)
+                large_inputs = {k: (v[large] if isinstance(v, np.ndarray) else v) for k, v in decision_inputs.items()}
+                renews[large] = draw.uniforms("renewal_large", ended["node_key"][large], ended["done"][large]) < renewal_large.probability(large_inputs)
 
             out_days = state["out_days"] + 1
-            comes_back = returns.sample({"stake_navax": state["out_stakes"], "days_since_end": out_days}, rng)
-            n_new = int(arrivals.sample({"scale": float(np.exp(entry_response * entry_gap))}, rng))
+            hazard = returns.probability({"stake_navax": state["out_stakes"], "days_since_end": out_days})
+            comes_back = draw.uniforms("returns", state["out_node_key"], t) < hazard
+            n_new = arrivals.count_from_uniform(float(draw.uniforms("arrivals", t)[0]), float(np.exp(entry_response * entry_gap)))
+            new_key = node_keys(KIND_ARRIVAL, t, np.arange(n_new))
+            renewed_key, renewed_done = ended["node_key"][renews], ended["done"][renews]
+            back_key, back_done = state["out_node_key"][comes_back], state["out_done"][comes_back]
+
+            def pick(table: np.ndarray, purpose: str) -> np.ndarray:
+                if not n_new:
+                    return np.zeros(0, dtype=np.int64)
+                u = draw.uniforms(purpose, new_key)
+                return table[np.minimum((u * len(table)).astype(np.int64), len(table) - 1)]
 
             started = {
                 "stakes": np.concatenate([
-                    continuation.stakes(ended["stakes"][renews], rng),
-                    continuation.stakes(state["out_stakes"][comes_back], rng),
-                    rng.choice(first_stakes, size=n_new) if n_new else np.zeros(0, dtype=np.int64),
+                    continuation.stakes_from_uniforms(ended["stakes"][renews], draw.uniforms("renew_stake", renewed_key, renewed_done)),
+                    continuation.stakes_from_uniforms(state["out_stakes"][comes_back], draw.uniforms("return_stake", back_key, back_done)),
+                    pick(first_stakes, "first_stake"),
                 ]),
                 "days": np.concatenate([
-                    continuation.durations(ended["days"][renews], rng),
-                    continuation.durations(state["out_last_days"][comes_back], rng),
-                    rng.choice(first_days, size=n_new) if n_new else np.zeros(0, dtype=np.int64),
+                    continuation.durations_from_uniforms(ended["days"][renews], draw.uniforms("renew_days", renewed_key, renewed_done)),
+                    continuation.durations_from_uniforms(state["out_last_days"][comes_back], draw.uniforms("return_days", back_key, back_done)),
+                    pick(first_days, "first_days"),
                 ]),
+                "node_key": np.concatenate([renewed_key, back_key, new_key]),
                 "done": np.concatenate([ended["done"][renews] + 1, state["out_done"][comes_back], np.zeros(n_new, dtype=np.int64)]),
                 "after_return": np.concatenate([np.zeros(int(renews.sum()), bool), np.ones(int(comes_back.sum()), bool), np.zeros(n_new, bool)]),
                 "returns": np.concatenate([ended["returns"][renews], state["out_returns"][comes_back] + 1, np.zeros(n_new, dtype=np.int64)]),
@@ -179,11 +205,13 @@ class FittedLifecycle(SimulationModel):
                 "days": np.concatenate([state["days"][keep], started["days"], _array(sched["days"])[due]]),
                 "handed_on": np.concatenate([state["handed_on"][keep], np.zeros(len(started["stakes"]) + int(due.sum()), bool)]),
                 "returns": np.concatenate([state["returns"][keep], started["returns"], _column(sched, "returns")[due]]),
+                "node_key": np.concatenate([state["node_key"][keep], started["node_key"], sched_key[due]]),
                 "out_stakes": np.concatenate([state["out_stakes"][stay_out], ended["stakes"][left]]),
                 "out_days": np.concatenate([out_days[stay_out], np.zeros(int(left.sum()), dtype=np.int64)]),
                 "out_done": np.concatenate([state["out_done"][stay_out], ended["done"][left] + 1]),
                 "out_last_days": np.concatenate([state["out_last_days"][stay_out], ended["days"][left]]),
                 "out_returns": np.concatenate([state["out_returns"][stay_out], ended["returns"][left]]),
+                "out_node_key": np.concatenate([state["out_node_key"][stay_out], ended["node_key"][left]]),
                 "issued_navax": int(issued),
                 "yield_gap_pp": float(renewal_gap),
             }
@@ -203,7 +231,7 @@ class FittedLifecycle(SimulationModel):
         def s_supply(params, substep, history, state, signal):
             return "supply_navax", state["supply_navax"] + signal["issued_navax"]
 
-        copied = (*COMMITMENT, *OUT, "issued_navax", "yield_gap_pp")
+        copied = (*COMMITMENT, *OUT, "node_key", "out_node_key", "issued_navax", "yield_gap_pp")
         return [{
             "policies": {"lifecycle": p_lifecycle},
             "variables": {
