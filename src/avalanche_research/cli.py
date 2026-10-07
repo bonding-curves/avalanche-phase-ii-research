@@ -307,11 +307,14 @@ def list_runs(dataset_id: str | None, as_json: bool) -> None:
 @click.argument("name")
 @click.argument("dataset_ids", nargs=-1, required=True)
 @click.option("--run", "chosen", multiple=True, metavar="DATASET=RUN", help="Pin this run instead of the newest; repeatable.")
+@click.option("--code-commit", help="The client commit the pinned results were made with.")
+@click.option("--code-ref", help="A tag or branch that must point at --code-commit, such as model-v0.7.0.")
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
-def data_pin(name: str, dataset_ids: tuple[str, ...], chosen: tuple[str, ...], as_json: bool) -> None:
+def data_pin(name: str, dataset_ids: tuple[str, ...], chosen: tuple[str, ...], code_commit: str | None, code_ref: str | None,
+             as_json: bool) -> None:
     """Write data/pins/NAME.json: one checked run per dataset, with its capture ID and Parquet hash."""
     runs_by_dataset = dict(item.split("=", 1) for item in chosen)
-    value = pins.pin(name, list(dataset_ids), runs_by_dataset)
+    value = pins.pin(name, list(dataset_ids), runs_by_dataset, code_commit=code_commit, code_ref=code_ref)
     items = [f"{entry['dataset_id']} | {entry['run']} | {entry['sha256'][:12]}" for entry in value["runs"]]
     finish(envelope("data pin", "pass", {"text": f"{name}: {len(value['runs'])} runs pinned"}, items=items, pins=value), as_json)
 
