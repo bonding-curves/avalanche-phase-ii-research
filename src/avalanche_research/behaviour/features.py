@@ -107,7 +107,7 @@ def names(families: tuple[str, ...] | None = None) -> list[str]:
 
 def reward_failed(e: pd.DataFrame) -> pd.Series:
     """1.0 if the period earned no reward, 0.0 if it was rewarded, missing if its status is unknown or was not settled by
-    the decision at its end. A missing status is never read as a reward (DS3 ``F4``). Without ``rewarded_at`` (synthetic
+    the decision at its end. A missing status is never read as a reward. Without ``rewarded_at`` (synthetic
     frames) a known status counts as settled at the end."""
     settled = e.rewarded.notna()
     if "rewarded_at" in e:

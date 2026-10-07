@@ -1,7 +1,7 @@
-"""Entities and what was known about them at an instant: the as-of history (``EF1``), the forward-fold splitter that
-carries it (``FS1``), and the effect table every consumer reads (``EF4``).
+"""Entities and what was known about them at an instant: the as-of history, the forward-fold splitter that
+carries it, and the effect table every consumer reads.
 
-An entity is a node (tier ``node``) or a group of nodes at an identity tier. Until the identity resolver (``EF2``) lands,
+An entity is a node (tier ``node``) or a group of nodes at an identity tier. Until an identity resolver lands,
 ``members`` is a table of ``node_id`` and ``entity_id`` the caller supplies; ``node_members`` gives the node tier.
 
 Every function here keeps one rule: nothing at or after ``as_of`` is read. A decision enters an entity's history only once
@@ -32,7 +32,7 @@ def node_members(decisions: pd.DataFrame) -> pd.DataFrame:
 
 def entity_history(decisions: pd.DataFrame, members: pd.DataFrame, as_of, *, tier: str = "node", label: str = "renewed",
                    follow_up_days: int = 7, lookback_days: int | None = None, allow_lockbox: bool = False) -> pd.DataFrame:
-    """``EF1``: one row per past decision of each entity whose label was observable before ``as_of``.
+    """One row per past decision of each entity whose label was observable before ``as_of``.
 
     ``decisions`` is the decision panel (``events.decision_events``). A decision counts when its end plus
     ``follow_up_days`` is strictly before ``as_of`` and its ``label`` is known. ``lookback_days`` keeps only decisions
@@ -53,7 +53,7 @@ def entity_history(decisions: pd.DataFrame, members: pd.DataFrame, as_of, *, tie
 
 @dataclass(frozen=True)
 class EntityFold:
-    """``FS1``: a protocol fold, and the history of every entity as of its start, built from pre-fold decisions only."""
+    """A protocol fold, and the history of every entity as of its start, built from pre-fold decisions only."""
 
     fold: Fold
     history: pd.DataFrame
@@ -63,7 +63,7 @@ class EntityFold:
 def entity_folds(decisions: pd.DataFrame, members: pd.DataFrame, target: str = "renewed", *, tier: str = "node",
                  origins: pd.Series | None = None, horizons=(30, 90, 180),
                  observed_through=LOCKBOX_START) -> list[EntityFold]:
-    """``FS1``: the protocol's folds over ``decisions``, each with the as-of entity history at its origin. Every learner
+    """The protocol's folds over ``decisions``, each with the as-of entity history at its origin. Every learner
     that needs an entity effect reads it from here, so no rung sees a different notion of the past.
 
     The label column and its follow-up come from the registered target (``supervised.TARGETS``): ``next_duration``
@@ -97,7 +97,7 @@ def _support(decisions: pd.DataFrame, fold: Fold, history: pd.DataFrame, column:
 
 @dataclass(frozen=True)
 class EffectTable:
-    """``EF4``: entity effects estimated from data strictly before ``as_of``, plus the prior row for an unseen entity."""
+    """Entity effects estimated from data strictly before ``as_of``, plus the prior row for an unseen entity."""
 
     rows: pd.DataFrame
     prior: pd.DataFrame
@@ -120,7 +120,7 @@ class EffectTable:
 
 
 def effects(fit, as_of, tier: str = "node", map_version: str = "node", allow_lockbox: bool = False) -> EffectTable:
-    """``EF4``'s writer: an ``EffectTable`` from a fit (``shrink.shrink``), with a receipt id that hashes its content.
+    """The writer of an ``EffectTable`` from a fit (``shrink.shrink``), with a receipt id that hashes its content.
 
     The fit must carry the cut of the history it was fitted on (``entity_history`` sets it), and ``as_of`` may not be
     earlier: a table stamped before its own data were observable would hand the future to an earlier origin."""

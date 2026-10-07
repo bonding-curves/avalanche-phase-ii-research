@@ -1,4 +1,4 @@
-"""The staking rules in force at an instant (``RT1``) and the dated calendar of rule events (``EV1``).
+"""The staking rules in force at an instant and the dated calendar of rule events.
 
 The calendar keeps two clocks apart: ``event_time``, when the event takes effect, and ``available_at``, when it was
 public. ``calendar(as_of=...)`` returns only events public before ``as_of`` and refuses while any row's publication time
@@ -83,7 +83,7 @@ def rules_in_force(times: pd.Series) -> pd.DataFrame:
 
 
 def calendar(as_of=None, *, retrospective: bool = False) -> pd.DataFrame:
-    """``EV1``'s scripted rows: each upgrade's activation, ACP-285's ramp end, and each dated registered-actor rule.
+    """The calendar's scripted rows: each upgrade's activation, ACP-285's ramp end, and each dated registered-actor rule.
 
     Releases and ACP stages need their own sources and are not scripted here yet. With ``as_of``, only rows public
     strictly before it; rows with an unsourced publication time are refused unless ``retrospective``."""

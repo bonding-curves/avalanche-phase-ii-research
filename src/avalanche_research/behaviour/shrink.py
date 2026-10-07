@@ -1,4 +1,4 @@
-"""``EF3``: each entity's effect shrunk toward a prior estimated from all entities, by empirical Bayes.
+"""Each entity's effect shrunk toward a prior estimated from all entities, by empirical Bayes.
 
 Families, one per kind of decision:
 
@@ -11,7 +11,7 @@ Families, one per kind of decision:
 ``prior="pooled"`` fits one prior over every entity. ``by=<column>`` fits one per stratum, each entity in the stratum of its
 latest decision. Two cases take the pooled prior instead, each named in ``prior_id`` and counted in ``support``: an
 entity whose latest stratum is missing (``unknown``), and a stratum with fewer than ``MIN_STRATUM_ENTITIES`` entities,
-whose prior cannot be estimated. A type-mixture prior waits for the type model (``ML6``).
+whose prior cannot be estimated. A type-mixture prior waits for a type model.
 
 Every fit carries where its data came from. ``as_of`` is the cut of the history it was fitted on, read from
 ``entities.entity_history`` and checked against the rows: a decision whose end plus follow-up is not before the cut is
@@ -191,7 +191,7 @@ def shrink(history: pd.DataFrame, effect: str, *, family: str, prior: str = "poo
 
     ``categories`` declares the Dirichlet vocabulary; a category in the history outside it is refused."""
     if prior == "mixture":
-        raise NotImplementedError("the type-mixture prior lands with the type model (ML6)")
+        raise NotImplementedError("the type-mixture prior waits for a type model")
     if prior != "pooled":
         raise ValueError("prior must be 'pooled' or 'mixture'")
     if family not in FAMILIES:

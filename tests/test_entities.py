@@ -1,4 +1,4 @@
-"""The entity layer: as-of history (EF1), the forward-fold splitter (FS1), shrinkage (EF3) and the effect table (EF4)."""
+"""The entity layer: as-of history, the forward-fold splitter, shrinkage and the effect table."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def test_a_label_enters_history_only_once_observable_before_as_of():
 
 
 def test_history_as_of_a_cut_ignores_everything_after_it():
-    # TS1 at three cuts: changing or dropping decisions after the cut leaves the history identical.
+    # At three cuts: changing or dropping decisions after the cut leaves the history identical.
     frame = decisions()
     members = en.node_members(frame)
     for cut in (T0 + 60 * DAY, T0 + 120 * DAY, T0 + 200 * DAY):
@@ -118,7 +118,7 @@ def test_the_effect_table_refuses_the_past_and_gives_an_unseen_entity_the_prior(
         en.effects(fit, LOCKBOX_START + DAY)
 
 
-# Data science's entity contract review of 0f1889a, EC4 to EC14 and EV1, one test per repaired contract.
+# One test per contract repaired after the first independent review.
 ORIGIN = pd.Timestamp("2024-01-01")
 
 
@@ -131,14 +131,14 @@ def cut_history(frame, as_of=ORIGIN, **kw):
     return en.entity_history(frame, en.node_members(frame), as_of, **kw)
 
 
-def test_ec4_training_rows_and_history_share_the_strict_cut():
+def test_training_rows_and_history_share_the_strict_cut():
     frame = panel([ORIGIN - 8 * DAY, ORIGIN - 7 * DAY, ORIGIN + DAY])
     fold = en.entity_folds(frame, en.node_members(frame), origins=pd.Series({"o": ORIGIN}), horizons=(30,))[0]
     assert frame.iloc[fold.fold.train].transaction_hash.tolist() == fold.history.transaction_hash.tolist() == ["t0"]
 
 
 @pytest.mark.parametrize(("target", "column"), [("outcome", "outcome"), ("next_duration", "next_duration_class")])
-def test_ec5_ec6_each_target_reads_its_own_column_and_365_day_maturity(target, column):
+def test_each_target_reads_its_own_column_and_365_day_maturity(target, column):
     frame = panel([ORIGIN - 400 * DAY, ORIGIN - 30 * DAY, ORIGIN + DAY], **{column: ["a", "b", "c"]})
     fold = en.entity_folds(frame, en.node_members(frame), target, origins=pd.Series({"o": ORIGIN}), horizons=(30,))[0]
     assert fold.history.transaction_hash.tolist() == frame.iloc[fold.fold.train].transaction_hash.tolist() == ["t0"]
@@ -147,7 +147,7 @@ def test_ec5_ec6_each_target_reads_its_own_column_and_365_day_maturity(target, c
         en.entity_folds(frame, en.node_members(frame), "next_duration_class", origins=pd.Series({"o": ORIGIN}))
 
 
-def test_ec10_a_fit_cannot_be_stamped_before_its_own_cut_nor_carry_a_false_cut():
+def test_a_fit_cannot_be_stamped_before_its_own_cut_nor_carry_a_false_cut():
     frame = panel([ORIGIN + DAY, ORIGIN + 2 * DAY])
     later = cut_history(frame, ORIGIN + 20 * DAY)
     fit = sh.shrink(later, "renewed", family="beta-binomial")
@@ -173,7 +173,7 @@ def strata_history(values, effect, strata=("cold", "warm"), per=None):
     return history
 
 
-def test_ec11_constant_normal_data_give_finite_output_at_the_constant_with_diagnostics():
+def test_constant_normal_data_give_finite_output_at_the_constant_with_diagnostics():
     fit = sh.shrink(strata_history([0.4, 0.4], "x", strata=("a", "b", "c")), "x", family="normal")
     values = np.r_[fit.rows[["estimate", "sd"]].to_numpy().ravel(), fit.prior[["estimate", "sd"]].to_numpy().ravel()]
     assert np.isfinite(values).all() and fit.prior.estimate.item() == pytest.approx(0.4)
@@ -182,7 +182,7 @@ def test_ec11_constant_normal_data_give_finite_output_at_the_constant_with_diagn
     assert single.diagnostics["pooled"]["identified"] is False
 
 
-def test_ec11_a_stratum_too_small_to_fit_takes_the_pooled_prior_and_says_so():
+def test_a_stratum_too_small_to_fit_takes_the_pooled_prior_and_says_so():
     history = strata_history([1.0, 0.0], "renewed", strata=("cold", "warm", "warm2"))
     history.loc[history.stratum == "warm2", "stratum"] = "warm"
     fit = sh.shrink(history, "renewed", family="beta-binomial", by="stratum")
@@ -190,7 +190,7 @@ def test_ec11_a_stratum_too_small_to_fit_takes_the_pooled_prior_and_says_so():
     assert "too few entities" in fit.support["stratum=cold"]["prior"]
 
 
-def test_ec12_every_stratum_and_an_unseen_entity_share_one_category_vocabulary():
+def test_every_stratum_and_an_unseen_entity_share_one_category_vocabulary():
     history = strata_history(["short", "short"], "kind", strata=("a", "b"))
     history = pd.concat([history, strata_history(["long", "long"], "kind", strata=("c", "d"))], ignore_index=True)
     history.attrs.update(as_of=str(ORIGIN), follow_up_days=7, label="kind")
@@ -206,7 +206,7 @@ def test_ec12_every_stratum_and_an_unseen_entity_share_one_category_vocabulary()
     assert set(wider.prior.effect_id) == {"kind=long", "kind=medium", "kind=short"}
 
 
-def test_ec13_an_entity_with_no_stratum_keeps_its_support_through_the_pooled_prior():
+def test_an_entity_with_no_stratum_keeps_its_support_through_the_pooled_prior():
     history = strata_history([0.0, 1.0], "renewed", strata=("a", "b", "c"))
     history.loc[history.entity_id == "A", "stratum"] = None
     history["stratum"] = history.stratum.where(history.entity_id == "A", "known")
@@ -215,13 +215,13 @@ def test_ec13_an_entity_with_no_stratum_keeps_its_support_through_the_pooled_pri
     assert fit.rows.set_index("entity_id").loc["A", "prior_id"] == "pooled" and fit.support["unknown"]["entities"] == 1
 
 
-def test_ec14_a_history_with_no_known_label_is_refused_by_name():
+def test_a_history_with_no_known_label_is_refused_by_name():
     history = strata_history([np.nan, np.nan], "x")
     with pytest.raises(ValueError, match="no decisions with a known 'x'"):
         sh.shrink(history, "x", family="normal")
 
 
-def test_ev1_the_calendar_separates_publication_from_effect_and_refuses_unsourced_rows_for_a_forecast():
+def test_the_calendar_separates_publication_from_effect_and_refuses_unsourced_rows_for_a_forecast():
     from avalanche_research.behaviour import rules
 
     table = rules.calendar()
@@ -233,8 +233,8 @@ def test_ev1_the_calendar_separates_publication_from_effect_and_refuses_unsource
     assert past.event_time.lt(ORIGIN).all() and len(past) < len(table)
 
 
-# Data science's rereview of 8b24529: F2 cut-guard witnesses, F3 latest missing stratum, F4 fold support.
-def test_f2_a_cut_without_its_row_clock_or_follow_up_is_refused():
+# The cut guard, the latest missing stratum and fold support, after the second review.
+def test_a_cut_without_its_row_clock_or_follow_up_is_refused():
     history = cut_history(panel([ORIGIN - 30 * DAY, ORIGIN - 20 * DAY]))
     for broken in (history.drop(columns="end_time"), history.copy()):
         if "end_time" in broken:
@@ -243,7 +243,7 @@ def test_f2_a_cut_without_its_row_clock_or_follow_up_is_refused():
             sh.shrink(broken, "renewed", family="beta-binomial")
 
 
-def test_f2_a_history_cut_for_a_short_label_cannot_fit_a_longer_target():
+def test_a_history_cut_for_a_short_label_cannot_fit_a_longer_target():
     frame = panel([ORIGIN - 30 * DAY, ORIGIN - 20 * DAY], next_duration_class=["short", "long"], unregistered=[0.1, 0.2])
     seven_day = cut_history(frame)
     with pytest.raises(ValueError, match="needs its own history"):
@@ -255,7 +255,7 @@ def test_f2_a_history_cut_for_a_short_label_cannot_fit_a_longer_target():
     assert sh.shrink(year, "next_duration_class", family="dirichlet-multinomial").as_of == str(ORIGIN)
 
 
-def test_f3_a_missing_latest_stratum_takes_the_unknown_path():
+def test_a_missing_latest_stratum_takes_the_unknown_path():
     history = strata_history([0.0, 1.0], "renewed", strata=("a", "b", "c"))
     history["stratum"] = "known"
     history["end_time"] = ORIGIN - 30 * DAY
@@ -266,7 +266,7 @@ def test_f3_a_missing_latest_stratum_takes_the_unknown_path():
     assert fit.rows.set_index("entity_id").loc["A", "prior_id"] == "pooled" and fit.support["unknown"]["entities"] == 1
 
 
-def test_f4_each_fold_names_the_training_rows_its_history_leaves_out():
+def test_each_fold_names_the_training_rows_its_history_leaves_out():
     frame = panel([ORIGIN - 30 * DAY, ORIGIN - 20 * DAY, ORIGIN - 15 * DAY, ORIGIN + DAY])
     frame.loc[1, "renewed"] = np.nan
     frame.loc[2, "node_id"] = "UNMAPPED"
@@ -277,7 +277,6 @@ def test_f4_each_fold_names_the_training_rows_its_history_leaves_out():
 
 
 def test_a_registered_target_needs_its_registered_follow_up_even_as_the_label():
-    # Data science's rereview of a2d3598, EC10 same-label clock.
     frame = panel([ORIGIN - 400 * DAY, ORIGIN - 30 * DAY], next_duration_class=["short", "long"])
     short = cut_history(frame, label="next_duration_class", follow_up_days=7)
     with pytest.raises(ValueError, match="matures 365 days"):

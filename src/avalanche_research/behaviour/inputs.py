@@ -85,7 +85,7 @@ def check_cutoff(observed_through: Any, allow_lockbox: bool = False) -> pd.Times
 # from the date the evidence first existed. A name inferred from a later snapshot (AS4, AS5) never selects rows, and an
 # AS1 row with no date here stays pooled. OA1: GoGoPool's contracts write each minipool's record when its stake is made,
 # so the evidence exists from the address's first stake, 2023-04-12. OA5: the genesis allocation, known at launch.
-# OA10 (BENQI) stays pooled until IN8 finds its evidence in data from before Granite (modeling lead, MV7).
+# OA10 (BENQI) stays pooled until its evidence is found in data from before Granite.
 EVIDENCE_DATES = {"OA1": pd.Timestamp("2023-04-12"), "OA5": pd.Timestamp("2020-09-10")}
 
 

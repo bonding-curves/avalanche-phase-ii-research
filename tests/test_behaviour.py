@@ -302,13 +302,13 @@ def test_the_principal_flow_conserves_stake(periods):
 
 
 def boundary_period(tx, node, end):
-    # One 14-day period that ends at ``end``, in the shape of data science's DS3 fixtures.
+    # One 14-day period that ends at ``end``, in the shape of the review fixtures.
     begin = end - 14 * DAY
     return {**period(tx, node, 0, 14), "accepted_at": begin, "start_time": begin, "end_time": end}
 
 
 def test_nothing_touching_the_lockbox_is_an_event_or_a_label():
-    # DS3 F1: a follow-up window that ends at the lockbox's first instant is not complete, and an ending there is not
+    # A follow-up window that ends at the lockbox's first instant is not complete, and an ending there is not
     # an event. The cutoff is the first instant not observed.
     cut = LOCKBOX_START
     touch = ev.decision_events(pd.DataFrame([boundary_period("touch", "A", cut - 7 * DAY)]), observed_through=cut)
@@ -331,7 +331,6 @@ def test_both_fold_schemes_leave_out_a_follow_up_that_reaches_the_lockbox():
 
 @pytest.mark.parametrize("change", ["duplicate", "node", "end", "start", "transaction"])
 def test_periods_that_cannot_be_keyed_are_refused(change):
-    # DS3 F2.
     base = pd.DataFrame([boundary_period("valid", "A", LOCKBOX_START - 40 * DAY)])
     bad = {
         "duplicate": pd.concat([base, base], ignore_index=True),
@@ -351,7 +350,7 @@ def test_a_missing_cutoff_is_refused(value):
 
 
 def test_the_regime_is_the_upgrade_in_force_when_the_period_ends():
-    # EX14: the rule set of a decision is the one in force at its end, not at the ended period's acceptance.
+    # The rule set of a decision is the one in force at its end, not at the ended period's acceptance.
     times = pd.Series([pd.Timestamp(t) for t in ("2020-09-15", "2025-11-19 15:59:59", "2025-11-19 16:00:00", "2026-10-01")])
     assert regime_at(times).tolist() == ["genesis", "fortuna", "granite", "helicon"]
 
@@ -363,7 +362,7 @@ def attribution(identifier, subject, tier, kind_class, name):
 
 
 def test_a_period_is_set_apart_by_its_own_address_from_the_evidence_date(tmp_path):
-    # EX13 and MV7: the period's own reward address, not the node's latest, and only from the evidence date on. An
+    # The period's own reward address, not the node's latest, and only from the evidence date on. An
     # inferred label never selects rows, and a registry row with no evidence date stays pooled.
     path = tmp_path / "attributions.json"
     path.write_text(json.dumps({"schema_version": "operator-attributions/v1", "description": "fixture", "attributions": [
@@ -382,7 +381,7 @@ def test_a_period_is_set_apart_by_its_own_address_from_the_evidence_date(tmp_pat
 
 
 def test_the_rules_in_force_change_only_at_their_upgrades():
-    # RT1: rule features move at upgrades, never with supply or time between them.
+    # Rule features move at upgrades, never with supply or time between them.
     from avalanche_research.behaviour import rules
 
     times = pd.Series([pd.Timestamp(t) for t in ("2021-01-01", "2024-06-01", "2026-09-22 14:59:59", "2026-09-22 15:00:00",
@@ -399,7 +398,7 @@ def test_the_rules_in_force_change_only_at_their_upgrades():
 
 
 def test_the_calendar_dates_each_activation_and_the_ramp_end():
-    # EV1's scripted rows.
+    # The calendar's scripted rows.
     from avalanche_research.behaviour import rules
 
     calendar = rules.calendar()
@@ -411,7 +410,7 @@ def test_the_calendar_dates_each_activation_and_the_ramp_end():
 
 
 def test_an_unknown_or_unsettled_reward_is_never_read_as_success():
-    # DS3 F4: a missing status, or one settled only after the decision, stays missing in every failure feature.
+    # A missing status, or one settled only after the decision, stays missing in every failure feature.
     rows = pd.DataFrame([
         {**period("ok", "A", 0, 14), "rewarded_at": T0 + 14 * DAY},
         {**period("fail", "A", 15, 14, rewarded=False), "rewarded_at": T0 + 29 * DAY},
