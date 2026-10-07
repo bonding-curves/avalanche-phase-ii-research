@@ -1,0 +1,61 @@
+{
+  "code": {
+    "client_commit": "087484b786deb4a1ef487c0e2bce3a04878b35db",
+    "ref": "model-v0.7.0"
+  },
+  "name": "p6-v0.7-report",
+  "pinned_at": "2026-10-07T23:42:54Z",
+  "runs": [
+    {
+      "bytes": 692906576,
+      "capture_id": "capture:derived:2026-09-30T17:25:46Z:e0b8a7f3be51",
+      "captured_at": "2026-09-30T17:25:46Z",
+      "check": "pass",
+      "dataset_id": "derived.staking-periods",
+      "parquet": "staking-periods.parquet",
+      "run": "staking-periods-2026-09-30",
+      "sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8"
+    },
+    {
+      "bytes": 233039,
+      "capture_id": "capture:derived:2026-09-30T18:42:56Z:7e2248466077",
+      "captured_at": "2026-09-30T18:42:56Z",
+      "check": "pass",
+      "dataset_id": "derived.avax-monetary-daily",
+      "parquet": "avax-monetary-daily.parquet",
+      "run": "avax-monetary-daily-2026-09-30",
+      "sha256": "838a3df7e74bec49cdc198c1432d39654a529a3dac9f20909be0ee37236dfe3e"
+    },
+    {
+      "bytes": 6180427,
+      "capture_id": "capture:derived:2026-09-30T17:24:43Z:b08108699cba",
+      "captured_at": "2026-09-30T17:24:43Z",
+      "check": "pass",
+      "dataset_id": "derived.seamed-validator-stakes",
+      "parquet": "seamed-validator-stakes.parquet",
+      "run": "seamed-validator-stakes-2026-09-30",
+      "sha256": "e891f9aa70dae5c903c12f1b972fa459881c45b1ec9ac1b4d8283d665933a560"
+    },
+    {
+      "bytes": 1055078,
+      "capture_id": "capture:derived:2026-09-30T17:26:08Z:bb84ddc181d3",
+      "captured_at": "2026-09-30T17:26:08Z",
+      "check": "pass",
+      "dataset_id": "derived.node-table",
+      "parquet": "node-table.parquet",
+      "run": "node-table-2026-09-30",
+      "sha256": "e27a543987d664d44b11e579f456f713bd748fc24bb04dc94edf94871650f13a"
+    },
+    {
+      "bytes": 434240,
+      "capture_id": "capture:derived:2026-09-30T17:26:12Z:db9af4cbfda7",
+      "captured_at": "2026-09-30T17:26:12Z",
+      "check": "pass",
+      "dataset_id": "derived.operators",
+      "parquet": "operators.parquet",
+      "run": "operators-2026-09-30",
+      "sha256": "31036a9f8ddb9b7f8d55f5e594513311a3b1447f8e4745c1222321ab9ad0abfc"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
