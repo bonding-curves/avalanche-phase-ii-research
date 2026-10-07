@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
 """Score the lifecycle models v0.7 and v0.8 at the validation protocol's development origins, against its naive benchmarks.
 
-    uv run --group model python scripts/model_development_scores.py <output folder>
+    uv run --group model python scripts/model_development_scores.py <output folder> [workers]
 
 The origins are the five upgrades from Banff to Fortuna and the quarter starts from 2022-07-01 to 2025-10-01, 19 in
-all. Each origin runs each model with every input measured or fitted before it, 20 seeded runs, and scores the mean of the runs
-at 30, 90 and 180 days for active validators and validator stake. A horizon that would reach the held-back period,
+all. Each origin runs each model with every input measured or fitted before it, 200 runs as ten 20-run batches with
+base seeds 0 to 9, in a pool of ``workers`` processes (default six), and scores the mean of the runs at 30, 90 and 180
+days for active validators and validator stake. Every run's value is written to ``development-runs.csv.gz``, which
+``scripts/model_distribution_scores.py`` scores as a distribution, and each batch's specification hash, which covers the
+model, its settings and a digest of every input, to ``development-specifications.csv``. A horizon that would reach the held-back period,
 from 2025-11-19, is skipped. Each forecast and each benchmark (`N1` persistence, `N2` 180-day drift, `N3` weekly
 AR(1)) gets its absolute error scaled by the mean one-day change before the origin. Writes `development-scores.csv`
 with one row per origin, variable, horizon and forecast, and `development-summary.csv` with the mean scaled error of
 each model by variable and horizon and a Diebold-Mariano test of it against each benchmark and of v0.8 against v0.7.
+The test takes the origins in date order, and its horizon is one plus the most later origins inside one forecast's
+window (``evaluation.dm_horizon``), counted from the dates because an upgrade can fall a week from a quarter start.
 ``v0.8 separate`` fits its renewal block separately for commitments above 1M AVAX and at or below it.
 """
 
 from __future__ import annotations
 
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -41,22 +47,53 @@ HORIZONS = (30, 90, 180)
 VARIABLES = ("active_validators", "active_validator_stake_navax")
 MODELS = ("v0.7", "v0.8", "v0.8 separate")
 LARGE_ABOVE_AVAX = 1_000_000
+BATCH_SEEDS = range(10)
+BATCH_RUNS = 20
+
+
+def model_runs(task: tuple[str, date, str, str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Every run's value at each horizon for one origin and model, one row per batch seed, run, variable and horizon,
+    and each batch's specification hash."""
+    name, origin, model, periods = task
+    if model == "v0.7":
+        inputs = origin_inputs(periods, origin)
+    elif model == "v0.8 separate":
+        inputs = fitted_inputs(periods, origin, RUN, LARGE_ABOVE_AVAX)
+    else:
+        inputs = fitted_inputs(periods, origin, RUN)
+    parts, specifications = [], []
+    for seed in BATCH_SEEDS:
+        if model == "v0.7":
+            simulation = ValidatorLifecycle(origin=origin, inputs_source=RUN, timesteps=max(HORIZONS), runs=BATCH_RUNS, seed=seed, **inputs)
+        else:
+            simulation = FittedLifecycle(timesteps=max(HORIZONS), runs=BATCH_RUNS, seed=seed, **inputs)
+        specifications.append({"origin": name, "model": model, "batch_seed": seed, "specification": simulation.specification_hash()})
+        t = run(simulation)
+        t = t[t.timestep.isin(HORIZONS) & t.variable.isin(VARIABLES)]
+        parts.append(pd.DataFrame({"origin": name, "model": model, "batch_seed": seed, "run": t.run.to_numpy(),
+                                   "variable": t.variable.to_numpy(), "horizon_days": t.timestep.to_numpy(),
+                                   "value": t.value.astype(float).to_numpy()}))
+    return pd.concat(parts, ignore_index=True), pd.DataFrame(specifications)
 
 
 def main() -> None:
     out = Path(sys.argv[1])
     out.mkdir(parents=True, exist_ok=True)
+    workers = int(sys.argv[2]) if len(sys.argv) > 2 else 6
     periods = str(datasets.parquet_path("derived.staking-periods", RUN))
+    origins = {**UPGRADES, **QUARTERS}
+    with ProcessPoolExecutor(workers) as pool:
+        results = list(pool.map(model_runs, [(n, o, m, periods) for n, o in origins.items() for m in MODELS]))
+    runs = pd.concat([r for r, _ in results], ignore_index=True)
+    pd.concat([s for _, s in results], ignore_index=True).to_csv(out / "development-specifications.csv", index=False)
+    # mtime 0 keeps the gzip header free of the clock, so identical runs give identical bytes.
+    runs.to_csv(out / "development-runs.csv.gz", index=False, compression={"method": "gzip", "mtime": 0})
+    means = runs.groupby(["origin", "model", "variable", "horizon_days"]).value.mean()
     actual = actual_path(daily_events(periods))
     actual.index = pd.to_datetime(actual.pop("date_utc"))
     last_day = pd.Timestamp(LOCKBOX_FIRST_DAY) - pd.Timedelta(1, unit="D")
     rows = []
-    for name, origin in {**UPGRADES, **QUARTERS}.items():
-        tables = {
-            "v0.7": run(ValidatorLifecycle(origin=origin, inputs_source=RUN, timesteps=max(HORIZONS), **origin_inputs(periods, origin))),
-            "v0.8": run(FittedLifecycle(timesteps=max(HORIZONS), **fitted_inputs(periods, origin, RUN))),
-            "v0.8 separate": run(FittedLifecycle(timesteps=max(HORIZONS), **fitted_inputs(periods, origin, RUN, LARGE_ABOVE_AVAX))),
-        }
+    for name, origin in origins.items():
         for variable in VARIABLES:
             series = actual[variable].astype(float)
             scale = ev.mase_scale(series, origin)
@@ -65,7 +102,7 @@ def main() -> None:
                     continue
                 realized = ev.actual_at(series, origin, h)
                 forecasts = {
-                    **{m: float(t[(t.variable == variable) & (t.timestep == h)].value.astype(float).mean()) for m, t in tables.items()},
+                    **{m: float(means[(name, m, variable, h)]) for m in MODELS},
                     **{b: rule(series, origin, h) for b, rule in ev.BENCHMARKS.items()},
                 }
                 for forecast, value in forecasts.items():
@@ -77,13 +114,15 @@ def main() -> None:
     summary = []
     for (variable, h), part in scores.groupby(["variable", "horizon_days"]):
         wide = part.pivot(index="origin", columns="forecast", values="scaled_error")
+        wide = wide.loc[ev.chronological(wide.index, origins)]
+        lags = ev.dm_horizon(h, [origins[o] for o in wide.index])
         pairs = [(m, b) for m in MODELS for b in ev.BENCHMARKS] + [("v0.8", "v0.7")]
         for model, benchmark in pairs:
-            test = ev.diebold_mariano(wide[model], wide[benchmark], horizon=1)
+            test = ev.diebold_mariano(wide[model], wide[benchmark], horizon=lags)
             summary.append({"variable": variable, "horizon_days": h, "model": model, "benchmark": benchmark, "origins": len(wide),
                             "model_mase": wide[model].mean(), "benchmark_mase": wide[benchmark].mean(),
                             "model_closer": int((wide[model] < wide[benchmark]).sum()),
-                            "dm_statistic": test["statistic"], "p_model_better": test["p_less"]})
+                            "dm_statistic": test["statistic"], "p_model_better": test["p_less"], "dm_horizon": lags})
     pd.DataFrame(summary).to_csv(out / "development-summary.csv", index=False)
     print(pd.DataFrame(summary).round(3).to_string(index=False))
 
