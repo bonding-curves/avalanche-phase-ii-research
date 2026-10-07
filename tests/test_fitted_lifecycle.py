@@ -233,3 +233,27 @@ def test_a_separate_renewal_block_decides_for_commitments_above_the_line():
                       large_above_avax=1_000_000, timesteps=2, runs=1))
     assert path(table, "active_validators") == [2, 1, 1]
     assert path(table, "active_validator_stake_navax")[1] < 1_000_000 * AVAX
+
+
+def test_arrivals_log_prob_reads_the_scale_that_sample_uses():
+    """sample and log_prob share one definition, so a scaled mean is scored as it is drawn."""
+    block = Arrivals(mean_per_day=3.0, dispersion=0.5)
+    counts = np.random.default_rng(5).negative_binomial(0.5, 0.5 / (0.5 + 4.5), size=2_000)
+    assert block.log_prob({"scale": 1.5}, counts) > block.log_prob({"scale": 1.0}, counts)
+    assert block.log_prob({"scale": 1.5}, counts) == pytest.approx(Arrivals(mean_per_day=4.5, dispersion=0.5).log_prob({}, counts))
+
+
+def test_the_scaled_entry_mean_is_capped_at_100_as_in_v07():
+    """A large response cannot push the daily arrival mean past 100."""
+    block = Arrivals(mean_per_day=50.0, dispersion=1e6)
+    capped = Arrivals(mean_per_day=100.0, dispersion=1e6)
+    assert block.count_from_uniform(0.5, 10.0) == capped.count_from_uniform(0.5, 1.0)
+    assert block.log_prob({"scale": 10.0}, np.array([100])) == pytest.approx(capped.log_prob({}, np.array([100])))
+
+
+def test_a_scale_that_is_not_finite_and_non_negative_is_refused():
+    """min(100, nan) is 100, so a NaN or infinite scale must be refused, never capped."""
+    for scale in (float("nan"), float("inf"), -1.0):
+        for block in (Arrivals(mean_per_day=0.0), Arrivals(mean_per_day=3.0)):
+            with pytest.raises(ValueError):
+                block.scaled_mean(scale)

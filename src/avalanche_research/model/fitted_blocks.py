@@ -204,8 +204,18 @@ class Arrivals(BehaviourBlock):
         1e6, (1e-3, 1e6), "assumed", "Negative binomial dispersion. 1e6 is a Poisson count", "Placeholder until fitted by Arrivals.fit",
     )
 
+    MAX_MEAN_PER_DAY = 100.0
+
+    def scaled_mean(self, scale: float = 1.0) -> float:
+        """The day's mean after the entry response's scale, capped at 100 a day as v0.7 capped its entry rate. Drawing and
+        scoring both read it, so ``sample``, ``count_from_uniform`` and ``log_prob`` share one definition."""
+        scale = float(scale)
+        if not np.isfinite(scale) or scale < 0.0:
+            raise ValueError(f"an arrival scale must be finite and non-negative, not {scale}")
+        return min(self.MAX_MEAN_PER_DAY, self.mean_per_day * scale)
+
     def sample(self, inputs, rng):
-        mean = self.mean_per_day * float(inputs.get("scale", 1.0))
+        mean = self.scaled_mean(inputs.get("scale", 1.0))
         if mean == 0.0:
             return 0
         k = self.dispersion
@@ -214,7 +224,7 @@ class Arrivals(BehaviourBlock):
     def count_from_uniform(self, u: float, scale: float = 1.0) -> int:
         """The day's count by inversion of one uniform: the negative binomial quantile, or the Poisson quantile when the
         dispersion sits at its bound. Monotone in the mean, so a design with a higher mean never draws fewer."""
-        mean = self.mean_per_day * float(scale)
+        mean = self.scaled_mean(scale)
         if mean == 0.0:
             return 0
         k = self.dispersion
@@ -225,7 +235,7 @@ class Arrivals(BehaviourBlock):
         counts = np.asarray(decisions)
         if counts.ndim != 1 or (counts < 0).any() or not np.equal(np.mod(counts, 1), 0).all():
             raise ValueError("decisions must be a one-dimensional array of non-negative whole counts")
-        return _negative_binomial_log_prob(counts, self.mean_per_day, self.dispersion)
+        return _negative_binomial_log_prob(counts, self.scaled_mean(inputs.get("scale", 1.0)), self.dispersion)
 
     @classmethod
     def fit(cls, counts: np.ndarray, evidence: str) -> Arrivals:
