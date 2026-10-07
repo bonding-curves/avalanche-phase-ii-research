@@ -166,17 +166,20 @@ def _support(history: pd.DataFrame) -> dict:
 def _check_cut(history: pd.DataFrame, effect: str, as_of: str) -> None:
     """A cut is checked against the rows, never trusted. It needs the history's row clock (``end_time``), its label and
     that label's follow-up, as ``entities.entity_history`` records them. The effect must be that label, or a registered
-    target whose maturity is no longer than the history's follow-up. Every row must have matured before the cut."""
+    target whose maturity is no longer than the history's follow-up, and a registered target needs at least its own
+    registered follow-up even when it is the label. Every row must have matured before the cut."""
     from .supervised import TARGETS
 
     label, follow_up = history.attrs.get("label"), history.attrs.get("follow_up_days")
     if "end_time" not in history or label is None or follow_up is None:
         raise ValueError("a history with a cut must carry end_time, its label and its follow-up: build it with entity_history")
-    if effect != label:
-        maturity = {spec.column: spec.follow_up_days for spec in TARGETS.values()}.get(effect)
-        if maturity is None or maturity > follow_up:
-            raise ValueError(f"the history was cut for {label!r} with a {follow_up}-day follow-up; {effect!r} needs its own "
-                             "history from entity_history with its label and follow-up")
+    maturity = {spec.column: spec.follow_up_days for spec in TARGETS.values()}.get(effect)
+    if effect != label and (maturity is None or maturity > follow_up):
+        raise ValueError(f"the history was cut for {label!r} with a {follow_up}-day follow-up; {effect!r} needs its own "
+                         "history from entity_history with its label and follow-up")
+    if effect == label and maturity is not None and follow_up < maturity:
+        # A registered target matures at its registered follow-up, whatever follow-up the caller passed.
+        raise ValueError(f"{effect!r} matures {maturity} days after a period ends; this history used {follow_up} days")
     late = history.end_time.isna() | history.end_time.add(pd.Timedelta(days=follow_up)).ge(pd.Timestamp(as_of))
     if late.any():
         raise ValueError(f"{int(late.sum())} decisions were not observable before the history's cut {as_of}")

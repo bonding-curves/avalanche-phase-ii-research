@@ -274,3 +274,14 @@ def test_f4_each_fold_names_the_training_rows_its_history_leaves_out():
     fold = en.entity_folds(frame, members, origins=pd.Series({"o": ORIGIN}), horizons=(30,))[0]
     assert fold.support["train_rows"] == 3 and fold.support["history_rows"] == 1
     assert fold.support["unlabelled"] == ["t1"] and fold.support["unmapped"] == ["t2"]
+
+
+def test_a_registered_target_needs_its_registered_follow_up_even_as_the_label():
+    # Data science's rereview of a2d3598, EC10 same-label clock.
+    frame = panel([ORIGIN - 400 * DAY, ORIGIN - 30 * DAY], next_duration_class=["short", "long"])
+    short = cut_history(frame, label="next_duration_class", follow_up_days=7)
+    with pytest.raises(ValueError, match="matures 365 days"):
+        sh.shrink(short, "next_duration_class", family="dirichlet-multinomial")
+    year = cut_history(frame, label="next_duration_class", follow_up_days=365)
+    assert year.transaction_hash.tolist() == ["t0"]
+    assert sh.shrink(year, "next_duration_class", family="dirichlet-multinomial").support["pooled"]["rows"] == 1
