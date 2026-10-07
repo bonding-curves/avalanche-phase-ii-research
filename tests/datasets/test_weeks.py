@@ -8,14 +8,14 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import weeks
-from avalanche_research.catalog import (
+from avalanche_research.core.catalog import (
     canonical_bytes,
     contract_hash,
     load_catalog,
     sha256,
 )
-from avalanche_research.model.protocol import annualized_reward_rate
+from avalanche_research.datasets.derived import weeks
+from avalanche_research.domain.protocol import annualized_reward_rate
 
 NAVAX = 10**9
 CATALOG = load_catalog()

@@ -4,11 +4,14 @@ from pathlib import Path
 
 import duckdb
 import pytest
-
-from avalanche_research import derived, nodes
-from avalanche_research.catalog import DataError, load_catalog
 from test_derived import make_run
-from test_derived import root as derived_root  # noqa: F401  the fixture with the four Snowflake runs
+from test_derived import (
+    root as derived_root,  # noqa: F401  the fixture with the four Snowflake runs
+)
+
+from avalanche_research.core.catalog import DataError, load_catalog
+from avalanche_research.datasets.derived import nodes
+from avalanche_research.datasets.derived import staking_periods as derived
 
 
 @pytest.fixture

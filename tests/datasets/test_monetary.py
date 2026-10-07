@@ -8,8 +8,14 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import monetary
-from avalanche_research.catalog import DataError, canonical_bytes, contract_hash, load_catalog, sha256
+from avalanche_research.core.catalog import (
+    DataError,
+    canonical_bytes,
+    contract_hash,
+    load_catalog,
+    sha256,
+)
+from avalanche_research.datasets.derived import monetary
 
 NAVAX = 10**9
 WEI = 10**18

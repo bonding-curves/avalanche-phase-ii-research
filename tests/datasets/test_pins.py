@@ -9,8 +9,9 @@ import duckdb
 import pytest
 from click.testing import CliRunner
 
-from avalanche_research import cli, pins
-from avalanche_research.catalog import DataError, canonical_bytes, sha256
+from avalanche_research import cli
+from avalanche_research.core.catalog import DataError, canonical_bytes, sha256
+from avalanche_research.datasets import pins
 
 LEDGER = "derived.avax-monetary-daily"
 PERIODS = "derived.monetary-periods"

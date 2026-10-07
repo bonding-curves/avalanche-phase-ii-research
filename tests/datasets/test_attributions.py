@@ -9,8 +9,8 @@ import duckdb
 import pytest
 from test_operators import NODES, make_node_table
 
-from avalanche_research import attributions, operators
-from avalanche_research.catalog import DataError, load_catalog
+from avalanche_research.core.catalog import DataError, load_catalog
+from avalanche_research.datasets.derived import attributions, operators
 
 
 def test_catalog_declares_the_columns():

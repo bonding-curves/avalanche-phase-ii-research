@@ -12,8 +12,7 @@ from typing import Any
 
 import duckdb
 
-from .catalog import DATA_DIR, DataError, load_catalog, sha256
-
+from ..core.catalog import DATA_DIR, DataError, load_catalog, sha256
 
 RUNS = DATA_DIR / "runs"
 

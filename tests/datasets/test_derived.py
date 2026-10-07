@@ -7,10 +7,14 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import derived
-from avalanche_research.catalog import DataError, canonical_bytes, load_catalog, sha256
-from avalanche_research.model.protocol import primary_network_reward
-
+from avalanche_research.core.catalog import (
+    DataError,
+    canonical_bytes,
+    load_catalog,
+    sha256,
+)
+from avalanche_research.datasets.derived import staking_periods as derived
+from avalanche_research.domain.protocol import primary_network_reward
 
 SUPPLY = 450_000_000 * 10**9
 NAVAX = 10**9

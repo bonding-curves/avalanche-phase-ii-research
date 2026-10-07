@@ -7,14 +7,14 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import helicon
-from avalanche_research.catalog import (
+from avalanche_research.core.catalog import (
     DataError,
     canonical_bytes,
     contract_hash,
     load_catalog,
     sha256,
 )
+from avalanche_research.datasets.derived import helicon
 
 # The staking-period log before Helicon: a node that will lower its duration, one that will raise it, and a delegator
 # row that must not count as validator history.

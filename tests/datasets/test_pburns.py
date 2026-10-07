@@ -8,8 +8,9 @@ import duckdb
 import pytest
 from test_pblocks import BASE, FakeNode, delegator_tx, utxo
 
-from avalanche_research import pblocks, pburns
-from avalanche_research.catalog import canonical_bytes, load_catalog, sha256
+from avalanche_research.core.catalog import canonical_bytes, load_catalog, sha256
+from avalanche_research.datasets.derived import pburns
+from avalanche_research.sources import pblocks
 
 DAY0 = 1_789_862_400  # 2026-09-20 00:00 UTC
 

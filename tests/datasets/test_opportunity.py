@@ -5,8 +5,8 @@ from datetime import date
 import duckdb
 import pytest
 
-from avalanche_research import opportunity
-from avalanche_research.catalog import load_catalog
+from avalanche_research.core.catalog import load_catalog
+from avalanche_research.datasets.derived import opportunity
 
 
 def connection_with_inputs() -> duckdb.DuckDBPyConnection:

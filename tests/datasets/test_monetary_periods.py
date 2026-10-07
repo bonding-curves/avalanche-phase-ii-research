@@ -8,8 +8,8 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import monetary_periods
-from avalanche_research.catalog import canonical_bytes, load_catalog, sha256
+from avalanche_research.core.catalog import canonical_bytes, load_catalog, sha256
+from avalanche_research.datasets.derived import monetary_periods
 
 WEI = 10**18
 

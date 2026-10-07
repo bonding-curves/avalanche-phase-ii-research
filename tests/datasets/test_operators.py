@@ -7,8 +7,13 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import operators
-from avalanche_research.catalog import DataError, canonical_bytes, load_catalog, sha256
+from avalanche_research.core.catalog import (
+    DataError,
+    canonical_bytes,
+    load_catalog,
+    sha256,
+)
+from avalanche_research.datasets.derived import operators
 
 GOGOPOOL = "avax10f8305248c0wsfsdempdtpx7lpkc30vwzl9y9q"
 # node, reward address, first start, last end, fee, active, periods

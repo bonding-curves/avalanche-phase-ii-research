@@ -6,8 +6,8 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import pool_history
-from avalanche_research.catalog import DataError, load_catalog
+from avalanche_research.core.catalog import DataError, load_catalog
+from avalanche_research.sources import pool_history
 
 
 class Response:

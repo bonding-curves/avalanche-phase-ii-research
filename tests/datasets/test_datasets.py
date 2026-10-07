@@ -7,7 +7,7 @@ import duckdb
 import pytest
 
 from avalanche_research import cli, datasets
-from avalanche_research.catalog import DataError, canonical_bytes, sha256
+from avalanche_research.core.catalog import DataError, canonical_bytes, sha256
 
 
 def make_run(root: Path, name: str, dataset_id: str, table: str, sql: str, captured_at: str) -> Path:

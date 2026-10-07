@@ -8,9 +8,14 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import seam
-from avalanche_research.catalog import DataError, canonical_bytes, load_catalog, sha256
-from avalanche_research.snowflake import SPECS
+from avalanche_research.core.catalog import (
+    DataError,
+    canonical_bytes,
+    load_catalog,
+    sha256,
+)
+from avalanche_research.datasets.derived import seam
+from avalanche_research.sources.snowflake import SPECS
 
 # Naive UTC, as the share stores its timestamps.
 T = [datetime(2026, 9, 22, hour, tzinfo=UTC).replace(tzinfo=None) for hour in range(4, 10)]

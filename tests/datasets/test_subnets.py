@@ -7,8 +7,13 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research import subnets
-from avalanche_research.catalog import DataError, canonical_bytes, load_catalog, sha256
+from avalanche_research.core.catalog import (
+    DataError,
+    canonical_bytes,
+    load_catalog,
+    sha256,
+)
+from avalanche_research.datasets.derived import subnets
 
 # node, start, end: Primary Network validator periods
 PERIODS = [

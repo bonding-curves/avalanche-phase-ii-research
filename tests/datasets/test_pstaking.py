@@ -12,9 +12,16 @@ import pytest
 from test_pblocks import FakeNode, blocks
 from test_pstakers import data_api, node
 
-from avalanche_research import datasets, pblocks, pstakers, pstaking
-from avalanche_research.catalog import DataError, canonical_bytes, load_catalog, sha256
-from avalanche_research.model import protocol
+from avalanche_research import datasets
+from avalanche_research.core.catalog import (
+    DataError,
+    canonical_bytes,
+    load_catalog,
+    sha256,
+)
+from avalanche_research.datasets.derived import pstaking
+from avalanche_research.domain import protocol
+from avalanche_research.sources import pblocks, pstakers
 
 ANCHOR = 474_000_000_000_000_000
 
