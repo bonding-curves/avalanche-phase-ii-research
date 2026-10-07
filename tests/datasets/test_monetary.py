@@ -205,10 +205,12 @@ def test_check_reports_a_changed_input_and_a_checkpoint_gap(root):
     checked = monetary.check(output / "capture", output / "dataset", root=root)
     assert checked["status"] == "attention" and any("differs from the capture receipt: c-fees" in finding for finding in checked["findings"])
     build = json.loads((output / "dataset" / "build.json").read_text())
-    build["summary"]["checkpoints"][0]["p_burned"] = {"within": False, "gap_avax": 7.5}
+    # The check judges from the stored values, not a stored verdict: 8 AVAX above the bracket is 6 beyond the 2 AVAX allowance.
+    build["summary"]["checkpoints"][0]["p_burned"] = {"api_avax": 100.0, "ledger_before_avax": 90.0, "ledger_after_avax": 92.0,
+                                                      "gap_avax": 0.0, "within": True}
     (output / "dataset" / "build.json").write_bytes(canonical_bytes(build))
     findings = monetary.check(output / "capture", output / "dataset", root=root)["findings"]
-    assert any("Data API p_burned" in finding and "7.500 AVAX" in finding for finding in findings)
+    assert any("Data API p_burned" in finding and "6.000 AVAX beyond the 2.000 AVAX allowance" in finding for finding in findings)
 
 
 def test_a_stale_many_input_run_is_skipped_and_a_required_one_is_demanded(root):
@@ -234,6 +236,53 @@ def test_the_api_c_burn_is_bracketed_by_evm_fees_only(root, monkeypatch):
     point = next(item for item in summary["checkpoints"] if item["observed_at"].startswith("2020-09-13"))
     # EVM fees: 4 AVAX through 09-12, 7.5 through 09-13. The 1 AVAX atomic burn of 09-13 is not in the bracket.
     assert (point["c_burned"]["ledger_before_avax"], point["c_burned"]["ledger_after_avax"], point["c_burned"]["within"]) == (4.0, 7.5, True)
+
+
+def test_checkpoint_allowances_hold_the_observed_differences_and_fail_a_deficit_beyond_them():
+    """C-Chain at 5.09M AVAX allows 0.01%, about 509 AVAX. P-Chain allows 2 AVAX. Other totals keep the 1 AVAX allowance.
+    Each deficit here moves the API value against fixed ledger endpoints."""
+    def judged(name, api, before, after):
+        return monetary.judge_checkpoint(name, {"api_avax": api, "ledger_before_avax": before, "ledger_after_avax": after})
+
+    c_before = 5_090_458.5
+    assert judged("c_burned", c_before - 252, c_before, c_before + 1_650)["within"]
+    missing_day = judged("c_burned", c_before - 694, c_before, c_before + 1_650)
+    assert not missing_day["within"] and missing_day["allowance_avax"] == pytest.approx(509.0458, abs=1e-3)
+    assert judged("p_burned", 19_160.0 - 1.34, 19_160.0, 19_185.5)["within"]
+    assert not judged("p_burned", 19_160.0 - 25.5, 19_160.0, 19_185.5)["within"]
+    assert not judged("x_burned", 45_000.0 - 1.34, 45_000.0, 45_010.0)["within"]
+    assert judged("x_burned", 45_000.0, None, None)["within"] is None
+
+
+def test_a_missing_earlier_ledger_day_shows_only_when_it_exceeds_the_day_and_the_allowance():
+    """An omitted earlier day lowers both ledger endpoints. With true cumulative B, omission D, the day's burns T and the
+    API ahead of the day's start by r, the API sits D + r - T above the upper endpoint: caught only beyond the allowance."""
+    true_before, r = 5_090_458.5, 150.0
+
+    def omitted(d, t):
+        before = true_before - d
+        return monetary.judge_checkpoint("c_burned", {"api_avax": true_before + r, "ledger_before_avax": before,
+                                                      "ledger_after_avax": before + t})
+
+    assert omitted(693.6, 1_650.0)["within"]  # a typical missing day passes the bracket: coverage checks must catch it
+    caught = omitted(2_500.0, 1_000.0)
+    assert not caught["within"] and caught["gap_avax"] == pytest.approx(2_500.0 + r - 1_000.0 - caught["allowance_avax"])
+
+
+def test_the_check_returns_the_verdicts_it_judged_in_both_directions(root):
+    output = root / "ledger"
+    monetary.derive(monetary.DATASET_ID, output, None, root)
+    build = json.loads((output / "dataset" / "build.json").read_text())
+    stale_fail = {"api_avax": 91.0, "ledger_before_avax": 90.0, "ledger_after_avax": 92.0, "gap_avax": 99.0, "within": False}
+    stale_pass = {"api_avax": 100.0, "ledger_before_avax": 90.0, "ledger_after_avax": 92.0, "gap_avax": 0.0, "within": True}
+    build["summary"]["checkpoints"][0]["p_burned"], build["summary"]["checkpoints"][0]["x_burned"] = stale_fail, stale_pass
+    (output / "dataset" / "build.json").write_bytes(canonical_bytes(build))
+    checked = monetary.check(output / "capture", output / "dataset", root=root)
+    point = checked["summary"]["checkpoints"][0]
+    assert point["p_burned"]["within"] is True and point["p_burned"]["gap_avax"] == 0.0
+    assert point["x_burned"]["within"] is False and point["x_burned"]["gap_avax"] == pytest.approx(7.0)
+    assert not any("p_burned" in finding for finding in checked["findings"])
+    assert any("x_burned" in finding and "7.000 AVAX beyond the 1.000 AVAX allowance" in finding for finding in checked["findings"])
 
 
 def reconciliation_tables() -> duckdb.DuckDBPyConnection:
