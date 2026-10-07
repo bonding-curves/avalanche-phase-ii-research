@@ -7,10 +7,15 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from avalanche_research.model import protocol
+from avalanche_research.domain import protocol
+from avalanche_research.domain.protocol.types import (
+    ModelError,
+    RewardConfig,
+    Upgrade,
+    UpgradeSchedule,
+    ValidatorFeeConfig,
+)
 from avalanche_research.model.backtest import backtest
-from avalanche_research.model.types import ModelError, RewardConfig, Upgrade, UpgradeSchedule, ValidatorFeeConfig
-
 
 DAY = 86_400
 MEGA = 1_000_000 * protocol.NAVAX_PER_AVAX

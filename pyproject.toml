@@ -53,7 +53,7 @@ notebook = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # Tests mirror the package. Some import fakes from another directory's test file, so each directory is on the path.
-pythonpath = ["tests", "tests/sources"]
+pythonpath = ["tests", "tests/sources", "tests/domain"]
 
 # The package's import direction, as import-linter contracts K1 to K5. A layer in parentheses is optional: it does
 # not exist yet, and the parentheses come off as each subpackage lands. tests/test_architecture.py runs these in
