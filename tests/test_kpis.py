@@ -201,6 +201,59 @@ def test_a_window_with_a_missing_day_is_refused():
         kpis.active_validators(daily, ORIGIN, 2)
 
 
+def test_a_table_with_two_rows_for_one_day_is_refused():
+    # Counted twice, the same day's issuance would score the series against itself as issuing half as much again.
+    good = table(ORIGIN, {"issued_navax": [0, 10, 10], "burned_navax": [1, 1, 1]})
+    doubled = pd.concat([good, good.iloc[[1]]])
+    with pytest.raises(ValueError, match="more than one row for 2024-07-01"):
+        kpis.issuance_saved(doubled, good, ORIGIN, 2)
+    with pytest.raises(ValueError, match="more than one row"):
+        kpis.issuance_saved(good, doubled, ORIGIN, 2)
+    with pytest.raises(ValueError, match="more than one row"):
+        kpis.with_realized_supply(doubled, ORIGIN, 100, 1)
+
+
+def test_run_daily_table_refuses_two_values_for_one_cell():
+    long = pd.DataFrame({
+        "simulation": 0, "run": 1, "timestep": [1, 1, 2], "variable": ["issued_navax"] * 3, "value": [10, 99, 10],
+    })
+    for order in ([0, 1, 2], [1, 0, 2]):
+        with pytest.raises(ValueError, match="more than one issued_navax at timestep 1"):
+            kpis.run_daily_table(long.iloc[order], ORIGIN)
+    wide = pd.DataFrame({
+        "simulation": 0, "run": 1, "timestep": [1, 1], "variable": ["issued_navax", "active_validators"],
+        "value": [10, 4], "offered_rate_30d": [0.05, 0.06],
+    })
+    with pytest.raises(ValueError, match="more than one offered_rate_30d at timestep 1"):
+        kpis.run_daily_table(wide, ORIGIN)
+
+
+@pytest.mark.parametrize("bad", [np.inf, -np.inf])
+def test_a_value_that_is_not_finite_is_refused(bad):
+    good = table(ORIGIN, {"issued_navax": [0.0, 10.0, 10.0]})
+    with pytest.raises(ValueError, match="issued_navax on 2024-07-01 is not finite"):
+        kpis.issuance_saved(table(ORIGIN, {"issued_navax": [0.0, bad, 1.0]}), good, ORIGIN, 2)
+    with pytest.raises(ValueError, match="not finite"):
+        kpis.validator_stake_at_horizon(table(ORIGIN, {"active_validator_stake_navax": [1.0, 1.0, bad]}), ORIGIN, 2)
+    with pytest.raises(ValueError, match="not finite"):
+        kpis.burn_to_issuance(table(ORIGIN, {"burned_navax": [0, bad, np.nan], "rewards_paid_navax": [1, 1, 1]}), ORIGIN, 2)
+    with pytest.raises(ValueError, match="burned_navax .* is not finite"):
+        kpis.mean_daily_burn(table(ORIGIN, {"burned_navax": [1.0] * 365 + [bad]}, before=365), ORIGIN)
+    with pytest.raises(ValueError, match="not finite"):
+        kpis.with_realized_supply(good, ORIGIN, 100, bad)
+    with pytest.raises(ValueError, match="not finite"):
+        kpis.with_realized_supply(good, ORIGIN, bad, 1)
+
+
+def test_a_zero_baseline_leaves_a_ratio_undefined():
+    finite = table(ORIGIN, {"active_validator_stake_navax": [10, 10, 10], "active_validators": [2, 2, 2]})
+    zero = table(ORIGIN, {"active_validator_stake_navax": [0, 0, 0], "active_validators": [0, 0, 0]})
+    with pytest.raises(ValueError, match="the baseline's validator stake on 2024-07-02 is zero"):
+        kpis.validator_stake_retained(finite, zero, ORIGIN, 2)
+    with pytest.raises(ValueError, match="the baseline's active validators on 2024-07-02 is zero"):
+        kpis.active_validators_retained(finite, zero, ORIGIN, 2)
+
+
 # One table for every KPI, and the rule that a KPI reads nothing outside its window.
 
 def full_table(days_before=400, days_after=420):
@@ -295,6 +348,74 @@ def test_run_daily_table_pivots_one_run_after_the_chain():
         kpis.run_daily_table(pd.concat([long, long.assign(run=2)]), ORIGIN)
 
 
+# The chain's started commitments, on small staking-period files written here.
+
+def staking_periods(path, accepted_at):
+    """Two validator commitments: one starts on 2024-01-01 and runs 4 days, one starts on 2024-01-02 and runs 2 days
+    and was accepted at ``accepted_at``, UTC. Each has a potential reward of 100 nAVAX on 2,000 AVAX."""
+    periods, ledger = path / "periods.parquet", path / "ledger.parquet"
+    connection = duckdb.connect()
+    connection.execute(
+        "CREATE TABLE p (role VARCHAR, node_id VARCHAR, stake_navax BIGINT, start_time TIMESTAMP, end_time TIMESTAMP, "
+        "last_cycle_end_time TIMESTAMP, rewarded_at TIMESTAMP, realized_reward_navax BIGINT, "
+        "potential_reward_navax BIGINT, supply_before_navax BIGINT, duration_days DOUBLE, accepted_at TIMESTAMP)")
+    connection.execute(
+        "INSERT INTO p VALUES ('validator', 'open', 2000000000000, '2024-01-01 00:00', '2024-01-05', NULL, "
+        "'2024-01-05', 100, 100, 450000000000000000, 4, '2023-12-31')")
+    connection.execute(
+        "INSERT INTO p VALUES ('validator', 'later', 2000000000000, '2024-01-02 00:00', '2024-01-04', NULL, "
+        "'2024-01-04', 100, 100, 450000000000000100, 2, ?)", [accepted_at])
+    connection.execute("COPY p TO ? (FORMAT PARQUET)", [str(periods)])
+    connection.execute(
+        "CREATE TABLE l AS SELECT d::DATE AS date_utc, true AS complete, '0' AS burned_wei, "
+        "'440000000000000000000000000' AS total_supply_close_wei, '0' AS issued_rewards_wei "
+        "FROM generate_series(TIMESTAMP '2024-01-01', TIMESTAMP '2024-01-03', INTERVAL 1 DAY) t(d)")
+    connection.execute("COPY l TO ? (FORMAT PARQUET)", [str(ledger)])
+    connection.close()
+    return str(periods), str(ledger)
+
+
+def test_the_chain_leaves_out_commitments_accepted_by_the_origin_that_start_after_it(tmp_path):
+    # Accepted on 2023-12-31 and starting on 2024-01-02, the second commitment is scheduled at a 2024-01-01 origin. A
+    # run from that origin holds it as scheduled and does not count it, so the chain must not either.
+    origin = date(2024, 1, 1)
+    daily = kpis.chain_daily_table(*staking_periods(tmp_path, "2023-12-31 00:00"), origin, through=date(2024, 1, 4))
+    after = daily.loc[pd.Timestamp(2024, 1, 2)]
+    assert (after["issued_navax"], after["issued_all_roles_navax"], after["started_stake_navax"]) == (0, 0, 0)
+    assert (after["started_stake_days_navax"], after["started_validators"]) == (0, 0)
+    # The counter still reads every start: the scheduled commitment's reward is in it.
+    assert daily.loc[pd.Timestamp(2024, 1, 2), "supply_counter_navax"] == 450_000_000_000_000_200
+    # Days up to the origin count every start.
+    assert daily.loc[pd.Timestamp(origin), "started_stake_navax"] == 2_000 * AVAX
+    with pytest.raises(ValueError, match="no commitment starts in the run"):
+        kpis.earned_rate(daily, origin, 1)
+    with pytest.raises(ValueError, match="no commitment starts in the run"):
+        kpis.stake_weighted_duration(daily, origin, 1)
+
+
+def test_the_chain_counts_a_commitment_accepted_after_the_origin(tmp_path):
+    origin = date(2024, 1, 1)
+    daily = kpis.chain_daily_table(*staking_periods(tmp_path, "2024-01-02 00:00"), origin, through=date(2024, 1, 4))
+    assert daily.loc[pd.Timestamp(2024, 1, 2), "issued_navax"] == 100
+    assert kpis.stake_weighted_duration(daily, origin, 1) == 2
+    assert kpis.earned_rate(daily, origin, 1) == pytest.approx(365 * 100 / (2_000 * AVAX * 2))
+
+
+def test_a_chain_table_is_scored_from_the_origin_it_was_built_for(tmp_path):
+    inputs = staking_periods(tmp_path, "2023-12-31 00:00")
+    daily = kpis.chain_daily_table(*inputs, date(2024, 1, 1), through=date(2024, 1, 4))
+    with pytest.raises(ValueError, match="built for the origin 2024-01-01"):
+        kpis.earned_rate(daily, date(2024, 1, 2), 1)
+    with pytest.raises(ValueError, match="built for the origin 2024-01-01"):
+        kpis.issuance_saved(daily, daily, date(2024, 1, 2), 1)
+    # A measure that reads no started commitment can be scored from any origin.
+    assert kpis.active_validators(daily, date(2024, 1, 2), 1) == 2
+    with pytest.raises(ValueError, match="built for the origin 2024-01-01"):
+        kpis.run_daily_table(pd.DataFrame({"simulation": 0, "run": 1, "timestep": [1], "variable": ["issued_navax"], "value": [5]}), date(2024, 1, 2), daily)
+    with pytest.raises(ValueError, match="before"):
+        kpis.chain_daily_table(*inputs, date(2024, 1, 4), through=date(2024, 1, 4))
+
+
 # The replayed chain. Expected values are recorded in the v0.7 research report or measured on the pinned runs.
 
 FORTUNA = date(2025, 4, 8)
@@ -318,13 +439,13 @@ def chain_inputs():
 
 @pytest.fixture(scope="module")
 def chain(chain_inputs):
-    return kpis.chain_daily_table(*chain_inputs)
+    return kpis.chain_daily_table(*chain_inputs, YEAR_BEFORE_FORTUNA)
 
 
 def test_the_chain_table_stops_before_the_held_back_period(chain, chain_inputs):
     assert chain.index[-1] < pd.Timestamp(LOCKBOX_FIRST_DAY)
     with pytest.raises(ValueError):
-        kpis.chain_daily_table(*chain_inputs, through=date(2025, 11, 20))
+        kpis.chain_daily_table(*chain_inputs, YEAR_BEFORE_FORTUNA, through=date(2025, 11, 20))
 
 
 def test_the_chain_table_equals_the_ledger_on_every_complete_day(chain, chain_inputs):
@@ -426,3 +547,29 @@ def test_burn_to_issuance_by_calendar_year(chain, year, ratio):
     origin = date(year - 1, 12, 31)
     days = (date(year, 12, 31) - origin).days
     assert kpis.burn_to_issuance(chain, origin, days) == pytest.approx(ratio, abs=0.00005)
+
+
+def test_a_complete_day_missing_its_burn_is_refused_when_completeness_is_recorded():
+    """With the ledger's completeness flag, a complete day without a value is refused, and an incomplete day is skipped."""
+    flagged = table(ORIGIN, {"burned_navax": [50, 1, 2, np.nan], "rewards_paid_navax": [1, 10, 10, 10],
+                             "ledger_complete": [True, True, True, False]})
+    assert kpis.burn_to_issuance(flagged, ORIGIN, 3) == pytest.approx(3 / 20)
+    gap = table(ORIGIN, {"burned_navax": [50, 1, np.nan, 2], "rewards_paid_navax": [1, 10, 10, 10],
+                         "ledger_complete": [True, True, True, True]})
+    with pytest.raises(ValueError):
+        kpis.burn_to_issuance(gap, ORIGIN, 3)
+    burn = [float(b) for b in range(1, 401)]
+    burn[390] = np.nan
+    with pytest.raises(ValueError):
+        kpis.mean_daily_burn(table(ORIGIN, {"burned_navax": burn + [1.0], "ledger_complete": [True] * 401}, before=399), ORIGIN)
+
+
+def test_two_rows_on_one_calendar_day_are_refused_whatever_their_times():
+    """A day is a calendar day: two rows at different times of one day are a duplicate, and so is a time other than
+    midnight beside the day's own row."""
+    origin = date(2024, 6, 30)
+    daily = pd.DataFrame({"issued_navax": [10.0, 1000.0]},
+                         index=pd.DatetimeIndex(["2024-07-01 00:00:00", "2024-07-01 12:00:00"], name="date"))
+    baseline = pd.DataFrame({"issued_navax": [10.0]}, index=pd.DatetimeIndex(["2024-07-01"], name="date"))
+    with pytest.raises(ValueError):
+        kpis.issuance_saved(daily, baseline, origin, 1)

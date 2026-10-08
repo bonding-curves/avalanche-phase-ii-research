@@ -32,9 +32,13 @@ The definitions follow these choices. Issuance is counted on the supply counter'
 quantity the model computes exactly. A run's baseline is the chain's rule as it runs. Net inflation divides by
 realized total supply. On a run that supply is built from the supply at the origin, with the burn held at the mean
 daily burn of the 365 complete days to the origin. The return margin and the stake-weighted duration average over
-commitments started in the run, not those accepted before the origin and scheduled to start after it. Decentralisation
-is the Nakamoto coefficient on nodes and self-stake. The operating cost is a parameter, so a sweep can score three
-levels. Standard deviations are sample standard deviations.
+commitments started in the run, not those accepted before the origin and scheduled to start after it. A run holds those
+as scheduled and counts neither their issuance nor their stake, so the chain's table is built for an origin and leaves
+them out of every started-commitment column after it (``chain_daily_table``). A chain table is scored only from the
+origin it was built for. Decentralisation is the Nakamoto coefficient on nodes and self-stake. The operating cost is a
+parameter, so a sweep can score three levels. Standard deviations are sample standard deviations.
+
+A table with two rows for one day, a value that is not finite, or a ratio over a zero is refused with ``ValueError``.
 """
 
 from __future__ import annotations
@@ -73,6 +77,9 @@ DAILY_COLUMNS = (
     "total_supply_navax",
     "active_delegated_stake_navax",
 )
+STARTED_COLUMNS = frozenset({
+    "issued_navax", "issued_all_roles_navax", "started_stake_navax", "started_stake_days_navax", "started_validators",
+})
 NOT_IN_MODEL_YET = {
     "started_stake_navax": "the model computes the stake of the commitments it starts each day but does not write it",
     "started_stake_days_navax": "the model computes each started commitment's stake and days but does not write their product",
@@ -154,12 +161,39 @@ def _require(daily: pd.DataFrame, columns: Iterable[str]) -> None:
         raise MissingColumn(f"the daily table has no {', '.join(missing)} column" + "".join(f". Today {r}" for r in reasons))
 
 
-def _rows(daily: pd.DataFrame, first, last, columns: Iterable[str], complete: bool = True) -> pd.DataFrame:
-    """The rows from ``first`` to ``last`` inclusive, every day present, and every value present when ``complete``."""
-    columns = list(columns)
-    _require(daily, columns)
+def _one_row_a_day(daily: pd.DataFrame) -> None:
     if not isinstance(daily.index, pd.DatetimeIndex):
         raise TypeError("the daily table must be indexed by day, as a DatetimeIndex")
+    days = daily.index.normalize()
+    if not days.is_unique:
+        raise ValueError(f"the daily table has more than one row for {days[days.duplicated()][0].date()}")
+    if (daily.index != days).any():
+        raise ValueError("each row of the daily table must be dated at midnight of its day")
+
+
+def _finite(rows: pd.DataFrame) -> None:
+    """Refuse an infinite value. A missing value is left to the caller."""
+    values = rows.to_numpy(dtype=float, na_value=np.nan)
+    bad = np.isinf(values)
+    if bad.any():
+        row, column = np.argwhere(bad)[0]
+        raise ValueError(f"the daily table's {rows.columns[column]} on {rows.index[row].date()} is not finite")
+
+
+def _same_origin(daily: pd.DataFrame, origin, columns: Iterable[str]) -> None:
+    """Refuse to read a chain table's started commitments from another origin than the one it was built for."""
+    built = daily.attrs.get("origin")
+    if built is not None and _day(built) != _day(origin) and STARTED_COLUMNS.intersection(columns):
+        raise ValueError(f"the chain table was built for the origin {_day(built).date()}, so its started commitments "
+                         f"after that day leave out those it held as scheduled. Build it for {_day(origin).date()}")
+
+
+def _rows(daily: pd.DataFrame, first, last, columns: Iterable[str], complete: bool = True) -> pd.DataFrame:
+    """The rows from ``first`` to ``last`` inclusive, every day present once, every value finite, and every value
+    present when ``complete``."""
+    columns = list(columns)
+    _require(daily, columns)
+    _one_row_a_day(daily)
     days = pd.date_range(_day(first), _day(last), freq="D")
     absent = days.difference(daily.index)
     if len(absent):
@@ -168,6 +202,7 @@ def _rows(daily: pd.DataFrame, first, last, columns: Iterable[str], complete: bo
     if complete and rows.isna().any().any():
         column = rows.columns[rows.isna().any()][0]
         raise ValueError(f"the daily table has no {column} on {rows.index[rows[column].isna()][0].date()}")
+    _finite(rows)
     return rows
 
 
@@ -175,12 +210,20 @@ def _run(daily: pd.DataFrame, origin, horizon: int, columns: Iterable[str], comp
     """Days 1 to ``horizon`` after the origin."""
     if horizon < 1:
         raise ValueError("the horizon must be at least one day")
+    _same_origin(daily, origin, columns)
     start = _day(origin) + pd.Timedelta(1, unit="D")
     return _rows(daily, start, _day(origin) + pd.Timedelta(horizon, unit="D"), columns, complete)
 
 
 def _at_horizon(daily: pd.DataFrame, origin, horizon: int, column: str) -> float:
     return _run(daily, origin, horizon, [column])[column].iloc[-1]
+
+
+def _nonzero(value: float, what: str, origin, horizon: int) -> float:
+    if value == 0:
+        day = (_day(origin) + pd.Timedelta(horizon, unit="D")).date()
+        raise ValueError(f"{what} on {day} is zero, so the ratio is undefined")
+    return value
 
 
 # The KPIs.
@@ -197,7 +240,8 @@ def issuance_saved(daily: pd.DataFrame, baseline: pd.DataFrame, origin, horizon:
 def validator_stake_retained(daily: pd.DataFrame, baseline: pd.DataFrame, origin, horizon: int) -> float:
     """Validator stake at the horizon over the baseline's."""
     column = "active_validator_stake_navax"
-    return float(_at_horizon(daily, origin, horizon, column) / _at_horizon(baseline, origin, horizon, column))
+    theirs = _nonzero(_at_horizon(baseline, origin, horizon, column), "the baseline's validator stake", origin, horizon)
+    return float(_at_horizon(daily, origin, horizon, column) / theirs)
 
 
 def validator_stake_at_horizon(daily: pd.DataFrame, origin, horizon: int) -> int:
@@ -217,13 +261,28 @@ def active_validators(daily: pd.DataFrame, origin, horizon: int) -> int:
 
 def active_validators_retained(daily: pd.DataFrame, baseline: pd.DataFrame, origin, horizon: int) -> float:
     """Validators active at the horizon over the baseline's."""
-    return active_validators(daily, origin, horizon) / active_validators(baseline, origin, horizon)
+    theirs = _nonzero(active_validators(baseline, origin, horizon), "the baseline's active validators", origin, horizon)
+    return active_validators(daily, origin, horizon) / theirs
+
+
+def _complete_days(rows: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """The rows of complete ledger days. With the ledger's ``ledger_complete`` flag, a complete day missing a value is
+    refused and an incomplete day is skipped. Without the flag, a missing value marks an incomplete day."""
+    if "ledger_complete" in rows.columns:
+        complete = rows[rows["ledger_complete"].eq(True)]
+        if complete[columns].isna().any().any():
+            raise ValueError(f"a complete ledger day is missing a value in {', '.join(columns)}")
+        return complete[columns]
+    return rows[columns].dropna()
 
 
 def mean_daily_burn(daily: pd.DataFrame, origin) -> float:
     """The mean burn of the 365 complete days that end at the origin, skipping days without a burn."""
     _require(daily, ["burned_navax"])
-    known = daily.loc[daily.index <= _day(origin), "burned_navax"].dropna()
+    _one_row_a_day(daily)
+    known = _complete_days(daily.loc[daily.index <= _day(origin)], ["burned_navax"])
+    _finite(known)
+    known = known["burned_navax"]
     if len(known) < TRAILING_DAYS:
         raise ValueError(f"fewer than {TRAILING_DAYS} complete days of burn up to the origin")
     return float(known.iloc[-TRAILING_DAYS:].mean())
@@ -233,11 +292,15 @@ def with_realized_supply(daily: pd.DataFrame, origin, starting_supply_navax: flo
     """The table with burn and realized supply filled after the origin: the burn held fixed, and supply equal to the
     starting supply plus the run's issuance less that burn, day by day. Days up to the origin are unchanged."""
     _require(daily, ["issued_navax"])
+    _one_row_a_day(daily)
+    if not (math.isfinite(starting_supply_navax) and math.isfinite(burn_navax_per_day)):
+        raise ValueError("the starting supply or the burn a day is not finite")
     filled = daily.sort_index().copy()
     after = filled.index > _day(origin)
     issued = filled.loc[after, "issued_navax"]
     if issued.isna().any():
         raise ValueError(f"the daily table has no issued_navax on {issued.index[issued.isna()][0].date()}")
+    _finite(filled.loc[after, ["issued_navax"]])
     filled.loc[after, "burned_navax"] = float(burn_navax_per_day)
     filled.loc[after, "total_supply_navax"] = float(starting_supply_navax) + (issued - float(burn_navax_per_day)).cumsum()
     return filled
@@ -259,9 +322,11 @@ def net_inflation(daily: pd.DataFrame, origin, horizon: int, starting_supply_nav
     (``with_realized_supply``). ``issuance`` names another issuance column, such as the chain's rewards paid.
     """
     daily = _supplied(daily, origin, starting_supply_navax, burn_navax_per_day)
+    _same_origin(daily, origin, [issuance])
     end = _day(origin) + pd.Timedelta(horizon, unit="D")
     rows = _rows(daily, end - pd.Timedelta(TRAILING_DAYS - 1, unit="D"), end, [issuance, "burned_navax", "total_supply_navax"])
-    return float((rows[issuance].sum() - rows["burned_navax"].sum()) / rows["total_supply_navax"].iloc[-1])
+    supply = _nonzero(rows["total_supply_navax"].iloc[-1], "realized supply", origin, horizon)
+    return float((rows[issuance].sum() - rows["burned_navax"].sum()) / supply)
 
 
 def validator_staking_ratio(daily: pd.DataFrame, origin, horizon: int, with_delegations: bool = False,
@@ -271,7 +336,7 @@ def validator_staking_ratio(daily: pd.DataFrame, origin, horizon: int, with_dele
     columns = ["active_validator_stake_navax", "total_supply_navax"] + (["active_delegated_stake_navax"] if with_delegations else [])
     row = _run(daily, origin, horizon, columns).iloc[-1]
     staked = row["active_validator_stake_navax"] + (row["active_delegated_stake_navax"] if with_delegations else 0)
-    return float(staked / row["total_supply_navax"])
+    return float(staked / _nonzero(row["total_supply_navax"], "realized supply", origin, horizon))
 
 
 def nakamoto_count(stakes: Iterable[float]) -> int:
@@ -320,7 +385,10 @@ def reward_rate_volatility(daily: pd.DataFrame, origin, horizon: int) -> float:
 
 def _stake_from_origin(daily, origin, horizon) -> np.ndarray:
     column = "active_validator_stake_navax"
-    return _rows(daily, origin, _day(origin) + pd.Timedelta(horizon, unit="D"), [column])[column].to_numpy(dtype=float)
+    stake = _rows(daily, origin, _day(origin) + pd.Timedelta(horizon, unit="D"), [column])[column]
+    if (stake <= 0).any():
+        raise ValueError(f"validator stake on {stake.index[stake <= 0][0].date()} is not positive, so its change is undefined")
+    return stake.to_numpy(dtype=float)
 
 
 def stake_volatility(daily: pd.DataFrame, origin, horizon: int) -> float:
@@ -340,6 +408,7 @@ def worst_30_day_stake_fall(daily: pd.DataFrame, origin, horizon: int) -> float:
 
 def issuance_half_life(daily: pd.DataFrame, origin, horizon: int) -> float:
     """Years for the issuance left under the cap to halve at the pace of the last ``min(365, horizon)`` days."""
+    _same_origin(daily, origin, ["issued_navax"])
     days = min(TRAILING_DAYS, horizon)
     end = _day(origin) + pd.Timedelta(horizon, unit="D")
     issued = _rows(daily, end - pd.Timedelta(days - 1, unit="D"), end, ["issued_navax"])["issued_navax"].sum()
@@ -351,7 +420,9 @@ def issuance_half_life(daily: pd.DataFrame, origin, horizon: int) -> float:
 
 def burn_to_issuance(daily: pd.DataFrame, origin, horizon: int) -> float:
     """AVAX burned per AVAX of rewards paid, over the complete days of the window. The chain only."""
-    rows = _run(daily, origin, horizon, ["burned_navax", "rewards_paid_navax"], complete=False).dropna()
+    columns = ["burned_navax", "rewards_paid_navax"]
+    flag = ["ledger_complete"] if "ledger_complete" in daily.columns else []
+    rows = _complete_days(_run(daily, origin, horizon, [*columns, *flag], complete=False), columns)
     if rows.empty or rows["rewards_paid_navax"].sum() <= 0:
         raise ValueError("no complete day with rewards paid in the window")
     return float(rows["burned_navax"].sum() / rows["rewards_paid_navax"].sum())
@@ -420,20 +491,30 @@ def run_daily_table(table: pd.DataFrame, origin, chain: pd.DataFrame | None = No
     """One run of the engine's long table as a daily table, after the chain's days up to the origin when given.
 
     Timestep ``t`` is the day ``origin + t``. With ``chain``, the origin and every day before it come from the chain,
-    in the daily-table columns only.
+    in the daily-table columns only, and the chain's table must be built for the same origin. A variable with two
+    values at one timestep is refused.
     """
     keys = [key for key in ("simulation", "run") if key in table.columns]
     if len(table[keys].drop_duplicates()) != 1:
         raise ValueError("run_daily_table takes one run of one simulation: filter the long table first")
+    repeated = table[table.duplicated(["timestep", "variable"])]
+    if len(repeated):
+        first = repeated.iloc[0]
+        raise ValueError(f"the long table has more than one {first['variable']} at timestep {first['timestep']}")
     wide = table.pivot_table(index="timestep", columns="variable", values="value", aggfunc="first")
     for column in DAILY_COLUMNS:
         if column in table.columns:
-            wide[column] = table.groupby("timestep")[column].first()
+            values = table.groupby("timestep")[column]
+            conflicting = values.nunique(dropna=False) > 1
+            if conflicting.any():
+                raise ValueError(f"the long table has more than one {column} at timestep {conflicting.idxmax()}")
+            wide[column] = values.first()
     wide = wide.rename(columns={"supply_navax": "supply_counter_navax"})
     wide.columns.name = None
     wide.index = _day(origin) + pd.to_timedelta(wide.index, unit="D")
     if chain is None:
         return wide
+    _same_origin(chain, origin, STARTED_COLUMNS)
     before = chain.loc[chain.index <= _day(origin), [c for c in chain.columns if c in DAILY_COLUMNS]]
     return pd.concat([before, wide.loc[wide.index > _day(origin)]])
 
@@ -444,16 +525,21 @@ def _start_day(column: str) -> str:
 
 
 STARTS_SQL = f"""
-SELECT {_start_day("start_time")} AS day,
-       sum(potential_reward_navax) FILTER (WHERE role = 'validator')::BIGINT AS issued_navax,
-       sum(potential_reward_navax)::BIGINT AS issued_all_roles_navax,
-       sum(stake_navax) FILTER (WHERE role = 'validator')::BIGINT AS started_stake_navax,
-       sum(stake_navax::DOUBLE * duration_days) FILTER (WHERE role = 'validator') AS started_stake_days_navax,
-       count(*) FILTER (WHERE role = 'validator') AS started_validators,
+WITH p AS (
+    SELECT role, stake_navax, duration_days, potential_reward_navax, supply_before_navax, start_time,
+           {_start_day("start_time")} AS day,
+           coalesce(epoch_us(start_time) > $cutoff AND epoch_us(accepted_at) <= $cutoff, false) AS scheduled
+    FROM read_parquet($periods) WHERE start_time IS NOT NULL
+)
+SELECT day,
+       sum(potential_reward_navax) FILTER (WHERE role = 'validator' AND NOT scheduled)::BIGINT AS issued_navax,
+       sum(potential_reward_navax) FILTER (WHERE NOT scheduled)::BIGINT AS issued_all_roles_navax,
+       sum(stake_navax) FILTER (WHERE role = 'validator' AND NOT scheduled)::BIGINT AS started_stake_navax,
+       sum(stake_navax::DOUBLE * duration_days) FILTER (WHERE role = 'validator' AND NOT scheduled) AS started_stake_days_navax,
+       count(*) FILTER (WHERE role = 'validator' AND NOT scheduled) AS started_validators,
        arg_max(supply_before_navax + potential_reward_navax, (start_time, supply_before_navax))
            FILTER (WHERE supply_before_navax IS NOT NULL AND potential_reward_navax IS NOT NULL) AS supply_counter_navax
-FROM read_parquet(?) WHERE start_time IS NOT NULL
-GROUP BY 1 ORDER BY 1
+FROM p GROUP BY 1 ORDER BY 1
 """
 
 NAKAMOTO_SQL = f"""
@@ -485,17 +571,25 @@ FROM read_parquet(?) ORDER BY date_utc
 """
 
 
-def chain_daily_table(periods_parquet: str, ledger_parquet: str, through: date = LOCKBOX_FIRST_DAY) -> pd.DataFrame:
-    """The chain's daily table, every day before ``through``, which may not pass the held-back test period.
+def chain_daily_table(periods_parquet: str, ledger_parquet: str, origin: date,
+                      through: date = LOCKBOX_FIRST_DAY) -> pd.DataFrame:
+    """The chain's daily table for a run from ``origin``, every day before ``through``, which may not pass the
+    held-back test period.
 
     Active stake and counts are the replay of the staking periods. Issuance, started stake and the counter come from
-    the periods by start day. The counter at a day's end is the reading after the day's last start, carried over days
-    without one. It leaves out a fall in the counter after that start, when a commitment ends without its reward.
+    the periods by start day. After the origin, issuance, started stake, stake-days and the count of starts leave out
+    the commitments accepted by the end of the origin day that start after it. A run from that origin holds them as
+    scheduled and counts none of them, so the two count the same commitments. The table records its origin, and a KPI
+    that reads those columns refuses another origin. The counter reads every start. At a day's end it is the reading
+    after the day's last start, carried over days without one. It leaves out a fall in the counter after that start,
+    when a commitment ends without its reward.
     The offered rate prices a 30-day stake at noon by the chain's rule at the previous day's counter.
-    Burn, realized supply and rewards paid come from the ledger, on complete days only. Three columns serve the chain
+    Burn, realized supply and rewards paid come from the ledger, on complete days only. Four columns serve the chain
     side alone: ``issued_all_roles_navax`` (validators and delegators on the counter's clock), ``rewards_paid_navax``
-    (all roles, when paid) and ``started_validators``.
+    (all roles, when paid), ``started_validators`` and ``ledger_complete``, whether the ledger's day is complete.
     """
+    if _day(origin) >= _day(through):
+        raise ValueError(f"the origin {origin} must be before {through}, the day the table stops")
     events = daily_events(periods_parquet, through)
     first = (pd.Timestamp(events["date_utc"].iloc[0]) - pd.Timestamp(0)).days
     last = first + len(events) - 1
@@ -508,9 +602,14 @@ def chain_daily_table(periods_parquet: str, ledger_parquet: str, through: date =
     def by_day(frame: pd.DataFrame) -> pd.DataFrame:
         frame = frame[(frame["day"] >= first) & (frame["day"] <= last)]
         frame.index = pd.DatetimeIndex(pd.to_datetime(frame["day"] * 86_400, unit="s"), name="date")
-        return frame.drop(columns="day").reindex(index)
+        frame = frame.drop(columns="day")
+        # Integer columns become nullable integers first, so the days the reindex adds do not pass them through float.
+        integers = [c for c in frame.columns if pd.api.types.is_integer_dtype(frame[c])]
+        frame[integers] = frame[integers].astype("Int64")
+        return frame.reindex(index)
 
-    starts = by_day(duckdb.execute(STARTS_SQL, [periods_parquet]).df())
+    cutoff = _day(origin).value // 1_000 + INSTANT_US
+    starts = by_day(duckdb.execute(STARTS_SQL, {"periods": periods_parquet, "cutoff": cutoff}).df())
     for column in ("issued_navax", "issued_all_roles_navax", "started_stake_navax", "started_validators"):
         daily[column] = starts[column].fillna(0).astype(np.int64)
     daily["started_stake_days_navax"] = starts["started_stake_days_navax"].fillna(0.0)
@@ -533,4 +632,7 @@ def chain_daily_table(periods_parquet: str, ledger_parquet: str, through: date =
     for column, source in (("burned_navax", "burned"), ("total_supply_navax", "supply"), ("rewards_paid_navax", "paid")):
         values = [int(v) / WEI_PER_NAVAX if ok and v is not None else np.nan for v, ok in zip(ledger[source], complete)]
         daily[column] = np.asarray(values, dtype=float)
-    return daily[[*DAILY_COLUMNS, "issued_all_roles_navax", "rewards_paid_navax", "started_validators"]]
+    daily["ledger_complete"] = complete.to_numpy()
+    daily = daily[[*DAILY_COLUMNS, "issued_all_roles_navax", "rewards_paid_navax", "started_validators", "ledger_complete"]]
+    daily.attrs["origin"] = _day(origin)
+    return daily
