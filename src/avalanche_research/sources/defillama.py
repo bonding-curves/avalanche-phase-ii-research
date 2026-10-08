@@ -49,7 +49,9 @@ typed AS (
   ORDER BY point.timestamp
 ),
 derived AS (
-  SELECT observed_at, observed_at::DATE AS observation_date, price_usd, confidence, '{COIN}' AS lineage,
+  -- DefiLlama stamps each daily point near midnight UTC, at about 00:20 or about 23:30. A point is dated by its nearest
+  -- midnight, so a 23:30 point is the next day's: dating it by its calendar day repeated 343 dates and skipped 346.
+  SELECT observed_at, (observed_at + INTERVAL 12 HOUR)::DATE AS observation_date, price_usd, confidence, '{COIN}' AS lineage,
          ln(price_usd / lag(price_usd) OVER (ORDER BY observed_at)) AS log_return
   FROM typed
 )

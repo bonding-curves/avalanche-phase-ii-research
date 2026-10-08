@@ -16,10 +16,12 @@ SERIES_START = datetime(2020, 9, 22, tzinfo=timezone.utc)
 CAPTURE_DAY = datetime(2021, 3, 1, tzinfo=timezone.utc)
 
 
-def window_payload(start_unix: int, span: int, skip: set[int] = frozenset()) -> dict:
+def window_payload(start_unix: int, span: int, skip: set[int] = frozenset(), early: bool = False) -> dict:
+    """Daily points at 00:05 UTC, or with ``early`` every other point at 23:30 the evening before, as DefiLlama stamps them."""
     points = []
     for index in range(span):
-        stamp = datetime.fromtimestamp(start_unix, tz=timezone.utc) + timedelta(days=index, minutes=5)
+        minutes = -30 if early and index % 2 else 5
+        stamp = datetime.fromtimestamp(start_unix, tz=timezone.utc) + timedelta(days=index, minutes=minutes)
         if stamp > CAPTURE_DAY or index in skip:
             continue
         day = (stamp - SERIES_START).days
@@ -43,10 +45,10 @@ class Response:
         return self.body
 
 
-def opener(skip: set[int] = frozenset()):
+def opener(skip: set[int] = frozenset(), early: bool = False):
     def open_request(request, timeout):
         query = parse_qs(urlparse(request.full_url).query)
-        return Response(window_payload(int(query["start"][0]), int(query["span"][0]), skip))
+        return Response(window_payload(int(query["start"][0]), int(query["span"][0]), skip, early))
 
     return open_request
 
@@ -116,3 +118,10 @@ def test_coingecko_cross_check_against_reference(tmp_path):
     assert validation["checked"][-1] == "reference price cross-check"
     assert validation["summary"]["cross_check_days"] == 40 and validation["summary"]["cross_check_days_beyond_tolerance"] == 1
     assert validation["findings"] == ["1 days differ from the reference price by more than 10%"]
+
+
+def test_a_point_stamped_just_before_midnight_is_dated_by_its_nearest_midnight(tmp_path):
+    path = tmp_path / "capture"
+    defillama.capture(defillama.DATASET_ID, path, opener=opener(early=True))
+    build = defillama.build(defillama.DATASET_ID, path, tmp_path / "dataset")
+    assert build["summary"]["dates_with_two_observations"] == 0 and build["summary"]["skipped_dates"] == 0
