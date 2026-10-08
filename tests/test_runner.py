@@ -69,3 +69,25 @@ def test_a_swept_setting_that_moves_nothing_is_named(tmp_path):
     rows = list(designs.cartesian({"renewal_response": [0.0, 0.3], "renewal_probability": [0.3, 0.7]}))
     runner.run_sweep(base(), rows, tmp_path, VARIABLES, workers=2)
     assert designs.no_effect(runner.read_sweep(tmp_path), ["renewal_response", "renewal_probability"]) == ["renewal_response"]
+
+
+def test_a_sweep_receipt_names_every_row_file_and_finds_a_change(tmp_path):
+    from avalanche_research.experiments import receipt
+
+    pin_file = tmp_path / "pin.json"
+    pin_file.write_text('{"schema_version": "avalanche-pins/v1", "name": "none", "runs": []}')
+    model = base()
+    rows = list(designs.cartesian({"renewal_probability": [0.2, 0.8]}))
+    out = tmp_path / "sweep"
+    stats = runner.run_sweep(model, rows, out, VARIABLES, workers=1)
+    made = receipt.build_sweep(out, model.specification(), designs.design_hash(rows, model.specification_hash()), len(rows), stats,
+                               pin_file, [0], "start", "end", code={"commit": "abc", "dirty": False})
+    assert made["sweep"]["complete"] and len(made["sweep"]["files"]) == 2 and made["output"]["rows"] > 0
+    assert made["model"]["specifications"][0]["hash"] == model.specification_hash()
+    assert receipt.check(made) == []
+    partial = receipt.build_sweep(out, model.specification(), "d", 5, stats, pin_file, [0], "s", "e", code={"commit": "abc", "dirty": False})
+    assert any("of 5 rows" in finding for finding in receipt.check(partial))
+    first = min(out.glob("*.parquet"))
+    first.write_bytes(first.read_bytes() + b"\0")
+    (out / "extra.parquet").write_bytes(b"x")
+    assert sorted(receipt.check(made)) == sorted([f"row file {first.stem} changed", "row file extra is not in the receipt"])
