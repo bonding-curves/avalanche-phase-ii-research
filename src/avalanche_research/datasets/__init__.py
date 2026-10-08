@@ -19,9 +19,12 @@ RUNS = DATA_DIR / "runs"
 
 def _read_json(path: Path) -> dict[str, Any]:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise DataError(f"unreadable receipt: {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise DataError(f"unreadable receipt: {path}: a JSON {type(value).__name__}, not an object")
+    return value
 
 
 def _try_json(path: Path) -> tuple[dict[str, Any] | None, DataError | None]:
@@ -34,9 +37,10 @@ def _try_json(path: Path) -> tuple[dict[str, Any] | None, DataError | None]:
 def runs(dataset_id: str | None = None, root: Path | None = None) -> list[dict[str, Any]]:
     """Built runs, newest build first, for one dataset or for every dataset.
 
-    A run of another dataset is skipped even when one of its receipts is unreadable, if the other names its dataset.
-    A run of the requested dataset with an unreadable receipt, or whose build names a capture other than its own, is
-    refused with its path rather than skipped, so a newest-run read never falls back silently to an older run."""
+    A run is skipped when no receipt of it names the requested dataset, even if its other receipt is unreadable. A run
+    that one of its receipts ties to the requested dataset is refused with its path when a receipt is unreadable or not
+    a JSON object, when its build and capture name different datasets, or when its build names a capture other than its
+    own, so a newest-run read never falls back silently to an older run."""
     root = RUNS if root is None else root
     found: list[dict[str, Any]] = []
     if not root.is_dir():
@@ -48,11 +52,13 @@ def runs(dataset_id: str | None = None, root: Path | None = None) -> list[dict[s
             continue
         build, build_error = _try_json(build_path)
         capture, capture_error = _try_json(capture_path)
-        named = (build or {}).get("dataset_id") or (capture or {}).get("dataset_id")
-        if dataset_id is not None and named is not None and named != dataset_id:
+        names = {value for value in ((build or {}).get("dataset_id"), (capture or {}).get("dataset_id")) if value is not None}
+        if dataset_id is not None and names and dataset_id not in names:
             continue
         if build_error or capture_error:
             raise build_error or capture_error
+        if len(names) > 1:
+            raise DataError(f"run {directory.name}: its build names {build.get('dataset_id')}, its capture {capture.get('dataset_id')}")
         if build.get("source_capture_id") != capture.get("capture_id"):
             raise DataError(f"run {directory.name}: its build names capture {build.get('source_capture_id')}, "
                             f"but its capture is {capture.get('capture_id')}")

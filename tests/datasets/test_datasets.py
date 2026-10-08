@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -126,3 +127,24 @@ def test_connect_closes_its_connection_when_a_run_fails(root, monkeypatch):
         datasets.connect(root=root)
     with pytest.raises(duckdb.Error):
         opened[0].execute("SELECT 1")
+
+
+def test_a_receipt_that_is_not_utf8_or_not_an_object_is_refused_with_its_path(root):
+    build = root / "validators-new" / "dataset" / "build.json"
+    for body in (b"\xff\xfe\x00", b"[1, 2]"):
+        build.write_bytes(body)
+        with pytest.raises(DataError, match="unreadable receipt: .*validators-new"):
+            datasets.runs("snowflake.primary-validator-stakes", root)
+        assert [item["run"] for item in datasets.runs("snowflake.primary-delegator-stakes", root)] == ["delegators"]
+
+
+def test_a_run_whose_build_and_capture_name_different_datasets_is_refused(root):
+    for receipt in ("capture/capture.json", "dataset/build.json"):
+        path = root / "validators-new" / receipt
+        kept = path.read_bytes()
+        value = json.loads(kept)
+        value["dataset_id"] = "snowflake.primary-delegator-stakes"
+        path.write_bytes(canonical_bytes(value))
+        with pytest.raises(DataError, match="run validators-new: its build names"):
+            datasets.load("snowflake.primary-validator-stakes", root=root)
+        path.write_bytes(kept)
