@@ -34,6 +34,7 @@ PURPOSES = {
     "design": "a sweep design generator's own draws, such as the scrambling of a Sobol sequence",
     "failure": "an uptime failure at a commitment's end",
     "large_path": "the large-holder cohort path",
+    "design": "the scramble of a sweep design's Sobol points",
 }
 
 KIND_OPEN, KIND_OUT, KIND_SCHEDULED, KIND_ARRIVAL = 0, 1, 2, 3

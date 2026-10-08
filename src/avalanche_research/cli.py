@@ -391,6 +391,40 @@ def model_reward(stake_avax: float, duration_days: float, start: Any, supply_ava
     finish(envelope("model reward", "pass", {"text": f"{value['potential_reward_avax']:.9f} AVAX"}, items=items, reward=value), as_json)
 
 
+@model.command("sweep")
+@click.argument("design", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("out", type=click.Path(file_okay=False, path_type=Path))
+@click.option("pin", "--pin", type=click.Path(exists=True, dir_okay=False, path_type=Path), help="Pin file replacing the design's.")
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def model_sweep(design: Path, out: Path, pin: Path | None, as_json: bool) -> None:
+    """Run a sweep design file: one Parquet file per row under OUT, and the sweep's receipt beside them. v0."""
+    from .experiments import sweep
+
+    made = sweep.run(design, out, pin=pin)
+    text = f"{made['sweep']['rows_written']} rows written, {made['sweep']['rows_skipped']} skipped, receipt {made['receipt_id']}"
+    finish(envelope("model sweep", "pass", {"text": text}, receipt=made), as_json)
+
+
+@model.command("run")
+@click.argument("pin", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("out", type=click.Path(file_okay=False, path_type=Path))
+@click.option("--origin", required=True, help="Model origin day, before the validation lockbox.")
+@click.option("model_name", "--model", default="v0.8", show_default=True, help="Model name, as in a design's models.")
+@click.option("--runs", type=click.IntRange(min=1), default=20, show_default=True)
+@click.option("--timesteps", type=click.IntRange(min=1), default=180, show_default=True, help="Days simulated.")
+@click.option("--seed", type=click.IntRange(min=0), default=0, show_default=True)
+@click.option("--workers", default="auto", show_default=True, help="A number, or auto to size from free memory.")
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def model_run(pin: Path, out: Path, origin: str, model_name: str, runs: int, timesteps: int, seed: int, workers: str, as_json: bool) -> None:
+    """Run one scenario from a pin file: one origin, model and seed, written as a one-row sweep under OUT. v0."""
+    from .experiments import sweep
+
+    count = workers if workers == "auto" else int(workers)
+    made = sweep.run(sweep.scenario(pin, origin, model_name, runs, timesteps, seed, count), out)
+    text = f"{made['sweep']['rows_written']} row written, receipt {made['receipt_id']}"
+    finish(envelope("model run", "pass", {"text": text}, receipt=made), as_json)
+
+
 @model.command("check")
 @click.option("validators", "--validators", type=click.Path(path_type=Path), required=True, help="Built primary-validator-stakes dataset directory.")
 @click.option("delegators", "--delegators", type=click.Path(path_type=Path), required=True, help="Built primary-delegator-stakes dataset directory.")
