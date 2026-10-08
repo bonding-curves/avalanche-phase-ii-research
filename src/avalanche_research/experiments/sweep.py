@@ -81,8 +81,8 @@ def run(design_path: Path, out: Path, build: Callable[[Any, str], SimulationMode
         workers = runner.size_pool(runner.available_mib(), PILOT_BASE_MIB, PILOT_PER_RUN_MIB, design["runs"])["workers"]
     started = now()
     stats = runner.run_design(planned, design["rows"], build, out, workers=workers, reducer=reducer)
-    first = build(planned[0]["origin"], planned[0]["model"])
-    made = receipt.build_sweep(out, first.specification(), stats["design_hash"], len(planned), stats, pin_file,
+    specification = stats.pop("base_specifications")[0]
+    made = receipt.build_sweep(out, specification, stats["design_hash"], len(planned), stats, pin_file,
                                sorted({row["seed"] for row in planned}), started, now())
     made["sweep"]["design_file"] = design
     made["receipt_id"] = receipt.sha256(receipt.canonical_bytes({k: v for k, v in made.items() if k != "receipt_id"}))[:16]

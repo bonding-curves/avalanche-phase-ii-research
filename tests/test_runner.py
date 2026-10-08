@@ -127,10 +127,17 @@ def test_a_design_refuses_lockbox_origins_before_building_anything():
 
 def test_a_design_across_origins_is_hashed_and_written_before_its_rows(tmp_path):
     rows = list(designs.cartesian({"origin": ["2024-03-06", "2025-04-08"], "renewal_probability": [0.3, 0.7]}))
-    calls = []
-    totals = runner.run_design(rows, 4, lambda o, m: calls.append(o) or builder(o, m), tmp_path, workers=2)
+    calls = tmp_path.parent / "calls"
+
+    def counted(origin, model):
+        with calls.open("a") as handle:
+            handle.write(f"{origin}\n")
+        return builder(origin, model)
+
+    totals = runner.run_design(rows, 4, counted, tmp_path, workers=2)
     record = __import__("json").loads((tmp_path / "design.json").read_text())
-    assert totals["written"] == 4 and totals["groups"] == 2 and len(calls) == 2 and totals["seconds"] > 0
+    assert totals["written"] == 4 and totals["groups"] == 2 and len(calls.read_text().split()) == 2 and totals["seconds"] > 0
+    assert [spec["origin"] for spec in totals["base_specifications"]] == ["2024-03-06", "2025-04-08"]
     assert record["rows"] == 4 and len(record["row_ids"]) == 4 and record["design_hash"] == totals["design_hash"]
     written = [p.stat().st_mtime_ns for p in tmp_path.glob("*.parquet")]
     assert (tmp_path / "design.json").stat().st_mtime_ns <= min(written)
@@ -195,3 +202,23 @@ def test_the_sweep_command_runs_a_design_file_and_writes_its_receipt(tmp_path, m
     assert again.exit_code == 0
     rerun = CliRunner().invoke(cli.cli, ["model", "sweep", str(tmp_path / "design.json"), str(tmp_path / "out")])
     assert rerun.exit_code != 0 and "receipt already exists" in str(rerun.exception)
+
+
+def test_a_base_model_is_built_in_a_child_process_and_its_failure_is_raised(tmp_path):
+    import os
+
+    built = tmp_path / "pid"
+
+    def build(origin, model):
+        built.write_text(str(os.getpid()))
+        return builder(origin, model)
+
+    made = runner.build_apart(build, "2025-04-08", "test", tmp_path / "base.pickle")
+    assert int(built.read_text()) != os.getpid()
+    assert made["path"].is_file() and made["specification_hash"] == builder("2025-04-08", "test").specification_hash()
+
+    def broken(origin, model):
+        raise ValueError("no inputs")
+
+    with pytest.raises(RuntimeError, match="failed in its child process"):
+        runner.build_apart(broken, "2025-04-08", "test", tmp_path / "other.pickle")

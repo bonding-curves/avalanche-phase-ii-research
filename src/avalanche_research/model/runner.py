@@ -6,6 +6,9 @@ row's settings through ``engine.run``, keeps the requested variables for every r
 the model's own specification hash and the worker's peak memory. State values stay exact integers: nAVAX amounts fit in
 64 bits, and a float would round them.
 
+A design builds each base model in a forked child process, which writes the model's pickle and specification, so the
+parent never holds the inputs a model fits and stays small however large they are.
+
 A row's file is written to a temporary name and renamed, so a stopped sweep never leaves a file that resume would trust.
 On a second start, rows whose ids already have a file are skipped, so an interrupted and resumed sweep writes the same
 files as an uninterrupted one. At most ``in_flight`` rows are submitted and not yet written.
@@ -16,6 +19,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import multiprocessing
 import os
 import pickle
 import tempfile
@@ -104,48 +108,73 @@ def _write(frame: pd.DataFrame, out: Path) -> Path:
     return final
 
 
+def _build_child(build_base: Callable[[object, str], SimulationModel], origin: object, model: str, base_path: str) -> None:
+    base = build_base(origin, model)
+    Path(base_path).write_bytes(pickle.dumps(base))
+    built = {"specification_hash": base.specification_hash(),
+             "specification": json.loads(json.dumps(base.specification(), default=str))}
+    Path(base_path).with_suffix(".json").write_text(json.dumps(built))
+
+
+def build_apart(build_base: Callable[[object, str], SimulationModel], origin: object, model: str, base_path: Path) -> dict:
+    """Build one base model in a forked child process. The child writes the model's pickle to ``base_path`` and its
+    specification beside it, and the parent reads only the specification. Returns the pickle's path, the specification
+    hash and the specification. A child that fails raises here, with the child's traceback already on stderr."""
+    child = multiprocessing.get_context("fork").Process(target=_build_child, args=(build_base, origin, model, str(base_path)))
+    child.start()
+    child.join()
+    if child.exitcode != 0:
+        raise RuntimeError(f"building the {model} base model at {origin} failed in its child process (exit {child.exitcode})")
+    return {"path": base_path, **json.loads(base_path.with_suffix(".json").read_text())}
+
+
 def run_sweep(base: SimulationModel, rows: Iterable[Mapping], out: Path, variables: Sequence[str] = DAILY, *, workers: int = 2,
               in_flight: int | None = None, stop_after: int | None = None,
               reducer: Callable[[pd.DataFrame], pd.DataFrame] | None = None) -> dict:
     """Run every row not yet finished under ``out``. Returns counts and timing. ``stop_after`` stops after that many rows
     are written, to test resume. ``reducer``, a module-level function, turns a row's long table into the rows to keep,
     such as one row of KPIs per run; without it the row keeps the daily paths of ``variables``."""
+    with tempfile.TemporaryDirectory() as scratch:
+        base_path = Path(scratch) / "base.pickle"
+        base_path.write_bytes(pickle.dumps(base))
+        return _run_pickled(base_path, base.specification_hash(), rows, out, variables, workers=workers,
+                            in_flight=in_flight, stop_after=stop_after, reducer=reducer)
+
+
+def _run_pickled(base_path: Path, base_hash: str, rows: Iterable[Mapping], out: Path, variables: Sequence[str], *, workers: int,
+                 in_flight: int | None, stop_after: int | None, reducer: Callable[[pd.DataFrame], pd.DataFrame] | None) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     for stale in out.glob(".*.parquet.tmp"):
         stale.unlink()
-    base_hash = base.specification_hash()
     done = finished_ids(out)
     in_flight = in_flight or 2 * workers
     stats = {"base_specification": base_hash, "skipped": 0, "written": 0, "stopped": False}
     started = time.perf_counter()
-    with tempfile.TemporaryDirectory() as scratch:
-        base_path = Path(scratch) / "base.pickle"
-        base_path.write_bytes(pickle.dumps(base))
-        pending: set = set()
+    pending: set = set()
 
-        def drain(futures) -> None:
-            for future in futures:
-                _write(future.result(), out)
-                stats["written"] += 1
+    def drain(futures) -> None:
+        for future in futures:
+            _write(future.result(), out)
+            stats["written"] += 1
 
-        with ProcessPoolExecutor(workers, initializer=_init, initargs=(str(base_path), tuple(variables), reducer)) as pool:
-            for row in rows:
-                row = {**row, "row_id": row_id(row, base_hash)}
-                if row["row_id"] in done:
-                    stats["skipped"] += 1
-                    continue
-                while len(pending) >= in_flight:
-                    finished, pending = wait(pending, return_when=FIRST_COMPLETED)
-                    drain(finished)
-                if stop_after is not None and stats["written"] >= stop_after:
-                    stats["stopped"] = True
-                    break
-                pending.add(pool.submit(_simulate, row))
-            if stats["stopped"]:
-                for future in pending:
-                    future.cancel()
-            else:
-                drain(pending)
+    with ProcessPoolExecutor(workers, initializer=_init, initargs=(str(base_path), tuple(variables), reducer)) as pool:
+        for row in rows:
+            row = {**row, "row_id": row_id(row, base_hash)}
+            if row["row_id"] in done:
+                stats["skipped"] += 1
+                continue
+            while len(pending) >= in_flight:
+                finished, pending = wait(pending, return_when=FIRST_COMPLETED)
+                drain(finished)
+            if stop_after is not None and stats["written"] >= stop_after:
+                stats["stopped"] = True
+                break
+            pending.add(pool.submit(_simulate, row))
+        if stats["stopped"]:
+            for future in pending:
+                future.cancel()
+        else:
+            drain(pending)
     stats["seconds"] = round(time.perf_counter() - started, 3)
     import resource
 
@@ -156,26 +185,36 @@ def run_sweep(base: SimulationModel, rows: Iterable[Mapping], out: Path, variabl
 def run_design(rows: Sequence[Mapping], expected_rows: int, build_base: Callable[[object, str], SimulationModel], out: Path,
                variables: Sequence[str] = DAILY, **options) -> dict:
     """A whole design across origins and models. The design is checked (row count, repeated settings, lockbox origins),
-    each base model is built once per origin and model, and ``design.json`` with every row id and the design hash is
-    written before the first row runs. Rows then run group by group into ``out``."""
+    each base model is built once per origin and model in a child process, and ``design.json`` with every row id and
+    the design hash is written before the first row runs. Rows then run group by group into ``out``. The totals carry
+    each group's base specification under ``base_specifications``, in group order."""
     rows = [dict(row) for row in rows]
     check_cardinality(rows, expected_rows)
     check_origins(rows)
     groups: dict[tuple, list[dict]] = {}
     for row in rows:
         groups.setdefault((str(row.get("origin")), row.get("model")), []).append(row)
-    bases = {key: build_base(group[0].get("origin"), key[1]) for key, group in groups.items()}
+    with tempfile.TemporaryDirectory() as scratch:
+        bases = {key: build_apart(build_base, group[0].get("origin"), key[1], Path(scratch) / f"base-{number}.pickle")
+                 for number, (key, group) in enumerate(groups.items())}
+        return _run_groups(groups, bases, rows, out, variables, options)
+
+
+def _run_groups(groups: dict, bases: dict, rows: list[dict], out: Path, variables: Sequence[str], options: dict) -> dict:
     record = {"rows": len(rows), "groups": [], "row_ids": []}
     for key, group in groups.items():
-        base_hash = bases[key].specification_hash()
+        base_hash = bases[key]["specification_hash"]
         record["groups"].append({"origin": key[0], "model": key[1], "base_specification": base_hash, "rows": len(group)})
         record["row_ids"] += [row_id(row, base_hash) for row in group]
     record["design_hash"] = design_hash([{"row_id": r} for r in record["row_ids"]], "design")
     out.mkdir(parents=True, exist_ok=True)
     (out / "design.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n")
-    totals = {"design_hash": record["design_hash"], "skipped": 0, "written": 0, "groups": len(groups), "seconds": 0.0}
+    totals = {"design_hash": record["design_hash"], "skipped": 0, "written": 0, "groups": len(groups), "seconds": 0.0,
+              "base_specifications": [bases[key]["specification"] for key in groups]}
     for key, group in groups.items():
-        stats = run_sweep(bases[key], group, out, variables, **options)
+        base = bases[key]
+        stats = _run_pickled(base["path"], base["specification_hash"], group, out, variables, workers=options.get("workers", 2),
+                             in_flight=options.get("in_flight"), stop_after=options.get("stop_after"), reducer=options.get("reducer"))
         totals["skipped"] += stats["skipped"]
         totals["written"] += stats["written"]
         totals["seconds"] = round(totals["seconds"] + stats["seconds"], 3)
