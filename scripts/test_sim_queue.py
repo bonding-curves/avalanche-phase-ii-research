@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -54,3 +54,12 @@ def test_memory_gate_counts_workers_parent_reserve_and_the_nightly_run():
     assert sim_queue.crosses_nightly(afternoon, 8.2) and not sim_queue.fits(eight, need, afternoon)
     assert sim_queue.fits(eight, need + sim_queue.NIGHTLY_MIB, afternoon)
     assert not sim_queue.crosses_nightly(datetime(2026, 10, 14, 21, 0, tzinfo=LOCAL), 8.2)
+
+
+def test_alerts_fire_under_the_reserve_or_disk_floor_at_most_hourly(tmp_path):
+    at = datetime(2026, 10, 8, 12, tzinfo=UTC)
+    assert sim_queue.alerts(tmp_path, sim_queue.RESERVE_MIB + 1, 100.0, at) == []
+    first = sim_queue.alerts(tmp_path, 1000.0, 10.0, at)
+    assert [row["kind"] for row in first] == ["memory", "disk"]
+    assert sim_queue.alerts(tmp_path, 1000.0, 10.0, at + timedelta(minutes=30)) == []
+    assert len(sim_queue.alerts(tmp_path, 1000.0, 100.0, at + timedelta(hours=1))) == 1

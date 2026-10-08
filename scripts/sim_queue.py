@@ -12,7 +12,9 @@ P0 before P1 before P2, oldest first within a class. A job starts only when its 
 reserve fit in available memory. A job that would still be running when the host's nightly data run starts at 19:30 also
 needs that run's measured 6 GB. Nothing is pre-empted mid-run. A job left in ``running/`` by a stop or reboot is run
 again first, and the sweep runner skips its finished rows, so it resumes exactly. ``status.json`` holds the queue, the
-running job and the last finished ones.
+running job and the last finished ones. When available memory falls under the reserve, or free disk under the queue
+root under 50 GB, a line goes to ``alerts.jsonl``, at most once an hour for each kind, for the data engineer's wakes
+to post to the team's threads.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -33,6 +36,8 @@ NIGHTLY_MIB = 6144.0
 NIGHTLY = (19, 30)
 REQUIRED = ("lane", "priority", "design", "per_worker_mib", "expected_hours")
 FOLDERS = ("incoming", "running", "done", "failed", "out")
+DISK_FLOOR_GIB = 50.0
+ALERT_EVERY = timedelta(hours=1)
 
 
 def now() -> datetime:
@@ -102,11 +107,35 @@ def head_commit(clone: Path) -> str:
     return subprocess.run(["git", "-C", str(clone), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
 
 
+def alerts(root: Path, available: float, free_gib: float, at: datetime | None = None) -> list[dict]:
+    """Append an alert for memory under the reserve or disk under the floor, unless the same kind was raised within the
+    last hour. Returns the alerts written."""
+    at = at or now()
+    log = root / "alerts.jsonl"
+    last: dict[str, datetime] = {}
+    if log.is_file():
+        for line in log.read_text().splitlines():
+            row = json.loads(line)
+            last[row["kind"]] = datetime.fromisoformat(row["at"])
+    found = []
+    if available < RESERVE_MIB:
+        found.append({"kind": "memory", "detail": f"{available:.0f} MiB available, under the {RESERVE_MIB:.0f} MiB reserve"})
+    if free_gib < DISK_FLOOR_GIB:
+        found.append({"kind": "disk", "detail": f"{free_gib:.1f} GiB free under {root}, under {DISK_FLOOR_GIB:.0f} GiB"})
+    written = [{"at": at.isoformat(), **item} for item in found if item["kind"] not in last or at - last[item["kind"]] >= ALERT_EVERY]
+    with log.open("a") as handle:
+        for item in written:
+            handle.write(json.dumps(item) + "\n")
+    return written
+
+
 def write_status(root: Path, running: dict | None, note: str) -> None:
     def names(folder: str) -> list[str]:
         return [path.stem for path in sorted((root / folder).glob("*.json"))]
 
-    status = {"at": now().isoformat(), "note": note, "available_mib": round(available_mib(), 1), "running": running,
+    available, free_gib = available_mib(), shutil.disk_usage(root).free / 2**30
+    alerts(root, available, free_gib)
+    status = {"at": now().isoformat(), "note": note, "available_mib": round(available, 1), "free_gib": round(free_gib, 1), "running": running,
               "incoming": names("incoming"), "done": names("done")[-20:], "failed": names("failed")[-20:]}
     temporary = root / "status.json.tmp"
     temporary.write_text(json.dumps(status, indent=1))
