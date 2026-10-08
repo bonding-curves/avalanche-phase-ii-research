@@ -80,12 +80,12 @@ def test_a_sweep_receipt_names_every_row_file_and_finds_a_change(tmp_path):
     rows = list(designs.cartesian({"renewal_probability": [0.2, 0.8]}))
     out = tmp_path / "sweep"
     stats = runner.run_sweep(model, rows, out, VARIABLES, workers=1)
-    made = receipt.build_sweep(out, model.specification(), designs.design_hash(rows, model.specification_hash()), len(rows), stats,
+    made = receipt.build_sweep(out, [model.specification()], designs.design_hash(rows, model.specification_hash()), len(rows), stats,
                                pin_file, [0], "start", "end", code={"commit": "abc", "dirty": False})
     assert made["sweep"]["complete"] and len(made["sweep"]["files"]) == 2 and made["output"]["rows"] > 0
     assert made["model"]["specifications"][0]["hash"] == model.specification_hash()
     assert receipt.check(made) == []
-    partial = receipt.build_sweep(out, model.specification(), "d", 5, stats, pin_file, [0], "s", "e", code={"commit": "abc", "dirty": False})
+    partial = receipt.build_sweep(out, [model.specification()], "d", 5, stats, pin_file, [0], "s", "e", code={"commit": "abc", "dirty": False})
     assert any("of 5 rows" in finding for finding in receipt.check(partial))
     first = min(out.glob("*.parquet"))
     first.write_bytes(first.read_bytes() + b"\0")
@@ -306,3 +306,28 @@ def test_the_kpi_reducer_keeps_one_row_per_run_measure_and_horizon_on_pinned_dat
     assert set(kept["run"]) == {1, 2} and set(kept["horizon_days"]) == {30, 90}
     assert {"validator_stake_navax", "active_validators", "net_inflation"} <= set(kept["measure"])
     assert kept["value"].notna().all() and "timestep" not in kept.columns
+
+
+def test_identical_reruns_give_identical_row_hashes(tmp_path):
+    from avalanche_research.experiments import receipt
+
+    rows = list(designs.cartesian({"renewal_probability": [0.2, 0.8]}))
+    for name in ("first", "second"):
+        runner.run_sweep(base(), rows, tmp_path / name, VARIABLES, workers=2)
+    first, second = receipt._file_hashes(tmp_path / "first"), receipt._file_hashes(tmp_path / "second")
+    assert first == second and len(first) == 2
+
+
+def test_a_receipt_lists_every_base_and_refuses_a_row_whose_base_it_does_not_list(tmp_path):
+    from avalanche_research.experiments import receipt
+
+    pin_file = tmp_path / "pin.json"
+    pin_file.write_text('{"schema_version": "avalanche-pins/v1", "name": "none", "runs": []}')
+    rows = list(designs.cartesian({"origin": ["2024-03-06", "2025-04-08"], "renewal_probability": [0.3]}))
+    out = tmp_path / "sweep"
+    stats = runner.run_design(rows, 2, builder, out, workers=1)
+    specifications = stats.pop("base_specifications")
+    made = receipt.build_sweep(out, specifications, stats["design_hash"], 2, stats, pin_file, [0], "s", "e", code={"commit": "abc", "dirty": False})
+    assert len(made["model"]["specifications"]) == 2 and receipt.check(made) == []
+    one = receipt.build_sweep(out, specifications[:1], stats["design_hash"], 2, stats, pin_file, [0], "s", "e", code={"commit": "abc", "dirty": False})
+    assert any("which the receipt does not list" in finding for finding in receipt.check(one))

@@ -180,8 +180,8 @@ def run(design_path: Path | dict, out: Path, build: Callable[[Any, str], Simulat
         workers = runner.size_pool(runner.available_mib(), PILOT_BASE_MIB, PILOT_PER_RUN_MIB, design["runs"])["workers"]
     started = now()
     stats = runner.run_design(planned, design["rows"], build, out, workers=workers, reducer=reducer)
-    specification = stats.pop("base_specifications")[0]
-    made = receipt.build_sweep(out, specification, stats["design_hash"], len(planned), stats, pin_file,
+    specifications = stats.pop("base_specifications")
+    made = receipt.build_sweep(out, specifications, stats["design_hash"], len(planned), stats, pin_file,
                                sorted({row["seed"] for row in planned}), started, now())
     made["sweep"]["design_file"] = design
     made["receipt_id"] = receipt.sha256(receipt.canonical_bytes({k: v for k, v in made.items() if k != "receipt_id"}))[:16]

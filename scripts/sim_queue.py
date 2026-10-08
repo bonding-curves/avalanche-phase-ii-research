@@ -53,6 +53,8 @@ def check_job(job: dict) -> None:
     workers = job["design"].get("workers")
     if not isinstance(workers, int) or workers < 1:
         raise ValueError("the design must set workers to a whole number, since the queue sizes memory from it")
+    if any(isinstance(job[key], bool) or not isinstance(job[key], (int, float)) for key in ("per_worker_mib", "expected_hours")):
+        raise ValueError("per_worker_mib and expected_hours must be numbers")
     if job["per_worker_mib"] <= 0 or job["expected_hours"] <= 0:
         raise ValueError("per_worker_mib and expected_hours come from a measured pilot and must be positive")
 

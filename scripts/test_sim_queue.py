@@ -63,3 +63,9 @@ def test_alerts_fire_under_the_reserve_or_disk_floor_at_most_hourly(tmp_path):
     assert [row["kind"] for row in first] == ["memory", "disk"]
     assert sim_queue.alerts(tmp_path, 1000.0, 10.0, at + timedelta(minutes=30)) == []
     assert len(sim_queue.alerts(tmp_path, 1000.0, 100.0, at + timedelta(hours=1))) == 1
+
+
+def test_a_job_whose_measured_size_is_not_a_number_is_refused():
+    for key, value in (("per_worker_mib", "1600"), ("expected_hours", True)):
+        with pytest.raises(ValueError, match="must be numbers"):
+            sim_queue.check_job({**job(), key: value})

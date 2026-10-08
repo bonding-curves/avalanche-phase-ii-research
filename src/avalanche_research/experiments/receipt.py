@@ -80,17 +80,45 @@ def build(table: pd.DataFrame, specifications: list[dict[str, Any]], pin_file: P
     return receipt
 
 
+MEASURED = ("worker_peak_mib",)
+
+
+def row_file_sha256(path: Path) -> str:
+    """A hash of a row file's contents, not its bytes: every column but the measured worker memory, which differs between
+    identical reruns, with rows sorted on every column and written as CSV. Parquet metadata does not enter it."""
+    import duckdb
+
+    try:
+        frame = duckdb.execute(f"SELECT * FROM read_parquet('{path}')").df()
+    except duckdb.Error:
+        return "unreadable:" + sha256(path.read_bytes())
+    frame = frame.drop(columns=[column for column in MEASURED if column in frame.columns])
+    frame = frame[sorted(frame.columns)]
+    ordered = frame.sort_values(list(frame.columns), kind="mergesort")
+    return sha256(ordered.to_csv(index=False).encode())
+
+
+def _base_specifications(path: Path) -> set[str] | None:
+    import duckdb
+
+    frame = duckdb.execute(f"SELECT * FROM read_parquet('{path}') LIMIT 0").df()
+    if "base_specification" not in frame.columns:
+        return None
+    return {value for (value,) in duckdb.execute(f"SELECT DISTINCT base_specification FROM read_parquet('{path}')").fetchall()}
+
+
 def _file_hashes(out: Path) -> dict[str, str]:
-    return {path.stem: sha256(path.read_bytes()) for path in sorted(out.glob("*.parquet"))}
+    return {path.stem: row_file_sha256(path) for path in sorted(out.glob("*.parquet"))}
 
 
-def build_sweep(out: Path, base_specification: dict[str, Any], design_hash: str, rows_planned: int, stats: dict[str, Any],
+def build_sweep(out: Path, base_specifications: list[dict[str, Any]], design_hash: str, rows_planned: int, stats: dict[str, Any],
                 pin_file: Path, seeds: list[int], started_at: str, finished_at: str, code: dict[str, Any] | None = None) -> dict[str, Any]:
-    """The receipt of a sweep whose rows the runner wrote under ``out``, one Parquet file per row."""
+    """The receipt of a sweep whose rows the runner wrote under ``out``, one Parquet file per row. It lists every base
+    model's specification, one for each origin and model."""
     import duckdb
 
     # As the engine hashes it: dates and other values become strings, so the hash below equals the engine's.
-    base_specification = json.loads(json.dumps(base_specification, sort_keys=True, default=str))
+    base_specifications = [json.loads(json.dumps(item, sort_keys=True, default=str)) for item in base_specifications]
     pinned = pins.read(pin_file)
     files = _file_hashes(out)
     rows = duckdb.execute(f"SELECT count(*) FROM read_parquet('{out}/*.parquet')").fetchone()[0] if files else 0
@@ -98,8 +126,8 @@ def build_sweep(out: Path, base_specification: dict[str, Any], design_hash: str,
         "schema_version": SCHEMA,
         "created_at": now(),
         "code": code if code is not None else code_commit(),
-        "model": {"class": base_specification.get("model"),
-                  "specifications": [{"hash": specification_hash(base_specification), "settings": base_specification}]},
+        "model": {"class": base_specifications[0].get("model"),
+                  "specifications": [{"hash": specification_hash(item), "settings": item} for item in base_specifications]},
         "inputs": {"pin_name": pinned["name"], "pin_file": str(pin_file), "pin_file_sha256": sha256(pin_file.read_bytes()),
                    "runs": [{key: entry[key] for key in ("dataset_id", "run", "sha256")} for entry in pinned["runs"]]},
         "seeds": list(seeds),
@@ -144,6 +172,15 @@ def check(receipt: dict[str, Any], table: pd.DataFrame | None = None, root: Path
         findings += [f"row file {row} changed" for row, digest in sweep["files"].items() if row in current and current[row] != digest]
         findings += [f"row file {row} is missing" for row in sweep["files"] if row not in current]
         findings += [f"row file {row} is not in the receipt" for row in current if row not in sweep["files"]]
+        listed = {item["hash"] for item in receipt["model"]["specifications"]}
+        for row, digest in current.items():
+            if not digest.startswith("unreadable:"):
+                used = _base_specifications(out / f"{row}.parquet")
+                if used is None:
+                    findings.append(f"row file {row} does not name its base specification")
+                else:
+                    findings += [f"row file {row} uses base specification {value}, which the receipt does not list"
+                                 for value in sorted(used - listed)]
         if not sweep["complete"]:
             findings.append(f"the sweep wrote {len(sweep['files'])} of {sweep['rows_planned']} rows")
     return findings

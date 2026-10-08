@@ -91,6 +91,7 @@ def _simulate(row: dict) -> pd.DataFrame:
             value = str(value)
         paths[key] = value
     paths["specification"] = model.specification_hash()
+    paths["base_specification"] = _BASE.specification_hash()
     paths["worker_peak_mib"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
     return paths
 
