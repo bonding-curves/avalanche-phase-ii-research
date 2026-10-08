@@ -246,3 +246,31 @@ def test_a_forged_token_is_refused():
     forged = object.__new__(lockbox.Unseal)
     with pytest.raises(ModelError):
         lockbox.require(LOCKBOX_START, forged)
+
+
+def test_a_template_that_cannot_be_filled_still_publishes_the_receipt_with_a_fallback_report(setup):
+    repo, args = setup
+    folder = repo / unseal.FOLDER
+    (folder / "template.md").write_text("MASE: {mase_90:.2f}\n")
+    (repo / "src" / "lockbox_entry.py").write_text("def score(token, fit_until, score_until):\n    if token is not None:\n"
+                                                   "        raise RuntimeError('synthetic')\n    return {'mase_90': 1.0}\n")
+    git(repo, "commit", "-q", "-am", "failing scorer, number format")
+    git(repo, "push", "-q", "origin", "main")
+    args.commit = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    args.bundle_hash = unseal.bundle_hash(folder)
+    args.rehearsal = str(unseal.rehearse(repo, unseal.argparse.Namespace(out=str(repo.parent / "rehearsal-format.json"))))
+    receipt = unseal.unseal(repo, args)
+    stored = json.loads((folder / "receipt.json").read_text())
+    assert receipt["published"] and stored["published"] and "synthetic" in stored["results"]["error"]
+    assert "ValueError" in stored["report_error"] and "could not be filled" in (folder / "report.md").read_text()
+    assert subprocess.run(["git", "-C", str(repo), "ls-remote", "--heads", "origin", unseal.RECEIPT_BRANCH], capture_output=True, text=True,
+                          check=True).stdout
+
+
+def test_any_failure_while_publishing_keeps_the_receipt_and_its_recovery(setup, monkeypatch):
+    repo, args = setup
+    monkeypatch.setattr(unseal, "render_report", lambda template, results: (_ for _ in ()).throw(OSError("disk full")))
+    receipt = unseal.unseal(repo, args)
+    stored = json.loads((repo / unseal.FOLDER / "receipt.json").read_text())
+    assert not receipt["published"] and "disk full" in stored["publish_error"] and "must not run again" in stored["recovery"]
+    assert len([call for call in sys.modules["lockbox_entry"].CALLS if call[0] is not None]) == 1

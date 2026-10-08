@@ -170,28 +170,49 @@ def acquire(repo: Path, args: argparse.Namespace, started: str) -> str:
     return mine
 
 
+def render_report(template: str, results: dict) -> tuple[str, str | None]:
+    """The report from the pre-registered template, or a plain fallback with the formatting error when the template
+    cannot be filled, such as a number format applied to a value the scorer never produced."""
+    flat = defaultdict(lambda: "(not computed)", {k: v for k, v in results.items() if not isinstance(v, (dict, list))})
+    try:
+        return template.format_map(flat), None
+    except Exception as error:  # noqa: BLE001  any template failure falls back; the receipt never depends on the report
+        reason = f"{type(error).__name__}: {error}"
+        lines = ["# Lockbox result", "", f"The pre-registered report template could not be filled ({reason}).",
+                 "The receipt beside this file holds the results exactly. Each top-level result:", ""]
+        lines += [f"- {key}: {value!r}" for key, value in sorted(results.items())]
+        return "\n".join(lines) + "\n", reason
+
+
 def publish(repo: Path, args: argparse.Namespace, receipt: dict, results: dict) -> dict:
-    """Write, commit and push the receipt and report. A failure here never triggers another score: it is recorded locally,
-    with the recovery steps, and the script exits non-zero."""
+    """Write the receipt with its recovery steps first, then the report, then commit and push both. The receipt never
+    depends on the report: a template that cannot be filled gives a fallback report and records why. Any failure from
+    here is recorded in the local receipt with the recovery steps, the script exits non-zero, and nothing is scored again."""
     folder = repo / FOLDER
+    receipt["published"] = False
+    receipt["recovery"] = (f"The unseal happened and must not run again. Commit {FOLDER}/receipt.json and report.md on branch "
+                           f"{RECEIPT_BRANCH} in {repo} and push it by hand: git -C {repo} push origin {RECEIPT_BRANCH}")
     (folder / "receipt.json").write_bytes(canonical_bytes(receipt))
     written = [str(FOLDER / "receipt.json")]
-    template = folder / "template.md"
-    if template.is_file():
-        flat = defaultdict(lambda: "(not computed)", {k: v for k, v in results.items() if not isinstance(v, (dict, list))})
-        (folder / "report.md").write_text(template.read_text().format_map(flat))
-        written.append(str(FOLDER / "report.md"))
     try:
+        template = folder / "template.md"
+        if template.is_file():
+            report, receipt["report_error"] = render_report(template.read_text(), results)
+            (folder / "report.md").write_text(report)
+            written.append(str(FOLDER / "report.md"))
+        receipt["published"] = True
+        receipt.pop("recovery")
+        (folder / "receipt.json").write_bytes(canonical_bytes(receipt))
         git(repo, "switch", "-q", "-c", RECEIPT_BRANCH)
         git(repo, "add", *written)
         git(repo, "commit", "-q", "-m", f"lockbox: receipt of the unseal by {args.runner}")
         git(repo, "push", "-q", "origin", RECEIPT_BRANCH)
-        receipt["published"] = True
-    except subprocess.CalledProcessError as error:
+    except Exception as error:  # noqa: BLE001  after the lock every failure is recorded with its recovery, never retried
         receipt["published"] = False
-        receipt["publish_error"] = error.stderr.strip()[-300:]
-        receipt["recovery"] = (f"The unseal happened and must not run again. Push branch {RECEIPT_BRANCH} from {repo} by hand: "
-                               f"git -C {repo} push origin {RECEIPT_BRANCH}")
+        stderr = getattr(error, "stderr", None)
+        receipt["publish_error"] = (stderr.strip() if isinstance(stderr, str) and stderr.strip() else f"{type(error).__name__}: {error}")[-300:]
+        receipt["recovery"] = (f"The unseal happened and must not run again. Commit {FOLDER}/receipt.json and report.md on branch "
+                               f"{RECEIPT_BRANCH} in {repo} and push it by hand: git -C {repo} push origin {RECEIPT_BRANCH}")
         (folder / "receipt.json").write_bytes(canonical_bytes(receipt))
     return receipt
 
