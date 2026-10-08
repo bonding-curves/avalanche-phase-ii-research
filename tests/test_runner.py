@@ -91,3 +91,17 @@ def test_a_sweep_receipt_names_every_row_file_and_finds_a_change(tmp_path):
     first.write_bytes(first.read_bytes() + b"\0")
     (out / "extra.parquet").write_bytes(b"x")
     assert sorted(receipt.check(made)) == sorted([f"row file {first.stem} changed", "row file extra is not in the receipt"])
+
+
+def test_the_pool_is_sized_from_a_pilot_and_never_exceeds_memory_or_cpus():
+    # RG1's measurement: 409 MiB at 5 runs and 2,100 MiB at 40.
+    pilot = pd.DataFrame({"row_id": ["a", "b"], "worker_peak_mib": [409.0, 2100.0]})
+    base_mib, per_run = runner.worker_memory(pilot, [5, 40])
+    assert per_run == pytest.approx(48.31, abs=0.01) and base_mib == pytest.approx(167.4, abs=0.1)
+    sized = runner.size_pool(16_000, base_mib, per_run, 20, cpus=16)
+    assert sized["workers"] == 12 and sized["projected_mib"] <= 16_000
+    assert runner.size_pool(16_000, base_mib, per_run, 20, cpus=4)["workers"] == 4
+    with pytest.raises(ValueError, match="one worker needs"):
+        runner.size_pool(2_500, base_mib, per_run, 40)
+    with pytest.raises(ValueError, match="two run counts"):
+        runner.worker_memory(pilot, [20, 20])

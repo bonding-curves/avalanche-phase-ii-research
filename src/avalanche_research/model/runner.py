@@ -119,6 +119,33 @@ def run_sweep(base: SimulationModel, rows: Iterable[Mapping], out: Path, variabl
     return stats
 
 
+def worker_memory(pilot: pd.DataFrame, runs_per_row: Sequence[int]) -> tuple[float, float]:
+    """A worker's memory as ``base + per_run * runs``, fitted by least squares to a pilot's peak memory per row.
+
+    ``pilot`` holds ``row_id`` and ``worker_peak_mib`` from ``read_sweep``; ``runs_per_row`` gives each row's run count in
+    the same row order as ``pilot.row_id.unique()``. RG1 measured 409 MiB at 5 runs and 2.1 GB at 40 on v0.8."""
+    import numpy as np
+
+    peaks = pilot.groupby("row_id", sort=False)["worker_peak_mib"].max().to_numpy(dtype=float)
+    runs = np.asarray(runs_per_row, dtype=float)
+    if len(set(runs)) < 2:
+        raise ValueError("a pilot needs rows with at least two run counts to separate the base from the per-run memory")
+    per_run, base = np.polyfit(runs, peaks, 1)
+    return float(base), float(per_run)
+
+
+def size_pool(available_mib: float, base_mib: float, per_run_mib: float, runs_per_row: int, reserve_mib: float = 2048,
+              cpus: int | None = None) -> dict:
+    """Workers that fit in ``available_mib`` after ``reserve_mib`` for the parent and the system, at most one per CPU."""
+    cpus = cpus or os.cpu_count() or 1
+    per_worker = base_mib + per_run_mib * runs_per_row
+    workers = int(max(0.0, available_mib - reserve_mib) // per_worker)
+    if workers < 1:
+        raise ValueError(f"one worker needs {per_worker:,.0f} MiB at {runs_per_row} runs per row; {available_mib - reserve_mib:,.0f} MiB is free")
+    workers = min(workers, cpus)
+    return {"workers": workers, "per_worker_mib": round(per_worker, 1), "projected_mib": round(workers * per_worker + reserve_mib, 1)}
+
+
 def read_sweep(out: Path) -> pd.DataFrame:
     """Every finished row's paths, ordered by design index, run, timestep and variable."""
     return duckdb.execute(f"SELECT * FROM read_parquet('{out}/*.parquet') ORDER BY index, run, timestep, variable").df()
