@@ -98,13 +98,15 @@ def continuation_stage(state, day, earlier) -> dict:
     """The daily continuation stage: every commitment that starts today, in the order renewed, returned, arrived.
 
     A renewed or returned node draws its next duration and stake from the continuation table, a first-ever node from
-    the first-ever commitments, each by one uniform keyed by the node and its decision count.
+    the first-ever commitments, each by one uniform keyed by the node and its decision count. When the run has a
+    duration transition, a renewed or returned node draws its next duration from it on the same uniforms instead.
     """
     blocks, draw = day.blocks, day.draw
     renewal, returns, arrivals = earlier["renewal"], earlier["returns"], earlier["arrivals"]
     ended, renews, comes_back = renewal["ended"], renewal["renews"], returns["comes_back"]
     n_new, new_key = arrivals["count"], arrivals["node_key"]
     continuation = blocks.continuation
+    next_days = continuation.durations_from_uniforms if blocks.durations is None else blocks.durations.days_from_uniforms
     renewed_key, renewed_done = ended["node_key"][renews], ended["done"][renews]
     back_key, back_done = state["out_node_key"][comes_back], state["out_done"][comes_back]
 
@@ -121,8 +123,8 @@ def continuation_stage(state, day, earlier) -> dict:
             pick(blocks.first_stakes, "first_stake"),
         ]),
         "days": np.concatenate([
-            continuation.durations_from_uniforms(ended["days"][renews], draw.uniforms("renew_days", renewed_key, renewed_done)),
-            continuation.durations_from_uniforms(state["out_last_days"][comes_back], draw.uniforms("return_days", back_key, back_done)),
+            next_days(ended["days"][renews], draw.uniforms("renew_days", renewed_key, renewed_done)),
+            next_days(state["out_last_days"][comes_back], draw.uniforms("return_days", back_key, back_done)),
             pick(blocks.first_days, "first_days"),
         ]),
         "node_key": np.concatenate([renewed_key, back_key, new_key]),

@@ -18,6 +18,13 @@ run under the same name with ``u`` added:
   stake.
 * ``v0.8-e``: v0.8-c with the stake ratio drawn within ten log-spaced stake bands. It is v0.8.
 
+It also builds one candidate on v0.8 by a fourth switch, with and without parameter draws:
+
+* ``v0.8 duration``: v0.8 in which a node that renews or returns draws its next duration from a fitted transition
+  between five duration bands, :class:`~avalanche_research.model.parts.duration_transition.DurationTransition`, fitted
+  on the moves of the 365 days before the origin. Its stake still comes from the continuation table. With parameter
+  draws, each run refits the transition on its own node resample of the moves, the one its continuation table reads.
+
 A variant is built in two steps. :meth:`Variant.prepare` reads the staking periods once per origin and returns the
 inputs every batch shares, with the draw table for a variant that reads draws. :meth:`Variant.simulation` builds one
 batch from them.
@@ -36,6 +43,7 @@ from avalanche_research.model.fitted_lifecycle import (
     FittedLifecycle,
     TrainingEvents,
     fit_blocks,
+    fit_durations,
     parameter_draws,
     training_events,
     window_sd,
@@ -78,16 +86,18 @@ class Variant:
 
 @dataclass(frozen=True)
 class Switches:
-    """The three choices the v0.8 candidates differ in. The defaults are v0.8.
+    """The choices the v0.8 candidates differ in. The defaults are v0.8.
 
     ``node_record`` fits the renewal logit with the node's own renewal record (``fit_blocks``). ``move_stake_bands``
     and ``move_stake_weighted`` set the settings of the same names on :class:`FittedLifecycle`: the stake bands within
     which a moving node draws its stake ratio, and whether each move is weighted by its previous stake.
+    ``duration_transition`` sets its ``durations`` to the duration band transition fitted before the origin.
     """
 
     node_record: bool = True
     move_stake_bands: str = "ten log-spaced"
     move_stake_weighted: bool = True
+    duration_transition: bool = False
 
     def settings(self) -> dict:
         """The model settings these switches set."""
@@ -102,10 +112,13 @@ CANDIDATES: dict[str, Switches] = {
     "v0.8-e": V08,
 }
 
+DURATION = Switches(duration_transition=True)
+
 
 def switched_inputs(events: TrainingEvents, switches: Switches, large_above_avax: float | None = None) -> dict:
     """Every input of a v0.8 run fitted on ``events`` under ``switches``."""
-    return {**fit_blocks(events, large_above_avax, switches.node_record), **switches.settings()}
+    durations = {"durations": fit_durations(events)} if switches.duration_transition else {}
+    return {**fit_blocks(events, large_above_avax, switches.node_record), **switches.settings(), **durations}
 
 
 def _chain_inputs(periods: str, origin: date, run: str, draws: int, draw_seed: int) -> Prepared:
@@ -146,6 +159,11 @@ VARIANTS: dict[str, Variant] = {
             Variant(name, FittedLifecycle, _CANDIDATE_DESCRIPTIONS[name], _fitted(switches)),
             Variant(f"{name} u", FittedLifecycle, f"{name} with one draw of every fitted parameter per run", _fitted_with_draws(switches)),
         )),
+        Variant("v0.8 duration", FittedLifecycle,
+                "v0.8 with the next duration of a renewing or returning node drawn from a fitted transition between duration bands",
+                _fitted(DURATION)),
+        Variant("v0.8 duration u", FittedLifecycle, "v0.8 duration with one draw of every fitted parameter per run",
+                _fitted_with_draws(DURATION)),
     )
 }
 

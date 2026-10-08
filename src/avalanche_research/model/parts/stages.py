@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from avalanche_research.mechanisms import RewardMechanism
     from avalanche_research.model.parts.arrivals import Arrivals
     from avalanche_research.model.parts.continuation import Continuation
+    from avalanche_research.model.parts.duration_transition import DurationTransition
     from avalanche_research.model.parts.renewal import RenewalLogit
     from avalanche_research.model.parts.returns import ReturnHazard
     from avalanche_research.model.streams import Streams
@@ -48,6 +49,7 @@ class RunBlocks(NamedTuple):
     continuation: Continuation
     first_days: np.ndarray
     first_stakes: np.ndarray
+    durations: DurationTransition | None = None
 
 
 @dataclass(frozen=True, eq=False)

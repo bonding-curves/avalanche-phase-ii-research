@@ -4,7 +4,8 @@ Each day, commitments that end either renew on the same node, by :class:`Renewal
 A node that left can return after more than seven days, by :class:`ReturnHazard`, until 365 days out. Nodes that
 never validated before arrive by :class:`Arrivals`. A node that renews or returns draws its next duration and stake
 from :class:`Continuation`, so it keeps its habit and can lower or raise its stake. A first-ever node draws both from
-the first-ever commitments of the year before the origin.
+the first-ever commitments of the year before the origin. With the ``durations`` setting, a node that renews or returns
+draws its next duration from :class:`DurationTransition` instead, and its stake still from :class:`Continuation`.
 
 ``fitted_inputs`` fits every block on the events before an origin, so the days after it are a holdout. What v0.8
 does not yet have, and v0.7 did not either: named operators as event blocks (RD5), operator types (RD7), and
@@ -34,6 +35,10 @@ from avalanche_research.model.fitted_blocks import (
 )
 from avalanche_research.model.parts.arrivals import arrivals_stage
 from avalanche_research.model.parts.continuation import STAKE_BANDS, continuation_stage
+from avalanche_research.model.parts.duration_transition import (
+    DurationTransition,
+    fit_moves,
+)
 from avalanche_research.model.parts.renewal import renewal_stage
 from avalanche_research.model.parts.returns import returns_stage
 from avalanche_research.model.parts.stages import (
@@ -135,6 +140,14 @@ class FittedLifecycle(SimulationModel):
         default=True, metadata={"omit_at_default": True},
         doc="Whether each move in the stake-ratio draw is weighted by its previous stake. False weights every move the same",
     )
+    # A third switch, added after the two above and left out of the specification at its default in the same way.
+    durations = param.ClassSelector(
+        class_=DurationTransition, default=None, allow_None=True, metadata={"omit_at_default": True},
+        doc="The duration band transition a renewing or returning node draws its next duration from, on the uniforms "
+            "the continuation table would read. Its exact day comes from the run's own moves table, so the block holds "
+            "no day record. With a resample_seed in the draws, each run refits it on its own resample of the moves. "
+            "None draws the duration from the continuation table",
+    )
 
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
     # specification and its hash do not record it.
@@ -159,6 +172,8 @@ class FittedLifecycle(SimulationModel):
             raise ValueError(f"the lifecycle clock is one UTC day per step, so dt must be 1, not {self.dt}")
         if (self.outside_yield_pp is None) != (self.fitted_outside_yield_pp is None):
             raise ValueError("give the outside yield and its level over the fitting window together, or neither")
+        if self.durations is not None and self.durations.day_record is not None:
+            raise ValueError("the duration transition draws its exact day from the moves table, so give it without a day record")
 
     def initial_state(self):
         initial = self.initial if self.initial is not None else pd.DataFrame(columns=COMMITMENT)
@@ -189,16 +204,19 @@ class FittedLifecycle(SimulationModel):
 
     def _blocks_by_run(self):
         """A function from run number to that run's :class:`RunBlocks`: its renewal, large-holder renewal, arrival and
-        return blocks, its renewal shift, its continuation table and its first-ever durations and stakes. Without
-        ``draws`` every run gets the fitted blocks, no shift and the full tables. With them, run r's are built from row
-        r - 1 on first use and kept. A ``resample_seed`` column resamples the tables by node, so it needs a
-        ``node_code`` column in both."""
+        return blocks, its renewal shift, its continuation table, its first-ever durations and stakes, and its duration
+        transition if any. Without ``draws`` every run gets the fitted blocks, no shift and the full tables. With them,
+        run r's are built from row r - 1 on first use and kept. A ``resample_seed`` column resamples the tables by node,
+        so it needs a ``node_code`` column in both, and refits the duration transition on the resampled moves."""
         fixed = {"renewal": self.renewal, "renewal_large": self.renewal_large, "arrivals": self.arrivals, "returns": self.returns}
         moves, first = self.moves, self.first_commitments
         stake_draw = (STAKE_BANDS[self.move_stake_bands], self.move_stake_weighted)
         tables = _continuation_tables(moves, first, *stake_draw)
+        transition = None
+        if self.durations is not None:
+            transition = self.durations.with_record(moves["next_days"], f"{self.inputs_source or 'moves'}: {len(moves)} next durations")
         if self.draws is None:
-            same = RunBlocks(*fixed.values(), 0.0, *tables)
+            same = RunBlocks(*fixed.values(), 0.0, *tables, transition)
             return lambda run: same
         draws = self.draws
         if len(draws) < self.runs:
@@ -219,10 +237,15 @@ class FittedLifecycle(SimulationModel):
                 row = draws.iloc[run - 1]
                 drawn = {prefix: _drawn(block, prefix, row, run) for prefix, block in fixed.items()}
                 shift = float(row["renewal_shift"]) if "renewal_shift" in row.index else 0.0
-                own = tables
+                own, own_transition = tables, transition
                 if "resample_seed" in row.index:
-                    own = _continuation_tables(*resampled_tables(moves, first, int(row["resample_seed"]), run), *stake_draw)
-                built[run] = RunBlocks(*drawn.values(), shift, *own)
+                    picked_moves, picked_first = resampled_tables(moves, first, int(row["resample_seed"]), run)
+                    own = _continuation_tables(picked_moves, picked_first, *stake_draw)
+                    if transition is not None:
+                        evidence = f"bootstrap draw {run}: the run's resample of the moves by node"
+                        own_transition = fit_moves(picked_moves, decided_by_us(self.origin), evidence).with_record(
+                            picked_moves["next_days"], f"{evidence}; {len(picked_moves)} next durations")
+                built[run] = RunBlocks(*drawn.values(), shift, *own, own_transition)
             return built[run]
 
         return blocks_for
@@ -449,6 +472,19 @@ def clipped_draws(draws: pd.DataFrame) -> int:
 
 def _day(value: date) -> int:
     return (pd.Timestamp(value) - pd.Timestamp(0)).days
+
+
+def decided_by_us(origin: date) -> int:
+    """The last instant of the origin's UTC day in microseconds, by which every move in the origin's tables started."""
+    return _day(origin) * US_PER_DAY + INSTANT_US
+
+
+def fit_durations(events: TrainingEvents) -> DurationTransition:
+    """The duration band transition fitted on the moves of the 365 days before the origin, the same moves the
+    continuation table holds, without its day record. See :func:`~avalanche_research.model.parts.duration_transition.fit_moves`."""
+    moves = events.moves
+    return fit_moves(moves, decided_by_us(events.origin),
+                     f"{events.run or 'staking periods'}, {len(moves)} renewals and returns in the 365 days to {events.origin}")
 
 
 def _whole_days(us: pd.Series) -> pd.Series:

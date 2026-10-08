@@ -6,6 +6,8 @@
 * :mod:`~avalanche_research.model.parts.returns`: :class:`ReturnHazard`, returns after more than seven days out.
 * :mod:`~avalanche_research.model.parts.continuation`: :class:`Continuation`, the next duration and stake of a node
   that renews or returns.
+* :mod:`~avalanche_research.model.parts.duration_transition`: :class:`DurationTransition`, a fitted transition between
+  duration bands that a model variant draws the next duration from in place of the continuation table.
 * :mod:`~avalanche_research.model.parts.stages`: the daily step as an ordered list of stages. Each behaviour part's
   stage lives in its own module, and the rewards and assembly stages live here.
 

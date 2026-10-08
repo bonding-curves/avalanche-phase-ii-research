@@ -92,7 +92,8 @@ def synthetic_periods(monkeypatch):
 
 def test_the_candidates_are_registered_and_the_development_scores_run_the_four_variants_as_before():
     assert DEVELOPMENT_MODELS == ("v0.7", "v0.8", "v0.8 separate", "v0.8 u")
-    assert list(VARIANTS) == [*DEVELOPMENT_MODELS, "v0.8-a", "v0.8-a u", "v0.8-c", "v0.8-c u", "v0.8-e", "v0.8-e u"]
+    assert list(VARIANTS) == [*DEVELOPMENT_MODELS, "v0.8-a", "v0.8-a u", "v0.8-c", "v0.8-c u", "v0.8-e", "v0.8-e u",
+                              "v0.8 duration", "v0.8 duration u"]
     spec = importlib.util.spec_from_file_location("model_development_scores", SCRIPT)
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)
@@ -216,4 +217,4 @@ def test_an_unknown_stake_band_set_is_refused():
     with pytest.raises(ValueError):
         small_lifecycle().with_settings(move_stake_bands="nine")
     assert set(FittedLifecycle.param["move_stake_bands"].objects) == {"ten log-spaced", "three"}
-    assert [f.name for f in fields(Switches)] == ["node_record", "move_stake_bands", "move_stake_weighted"]
+    assert [f.name for f in fields(Switches)] == ["node_record", "move_stake_bands", "move_stake_weighted", "duration_transition"]
