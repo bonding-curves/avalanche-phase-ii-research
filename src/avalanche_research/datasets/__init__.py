@@ -24,8 +24,19 @@ def _read_json(path: Path) -> dict[str, Any]:
         raise DataError(f"unreadable receipt: {path}: {error}") from error
 
 
+def _try_json(path: Path) -> tuple[dict[str, Any] | None, DataError | None]:
+    try:
+        return _read_json(path), None
+    except DataError as error:
+        return None, error
+
+
 def runs(dataset_id: str | None = None, root: Path | None = None) -> list[dict[str, Any]]:
-    """Built runs, newest build first, for one dataset or for every dataset."""
+    """Built runs, newest build first, for one dataset or for every dataset.
+
+    A run of another dataset is skipped even when one of its receipts is unreadable, if the other names its dataset.
+    A run of the requested dataset with an unreadable receipt, or whose build names a capture other than its own, is
+    refused with its path rather than skipped, so a newest-run read never falls back silently to an older run."""
     root = RUNS if root is None else root
     found: list[dict[str, Any]] = []
     if not root.is_dir():
@@ -35,11 +46,16 @@ def runs(dataset_id: str | None = None, root: Path | None = None) -> list[dict[s
         capture_path = directory / "capture" / "capture.json"
         if not build_path.is_file() or not capture_path.is_file():
             continue
-        build, capture = _read_json(build_path), _read_json(capture_path)
-        if dataset_id is not None and build.get("dataset_id") != dataset_id:
+        build, build_error = _try_json(build_path)
+        capture, capture_error = _try_json(capture_path)
+        named = (build or {}).get("dataset_id") or (capture or {}).get("dataset_id")
+        if dataset_id is not None and named is not None and named != dataset_id:
             continue
+        if build_error or capture_error:
+            raise build_error or capture_error
         if build.get("source_capture_id") != capture.get("capture_id"):
-            continue
+            raise DataError(f"run {directory.name}: its build names capture {build.get('source_capture_id')}, "
+                            f"but its capture is {capture.get('capture_id')}")
         parquet = next((item["path"] for item in build.get("outputs", []) if item["path"].endswith(".parquet")), None)
         if parquet is None:
             continue
@@ -157,7 +173,11 @@ def views(run: str | None = None, root: Path | None = None) -> dict[str, dict[st
 def connect(run: str | None = None, root: Path | None = None) -> Any:
     """A DuckDB connection with one view per built dataset, so notebooks can join by the keys the datasets carry."""
     connection = duckdb.connect()
-    for name, item in views(run, root).items():
-        path = str(parquet_path(item["dataset_id"], item["run"], root)).replace("'", "''")
-        connection.execute(f"CREATE VIEW {name} AS SELECT * FROM read_parquet('{path}')")
+    try:
+        for name, item in views(run, root).items():
+            path = str(parquet_path(item["dataset_id"], item["run"], root)).replace("'", "''")
+            connection.execute(f"CREATE VIEW {name} AS SELECT * FROM read_parquet('{path}')")
+    except Exception:
+        connection.close()
+        raise
     return connection

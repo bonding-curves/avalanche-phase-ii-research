@@ -94,3 +94,35 @@ def test_cli_runs_lists_records(root, monkeypatch, capsys):
     assert cli.main() == 0
     out = capsys.readouterr().out
     assert "validators-new" in out and "2 runs" in out
+
+
+def test_a_bad_receipt_of_another_dataset_does_not_stop_a_listing(root):
+    (root / "delegators" / "dataset" / "build.json").write_text("{not json")
+    assert [item["run"] for item in datasets.runs("snowflake.primary-validator-stakes", root)] == ["validators-new", "validators-old"]
+    with pytest.raises(DataError, match="unreadable receipt"):
+        datasets.runs("snowflake.primary-delegator-stakes", root)
+
+
+def test_a_run_built_from_another_capture_is_refused_not_skipped(root):
+    capture = root / "validators-new" / "capture" / "capture.json"
+    capture.write_bytes(canonical_bytes({"capture_id": "capture:other", "dataset_id": "snowflake.primary-validator-stakes",
+                                         "completed_at": "2026-09-14T00:00:00Z"}))
+    with pytest.raises(DataError, match="run validators-new: its build names capture"):
+        datasets.load("snowflake.primary-validator-stakes", root=root)
+
+
+def test_connect_closes_its_connection_when_a_run_fails(root, monkeypatch):
+    opened = []
+    real = duckdb.connect
+
+    def tracking(*args, **kwargs):
+        opened.append(real(*args, **kwargs))
+        return opened[-1]
+
+    monkeypatch.setattr(datasets.duckdb, "connect", tracking)
+    parquet = root / "validators-new" / "dataset" / "primary-validator-stakes.parquet"
+    parquet.write_bytes(parquet.read_bytes() + b" ")
+    with pytest.raises(DataError):
+        datasets.connect(root=root)
+    with pytest.raises(duckdb.Error):
+        opened[0].execute("SELECT 1")

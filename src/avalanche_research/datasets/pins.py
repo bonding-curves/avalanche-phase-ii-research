@@ -134,6 +134,15 @@ def verify(path: Path, root: Path | None = None, repo: Path = ROOT) -> list[str]
         body = parquet.read_bytes()
         if len(body) != entry["bytes"] or sha256(body) != entry["sha256"]:
             findings.append(f"{entry['dataset_id']} run {entry['run']} differs from its pin")
+        build = parquet.parent / "build.json"
+        try:
+            built = json.loads(build.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            built = {}
+        if built.get("dataset_id") != entry["dataset_id"]:
+            findings.append(f"{entry['dataset_id']} run {entry['run']} is a run of {built.get('dataset_id')}")
+        elif built.get("source_capture_id") != entry["capture_id"]:
+            findings.append(f"{entry['dataset_id']} run {entry['run']} was built from another capture than its pin names")
         status = _check_status(entry["run"], root)
         if status != "pass":
             findings.append(f"{entry['dataset_id']} run {entry['run']} check is now {status}")

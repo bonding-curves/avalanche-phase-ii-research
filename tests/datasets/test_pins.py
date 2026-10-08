@@ -121,3 +121,15 @@ def test_a_pin_without_code_reads_and_verifies_as_before(root, tmp_path):
     value = pins.pin("m2", [LEDGER], root=root, directory=tmp_path / "pins")
     assert "code" not in value
     assert pins.verify(tmp_path / "pins" / "m2.json", root, repo=tmp_path / "no-repo") == []
+
+
+def test_a_pin_entry_pointing_at_another_datasets_run_is_reported(root, tmp_path):
+    pins.pin("m2", [LEDGER, PERIODS], {PERIODS: "periods"}, root=root, directory=tmp_path / "pins")
+    path = tmp_path / "pins" / "m2.json"
+    value = json.loads(path.read_text())
+    value["runs"][0]["dataset_id"] = PERIODS
+    path.write_bytes(canonical_bytes(value))
+    assert any("is a run of" in finding for finding in pins.verify(path, root))
+    value["runs"][0]["dataset_id"], value["runs"][0]["capture_id"] = LEDGER, "capture:other"
+    path.write_bytes(canonical_bytes(value))
+    assert any("another capture than its pin names" in finding for finding in pins.verify(path, root))
