@@ -116,3 +116,19 @@ def test_at_as1_only_named_addresses_join_nodes(tmp_path):
     assert as1.loc["B", "group_id"] == "group:B" and as1.loc["A", "group_nodes"] == 1
     with pytest.raises(ValueError, match="tier"):
         identity.groups(edges, "2023-06-01", named, tier="AS3")
+
+
+def test_an_address_takes_its_latest_dated_name_and_a_same_day_pair_is_a_conflict_in_any_order(tmp_path):
+    edges = identity.edges(write(tmp_path))
+
+    def table(*rows):
+        return pd.DataFrame([{"attribution_id": f"X{i}", "address": "addr4", "name": name, "named_from": pd.Timestamp(day)}
+                             for i, (name, day) in enumerate(rows)])
+
+    for order in ((("Fleet", "2022-12-01"), ("Buyer", "2023-03-01")), (("Buyer", "2023-03-01"), ("Fleet", "2022-12-01"))):
+        named = table(*order)
+        assert identity.groups(edges, "2023-01-01", named).set_index("node_id").loc["D", "name"] == "Fleet"
+        assert identity.groups(edges, "2023-06-01", named).set_index("node_id").loc["D", "name"] == "Buyer"
+    for order in ((("Fleet", "2022-12-01"), ("Other", "2022-12-01")), (("Other", "2022-12-01"), ("Fleet", "2022-12-01"))):
+        row = identity.groups(edges, "2023-06-01", table(*order)).set_index("node_id").loc["D"]
+        assert pd.isna(row["name"]) and row["names"] == "Fleet; Other"

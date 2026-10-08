@@ -12,7 +12,8 @@ or before the instant. An attribution without an evidence date names nothing. Be
 its date, the groups at an instant are the same whether history is cut there or not, which the truncation test checks.
 That holds because ``replaces`` in the attribution registry means a correction of an annotation, never a dated change of
 owner: ``dated_names`` refuses a replaced AS1 reward-address name that differs from its replacement's. A change of owner
-is a new row with its own evidence date.
+is a new row with its own evidence date. An address takes the name of its latest dated row by the instant, so a later
+row is a change of owner from its date. Two names dated the same day on one address are both kept, as a conflict.
 
 ``edges`` refuses a node with two stakes accepted at the same instant, since its latest addresses would be ambiguous. A
 group with two dated names gets no ``name`` and lists both in ``names``. Group sizes count every node with an edge by
@@ -92,8 +93,12 @@ def groups(edge_table: pd.DataFrame, at: datetime | str, names: pd.DataFrame | N
     if tier not in ("AS1", "AS5"):
         raise ValueError(f"tier must be AS1 or AS5, not {tier}")
     at = utc_naive(at)
-    dated = {} if names is None else {row.address: row.name for row in names.itertuples()
-                                      if row.named_from is not None and pd.notna(row.named_from) and row.named_from <= at}
+    dated: dict[str, set[str]] = {}
+    if names is not None:
+        known_names = names[names["named_from"].notna() & (names["named_from"] <= at)]
+        latest = known_names[known_names["named_from"] == known_names.groupby("address")["named_from"].transform("max")]
+        for address, name in zip(latest["address"], latest["name"], strict=True):
+            dated.setdefault(address, set()).add(name)
     known = edge_table[edge_table["evidence_at"] <= at]
     latest = known.groupby("node_id")["evidence_at"].transform("max")
     known = known[known["evidence_at"] == latest]
@@ -116,9 +121,9 @@ def groups(edge_table: pd.DataFrame, at: datetime | str, names: pd.DataFrame | N
     for key in parent:
         members.setdefault(find(key), []).append(key)
     named: dict[str, set[str]] = {}
-    for address, name in dated.items():
+    for address, found in dated.items():
         if "address:" + address in parent:
-            named.setdefault(find("address:" + address), set()).add(name)
+            named.setdefault(find("address:" + address), set()).update(found)
     rows = []
     for root, keys in members.items():
         nodes = sorted(key[5:] for key in keys if key.startswith("node:"))
