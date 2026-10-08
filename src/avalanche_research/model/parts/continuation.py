@@ -83,3 +83,42 @@ class Continuation:
         keys = np.digitize(previous / AVAX, MOVE_STAKE_EDGES, right=True)
         ratio = self.ratio[self._pick(keys, self.stake_band, np.asarray(u, dtype=float), self.weight)]
         return np.clip(np.round(previous * ratio), self.MIN_STAKE_NAVAX, self.MAX_STAKE_NAVAX).astype(np.int64)
+
+
+def continuation_stage(state, day, earlier) -> dict:
+    """The daily continuation stage: every commitment that starts today, in the order renewed, returned, arrived.
+
+    A renewed or returned node draws its next duration and stake from the continuation table, a first-ever node from
+    the first-ever commitments, each by one uniform keyed by the node and its decision count.
+    """
+    blocks, draw = day.blocks, day.draw
+    renewal, returns, arrivals = earlier["renewal"], earlier["returns"], earlier["arrivals"]
+    ended, renews, comes_back = renewal["ended"], renewal["renews"], returns["comes_back"]
+    n_new, new_key = arrivals["count"], arrivals["node_key"]
+    continuation = blocks.continuation
+    renewed_key, renewed_done = ended["node_key"][renews], ended["done"][renews]
+    back_key, back_done = state["out_node_key"][comes_back], state["out_done"][comes_back]
+
+    def pick(table: np.ndarray, purpose: str) -> np.ndarray:
+        if not n_new:
+            return np.zeros(0, dtype=np.int64)
+        u = draw.uniforms(purpose, new_key)
+        return table[np.minimum((u * len(table)).astype(np.int64), len(table) - 1)]
+
+    started = {
+        "stakes": np.concatenate([
+            continuation.stakes_from_uniforms(ended["stakes"][renews], draw.uniforms("renew_stake", renewed_key, renewed_done)),
+            continuation.stakes_from_uniforms(state["out_stakes"][comes_back], draw.uniforms("return_stake", back_key, back_done)),
+            pick(blocks.first_stakes, "first_stake"),
+        ]),
+        "days": np.concatenate([
+            continuation.durations_from_uniforms(ended["days"][renews], draw.uniforms("renew_days", renewed_key, renewed_done)),
+            continuation.durations_from_uniforms(state["out_last_days"][comes_back], draw.uniforms("return_days", back_key, back_done)),
+            pick(blocks.first_days, "first_days"),
+        ]),
+        "node_key": np.concatenate([renewed_key, back_key, new_key]),
+        "done": np.concatenate([ended["done"][renews] + 1, state["out_done"][comes_back], np.zeros(n_new, dtype=np.int64)]),
+        "after_return": np.concatenate([np.zeros(int(renews.sum()), bool), np.ones(int(comes_back.sum()), bool), np.zeros(n_new, bool)]),
+        "returns": np.concatenate([ended["returns"][renews], state["out_returns"][comes_back] + 1, np.zeros(n_new, dtype=np.int64)]),
+    }
+    return {"started": started}

@@ -15,11 +15,12 @@ with one row per origin, variable, horizon and forecast, and `development-summar
 each model by variable and horizon and a Diebold-Mariano test of it against each benchmark and of v0.8 against v0.7.
 The test takes the origins in date order, and its horizon is one plus the most later origins inside one forecast's
 window (``evaluation.dm_horizon``), counted from the dates because an upgrade can fall a week from a quarter start.
-``v0.8 separate`` fits its renewal block separately for commitments above 1M AVAX and at or below it. ``v0.8 u`` is v0.8
-with one draw of every fitted parameter per run: 200 draws per origin from ``parameter_draws``, with the renewal shift's
-SD from ``window_sd``, batch b reading draws 20b to 20b + 19. The draws depend only on the origin, so every model and
-design at an origin that uses them gets the same rows. They go to ``draws.csv.gz``, and each origin's shift SD, its
-source and the number of draws at the renewal clip to ``tau.csv``.
+The models and how each is built come from ``avalanche_research.model.variants``. ``v0.8 separate`` fits its renewal
+block separately for commitments above 1M AVAX and at or below it. ``v0.8 u`` is v0.8 with one draw of every fitted
+parameter per run: 200 draws per origin from ``parameter_draws``, with the renewal shift's SD from ``window_sd``, batch b
+reading draws 20b to 20b + 19. The draws depend only on the origin, so every model and design at an origin that uses
+them gets the same rows. They go to ``draws.csv.gz``, and each origin's shift SD, its source and the number of draws at
+the renewal clip to ``tau.csv``.
 """
 
 from __future__ import annotations
@@ -34,21 +35,10 @@ import pandas as pd
 from avalanche_research import datasets
 from avalanche_research.model import evaluation as ev
 from avalanche_research.model.engine import run
-from avalanche_research.model.fitted_lifecycle import (
-    FittedLifecycle,
-    clipped_draws,
-    fit_blocks,
-    fitted_inputs,
-    parameter_draws,
-    training_events,
-    window_sd,
-)
-from avalanche_research.model.lifecycle import (
-    ValidatorLifecycle,
-    actual_path,
-    origin_inputs,
-)
+from avalanche_research.model.fitted_lifecycle import clipped_draws
+from avalanche_research.model.lifecycle import actual_path
 from avalanche_research.model.replay import LOCKBOX_FIRST_DAY, daily_events
+from avalanche_research.model.variants import VARIANTS
 
 RUN = "staking-periods-2026-09-30"
 UPGRADES = {"Banff": date(2022, 10, 18), "Cortina": date(2023, 4, 25), "Durango": date(2024, 3, 6),
@@ -57,8 +47,7 @@ QUARTERS = {f"{y}-{m:02d}-01": date(y, m, 1) for y in (2022, 2023, 2024, 2025) f
             if date(2022, 7, 1) <= date(y, m, 1) <= date(2025, 10, 1)}
 HORIZONS = (30, 90, 180)
 VARIABLES = ("active_validators", "active_validator_stake_navax")
-MODELS = ("v0.7", "v0.8", "v0.8 separate", "v0.8 u")
-LARGE_ABOVE_AVAX = 1_000_000
+MODELS = tuple(VARIANTS)
 BATCH_SEEDS = range(10)
 BATCH_RUNS = 20
 DRAW_SEED = 0
@@ -73,28 +62,16 @@ def model_runs(task: tuple[str, date, str, str]) -> tuple[pd.DataFrame, pd.DataF
     """Every run's value at each horizon for one origin and model, one row per batch seed, run, variable and horizon,
     each batch's specification hash, and for ``v0.8 u`` the origin's draws and shift SD."""
     name, origin, model, periods = task
-    draws, extras = None, None
-    if model == "v0.7":
-        inputs = origin_inputs(periods, origin)
-    elif model == "v0.8 separate":
-        inputs = fitted_inputs(periods, origin, RUN, LARGE_ABOVE_AVAX)
-    elif model == "v0.8 u":
-        events = training_events(periods, origin, RUN)
-        inputs = {**fit_blocks(events), "moves": events.moves, "first_commitments": events.first_commitments}
-        tau, source = window_sd(periods, origin, inputs["renewal"])
-        draws = parameter_draws(events, BATCH_RUNS * len(BATCH_SEEDS), DRAW_SEED, tau)
+    variant = VARIANTS[model]
+    prepared = variant.prepare(periods, origin, RUN, BATCH_RUNS * len(BATCH_SEEDS), DRAW_SEED)
+    draws, extras = prepared.draws, None
+    if draws is not None:
         extras = {"draws": draws.assign(origin=name, draw=range(len(draws))),
-                  "tau": {"origin": name, "tau": tau, "source": source, "clipped_draws": clipped_draws(draws)}}
-    else:
-        inputs = fitted_inputs(periods, origin, RUN)
+                  "tau": {"origin": name, "tau": prepared.tau, "source": prepared.tau_source, "clipped_draws": clipped_draws(draws)}}
     parts, specifications = [], []
     for seed in BATCH_SEEDS:
-        if model == "v0.7":
-            simulation = ValidatorLifecycle(origin=origin, inputs_source=RUN, timesteps=max(HORIZONS), runs=BATCH_RUNS, seed=seed, **inputs)
-        elif draws is not None:
-            simulation = FittedLifecycle(timesteps=max(HORIZONS), runs=BATCH_RUNS, seed=seed, draws=batch_draws(draws, seed), **inputs)
-        else:
-            simulation = FittedLifecycle(timesteps=max(HORIZONS), runs=BATCH_RUNS, seed=seed, **inputs)
+        simulation = variant.simulation(prepared, seed=seed, timesteps=max(HORIZONS), runs=BATCH_RUNS,
+                                        draws=None if draws is None else batch_draws(draws, seed))
         specifications.append({"origin": name, "model": model, "batch_seed": seed, "specification": simulation.specification_hash()})
         t = run(simulation)
         t = t[t.timestep.isin(HORIZONS) & t.variable.isin(VARIABLES)]

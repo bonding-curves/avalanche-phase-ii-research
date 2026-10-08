@@ -6,6 +6,8 @@
 * :mod:`~avalanche_research.model.parts.returns`: :class:`ReturnHazard`, returns after more than seven days out.
 * :mod:`~avalanche_research.model.parts.continuation`: :class:`Continuation`, the next duration and stake of a node
   that renews or returns.
+* :mod:`~avalanche_research.model.parts.stages`: the daily step as an ordered list of stages. Each behaviour part's
+  stage lives in its own module, and the rewards and assembly stages live here.
 
-``avalanche_research.model.fitted_blocks`` offers every name of these modules under its earlier path.
+``avalanche_research.model.fitted_blocks`` offers every name the blocks had before the split, under its earlier path.
 """

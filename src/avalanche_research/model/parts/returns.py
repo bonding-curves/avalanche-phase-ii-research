@@ -121,3 +121,12 @@ class ReturnHazard(BehaviourBlock):
             for i, (cell, value) in enumerate(values.items())
         }
         return cls(provenance=provenance, **values)
+
+
+def returns_stage(state, day, earlier) -> dict:
+    """The daily returns stage: one more day out for every node out of the set, and which of them return today, each
+    by one uniform keyed by the node and the day."""
+    out_days = state["out_days"] + 1
+    hazard = day.blocks.returns.probability({"stake_navax": state["out_stakes"], "days_since_end": out_days})
+    comes_back = day.draw.uniforms("returns", state["out_node_key"], day.t) < hazard
+    return {"out_days": out_days, "comes_back": comes_back}

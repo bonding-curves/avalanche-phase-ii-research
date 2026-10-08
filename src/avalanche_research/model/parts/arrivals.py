@@ -15,6 +15,7 @@ from avalanche_research.model.parts.base import (
     BehaviourBlock,
     behavioural,
 )
+from avalanche_research.model.streams import KIND_ARRIVAL, node_keys
 
 
 class Arrivals(BehaviourBlock):
@@ -95,3 +96,12 @@ def _negative_binomial_log_prob(counts: np.ndarray, mean: float, k: float) -> fl
         return float("-inf") if counts.any() else 0.0
     log_p, log_q = np.log(k / (k + mean)), np.log(mean / (k + mean))
     return float(sum(lgamma(c + k) - lgamma(k) - lgamma(c + 1) + k * log_p + c * log_q for c in counts))
+
+
+def arrivals_stage(state, day, earlier) -> dict:
+    """The daily arrivals stage: the count of first-ever nodes today, from one uniform keyed by the day with the entry
+    response to the yield gap, and their node keys."""
+    count = day.blocks.arrivals.count_from_uniform(
+        float(day.draw.uniforms("arrivals", day.t)[0]), float(np.exp(day.settings.entry_response * day.entry_gap)),
+    )
+    return {"count": count, "node_key": node_keys(KIND_ARRIVAL, day.t, np.arange(count))}

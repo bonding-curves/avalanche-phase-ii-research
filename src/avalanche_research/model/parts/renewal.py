@@ -174,3 +174,31 @@ def _newton(design: np.ndarray, y: np.ndarray, ridge: float) -> tuple[np.ndarray
         raise RuntimeError("the renewal logit did not converge in 100 Newton steps")
     eta = design @ beta
     return beta, float(-np.logaddexp(0.0, np.where(y > 0, -eta, eta)).sum() - 0.5 * (penalty * beta**2).sum())
+
+
+ENDED = ("stakes", "done", "after_return", "days", "returns", "node_key")
+
+
+def renewal_stage(state, day, earlier) -> dict:
+    """The daily renewal stage: the commitments that end today, and which of them renew on the same node.
+
+    A commitment handed on to its node's scheduled one makes no decision. Each decision inverts one uniform keyed by
+    the node and its decision count through the renewal block, or through the large-holder block for a stake above
+    the line, so a decision that differs between two designs moves no other node's draws.
+    """
+    blocks, settings = day.blocks, day.settings
+    days_left = state["days_left"] - 1
+    ending = days_left <= 0
+    decide = ending & ~state["handed_on"]
+    ended = {name: state[name][decide] for name in ENDED}
+    decision_inputs = {
+        "done": ended["done"], "after_return": ended["after_return"], "days": ended["days"],
+        "stake_navax": ended["stakes"], "returns": ended["returns"],
+        "shift": settings.renewal_response * day.renewal_gap + blocks.renewal_shift,
+    }
+    renews = day.draw.uniforms("renewal", ended["node_key"], ended["done"]) < blocks.renewal.probability(decision_inputs)
+    if settings.large_navax is not None:
+        large = ended["stakes"] > settings.large_navax
+        large_inputs = {k: (v[large] if isinstance(v, np.ndarray) else v) for k, v in decision_inputs.items()}
+        renews[large] = day.draw.uniforms("renewal_large", ended["node_key"][large], ended["done"][large]) < blocks.renewal_large.probability(large_inputs)
+    return {"days_left": days_left, "ending": ending, "ended": ended, "renews": renews}
