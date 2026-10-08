@@ -109,7 +109,7 @@ def chart_scores(inputs: dict[str, Path], out: Path) -> Path:
     stake = scores_panel(table, "Validator stake",
                          "Validator stake: v0.7 is worse than holding today's value at every horizon", 23)
     count = scores_panel(table, "Active validators",
-                         "Active validators: v0.7 matches the best simple forecast", top)
+                         "Active validators: v0.7's mean errors are close to holding today's value", top)
     layout = (stake + count).cols(1).opts(shared_axes=False, toolbar=None)
     return write(layout, table, out, "forecast-scores", inputs, 2 * 330 + 20)
 
