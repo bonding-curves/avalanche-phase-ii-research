@@ -573,3 +573,20 @@ def test_two_rows_on_one_calendar_day_are_refused_whatever_their_times():
     baseline = pd.DataFrame({"issued_navax": [10.0]}, index=pd.DatetimeIndex(["2024-07-01"], name="date"))
     with pytest.raises(ValueError):
         kpis.issuance_saved(daily, baseline, origin, 1)
+
+
+def test_run_daily_table_keeps_only_the_chain_columns_a_run_continues():
+    """A chain column the run does not produce, such as delegated stake for a model without delegations, is left out,
+    so no measure reads a column that is empty after the origin. Burn and realized supply, which the measures rebuild
+    after the origin, are kept."""
+    chain = table(ORIGIN, {"active_validators": [7, 8], "supply_counter_navax": [100, 105], "issued_navax": [3, 5],
+                           "active_delegated_stake_navax": [40, 41], "burned_navax": [1, 2],
+                           "total_supply_navax": [500, 501]}, before=1)
+    long = pd.DataFrame({
+        "simulation": 0, "run": 1, "timestep": [0, 0, 0, 1, 1, 1],
+        "variable": ["active_validators", "supply_navax", "issued_navax"] * 2,
+        "value": [8, 105, 0, 9, 111, 6],
+    })
+    daily = kpis.run_daily_table(long, ORIGIN, chain)
+    assert "active_delegated_stake_navax" not in daily.columns
+    assert {"burned_navax", "total_supply_navax"} <= set(daily.columns)

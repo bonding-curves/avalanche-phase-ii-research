@@ -487,11 +487,16 @@ def kpi_table(daily: pd.DataFrame, origin, horizons: Iterable[int] = HORIZONS, *
 
 # Daily tables.
 
+CHAIN_REBUILT_COLUMNS = ("burned_navax", "total_supply_navax")
+"""Chain columns a run does not produce but the measures rebuild after the origin from the chain's days before it."""
+
+
 def run_daily_table(table: pd.DataFrame, origin, chain: pd.DataFrame | None = None) -> pd.DataFrame:
     """One run of the engine's long table as a daily table, after the chain's days up to the origin when given.
 
     Timestep ``t`` is the day ``origin + t``. With ``chain``, the origin and every day before it come from the chain,
-    in the daily-table columns only, and the chain's table must be built for the same origin. A variable with two
+    in the daily-table columns the run also produces, plus burn and realized supply, and the chain's table must be
+    built for the same origin. A variable with two
     values at one timestep is refused.
     """
     keys = [key for key in ("simulation", "run") if key in table.columns]
@@ -515,7 +520,10 @@ def run_daily_table(table: pd.DataFrame, origin, chain: pd.DataFrame | None = No
     if chain is None:
         return wide
     _same_origin(chain, origin, STARTED_COLUMNS)
-    before = chain.loc[chain.index <= _day(origin), [c for c in chain.columns if c in DAILY_COLUMNS]]
+    # The chain supplies the days up to the origin in the columns the run continues after it, and burn and realized
+    # supply, which the measures rebuild after the origin. Any other chain column would be empty after the origin.
+    kept = [c for c in chain.columns if c in DAILY_COLUMNS and (c in wide.columns or c in CHAIN_REBUILT_COLUMNS)]
+    before = chain.loc[chain.index <= _day(origin), kept]
     return pd.concat([before, wide.loc[wide.index > _day(origin)]])
 
 
