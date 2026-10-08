@@ -7,7 +7,9 @@ from pathlib import Path
 
 import duckdb
 import pandas as pd
+import pytest
 
+from avalanche_research.core.catalog import DataError
 from avalanche_research.datasets.derived import identity
 
 # (hash, node, accepted, reward addresses)
@@ -79,3 +81,38 @@ def test_resolve_returns_a_node_group_or_none_before_its_first_edge(tmp_path):
     edges = identity.edges(write(tmp_path))
     assert identity.resolve(edges, "D", "2022-08-01")["group_id"] is None
     assert identity.resolve(edges, "D", "2023-02-01")["members"] == ["C", "D"]
+
+
+def test_two_stakes_of_one_node_at_one_instant_are_refused(tmp_path):
+    stakes = [*STAKES, ("S6", "A", "2022-01-01 00:00", ["addr9"])]
+    with pytest.raises(DataError, match="two stakes"):
+        identity.edges(write(tmp_path, stakes))
+
+
+def test_a_group_with_two_dated_names_gets_no_name_and_lists_both(tmp_path):
+    edges = identity.edges(write(tmp_path))
+    named = pd.DataFrame([{"attribution_id": "X1", "address": "addr3", "name": "Fleet", "named_from": pd.Timestamp("2022-12-01")},
+                          {"attribution_id": "X4", "address": "addr4", "name": "Other", "named_from": pd.Timestamp("2022-12-01")}])
+    for order in (named, named.iloc[::-1]):
+        row = identity.groups(edges, "2023-06-01", order).set_index("node_id").loc["C"]
+        assert pd.isna(row["name"]) and row["names"] == "Fleet; Other"
+
+
+def test_a_replacement_that_changes_an_as1_name_is_refused(tmp_path):
+    rows = [{"attribution_id": "X1", "subject_kind": "reward-address", "subject": "addr4", "name": "Fleet", "tier": "AS1", "class": "EVIDENCE",
+             "replaces": None},
+            {"attribution_id": "X2", "subject_kind": "reward-address", "subject": "addr4", "name": "Buyer", "tier": "AS1", "class": "EVIDENCE",
+             "replaces": "X1"}]
+    (tmp_path / "a.json").write_text(json.dumps({"attributions": rows}))
+    (tmp_path / "e.json").write_text(json.dumps({"events": []}))
+    with pytest.raises(DataError, match="change of owner"):
+        identity.dated_names(tmp_path / "a.json", tmp_path / "e.json")
+
+
+def test_at_as1_only_named_addresses_join_nodes(tmp_path):
+    edges, named = identity.edges(write(tmp_path)), names(tmp_path)
+    as1 = identity.groups(edges, "2023-06-01", named, tier="AS1").set_index("node_id")
+    assert as1.loc["C", "group_id"] == as1.loc["D", "group_id"] == "group:C"
+    assert as1.loc["B", "group_id"] == "group:B" and as1.loc["A", "group_nodes"] == 1
+    with pytest.raises(ValueError, match="tier"):
+        identity.groups(edges, "2023-06-01", named, tier="AS3")
