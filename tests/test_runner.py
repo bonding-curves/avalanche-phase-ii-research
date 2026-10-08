@@ -105,3 +105,55 @@ def test_the_pool_is_sized_from_a_pilot_and_never_exceeds_memory_or_cpus():
         runner.size_pool(2_500, base_mib, per_run, 40)
     with pytest.raises(ValueError, match="two run counts"):
         runner.worker_memory(pilot, [20, 20])
+
+
+def final_counts(table):
+    """A reducer: one row per run with the last day's validators, as a registry KPI reducer would."""
+    last = table[(table.variable == "active_validators") & (table.timestep == table.timestep.max())]
+    return pd.DataFrame({"run": last.run.to_numpy(), "final_validators": last.value.map(int).to_numpy()})
+
+
+def builder(origin, model):
+    from datetime import date
+    return base(origin=date.fromisoformat(str(origin)))
+
+
+def test_a_design_refuses_lockbox_origins_before_building_anything():
+    rows = list(designs.cartesian({"origin": ["2025-04-08", "2025-11-19"]}))
+    with pytest.raises(ValueError, match="lockbox"):
+        designs.check_origins(rows)
+    designs.check_origins(rows[:1])
+
+
+def test_a_design_across_origins_is_hashed_and_written_before_its_rows(tmp_path):
+    rows = list(designs.cartesian({"origin": ["2024-03-06", "2025-04-08"], "renewal_probability": [0.3, 0.7]}))
+    calls = []
+    totals = runner.run_design(rows, 4, lambda o, m: calls.append(o) or builder(o, m), tmp_path, workers=2)
+    record = __import__("json").loads((tmp_path / "design.json").read_text())
+    assert totals["written"] == 4 and totals["groups"] == 2 and len(calls) == 2
+    assert record["rows"] == 4 and len(record["row_ids"]) == 4 and record["design_hash"] == totals["design_hash"]
+    written = [p.stat().st_mtime_ns for p in tmp_path.glob("*.parquet")]
+    assert (tmp_path / "design.json").stat().st_mtime_ns <= min(written)
+    assert set(runner.read_sweep(tmp_path).origin) == {"2024-03-06", "2025-04-08"}
+    with pytest.raises(ValueError, match="not 5"):
+        runner.run_design(rows, 5, builder, tmp_path / "other")
+
+
+def test_with_both_responses_at_zero_designs_differ_only_in_issuance(tmp_path):
+    # Contract check C1: two rows that differ only in mechanism give identical count and stake in every run.
+    rows = list(designs.cartesian({"mechanism": ["ChainReward", {"name": "ACP285Ramp", "target_min_rate": 0.05}],
+                                   "renewal_response": [0.0], "entry_response": [0.0]}))
+    runner.run_sweep(base(), rows, tmp_path, workers=2)
+    paths = runner.read_sweep(tmp_path)
+    for variable in ("active_validators", "active_validator_stake_navax"):
+        part = paths[paths.variable == variable].pivot_table(index=["run", "timestep"], columns="index", values="value")
+        assert (part[0] == part[1]).all()
+    with pytest.raises(ValueError, match="unknown reward mechanism"):
+        runner.model_settings({"design": "x", "index": 0, "mechanism": "NoSuchRule"})
+
+
+def test_a_reducer_keeps_one_row_per_run(tmp_path):
+    rows = list(designs.cartesian({"renewal_probability": [0.3, 0.7]}))
+    runner.run_sweep(base(), rows, tmp_path, workers=2, reducer=final_counts)
+    kept = __import__("duckdb").execute(f"SELECT * FROM read_parquet('{tmp_path}/*.parquet')").df()
+    assert len(kept) == 2 * 3 and set(kept.columns) >= {"row_id", "run", "final_validators", "specification"}

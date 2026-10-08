@@ -28,6 +28,8 @@ import pandas as pd
 from .streams import Streams
 
 IDENTITY = ("design", "index")
+# Keys that pick the base model rather than change one of its settings.
+BASE_KEYS = ("origin", "model", "batch")
 
 
 def row_id(row: Mapping, base_hash: str) -> str:
@@ -37,8 +39,17 @@ def row_id(row: Mapping, base_hash: str) -> str:
 
 
 def settings(row: Mapping) -> dict:
-    """The model settings a row changes: everything but its identity."""
-    return {k: v for k, v in row.items() if k not in (*IDENTITY, "row_id")}
+    """The model settings a row changes: everything but its identity and the keys that pick its base model."""
+    return {k: v for k, v in row.items() if k not in (*IDENTITY, *BASE_KEYS, "row_id")}
+
+
+def check_origins(rows: Iterable[Mapping]) -> None:
+    """Refuse a design with an origin inside the validation lockbox, before any model is built."""
+    from .replay import LOCKBOX_FIRST_DAY
+
+    late = sorted({str(row["origin"]) for row in rows if "origin" in row and pd.Timestamp(row["origin"]).date() >= LOCKBOX_FIRST_DAY})
+    if late:
+        raise ValueError(f"origins inside the validation lockbox, which starts 2025-11-19 16:00 UTC: {', '.join(late)}")
 
 
 def cartesian(levels: Mapping[str, Sequence], seed: int = 0, name: str = "cartesian") -> Iterator[dict]:
@@ -56,7 +67,7 @@ def sobol(bounds: Mapping[str, tuple[float, float]], m: int, design_seed: int, s
     if not 0 <= start <= 2**m:
         raise ValueError(f"start {start} is outside the design's {2**m} rows")
     keys = list(bounds)
-    engine = qmc.Sobol(d=len(keys), scramble=True, rng=Streams(seed=design_seed, run=0).generator("design_scramble"))
+    engine = qmc.Sobol(d=len(keys), scramble=True, rng=Streams(seed=design_seed, run=0).generator("design"))
     if start:  # fast_forward(0) raises in SciPy
         engine.fast_forward(start)
     low = np.array([bounds[k][0] for k in keys], dtype=float)
@@ -77,7 +88,7 @@ def check_cardinality(rows: Sequence[Mapping], expected: int) -> None:
     """Refuse a design with the wrong number of rows, or with two rows that are the same setting."""
     if len(rows) != expected:
         raise ValueError(f"the design has {len(rows)} rows, not {expected}")
-    keys = [json.dumps(settings(row), sort_keys=True, default=str) for row in rows]
+    keys = [json.dumps({k: v for k, v in row.items() if k not in (*IDENTITY, "row_id")}, sort_keys=True, default=str) for row in rows]
     if len(set(keys)) != len(keys):
         raise ValueError("the design repeats a setting")
 

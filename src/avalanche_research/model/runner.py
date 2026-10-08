@@ -15,22 +15,25 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import os
 import pickle
 import tempfile
 import time
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from pathlib import Path
 
 import duckdb
 import pandas as pd
 
-from .designs import row_id, settings
+from .designs import check_cardinality, check_origins, design_hash, row_id, settings
 from .engine import SimulationModel, run
 
 _BASE: SimulationModel | None = None
 _VARIABLES: tuple[str, ...] = ()
+_REDUCER: Callable[[pd.DataFrame], pd.DataFrame] | None = None
+DAILY = ("active_validators", "active_validator_stake_navax", "supply_navax", "issued_navax")
 
 
 def finished_ids(out: Path) -> set[str]:
@@ -38,24 +41,50 @@ def finished_ids(out: Path) -> set[str]:
     return {path.stem for path in out.glob("*.parquet")}
 
 
-def _init(base_path: str, variables: tuple[str, ...]) -> None:
-    global _BASE, _VARIABLES
+def _init(base_path: str, variables: tuple[str, ...], reducer) -> None:
+    global _BASE, _VARIABLES, _REDUCER
     _BASE = pickle.loads(Path(base_path).read_bytes())
     _VARIABLES = variables
+    _REDUCER = reducer
+
+
+def model_settings(row: Mapping) -> dict:
+    """A row's settings as the model takes them: a ``mechanism`` given by class name, or by a mapping with ``name`` and
+    keyword settings, becomes that reward mechanism from ``avalanche_research.mechanisms``."""
+    from .. import mechanisms
+
+    values = settings(row)
+    spec = values.get("mechanism")
+    if spec is not None and not isinstance(spec, mechanisms.RewardMechanism):
+        name, options = (spec, {}) if isinstance(spec, str) else (spec["name"], {k: v for k, v in spec.items() if k != "name"})
+        cls = getattr(mechanisms, name, None)
+        if not (isinstance(cls, type) and issubclass(cls, mechanisms.RewardMechanism)):
+            raise ValueError(f"unknown reward mechanism {name!r}")
+        values["mechanism"] = cls(**options)
+    return values
 
 
 def _simulate(row: dict) -> pd.DataFrame:
     import resource
 
-    model = _BASE.with_settings(**settings(row))
+    model = _BASE.with_settings(**model_settings(row))
     with contextlib.redirect_stdout(io.StringIO()):  # cadCAD prints a banner per execution
         table = run(model)
-    paths = table[table["variable"].isin(_VARIABLES)][["run", "timestep", "variable", "value"]].copy()
-    paths["value"] = paths["value"].map(int).astype("int64")
+    if _REDUCER is not None:
+        paths = _REDUCER(table)
+    else:
+        paths = table[table["variable"].isin(_VARIABLES)][["run", "timestep", "variable", "value"]].copy()
+        paths["value"] = paths["value"].map(int).astype("int64")
     paths.insert(0, "row_id", row["row_id"])
     paths.insert(1, "design", row["design"])
     paths.insert(2, "index", int(row["index"]))
-    for key, value in settings(row).items():
+    for key, value in row.items():
+        if key in ("row_id", "design", "index"):
+            continue
+        if isinstance(value, Mapping):  # a mechanism with settings, kept as its JSON
+            value = json.dumps(value, sort_keys=True)
+        elif key == "origin":
+            value = str(value)
         paths[key] = value
     paths["specification"] = model.specification_hash()
     paths["worker_peak_mib"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
@@ -75,10 +104,12 @@ def _write(frame: pd.DataFrame, out: Path) -> Path:
     return final
 
 
-def run_sweep(base: SimulationModel, rows: Iterable[Mapping], out: Path, variables: Sequence[str], *, workers: int = 2,
-              in_flight: int | None = None, stop_after: int | None = None) -> dict:
+def run_sweep(base: SimulationModel, rows: Iterable[Mapping], out: Path, variables: Sequence[str] = DAILY, *, workers: int = 2,
+              in_flight: int | None = None, stop_after: int | None = None,
+              reducer: Callable[[pd.DataFrame], pd.DataFrame] | None = None) -> dict:
     """Run every row not yet finished under ``out``. Returns counts and timing. ``stop_after`` stops after that many rows
-    are written, to test resume."""
+    are written, to test resume. ``reducer``, a module-level function, turns a row's long table into the rows to keep,
+    such as one row of KPIs per run; without it the row keeps the daily paths of ``variables``."""
     out.mkdir(parents=True, exist_ok=True)
     for stale in out.glob(".*.parquet.tmp"):
         stale.unlink()
@@ -97,7 +128,7 @@ def run_sweep(base: SimulationModel, rows: Iterable[Mapping], out: Path, variabl
                 _write(future.result(), out)
                 stats["written"] += 1
 
-        with ProcessPoolExecutor(workers, initializer=_init, initargs=(str(base_path), tuple(variables))) as pool:
+        with ProcessPoolExecutor(workers, initializer=_init, initargs=(str(base_path), tuple(variables), reducer)) as pool:
             for row in rows:
                 row = {**row, "row_id": row_id(row, base_hash)}
                 if row["row_id"] in done:
@@ -116,7 +147,42 @@ def run_sweep(base: SimulationModel, rows: Iterable[Mapping], out: Path, variabl
             else:
                 drain(pending)
     stats["seconds"] = round(time.perf_counter() - started, 3)
+    import resource
+
+    stats["parent_peak_mib"] = round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
     return stats
+
+
+def run_design(rows: Sequence[Mapping], expected_rows: int, build_base: Callable[[object, str], SimulationModel], out: Path,
+               variables: Sequence[str] = DAILY, **options) -> dict:
+    """A whole design across origins and models. The design is checked (row count, repeated settings, lockbox origins),
+    each base model is built once per origin and model, and ``design.json`` with every row id and the design hash is
+    written before the first row runs. Rows then run group by group into ``out``."""
+    rows = [dict(row) for row in rows]
+    check_cardinality(rows, expected_rows)
+    check_origins(rows)
+    groups: dict[tuple, list[dict]] = {}
+    for row in rows:
+        groups.setdefault((str(row.get("origin")), row.get("model")), []).append(row)
+    bases = {key: build_base(group[0].get("origin"), key[1]) for key, group in groups.items()}
+    record = {"rows": len(rows), "groups": [], "row_ids": []}
+    for key, group in groups.items():
+        base_hash = bases[key].specification_hash()
+        record["groups"].append({"origin": key[0], "model": key[1], "base_specification": base_hash, "rows": len(group)})
+        record["row_ids"] += [row_id(row, base_hash) for row in group]
+    record["design_hash"] = design_hash([{"row_id": r} for r in record["row_ids"]], "design")
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "design.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n")
+    totals = {"design_hash": record["design_hash"], "skipped": 0, "written": 0, "groups": len(groups)}
+    for key, group in groups.items():
+        stats = run_sweep(bases[key], group, out, variables, **options)
+        totals["skipped"] += stats["skipped"]
+        totals["written"] += stats["written"]
+        totals["parent_peak_mib"] = max(totals.get("parent_peak_mib", 0), stats["parent_peak_mib"])
+        if stats["stopped"]:
+            totals["stopped"] = True
+            break
+    return totals
 
 
 def worker_memory(pilot: pd.DataFrame, runs_per_row: Sequence[int]) -> tuple[float, float]:
