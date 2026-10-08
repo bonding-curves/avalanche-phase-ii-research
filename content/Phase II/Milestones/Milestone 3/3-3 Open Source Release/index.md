@@ -22,7 +22,7 @@ Not started as of 2026-09-28.
 
 ## Result
 
-When delivered, this page will link the public code repository and its release, then give the steps to install the model, reproduce the results, and run new scenarios. The proposal's standard is open source, documented, and reproducible code published as a GitHub release.
+When delivered, this page will link the code repository as transferred to the Foundation, with its tagged release, then give the steps to install the model, reproduce the results, and run new scenarios. The proposal's standard is open source, documented, and reproducible code published as a GitHub release. Whether the release is public or held in a private repository in the Foundation's organisation is to be agreed in writing by both parties, and this page will state what was agreed.
 
 ## How it was built
 
