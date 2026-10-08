@@ -11,7 +11,7 @@ Tests that decide whether a model can be trusted for policy. For how a model is 
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [Preliminary Validation Report](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/) | BCRG |  | Milestone 1's success criterion: a first goodness-of-fit assessment of the model against history, for the Foundation's approval. |
+| [Preliminary Validation Report](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/) | BCRG |  | Milestone 1's success criterion: a first goodness-of-fit assessment of staking model v0.7 against the P-Chain's history, covering verification of its protocol layer, forecast scores at 19 dates against simple forecasts, the contract's correlation test, and the held-back test still to come. |
 | [2.4 Validation Confirmation](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) | BCRG |  | The final goodness-of-fit test of the model against history, with the agreement's target of above 90% correlation. |
 
 ## Research papers

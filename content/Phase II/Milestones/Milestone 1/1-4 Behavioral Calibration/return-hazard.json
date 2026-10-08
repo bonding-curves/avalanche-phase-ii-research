@@ -1,0 +1,18 @@
+{
+ "chart": "return-hazard",
+ "script": "scripts/figures/m1_calibration.py",
+ "inputs": {
+  "hazard": {
+   "file": "return-hazard.csv",
+   "sha256": "04f944e43461b44300e95809d9cae766b6a38f89045e21726e2885d3d0b5ed10"
+  }
+ },
+ "notes": [
+  "Each input is the file of that name written by calibrate.py, which is kept beside the deliverable page.",
+  "Fitted at origin 2025-11-18 on staking-periods-2026-09-30 with the v0.8 candidate's code at commit 1c891a4.",
+  "Renewal: penalized logit on 14,977 endings by 2,968 nodes in the 365 days to seven days before the origin.",
+  "Laplace interval: estimate plus or minus 1.96 standard errors from the inverse penalized Hessian.",
+  "Node bootstrap interval: 2.5th to 97.5th percentile of 300 refits on nodes resampled with replacement.",
+  "Return hazard: returns over node-days at risk per cell, exact Poisson (Garwood) 95% interval."
+ ]
+}

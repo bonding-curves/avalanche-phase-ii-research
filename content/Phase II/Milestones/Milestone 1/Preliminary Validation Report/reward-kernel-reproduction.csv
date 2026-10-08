@@ -1,0 +1,7 @@
+Role and start,Part of the record,Commitments,Checked by the formula,Reward reproduced exactly,Share reproduced (%),Largest gap (nAVAX),Not checked: genesis validators,Not checked: no supply recorded before the start,Not checked: no recorded potential reward
+"Delegations, started at acceptance",Accepted before the held-back period,3744309,3744309,3744308,100.0,31,0,0,0
+"Delegations, started after acceptance",Accepted before the held-back period,2648864,2648864,508253,19.1876,78274480625,0,0,0
+"Validators, started at acceptance",Accepted before the held-back period,25686,25611,25611,100.0,0,75,0,0
+"Validators, started after acceptance",Accepted before the held-back period,27255,27254,6840,25.0972,1676394534195,0,0,1
+"Delegations, started at acceptance",Accepted in the held-back period,680497,680497,680497,100.0,0,0,0,0
+"Validators, started at acceptance",Accepted in the held-back period,4710,4704,4704,100.0,0,0,6,0

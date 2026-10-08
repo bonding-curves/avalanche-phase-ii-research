@@ -1,0 +1,19 @@
+Origin,Origin date,Origin type,Era,Quantity,Days after the origin,Forecast,Forecast value,Actual value,Scaled error,Signed error (% of actual)
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,2.0935480408634106e+17,2.353571191226541e+17,16.69,-11.05
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,2.0519131348970352e+17,2.3174215823345126e+17,17.31,-11.46
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Validator stake,90,Model v0.7,2.0011882449973443e+17,2.1593598180379696e+17,10.39,-7.32
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,2.4069101397063005e+17,2.2337818487798576e+17,11.49,7.75
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,1.9819013903719062e+17,2.20474468506643e+17,14.86,-10.11
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Validator stake,90,Model v0.7,1.8985772786619814e+17,2.1971116370852832e+17,19.96,-13.59
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,2.2873887862505453e+17,2.0260257220838912e+17,17.14,12.9
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,1.9277412513613014e+17,2.197137383188862e+17,18.18,-12.26
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,2.3803178041461843e+17,1.9401438387976563e+17,26.93,22.69
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Validator stake,90,Model v0.7,2.2184716435888547e+17,2.0261912610833808e+17,11.45,9.49
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,2.047532887540617e+17,1.9308585770995254e+17,6.86,6.04
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,2.4364713032815552e+17,2.0908740290928118e+17,19.22,16.53
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,2.637975922773772e+17,1.7768950049098266e+17,47.14,48.46
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Validator stake,90,Model v0.7,2.0723224157022e+17,1.9413682842278083e+17,7.2,6.75
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,1.8358770547794643e+17,1.7271509411495674e+17,5.96,6.3
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,1.766340281059075e+17,1.7613168213358528e+17,0.27,0.29
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Validator stake,90,Model v0.7,1.989880897329936e+17,1.7249773906535952e+17,14.16,15.36
+1 Jul 2025,2025-07-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,1.830537123436801e+17,1.5771996290900656e+17,13.58,16.06

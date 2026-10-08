@@ -1,0 +1,13 @@
+Group,Term,Estimate (log-odds),Laplace 95% low,Laplace 95% high,Node bootstrap 95% low,Node bootstrap 95% high,Odds multiplier,Bootstrap width over Laplace width
+Baseline,"Intercept: first commitment, 20 days or less, up to 2,100 AVAX",0.015,-0.09,0.119,-0.083,0.121,1.01,0.98
+Tenure,Second commitment,1.457,1.268,1.646,1.277,1.652,4.29,0.99
+Tenure,Third to sixth commitment,1.192,1.058,1.325,1.055,1.313,3.29,0.97
+Tenure,Seventh to ninth commitment,1.602,1.433,1.77,1.422,1.771,4.96,1.04
+Tenure,Tenth or later commitment,1.89,1.765,2.015,1.751,2.021,6.62,1.08
+History,Begun after a return,-1.317,-1.447,-1.188,-1.513,-1.145,0.27,1.42
+Duration,21 to 40 days,0.226,0.092,0.36,0.098,0.377,1.25,1.04
+Duration,41 to 100 days,-0.333,-0.463,-0.203,-0.439,-0.194,0.72,0.94
+Duration,Over 100 days,-0.889,-1.077,-0.701,-1.092,-0.714,0.41,1.0
+Stake,"2,100 to 100,000 AVAX",0.127,0.003,0.25,-0.018,0.282,1.14,1.21
+Stake,"100,000 to 1M AVAX",0.567,0.371,0.762,0.325,0.811,1.76,1.24
+Stake,Over 1M AVAX,-0.317,-0.592,-0.042,-0.728,0.041,0.73,1.4

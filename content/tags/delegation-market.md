@@ -11,7 +11,7 @@ Delegator choice, validator fees, and competition for delegation. For concentrat
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [1.1 Data Ingestion](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | BCRG |  | The historical staking data the research runs on: validator and delegator flows, rewards, and durations, each from a checked run. |
+| [1.1 Data Ingestion](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | BCRG |  | The historical staking data the research runs on: validator and delegator flows, rewards, and durations, with their sources, coverage, and gaps. |
 
 ## Reference
 

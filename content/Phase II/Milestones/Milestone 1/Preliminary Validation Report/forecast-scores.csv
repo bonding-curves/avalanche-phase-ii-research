@@ -1,0 +1,25 @@
+Quantity,Days after the origin,Forecast,Mean scaled error,Origins scored,Origins where v0.7 is closer
+Validator stake,30,Model v0.7,7.94,19,
+Validator stake,30,Holding today's value,6.8,19,8.0
+Validator stake,30,Extending the 180-day trend,7.49,19,10.0
+Validator stake,30,Weekly time-series fit,7.14,19,10.0
+Validator stake,90,Model v0.7,15.49,18,
+Validator stake,90,Holding today's value,7.58,18,3.0
+Validator stake,90,Extending the 180-day trend,9.71,18,4.0
+Validator stake,90,Weekly time-series fit,8.4,18,2.0
+Validator stake,180,Model v0.7,20.15,17,
+Validator stake,180,Holding today's value,9.8,17,3.0
+Validator stake,180,Extending the 180-day trend,14.91,17,6.0
+Validator stake,180,Weekly time-series fit,12.29,17,7.0
+Active validators,30,Model v0.7,6.29,19,
+Active validators,30,Holding today's value,6.41,19,11.0
+Active validators,30,Extending the 180-day trend,8.34,19,12.0
+Active validators,30,Weekly time-series fit,5.95,19,10.0
+Active validators,90,Model v0.7,11.95,18,
+Active validators,90,Holding today's value,11.54,18,9.0
+Active validators,90,Extending the 180-day trend,17.67,18,12.0
+Active validators,90,Weekly time-series fit,17.46,18,15.0
+Active validators,180,Model v0.7,21.9,17,
+Active validators,180,Holding today's value,24.57,17,11.0
+Active validators,180,Extending the 180-day trend,41.28,17,13.0
+Active validators,180,Weekly time-series fit,35.4,17,14.0

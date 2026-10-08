@@ -1,0 +1,20 @@
+{
+ "chart": "ingestion-coverage",
+ "script": "scripts/figures/ingestion_coverage.py",
+ "run": {
+  "dataset_id": "derived.staking-periods",
+  "run": "staking-periods-2026-10-08",
+  "capture_id": "capture:derived:2026-10-08T03:23:13Z:69befc14a45b",
+  "parquet_sha256": "f93bbc8eee8bcae87674391620a0c5f25364448aba21e98cf9c94ef49175be3e"
+ },
+ "seam": {
+  "dataset_id": "derived.seamed-validator-stakes",
+  "run": "seamed-validator-stakes-2026-10-08",
+  "at_utc": "2026-09-22 07:37:02"
+ },
+ "last_acceptance_utc": "2026-10-08 02:28:46",
+ "notes": [
+  "One row per complete month: the month holding the last acceptance is not drawn.",
+  "Counts are staking transactions by the month their stake was accepted, validators and delegations apart."
+ ]
+}

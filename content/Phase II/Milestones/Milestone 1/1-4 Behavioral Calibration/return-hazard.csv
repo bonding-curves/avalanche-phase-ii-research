@@ -1,0 +1,10 @@
+Stake band,Days since the last commitment ended,Returns,Node-days at risk,Daily return probability (%),95% low (%),95% high (%)
+"Up to 2,100 AVAX",8 to 30 days,989,85309,1.1593,1.0882,1.2339
+"Up to 2,100 AVAX",31 to 90 days,286,184349,0.1551,0.1377,0.1742
+"Up to 2,100 AVAX",91 to 365 days,31,519962,0.006,0.0041,0.0085
+"2,100 to 100,000 AVAX",8 to 30 days,404,17048,2.3698,2.1443,2.6125
+"2,100 to 100,000 AVAX",31 to 90 days,100,31449,0.318,0.2587,0.3867
+"2,100 to 100,000 AVAX",91 to 365 days,38,102091,0.0372,0.0263,0.0511
+"Over 100,000 AVAX",8 to 30 days,205,8200,2.5,2.1695,2.8667
+"Over 100,000 AVAX",31 to 90 days,80,12629,0.6335,0.5023,0.7884
+"Over 100,000 AVAX",91 to 365 days,30,26924,0.1114,0.0752,0.1591

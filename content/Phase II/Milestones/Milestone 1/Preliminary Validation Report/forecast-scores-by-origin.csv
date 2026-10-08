@@ -1,0 +1,217 @@
+Origin,Origin date,Origin type,Era,Quantity,Days after the origin,Forecast,Forecast value,Actual value,Scaled error,Signed error (% of actual)
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Active validators,30,Holding today's value,1275.0,1208.0,8.61,5.55
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Active validators,30,Model v0.7,1314.15,1208.0,13.64,8.79
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Active validators,30,Holding today's value,1171.0,1210.0,5.02,-3.22
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Active validators,30,Model v0.7,1217.85,1210.0,1.01,0.65
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Active validators,30,Holding today's value,1241.0,1234.0,0.9,0.57
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Active validators,30,Model v0.7,1262.25,1234.0,3.64,2.29
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Active validators,30,Holding today's value,1126.0,1188.0,8.17,-5.22
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Active validators,30,Model v0.7,1164.75,1188.0,3.06,-1.96
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Active validators,30,Holding today's value,1192.0,1255.0,8.31,-5.02
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Active validators,30,Model v0.7,1194.7,1255.0,7.95,-4.8
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Active validators,30,Holding today's value,1261.0,1288.0,3.59,-2.1
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Active validators,30,Model v0.7,1232.95,1288.0,7.32,-4.27
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Active validators,30,Holding today's value,1194.0,1243.0,6.56,-3.94
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Active validators,30,Model v0.7,1211.1,1243.0,4.27,-2.57
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Active validators,30,Holding today's value,1325.0,1496.0,22.48,-11.43
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Active validators,30,Model v0.7,1343.05,1496.0,20.11,-10.22
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Active validators,30,Holding today's value,1643.0,1680.0,4.81,-2.2
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Active validators,30,Model v0.7,1583.6,1680.0,12.54,-5.74
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Active validators,30,Holding today's value,1827.0,1732.0,12.2,5.48
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Active validators,30,Model v0.7,1762.0,1732.0,3.85,1.73
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Active validators,30,Holding today's value,1707.0,1698.0,1.13,0.53
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Active validators,30,Model v0.7,1658.3,1698.0,4.99,-2.34
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Active validators,30,Holding today's value,1536.0,1501.0,3.94,2.33
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Active validators,30,Model v0.7,1559.8,1501.0,6.61,3.92
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Active validators,30,Holding today's value,1448.0,1542.0,10.56,-6.1
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Active validators,30,Model v0.7,1484.9,1542.0,6.41,-3.7
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Active validators,30,Holding today's value,1547.0,1562.0,1.63,-0.96
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Active validators,30,Model v0.7,1537.25,1562.0,2.69,-1.58
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Active validators,30,Holding today's value,1422.0,1469.0,5.05,-3.2
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Active validators,30,Model v0.7,1458.45,1469.0,1.13,-0.72
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Active validators,30,Holding today's value,1385.0,1418.0,3.41,-2.33
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Active validators,30,Model v0.7,1389.9,1418.0,2.91,-1.98
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Active validators,30,Holding today's value,1488.0,1385.0,10.59,7.44
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Active validators,30,Model v0.7,1454.1,1385.0,7.11,4.99
+1 Jul 2025,2025-07-01,Start of quarter,From 2024,Active validators,30,Holding today's value,1431.0,1408.0,2.25,1.63
+1 Jul 2025,2025-07-01,Start of quarter,From 2024,Active validators,30,Model v0.7,1418.35,1408.0,1.01,0.74
+1 Oct 2025,2025-10-01,Start of quarter,From 2024,Active validators,30,Holding today's value,841.0,813.0,2.67,3.44
+1 Oct 2025,2025-10-01,Start of quarter,From 2024,Active validators,30,Model v0.7,910.85,813.0,9.33,12.04
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Active validators,90,Holding today's value,1275.0,1244.0,3.98,2.49
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Active validators,90,Model v0.7,1379.85,1244.0,17.46,10.92
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Active validators,90,Holding today's value,1171.0,1200.0,3.73,-2.42
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Active validators,90,Model v0.7,1258.9,1200.0,7.58,4.91
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Active validators,90,Holding today's value,1241.0,1199.0,5.41,3.5
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Active validators,90,Model v0.7,1290.1,1199.0,11.74,7.6
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Active validators,90,Holding today's value,1126.0,1192.0,8.69,-5.54
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Active validators,90,Model v0.7,1230.95,1192.0,5.13,3.27
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Active validators,90,Holding today's value,1192.0,1221.0,3.83,-2.38
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Active validators,90,Model v0.7,1204.25,1221.0,2.21,-1.37
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Active validators,90,Holding today's value,1261.0,1199.0,8.24,5.17
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Active validators,90,Model v0.7,1190.15,1199.0,1.18,-0.74
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Active validators,90,Holding today's value,1194.0,1299.0,14.05,-8.08
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Active validators,90,Model v0.7,1236.85,1299.0,8.32,-4.78
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Active validators,90,Holding today's value,1325.0,1671.0,45.48,-20.71
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Active validators,90,Model v0.7,1360.9,1671.0,40.76,-18.56
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Active validators,90,Holding today's value,1643.0,1675.0,4.16,-1.91
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Active validators,90,Model v0.7,1587.75,1675.0,11.35,-5.21
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Active validators,90,Holding today's value,1827.0,1778.0,6.29,2.76
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Active validators,90,Model v0.7,1717.45,1778.0,7.78,-3.41
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Active validators,90,Holding today's value,1707.0,1552.0,19.47,9.99
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Active validators,90,Model v0.7,1636.15,1552.0,10.57,5.42
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Active validators,90,Holding today's value,1536.0,1456.0,8.99,5.49
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Active validators,90,Model v0.7,1613.1,1456.0,17.66,10.79
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Active validators,90,Holding today's value,1448.0,1477.0,3.26,-1.96
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Active validators,90,Model v0.7,1497.2,1477.0,2.27,1.37
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Active validators,90,Holding today's value,1547.0,1472.0,8.16,5.1
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Active validators,90,Model v0.7,1516.8,1472.0,4.88,3.04
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Active validators,90,Holding today's value,1422.0,1385.0,3.97,2.67
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Active validators,90,Model v0.7,1426.65,1385.0,4.47,3.01
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Active validators,90,Holding today's value,1385.0,1437.0,5.38,-3.62
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Active validators,90,Model v0.7,1329.25,1437.0,11.15,-7.5
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Active validators,90,Holding today's value,1488.0,1447.0,4.22,2.83
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Active validators,90,Model v0.7,1395.85,1447.0,5.26,-3.53
+1 Jul 2025,2025-07-01,Start of quarter,From 2024,Active validators,90,Holding today's value,1431.0,917.0,50.36,56.05
+1 Jul 2025,2025-07-01,Start of quarter,From 2024,Active validators,90,Model v0.7,1380.7,917.0,45.43,50.57
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Active validators,180,Holding today's value,1275.0,1214.0,7.84,5.02
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Active validators,180,Model v0.7,1400.7,1214.0,23.99,15.38
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Active validators,180,Holding today's value,1171.0,1269.0,12.62,-7.72
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Active validators,180,Model v0.7,1275.05,1269.0,0.78,0.48
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Active validators,180,Holding today's value,1241.0,1237.0,0.52,0.32
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Active validators,180,Model v0.7,1307.0,1237.0,9.02,5.66
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Active validators,180,Holding today's value,1126.0,1221.0,12.51,-7.78
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Active validators,180,Model v0.7,1269.05,1221.0,6.33,3.94
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Active validators,180,Holding today's value,1192.0,1311.0,15.7,-9.08
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Active validators,180,Model v0.7,1225.65,1311.0,11.26,-6.51
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Active validators,180,Holding today's value,1261.0,1468.0,27.52,-14.1
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Active validators,180,Model v0.7,1175.45,1468.0,38.9,-19.93
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Active validators,180,Holding today's value,1194.0,1701.0,67.84,-29.81
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Active validators,180,Model v0.7,1254.35,1701.0,59.76,-26.26
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Active validators,180,Holding today's value,1325.0,1748.0,55.6,-24.2
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Active validators,180,Model v0.7,1390.75,1748.0,46.96,-20.44
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Active validators,180,Holding today's value,1643.0,1576.0,8.72,4.25
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Active validators,180,Model v0.7,1567.0,1576.0,1.17,-0.57
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Active validators,180,Holding today's value,1827.0,1423.0,51.89,28.39
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Active validators,180,Model v0.7,1696.3,1423.0,35.1,19.21
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Active validators,180,Holding today's value,1707.0,1468.0,30.03,16.28
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Active validators,180,Model v0.7,1606.5,1468.0,17.4,9.43
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Active validators,180,Holding today's value,1536.0,1528.0,0.9,0.52
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Active validators,180,Model v0.7,1638.65,1528.0,12.44,7.24
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Active validators,180,Holding today's value,1448.0,1432.0,1.8,1.12
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Active validators,180,Model v0.7,1523.2,1432.0,10.24,6.37
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Active validators,180,Holding today's value,1547.0,1431.0,12.62,8.11
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Active validators,180,Model v0.7,1490.75,1431.0,6.5,4.18
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Active validators,180,Holding today's value,1422.0,1437.0,1.61,-1.04
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Active validators,180,Model v0.7,1413.95,1437.0,2.47,-1.6
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Active validators,180,Holding today's value,1385.0,932.0,46.88,48.61
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Active validators,180,Model v0.7,1316.05,932.0,39.74,41.21
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Active validators,180,Holding today's value,1488.0,875.0,63.05,70.06
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Active validators,180,Model v0.7,1362.85,875.0,50.18,55.75
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Validator stake,30,Holding today's value,2.1428304471271773e+17,2.112627772573572e+17,1.94,1.43
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Validator stake,30,Model v0.7,2.076633480883247e+17,2.112627772573572e+17,2.31,-1.7
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Validator stake,30,Holding today's value,2.2815279639778307e+17,2.260011135121253e+17,1.4,0.95
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Validator stake,30,Model v0.7,2.271411056847604e+17,2.260011135121253e+17,0.74,0.5
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Validator stake,30,Holding today's value,2.352548393669613e+17,2.244139906184117e+17,7.12,4.83
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Validator stake,30,Model v0.7,2.158493683802941e+17,2.244139906184117e+17,5.63,-3.82
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Validator stake,30,Holding today's value,2.2787450416390182e+17,2.2865046273644134e+17,0.51,-0.34
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Validator stake,30,Model v0.7,2.343434748672816e+17,2.2865046273644134e+17,3.78,2.49
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Validator stake,30,Holding today's value,2.2337818487798576e+17,2.217849644614448e+17,1.06,0.72
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Validator stake,30,Model v0.7,2.235263788540258e+17,2.217849644614448e+17,1.16,0.79
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Validator stake,30,Holding today's value,2.2540791633667472e+17,2.0844426242515622e+17,11.34,8.14
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Validator stake,30,Model v0.7,2.0298628755358227e+17,2.0844426242515622e+17,3.65,-2.62
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Validator stake,30,Holding today's value,2.1172498632758416e+17,2.139265925918347e+17,1.44,-1.03
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Validator stake,30,Model v0.7,2.2640755842082816e+17,2.139265925918347e+17,8.19,5.83
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Validator stake,30,Holding today's value,1.9697635432221574e+17,1.8704376385939344e+17,6.7,5.31
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Validator stake,30,Model v0.7,1.990339708817852e+17,1.8704376385939344e+17,8.09,6.41
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Validator stake,30,Holding today's value,2.1928931539676902e+17,1.8062064450867037e+17,23.66,21.41
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Validator stake,30,Model v0.7,2.2214996322442947e+17,1.8062064450867037e+17,25.41,22.99
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Validator stake,30,Holding today's value,2.1195023737456733e+17,2.0543955073782342e+17,3.88,3.17
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Validator stake,30,Model v0.7,2.263315273828684e+17,2.0543955073782342e+17,12.45,10.17
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Validator stake,30,Holding today's value,1.939033233846884e+17,1.6645822178664355e+17,16.13,16.49
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Validator stake,30,Model v0.7,2.0101463842681408e+17,1.6645822178664355e+17,20.31,20.76
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Validator stake,30,Holding today's value,1.939848465518754e+17,1.872371200624581e+17,3.75,3.6
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Validator stake,30,Model v0.7,2.1707346653598515e+17,1.872371200624581e+17,16.59,15.94
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Validator stake,30,Holding today's value,2.1086811947032902e+17,2.087705477011184e+17,1.15,1.0
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Validator stake,30,Model v0.7,2.352424546437081e+17,2.087705477011184e+17,14.49,12.68
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Validator stake,30,Holding today's value,1.8698096548820813e+17,2.0303811551021805e+17,8.83,-7.91
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Validator stake,30,Model v0.7,1.996177120991536e+17,2.0303811551021805e+17,1.88,-1.68
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Validator stake,30,Holding today's value,1.5944497866864118e+17,1.9756070788068304e+17,20.88,-19.29
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Validator stake,30,Model v0.7,1.7214971897037005e+17,1.9756070788068304e+17,13.92,-12.86
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Validator stake,30,Holding today's value,1.7271509411495674e+17,1.8981337389120502e+17,9.15,-9.01
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Validator stake,30,Model v0.7,1.823214652432332e+17,1.8981337389120502e+17,4.01,-3.95
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Validator stake,30,Holding today's value,1.881622853933931e+17,1.932040981410652e+17,2.7,-2.61
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Validator stake,30,Model v0.7,2.014702898254576e+17,1.932040981410652e+17,4.42,4.28
+1 Jul 2025,2025-07-01,Start of quarter,From 2024,Validator stake,30,Holding today's value,1.7332825780376992e+17,1.7929445131367472e+17,3.2,-3.33
+1 Jul 2025,2025-07-01,Start of quarter,From 2024,Validator stake,30,Model v0.7,1.7967491121630298e+17,1.7929445131367472e+17,0.2,0.21
+1 Oct 2025,2025-10-01,Start of quarter,From 2024,Validator stake,30,Holding today's value,1.470610914382019e+17,1.5517067403382835e+17,4.29,-5.23
+1 Oct 2025,2025-10-01,Start of quarter,From 2024,Validator stake,30,Model v0.7,1.4835378657123914e+17,1.5517067403382835e+17,3.61,-4.39
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Validator stake,90,Holding today's value,2.1428304471271773e+17,2.353571191226541e+17,13.53,-8.95
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,2.0935480408634106e+17,2.353571191226541e+17,16.69,-11.05
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Validator stake,90,Holding today's value,2.2815279639778307e+17,2.3174215823345126e+17,2.34,-1.55
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,2.0519131348970352e+17,2.3174215823345126e+17,17.31,-11.46
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Validator stake,90,Holding today's value,2.352548393669613e+17,2.1593598180379696e+17,12.7,8.95
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Validator stake,90,Model v0.7,2.0011882449973443e+17,2.1593598180379696e+17,10.39,-7.32
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Validator stake,90,Holding today's value,2.2787450416390182e+17,2.2337818487798576e+17,2.98,2.01
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,2.4069101397063005e+17,2.2337818487798576e+17,11.49,7.75
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Validator stake,90,Holding today's value,2.2337818487798576e+17,2.20474468506643e+17,1.94,1.32
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,1.9819013903719062e+17,2.20474468506643e+17,14.86,-10.11
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Validator stake,90,Holding today's value,2.2540791633667472e+17,2.1971116370852832e+17,3.81,2.59
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Validator stake,90,Model v0.7,1.8985772786619814e+17,2.1971116370852832e+17,19.96,-13.59
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Validator stake,90,Holding today's value,2.1172498632758416e+17,2.0260257220838912e+17,5.98,4.5
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,2.2873887862505453e+17,2.0260257220838912e+17,17.14,12.9
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Validator stake,90,Holding today's value,1.9697635432221574e+17,2.197137383188862e+17,15.34,-10.35
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Validator stake,90,Model v0.7,1.9277412513613014e+17,2.197137383188862e+17,18.18,-12.26
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Validator stake,90,Holding today's value,2.1928931539676902e+17,1.9401438387976563e+17,15.47,13.03
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,2.3803178041461843e+17,1.9401438387976563e+17,26.93,22.69
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Validator stake,90,Holding today's value,2.1195023737456733e+17,2.0261912610833808e+17,5.56,4.61
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Validator stake,90,Model v0.7,2.2184716435888547e+17,2.0261912610833808e+17,11.45,9.49
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Validator stake,90,Holding today's value,1.939033233846884e+17,1.9308585770995254e+17,0.48,0.42
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,2.047532887540617e+17,1.9308585770995254e+17,6.86,6.04
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Validator stake,90,Holding today's value,1.939848465518754e+17,2.0908740290928118e+17,8.4,-7.22
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,2.4364713032815552e+17,2.0908740290928118e+17,19.22,16.53
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Validator stake,90,Holding today's value,2.1086811947032902e+17,1.7768950049098266e+17,18.16,18.67
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,2.637975922773772e+17,1.7768950049098266e+17,47.14,48.46
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Validator stake,90,Holding today's value,1.8698096548820813e+17,1.9413682842278083e+17,3.94,-3.69
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Validator stake,90,Model v0.7,2.0723224157022e+17,1.9413682842278083e+17,7.2,6.75
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Validator stake,90,Holding today's value,1.5944497866864118e+17,1.7271509411495674e+17,7.27,-7.68
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,1.8358770547794643e+17,1.7271509411495674e+17,5.96,6.3
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Validator stake,90,Holding today's value,1.7271509411495674e+17,1.7613168213358528e+17,1.83,-1.94
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,1.766340281059075e+17,1.7613168213358528e+17,0.27,0.29
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Validator stake,90,Holding today's value,1.881622853933931e+17,1.7249773906535952e+17,8.37,9.08
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Validator stake,90,Model v0.7,1.989880897329936e+17,1.7249773906535952e+17,14.16,15.36
+1 Jul 2025,2025-07-01,Start of quarter,From 2024,Validator stake,90,Holding today's value,1.7332825780376992e+17,1.5771996290900656e+17,8.37,9.9
+1 Jul 2025,2025-07-01,Start of quarter,From 2024,Validator stake,90,Model v0.7,1.830537123436801e+17,1.5771996290900656e+17,13.58,16.06
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Validator stake,180,Holding today's value,2.1428304471271773e+17,2.3270991677030966e+17,11.83,-7.92
+1 Jul 2022,2022-07-01,Start of quarter,Before 2024,Validator stake,180,Model v0.7,1.8982858757719056e+17,2.3270991677030966e+17,27.53,-18.43
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Validator stake,180,Holding today's value,2.2815279639778307e+17,2.3044386266511056e+17,1.49,-0.99
+1 Oct 2022,2022-10-01,Start of quarter,Before 2024,Validator stake,180,Model v0.7,1.74750554102238e+17,2.3044386266511056e+17,36.32,-24.17
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Validator stake,180,Holding today's value,2.352548393669613e+17,2.1587401537648643e+17,12.74,8.98
+"Banff, 18 Oct 2022",2022-10-18,Network upgrade,Before 2024,Validator stake,180,Model v0.7,1.816309588650606e+17,2.1587401537648643e+17,22.5,-15.86
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Validator stake,180,Holding today's value,2.2787450416390182e+17,2.20474468506643e+17,4.91,3.36
+1 Jan 2023,2023-01-01,Start of quarter,Before 2024,Validator stake,180,Model v0.7,2.0579342005443875e+17,2.20474468506643e+17,9.74,-6.66
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Validator stake,180,Holding today's value,2.2337818487798576e+17,2.0645684741365946e+17,11.28,8.2
+1 Apr 2023,2023-04-01,Start of quarter,Before 2024,Validator stake,180,Model v0.7,1.8072790184164192e+17,2.0645684741365946e+17,17.16,-12.46
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Validator stake,180,Holding today's value,2.2540791633667472e+17,2.117121448267464e+17,9.16,6.47
+"Cortina, 25 Apr 2023",2023-04-25,Network upgrade,Before 2024,Validator stake,180,Model v0.7,1.7467217225511453e+17,2.117121448267464e+17,24.77,-17.5
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Validator stake,180,Holding today's value,2.1172498632758416e+17,2.2152174440877987e+17,6.43,-4.42
+1 Jul 2023,2023-07-01,Start of quarter,Before 2024,Validator stake,180,Model v0.7,2.2676481018062397e+17,2.2152174440877987e+17,3.44,2.37
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Validator stake,180,Holding today's value,1.9697635432221574e+17,1.9869640352410986e+17,1.16,-0.87
+1 Oct 2023,2023-10-01,Start of quarter,Before 2024,Validator stake,180,Model v0.7,1.958284060659351e+17,1.9869640352410986e+17,1.94,-1.44
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Validator stake,180,Holding today's value,2.1928931539676902e+17,1.9518850112837008e+17,14.75,12.35
+1 Jan 2024,2024-01-01,Start of quarter,From 2024,Validator stake,180,Model v0.7,2.2329331285208032e+17,1.9518850112837008e+17,17.2,14.4
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Validator stake,180,Holding today's value,2.1195023737456733e+17,1.8118206151890765e+17,18.33,16.98
+"Durango, 6 Mar 2024",2024-03-06,Network upgrade,From 2024,Validator stake,180,Model v0.7,2.254985226334432e+17,1.8118206151890765e+17,26.4,24.46
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Validator stake,180,Holding today's value,1.939033233846884e+17,2.190284315937356e+17,14.77,-11.47
+1 Apr 2024,2024-04-01,Start of quarter,From 2024,Validator stake,180,Model v0.7,2.0458581964462413e+17,2.190284315937356e+17,8.49,-6.59
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Validator stake,180,Holding today's value,1.939848465518754e+17,1.8443038731108525e+17,5.31,5.18
+1 Jul 2024,2024-07-01,Start of quarter,From 2024,Validator stake,180,Model v0.7,2.656426205520042e+17,1.8443038731108525e+17,45.15,44.03
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Validator stake,180,Holding today's value,2.1086811947032902e+17,1.899345810640044e+17,11.46,11.02
+1 Oct 2024,2024-10-01,Start of quarter,From 2024,Validator stake,180,Model v0.7,2.811809416968322e+17,1.899345810640044e+17,49.96,48.04
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Validator stake,180,Holding today's value,1.8698096548820813e+17,1.8237443285979258e+17,2.53,2.53
+"Etna, 16 Dec 2024",2024-12-16,Network upgrade,From 2024,Validator stake,180,Model v0.7,2.0867443234225264e+17,1.8237443285979258e+17,14.47,14.42
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Validator stake,180,Holding today's value,1.5944497866864118e+17,1.7613168213358528e+17,9.14,-9.47
+1 Jan 2025,2025-01-01,Start of quarter,From 2024,Validator stake,180,Model v0.7,1.798526841668008e+17,1.7613168213358528e+17,2.04,2.11
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Validator stake,180,Holding today's value,1.7271509411495674e+17,1.6128707143552822e+17,6.12,7.09
+1 Apr 2025,2025-04-01,Start of quarter,From 2024,Validator stake,180,Model v0.7,1.755894426684559e+17,1.6128707143552822e+17,7.66,8.87
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Validator stake,180,Holding today's value,1.881622853933931e+17,1.408912437773648e+17,25.27,33.55
+"Fortuna, 8 Apr 2025",2025-04-08,Network upgrade,From 2024,Validator stake,180,Model v0.7,1.9282877742235936e+17,1.408912437773648e+17,27.77,36.86

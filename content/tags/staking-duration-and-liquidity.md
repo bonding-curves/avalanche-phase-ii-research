@@ -11,9 +11,9 @@ How long stake is committed, what locking costs, and the option to exit.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [1.1 Data Ingestion](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | BCRG |  | The historical staking data the research runs on: validator and delegator flows, rewards, and durations, each from a checked run. |
+| [1.1 Data Ingestion](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | BCRG |  | The historical staking data the research runs on: validator and delegator flows, rewards, and durations, with their sources, coverage, and gaps. |
 | [1.2 Data Manifest](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) | BCRG |  | Where every dataset comes from, how it is transformed, and how its quality is checked, so any number traces to its run. |
-| [1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | BCRG |  | The specification of a simplified model of the staking subsystem, with behavioral state variables. |
+| [1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | BCRG |  | The formal specification of staking model v0.7, a simplified model of the Primary Network staking subsystem that follows every validator commitment day by day, with behavioral state variables for renewal and entry. |
 | [1.4 Behavioral Calibration](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) | BCRG |  | Fitted response functions for staking, unstaking, and restaking, with confidence intervals. |
 
 ## Briefs
