@@ -126,3 +126,10 @@ def test_the_arrival_count_by_inversion_has_the_fitted_mean():
     counts = [block.count_from_uniform(u, 1.0) for u in Streams(0, 1).uniforms("arrivals", np.arange(50_000))]
     assert np.mean(counts) == pytest.approx(3.0, rel=0.05)
     assert Arrivals(mean_per_day=0.0).count_from_uniform(0.7, 1.0) == 0
+
+
+def test_a_design_generator_has_its_own_declared_stream():
+    """A sweep's design generator in library code seeds through this stream, as the seed audit requires."""
+    first = Streams(7, 0).generator("design").random(3)
+    assert first.tolist() == Streams(7, 0).generator("design").random(3).tolist()
+    assert first.tolist() != Streams(7, 0).generator("parameter_draw").random(3).tolist()

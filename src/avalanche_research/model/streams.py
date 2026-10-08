@@ -31,6 +31,7 @@ PURPOSES = {
     "return_days": "the duration after a return",
     "parameter_draw": "one run's draw of fitted parameters",
     "continuation_resample": "one run's node resample of the continuation and first-commitment tables",
+    "design": "a sweep design generator's own draws, such as the scrambling of a Sobol sequence",
     "failure": "an uptime failure at a commitment's end",
     "large_path": "the large-holder cohort path",
 }
