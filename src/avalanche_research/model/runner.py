@@ -200,6 +200,15 @@ def worker_memory(pilot: pd.DataFrame, runs_per_row: Sequence[int]) -> tuple[flo
     return float(base), float(per_run)
 
 
+def available_mib(meminfo: Path = Path("/proc/meminfo")) -> float:
+    """Memory available now, in MiB, as the kernel estimates it (``MemAvailable``). Read at launch, since free memory on
+    a shared machine moves with other jobs."""
+    for line in meminfo.read_text().splitlines():
+        if line.startswith("MemAvailable:"):
+            return int(line.split()[1]) / 1024
+    raise OSError(f"no MemAvailable in {meminfo}")
+
+
 def size_pool(available_mib: float, base_mib: float, per_run_mib: float, runs_per_row: int, reserve_mib: float = 2048,
               cpus: int | None = None) -> dict:
     """Workers that fit in ``available_mib`` after ``reserve_mib`` for the parent and the system, at most one per CPU."""

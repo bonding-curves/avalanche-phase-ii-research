@@ -157,3 +157,12 @@ def test_a_reducer_keeps_one_row_per_run(tmp_path):
     runner.run_sweep(base(), rows, tmp_path, workers=2, reducer=final_counts)
     kept = __import__("duckdb").execute(f"SELECT * FROM read_parquet('{tmp_path}/*.parquet')").df()
     assert len(kept) == 2 * 3 and set(kept.columns) >= {"row_id", "run", "final_validators", "specification"}
+
+
+def test_available_memory_is_read_from_the_kernel(tmp_path):
+    info = tmp_path / "meminfo"
+    info.write_text("MemTotal:       65536000 kB\nMemAvailable:    8192000 kB\n")
+    assert runner.available_mib(info) == pytest.approx(8000.0)
+    info.write_text("MemTotal: 1 kB\n")
+    with pytest.raises(OSError):
+        runner.available_mib(info)
