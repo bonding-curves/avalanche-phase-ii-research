@@ -391,6 +391,19 @@ def model_reward(stake_avax: float, duration_days: float, start: Any, supply_ava
     finish(envelope("model reward", "pass", {"text": f"{value['potential_reward_avax']:.9f} AVAX"}, items=items, reward=value), as_json)
 
 
+@model.command("sweep")
+@click.argument("design", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("out", type=click.Path(file_okay=False, path_type=Path))
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def model_sweep(design: Path, out: Path, as_json: bool) -> None:
+    """Run a sweep design file: one Parquet file per row under OUT, and the sweep's receipt beside them. v0."""
+    from .experiments import sweep
+
+    made = sweep.run(design, out)
+    text = f"{made['sweep']['rows_written']} rows written, {made['sweep']['rows_skipped']} skipped, receipt {made['receipt_id']}"
+    finish(envelope("model sweep", "pass", {"text": text}, receipt=made), as_json)
+
+
 @model.command("check")
 @click.option("validators", "--validators", type=click.Path(path_type=Path), required=True, help="Built primary-validator-stakes dataset directory.")
 @click.option("delegators", "--delegators", type=click.Path(path_type=Path), required=True, help="Built primary-delegator-stakes dataset directory.")

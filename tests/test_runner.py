@@ -166,3 +166,32 @@ def test_available_memory_is_read_from_the_kernel(tmp_path):
     info.write_text("MemTotal: 1 kB\n")
     with pytest.raises(OSError):
         runner.available_mib(info)
+
+
+def test_the_sweep_command_runs_a_design_file_and_writes_its_receipt(tmp_path, monkeypatch):
+    import json
+
+    from click.testing import CliRunner
+
+    from avalanche_research import cli
+    from avalanche_research.experiments import receipt, sweep
+
+    pin_file = tmp_path / "pin.json"
+    pin_file.write_text('{"schema_version": "avalanche-pins/v1", "name": "p", "runs": [{"dataset_id": "derived.staking-periods", '
+                        '"run": "synthetic", "sha256": "x", "parquet": "x.parquet", "bytes": 0, "check": "pass"}]}')
+    monkeypatch.setattr(sweep, "builder", lambda periods, run, runs, timesteps: builder)
+    monkeypatch.setattr(sweep, "parquet_path", lambda dataset, run: "unused")
+    monkeypatch.setattr(receipt, "code_commit", lambda directory=None: {"commit": "abc", "dirty": False, "package_version": "test"})
+    monkeypatch.setattr(receipt.pins, "verify", lambda path, root=None: [])
+    design = {"generator": "cartesian", "levels": {"renewal_probability": [0.3, 0.7]}, "seed": 0, "origins": ["2025-04-08"],
+              "models": ["v0.7"], "rows": 2, "pin": str(pin_file), "runs": 3, "timesteps": 6, "workers": 2}
+    (tmp_path / "design.json").write_text(json.dumps(design))
+    result = CliRunner().invoke(cli.cli, ["model", "sweep", str(tmp_path / "design.json"), str(tmp_path / "out"), "--json"])
+    assert result.exit_code == 0, result.output
+    made = json.loads(result.output)["receipt"]
+    assert made["sweep"]["complete"] and made["sweep"]["rows_written"] == 2 and (tmp_path / "out" / "receipt.json").is_file()
+    assert receipt.check(made) == []
+    again = CliRunner().invoke(cli.cli, ["model", "sweep", str(tmp_path / "design.json"), str(tmp_path / "again"), "--json"])
+    assert again.exit_code == 0
+    rerun = CliRunner().invoke(cli.cli, ["model", "sweep", str(tmp_path / "design.json"), str(tmp_path / "out")])
+    assert rerun.exit_code != 0 and "receipt already exists" in str(rerun.exception)
