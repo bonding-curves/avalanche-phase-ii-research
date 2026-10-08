@@ -1,14 +1,32 @@
 {
  "chart": "renewal-terms",
  "script": "scripts/figures/m1_calibration.py",
+ "producer": {
+  "file": "calibrate.py",
+  "sha256": "23cb049f5b457d2291153f0a8cb9e24e1c4a044d3393fec0e0951094e7f133cf"
+ },
  "inputs": {
   "terms": {
-   "file": "renewal-terms.csv",
+   "file": "results/renewal-terms.csv",
    "sha256": "cc431fe8d351fc2ff1ff4032d3e81206d4b9959d473a1766182532a7af5ec3c1"
   }
  },
+ "outputs": [
+  {
+   "file": "renewal-terms.csv",
+   "sha256": "6f30eb09b5a5b86059ee3170514ccbe00754f201cb2bfb71b3717f7c79e31aac"
+  },
+  {
+   "file": "renewal-terms.png",
+   "sha256": "6f23f19c25cd95b6676aaae988930b35a91937f2b6cc5f702d143d20d4423f98"
+  },
+  {
+   "file": "renewal-terms.html",
+   "sha256": "8a413a2d8da7fb428f8903420a49bc856c42042ed71273c40008db6a3d13c9e1"
+  }
+ ],
  "notes": [
-  "Each input is the file of that name written by calibrate.py, which is kept beside the deliverable page.",
+  "Each input is a file in results/, written unchanged by calibrate.py, which is kept beside the deliverable page.",
   "Fitted at origin 2025-11-18 on staking-periods-2026-09-30 with the v0.8 candidate's code at commit 1c891a4.",
   "Renewal: penalized logit on 14,977 endings by 2,968 nodes in the 365 days to seven days before the origin.",
   "Laplace interval: estimate plus or minus 1.96 standard errors from the inverse penalized Hessian.",

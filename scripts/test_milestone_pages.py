@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import sys
 import tempfile
@@ -68,6 +70,50 @@ class MilestonePagesTest(unittest.TestCase):
         nested = {"status": "pass", "findings": [], "validation": {"checked": ["a", "b", "c"], "findings": [], "status": "pass", "summary": {}}}
         record = {"build": {"summary": {}}, "check": milestone_pages.flat_check(nested), "capture": {}, "run": "r"}
         self.assertEqual(milestone_pages.checks(record), "all 3 passed")
+
+    def test_unchecked_run_is_reported_as_unchecked(self):
+        unchecked = {"run": "unchecked-new", "build": {"completed_at": "2026-10-08T00:00:00Z", "summary": {"rows": 5}}, "capture": {}, "check": None}
+        passed = {"run": "passed-new", "build": {"completed_at": "2026-10-08T00:00:00Z", "summary": {"rows": 9}}, "capture": {},
+                  "check": {"status": "pass", "checked": ["a"], "findings": []}}
+        manifest = milestone_pages.render(CATALOG, {"snowflake.primary-validator-stakes": unchecked}, as_of="2026-10-08")["manifest"]
+        self.assertNotIn("Every built run passed", manifest)
+        self.assertIn("1 of 2 datasets have a built run. 0 passed every check, and 1 has not been checked: `snowflake.primary-validator-stakes`.", manifest)
+        self.assertIn("| `snowflake.primary-validator-stakes` | 5 | not dated | not checked | none | none |", manifest)
+        both = {"snowflake.primary-validator-stakes": unchecked, "snowflake.primary-staking-rewards": passed}
+        manifest = milestone_pages.render(CATALOG, both, as_of="2026-10-08")["manifest"]
+        self.assertIn("2 of 2 datasets have a built run. 1 passed every check, and 1 has not been checked:", manifest)
+        manifest = milestone_pages.render(CATALOG, {"snowflake.primary-staking-rewards": passed}, as_of="2026-10-08")["manifest"]
+        self.assertIn("1 of 2 datasets have a built run. Every built run passed its checks.", manifest)
+
+    def test_build_without_runs_refuses_and_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            catalog, runs, content = root / "catalog.json", root / "runs", root / "content"
+            catalog.write_text(json.dumps(CATALOG))
+            runs.mkdir()
+            argv = ["build", "--catalog", str(catalog), "--runs", str(runs), "--pins", str(root / "pins"), "--content", str(content), "--as-of", "2026-10-08"]
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(milestone_pages.main(argv), 1)
+            self.assertIn("found 0 built runs", out.getvalue())
+            self.assertIn("data/README.md", out.getvalue())
+            self.assertFalse(content.exists())
+            write_run(runs, "one-1", "snowflake.primary-staking-rewards", {"rows": 5}, {"status": "pass", "checked": ["a"], "findings": []})
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(milestone_pages.main(argv), 1)
+            self.assertIn("found 1 built runs", out.getvalue())
+            self.assertFalse(content.exists())
+
+    def test_stale_names_pages_that_differ_from_a_fresh_render(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pages = {name: Path(directory) / name / "index.md" for name in milestone_pages.PAGES}
+            rendered = milestone_pages.render(CATALOG, {}, as_of="2026-10-08")
+            for name, text in rendered.items():
+                pages[name].parent.mkdir()
+                pages[name].write_text(text)
+            self.assertEqual(milestone_pages.stale(rendered, pages), [])
+            self.assertEqual(milestone_pages.stated_as_of(pages), "2026-10-08")
+            pages["manifest"].write_text(rendered["manifest"] + "\nedited by hand\n")
+            self.assertEqual(len(milestone_pages.stale(rendered, pages)), 1)
 
     def test_coverage_reads_date_pairs_and_capture_windows(self):
         self.assertEqual(milestone_pages.coverage({"first_date": "2021-02-01", "last_date": "2021-03-01"}), "2021-02-01 to 2021-03-01")

@@ -1,17 +1,21 @@
 """Charts for deliverable 1.4, Behavioral Calibration: the v0.8 candidate's fitted behaviour with 95% intervals.
 
-Each chart answers one question and writes four files with one stem: a PNG for the page, an HTML for interaction, a
-CSV holding exactly the drawn data under readable column names, and a JSON receipt naming every input with its sha256.
+The inputs are calibrate.py's raw outputs, delivered unchanged in the ``results/`` folder beside the deliverable page.
+calibrate.py was run on model code at commit ``1c891a4`` and the staking periods run ``staking-periods-2026-09-30``, at
+origin 2025-11-18. Each chart answers one question and writes four files with one stem into the page folder: a PNG for
+the page, an HTML for interaction, a CSV holding exactly the drawn data under readable column names, and a JSON receipt.
+The receipt names every input in ``results/`` and every file the chart wrote, each with its sha256.
 
-    uv run --group notebook python scripts/figures/m1_calibration.py CHART OUT_DIR --input NAME=PATH ...
+    uv run --group notebook python scripts/figures/m1_calibration.py            draw both charts
+    uv run --group notebook python scripts/figures/m1_calibration.py --check    verify the delivered files
+
+``--check`` recomputes every sha256 a receipt names and rebuilds each readable CSV from its input. It changes no file
+and exits nonzero on any difference.
 
 Charts and their inputs:
 
-    terms     terms=renewal-terms.csv     The renewal logit's eleven terms, with Laplace and node-bootstrap intervals
-    hazard    hazard=return-hazard.csv    The daily return hazard in nine cells, with exact Poisson intervals
-
-The input files are written by ``calibrate.py``, kept beside the deliverable page, run on model code at commit
-``1c891a4`` and the staking periods run ``staking-periods-2026-09-30``, at origin 2025-11-18.
+    terms     results/renewal-terms.csv    The renewal logit's eleven terms, with Laplace and node-bootstrap intervals
+    hazard    results/return-hazard.csv    The daily return hazard in nine cells, with exact Poisson intervals
 """
 
 from __future__ import annotations
@@ -31,11 +35,14 @@ from avalanche_research.views.model_results import INK, MODEL_COLORS, MUTED
 sys.path.insert(0, str(Path(__file__).parent))
 from png import save_png
 
+PAGE = Path(__file__).resolve().parents[2] / "content" / "Phase II" / "Milestones" / "Milestone 1" / "1-4 Behavioral Calibration"
+RESULTS = "results"
+PRODUCER = "calibrate.py"
 WIDTH = 820
 STYLE = {"fontscale": 1.1, "toolbar": None, "show_grid": True}
 V08 = MODEL_COLORS["v0.8"]
 NOTES = [
-    "Each input is the file of that name written by calibrate.py, which is kept beside the deliverable page.",
+    "Each input is a file in results/, written unchanged by calibrate.py, which is kept beside the deliverable page.",
     "Fitted at origin 2025-11-18 on staking-periods-2026-09-30 with the v0.8 candidate's code at commit 1c891a4.",
     "Renewal: penalized logit on 14,977 endings by 2,968 nodes in the 365 days to seven days before the origin.",
     "Laplace interval: estimate plus or minus 1.96 standard errors from the inverse penalized Hessian.",
@@ -66,16 +73,20 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def write(chart, table: pd.DataFrame, out: Path, stem: str, inputs: dict[str, Path], height: int) -> Path:
-    """Save the chart as HTML and PNG, its table as CSV, and a receipt of its inputs."""
-    out.mkdir(parents=True, exist_ok=True)
-    table.to_csv(out / f"{stem}.csv", index=False)
-    hv.save(chart, out / f"{stem}.html")
-    save_png(out / f"{stem}.html", out / f"{stem}.png", WIDTH + 40, height + 40)
-    receipt = {"chart": stem, "script": "scripts/figures/m1_calibration.py",
-               "inputs": {name: {"file": p.name, "sha256": sha256(p)} for name, p in inputs.items()}, "notes": NOTES}
-    (out / f"{stem}.json").write_text(json.dumps(receipt, indent=1) + "\n")
-    return out / f"{stem}.png"
+def write(chart, table: pd.DataFrame, page: Path, stem: str, inputs: dict[str, str], height: int) -> Path:
+    """Save the chart as HTML and PNG and its table as CSV, then a receipt hashing the inputs, producer and outputs."""
+    table.to_csv(page / f"{stem}.csv", index=False)
+    hv.save(chart, page / f"{stem}.html")
+    save_png(page / f"{stem}.html", page / f"{stem}.png", WIDTH + 40, height + 40)
+
+    def entry(name: str) -> dict[str, str]:
+        return {"file": name, "sha256": sha256(page / name)}
+
+    receipt = {"chart": stem, "script": "scripts/figures/m1_calibration.py", "producer": entry(PRODUCER),
+               "inputs": {key: entry(name) for key, name in inputs.items()},
+               "outputs": [entry(f"{stem}.{ext}") for ext in ("csv", "png", "html")], "notes": NOTES}
+    (page / f"{stem}.json").write_text(json.dumps(receipt, indent=1) + "\n")
+    return page / f"{stem}.png"
 
 
 def terms_table(terms: pd.DataFrame) -> pd.DataFrame:
@@ -93,9 +104,10 @@ def terms_table(terms: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def chart_terms(inputs: dict[str, Path], out: Path) -> Path:
+def chart_terms(page: Path) -> Path:
     """Which features move renewal, and how sure is each? Log-odds terms against the baseline node, with intervals."""
-    table = terms_table(pd.read_csv(inputs["terms"]))
+    stem, inputs = CHARTS["terms"][:2]
+    table = terms_table(pd.read_csv(page / inputs["terms"]))
     drawn = table[table.Group != "Baseline"].reset_index(drop=True)
     n = len(drawn)
     drawn["y"] = [n - 1 - i for i in range(n)]
@@ -117,7 +129,7 @@ def chart_terms(inputs: dict[str, Path], out: Path) -> Path:
         width=WIDTH, height=500, title="Tenure moves renewal most, and a return after a gap lowers it",
         xlabel="Change in the log-odds of renewing within 7 days, against the baseline node", ylabel="",
         yticks=labels, ylim=(-1.4, n + 0.1), xlim=(-1.8, 2.2), show_legend=False, **STYLE)
-    return write(chart, table, out, "renewal-terms", inputs, 500)
+    return write(chart, table, page, stem, inputs, 500)
 
 
 def hazard_table(hazard: pd.DataFrame) -> pd.DataFrame:
@@ -131,10 +143,10 @@ def hazard_table(hazard: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def chart_hazard(inputs: dict[str, Path], out: Path) -> Path:
+def chart_hazard(page: Path) -> Path:
     """How quickly do nodes that leave come back? The daily return probability by stake band and time out."""
-    raw = pd.read_csv(inputs["hazard"])
-    table = hazard_table(raw)
+    stem, inputs = CHARTS["hazard"][:2]
+    table = hazard_table(pd.read_csv(page / inputs["hazard"]))
     layers = []
     offsets = {"minimum": -0.12, "mid": 0.0, "large": 0.12}
     for band, label in BANDS.items():
@@ -155,21 +167,60 @@ def chart_hazard(inputs: dict[str, Path], out: Path) -> Path:
         xlabel="Days since the node's last commitment ended", ylabel="Daily probability of returning (%), log scale",
         logy=True, ylim=(0.003, 5), xlim=(-0.35, 3.25), xticks=[(i, p) for i, p in enumerate(PERIODS.values())],
         yticks=[(v, f"{v:g}") for v in (0.005, 0.01, 0.05, 0.1, 0.5, 1, 2, 5)], show_legend=False, **STYLE)
-    return write(chart, table, out, "return-hazard", inputs, 420)
+    return write(chart, table, page, stem, inputs, 420)
 
 
-CHARTS = {"terms": chart_terms, "hazard": chart_hazard}
+# Chart name: (file stem, inputs by name relative to the page folder, table builder, draw function).
+CHARTS = {
+    "terms": ("renewal-terms", {"terms": f"{RESULTS}/renewal-terms.csv"}, terms_table, chart_terms),
+    "hazard": ("return-hazard", {"hazard": f"{RESULTS}/return-hazard.csv"}, hazard_table, chart_hazard),
+}
+
+
+def check(page: Path) -> list[str]:
+    """Every difference between the delivered files and their receipts, as one line each. Prints one line per file."""
+    problems = []
+    for stem, inputs, build, _ in CHARTS.values():
+        receipt = json.loads((page / f"{stem}.json").read_text())
+        for key in ("producer", "inputs", "outputs"):
+            if key not in receipt:
+                problems.append(f"{stem}.json: no {key} recorded")
+        named = [*filter(None, [receipt.get("producer")]), *receipt.get("inputs", {}).values(), *receipt.get("outputs", [])]
+        if {key: item["file"] for key, item in receipt.get("inputs", {}).items()} != inputs:
+            problems.append(f"{stem}.json: inputs {sorted(receipt['inputs'])} are not {inputs}")
+        for item in named:
+            path = page / item["file"]
+            actual = sha256(path) if path.is_file() else "missing"
+            status = "ok" if actual == item["sha256"] else "MISMATCH"
+            print(f"{status:8} {stem}.json  {item['file']}  {actual[:16]}")
+            if status != "ok":
+                problems.append(f"{stem}.json: {item['file']} is {actual}, receipt says {item['sha256']}")
+        (name,) = inputs.values()
+        rebuilt = build(pd.read_csv(page / name)).to_csv(index=False)
+        same = rebuilt == (page / f"{stem}.csv").read_text()
+        print(f"{'ok' if same else 'MISMATCH':8} {stem}.csv  equals the table rebuilt from {name}")
+        if not same:
+            problems.append(f"{stem}.csv differs from the table rebuilt from {name}")
+    return problems
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("chart", choices=sorted(CHARTS))
-    parser.add_argument("out", type=Path)
-    parser.add_argument("--input", action="append", default=[], metavar="NAME=PATH")
+    parser.add_argument("charts", nargs="*", metavar="CHART",
+                        help=f"charts to draw, from {', '.join(sorted(CHARTS))}; all when none is named")
+    parser.add_argument("--page", type=Path, default=PAGE, help="the deliverable page folder (default: %(default)s)")
+    parser.add_argument("--check", action="store_true", help="verify the receipts and readable CSVs, change nothing")
     args = parser.parse_args()
+    if args.check:
+        problems = check(args.page)
+        print("\n".join(problems) if problems else "all receipts match the delivered files")
+        sys.exit(1 if problems else 0)
+    unknown = sorted(set(args.charts) - set(CHARTS))
+    if unknown:
+        parser.error(f"unknown chart {', '.join(unknown)}: choose from {', '.join(sorted(CHARTS))}")
     hv.extension("bokeh")
-    inputs = {k: Path(v) for k, v in (item.split("=", 1) for item in args.input)}
-    print(CHARTS[args.chart](inputs, args.out))
+    for name in args.charts or sorted(CHARTS):
+        print(CHARTS[name][3](args.page))
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 Run from an export of commit 1c891a4 of the research repository, with the staking periods run
 staking-periods-2026-09-30 available to its data catalog (deliverables 1.1 and 1.2):
 
-    uv run python calibrate.py <output folder>
+    uv run --group model python calibrate.py <output folder>
 
 Origin 2025-11-18 is the last day before the held-back period, which starts 2025-11-19 16:00 UTC. Every fit reads
 only events before it, through fitted_inputs' own selection. Intervals:

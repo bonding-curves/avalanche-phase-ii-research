@@ -69,7 +69,7 @@ The second sum is a penalty equal to a normal prior with variance 1 on every ter
 
 ![The renewal function's eleven terms with 95% intervals](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-terms.png)
 
-*Figure 1. The fitted terms of the renewal function at origin 18 November 2025, as changes in the log-odds of renewing within seven days against the baseline node. Dots are estimates. The pale bar is the node-bootstrap 95% interval and the dark line the Laplace 95% interval, both defined in [How the intervals were computed](#how-the-intervals-were-computed). Terms right of the dashed line raise renewal. Source: [renewal-terms.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-terms.csv), drawn from the output of [calibrate.py](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/calibrate.py). An [interactive version](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-terms.html) is available.*
+*Figure 1. The fitted terms of the renewal function at origin 18 November 2025, as changes in the log-odds of renewing within seven days against the baseline node. Dots are estimates. The pale bar is the node-bootstrap 95% interval and the dark line the Laplace 95% interval, both defined in [How the intervals were computed](#how-the-intervals-were-computed). Terms right of the dashed line raise renewal. Data: [renewal-terms.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-terms.csv), rebuilt from [results/renewal-terms.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/renewal-terms.csv), which [calibrate.py](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/calibrate.py) wrote. An [interactive version](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-terms.html) is available.*
 
 Tenure carries the largest effects. Moving from a first to a second commitment raises the log-odds by 1.46, which multiplies the odds of renewing by 4.3. The rise is not smooth: third to sixth commitments sit below the second, and the tenth or later sit highest. A commitment that began after a return renews less than one that followed a renewal, by 1.32 in log-odds, about a quarter of the odds. Commitments of 21 to 40 days renew slightly more than shorter ones, and those over 100 days much less. Stakes of 100,000 to 1 million AVAX renew more than the minimum, and stakes over 1 million less, with a node-bootstrap interval that includes zero.
 
@@ -101,7 +101,7 @@ Log-odds are hard to read directly, so Table 3 turns the fitted terms into renew
 | Fourth commitment begun after a return, 14 to 20 days, 2,000 AVAX | 0.47 | 0.42 to 0.52 |
 | Seventh to ninth commitment, 14 to 20 days, over 1 million AVAX | 0.79 | 0.70 to 0.84 |
 
-*Table 3. Renewal probability of typical nodes at origin 18 November 2025, with node-bootstrap 95% intervals. Unstaking is the complement: a first commitment of this kind ends without renewal half the time.*
+*Table 3. Renewal probability of typical nodes at origin 18 November 2025, with node-bootstrap 95% intervals. Unstaking is the complement: a first commitment of this kind ends without renewal half the time. Source: [results/renewal-profiles.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/renewal-profiles.csv).*
 
 The fitted function describes the year before one origin. Figure 2 shows the same rise with a node's record in the raw record from July 2022 to the held-back period.
 
@@ -123,7 +123,7 @@ The estimate $\hat h_c$ is the maximum-likelihood hazard. A node is at risk from
 
 ![Daily probability of returning by stake band and time out](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/return-hazard.png)
 
-*Figure 3. The fitted daily probability that a node in the out-of-set pool returns, by its last stake and the days since its last commitment ended, at origin 18 November 2025, on a log scale. Vertical bars are exact Poisson 95% intervals. Source: [return-hazard.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/return-hazard.csv), drawn from the output of [calibrate.py](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/calibrate.py). An [interactive version](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/return-hazard.html) is available.*
+*Figure 3. The fitted daily probability that a node in the out-of-set pool returns, by its last stake and the days since its last commitment ended, at origin 18 November 2025, on a log scale. Vertical bars are exact Poisson 95% intervals. Data: [return-hazard.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/return-hazard.csv), rebuilt from [results/return-hazard.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/return-hazard.csv), which [calibrate.py](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/calibrate.py) wrote. An [interactive version](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/return-hazard.html) is available.*
 
 | Last stake | Days out | Returns | Node-days at risk | Daily hazard (%) | 95% interval (%) |
 | --- | --- | --- | --- | --- | --- |
@@ -156,7 +156,7 @@ where $\beta_E\, g^E_t$ is the response to reward, 0 in the fit. The mean is the
 | Mean first-ever arrivals per day, $\mu$ | 3.89 | 3.10 to 4.86 |
 | Dispersion, $k$ | 0.49 | 0.42 to 0.58 |
 
-*Table 5. The fitted arrival function at origin 18 November 2025, on the 1,420 first-ever commitments in the 365 days before it, with moving-block bootstrap 95% intervals.*
+*Table 5. The fitted arrival function at origin 18 November 2025, on the 1,420 first-ever commitments in the 365 days before it, with moving-block bootstrap 95% intervals. Source: [results/arrivals.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/arrivals.csv).*
 
 At these values, Equation 4 gives a daily variance of about 34.6, nine times the mean of 3.89. Arrivals come in clusters rather than one at a time.
 
@@ -240,16 +240,21 @@ The rate for a 365-day commitment was 1.19 times the 14-day rate on every day be
 
 The fitted values come from the model's v0.8 candidate at commit `1c891a4` of the research repository, on the staking periods run `staking-periods-2026-09-30` described in [1.1 Data Ingestion](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) and [1.2 Data Manifest](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/).
 
-1. **Fit and intervals.** [calibrate.py](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/calibrate.py) runs the model's own fitting function at origin 18 November 2025, asserts that its values equal the model's, and computes every interval with fixed random seeds. To rerun it, export commit `1c891a4`, make the staking periods run available to its data catalog, and run `uv run python calibrate.py <output folder>` from the export. A rerun on 8 October 2026 reproduced all five output files byte for byte. Table 6's April values come from the same fitting function at origin 8 April 2025.
+1. **Fit and intervals.** [calibrate.py](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/calibrate.py) runs the model's own fitting function at origin 18 November 2025, asserts that its values equal the model's, and computes every interval with fixed random seeds. To rerun it, export commit `1c891a4`, make the staking periods run available to its data catalog, and run `uv run --group model python calibrate.py <output folder>` from the export. Its five output files are delivered unchanged in this page's `results` folder. A rerun on 8 October 2026 reproduced all five byte for byte. Table 6's April values come from the same fitting function at origin 8 April 2025.
 2. **Held-out checks.** Table 7 comes from `scripts/renewal_block_scores.py` at commit `1c891a4`.
-3. **Figures.** `scripts/figures/m1_calibration.py` draws Figures 1 and 3 from calibrate.py's output, writing a PNG, an interactive HTML, a CSV of the drawn data and a JSON receipt with its input's sha256. Figure 2 is reproduced from the research report on model v0.7.
+3. **Figures.** `scripts/figures/m1_calibration.py` draws Figures 1 and 3 from the files in `results`. For each figure it writes a PNG, an interactive HTML, a CSV of the drawn data under readable column names, and a JSON receipt. The receipt records the sha256 of calibrate.py, of the input in `results`, and of each file the figure wrote. Running the script with `--check` recomputes every recorded sha256, rebuilds each figure's CSV from its input, and exits with an error on any difference. Figure 2 is reproduced from the research report on model v0.7.
 
 | File | What it holds |
 | --- | --- |
 | [calibrate.py](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/calibrate.py) | The fitting and interval script |
-| [renewal-terms.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-terms.csv) | Figure 1 and Table 2: the 12 renewal terms with both intervals and odds multipliers |
-| [return-hazard.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/return-hazard.csv) | Figure 3 and Table 4: the nine return cells with counts, exposure and intervals |
+| [results/renewal-terms.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/renewal-terms.csv) | calibrate.py's output: the 12 renewal terms with Laplace and node-bootstrap intervals |
+| [results/renewal-profiles.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/renewal-profiles.csv) | calibrate.py's output: Table 3's six typical nodes with node-bootstrap intervals |
+| [results/arrivals.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/arrivals.csv) | calibrate.py's output: Table 5's arrival mean and dispersion with moving-block bootstrap intervals |
+| [results/return-hazard.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/return-hazard.csv) | calibrate.py's output: the nine return cells with counts, exposure and exact Poisson intervals |
+| [results/summary.json](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/summary.json) | calibrate.py's output: origin, run, commit, counts of endings, nodes and first-ever commitments, and bootstrap replicates |
+| [renewal-terms.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-terms.csv) | Figure 1 and Table 2: the renewal terms under readable names, with odds multipliers |
+| [return-hazard.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/return-hazard.csv) | Figure 3 and Table 4: the return cells under readable names, as percentages |
 | [renewal-by-tenure.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.csv) | Figure 2: renewal share by commitment number, 2022 to 2025 |
-| [renewal-terms.json](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-terms.json), [return-hazard.json](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/return-hazard.json) | Receipts naming each figure's input with its sha256 |
+| [renewal-terms.json](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-terms.json), [return-hazard.json](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/return-hazard.json) | Receipts for Figures 1 and 3: the sha256 of calibrate.py, of the input in `results`, and of each file the figure wrote |
 
-*Table 8. The files behind this page, all in this page's folder.*
+*Table 8. The files behind this page, all in this page's folder or its `results` folder.*

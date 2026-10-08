@@ -304,4 +304,4 @@ Table 4 identifies each run behind Table 3: when it was captured, its capture ID
 
 *Table 4. The run behind each row of Table 3, and the pins that hold a run of the dataset. Source: the capture receipts and `data/pins/`.*
 
-Captures are working data and are not committed. `data/README.md` gives the commands that reproduce each one, and [Data](/Phase-II/Wiki/Reference/Data) explains how to list, load, and pin runs.
+Captures are working data and are not committed, so rebuilding this page needs the runs first. `data/README.md` gives the commands that produce each one: `avalanche data fetch` captures a dataset, `avalanche data build` builds it, and `avalanche data check` checks it. `scripts/milestone_pages.py build --as-of 2026-10-08` then generates this page from the receipts, and it stops without writing when a quantity of the agreement has no built run. [Data](/Phase-II/Wiki/Reference/Data) explains how to list, load, and pin runs.

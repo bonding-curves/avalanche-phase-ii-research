@@ -1,0 +1,14 @@
+{
+ "origin": "2025-11-18",
+ "run": "staking-periods-2026-09-30",
+ "client_commit": "1c891a4fc07e9c4f570682c7d204f3cddb85e700",
+ "renewal_endings": 14977,
+ "renewal_nodes": 2968,
+ "renewal_share": 0.7856713627562262,
+ "first_ever_in_year": 1420,
+ "bootstrap_replicates": {
+  "renewal": 300,
+  "arrivals": 1000
+ },
+ "median_bootstrap_over_laplace_width": 1.0367571996986966
+}
