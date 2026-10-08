@@ -70,7 +70,8 @@ def test_load_rejects_a_modified_parquet_file(root):
 
 
 def test_connect_exposes_one_view_per_built_dataset(root):
-    assert set(datasets.views(root=root)) == {"validator_stakes", "delegator_stakes"}
+    assert set(datasets.views(root=root)) == {"validator_stakes", "delegator_stakes", "snowflake_primary_validator_stakes",
+                                              "snowflake_primary_delegator_stakes"}
     assert datasets.view_name("coingecko.avax-market-daily") == "avax_market_daily"
     connection = datasets.connect(root=root)
     try:
@@ -148,3 +149,87 @@ def test_a_run_whose_build_and_capture_name_different_datasets_is_refused(root):
         with pytest.raises(DataError, match="run validators-new: its build names"):
             datasets.load("snowflake.primary-validator-stakes", root=root)
         path.write_bytes(kept)
+
+
+
+def pin_file(root: Path, tmp_path: Path, dataset_id: str, run: str) -> Path:
+    parquet = next((root / run / "dataset").glob("*.parquet"))
+    body = parquet.read_bytes()
+    capture = json.loads((root / run / "capture" / "capture.json").read_text())
+    (root / run / "dataset" / "check.json").write_bytes(canonical_bytes({"status": "pass"}))
+    path = tmp_path / "pin.json"
+    path.write_bytes(canonical_bytes({"schema_version": "avalanche-pins/v1", "name": "pin", "pinned_at": "2026-10-08T00:00:00Z", "runs": [
+        {"dataset_id": dataset_id, "run": run, "capture_id": capture["capture_id"], "captured_at": capture["completed_at"], "check": "pass",
+         "parquet": parquet.name, "bytes": len(body), "sha256": sha256(body)}]}))
+    return path
+
+
+def set_times(root: Path, run: str, captured_at: str | None = None, built_at: str | None = None) -> None:
+    for receipt, field, value in (("capture/capture.json", "completed_at", captured_at), ("dataset/build.json", "completed_at", built_at)):
+        if value is not None:
+            path = root / run / receipt
+            record = json.loads(path.read_text())
+            record[field] = value
+            path.write_bytes(canonical_bytes(record))
+
+
+def test_colliding_short_names_keep_canonical_views_and_the_ambiguous_alias_is_refused(root, monkeypatch):
+    make_run(root, "x-blocks", "x-chain-rpc.blocks", "blocks", "SELECT 1 AS x", "2026-09-14T00:00:00Z")
+    make_run(root, "p-blocks", "p-chain-rpc.blocks", "blocks", "SELECT 2 AS x", "2026-09-14T00:00:00Z")
+    names = datasets.views(root=root)
+    assert "x_chain_rpc_blocks" in names and "p_chain_rpc_blocks" in names and "blocks" not in names
+    connection = datasets.connect(root=root)
+    try:
+        assert connection.execute("SELECT x FROM p_chain_rpc_blocks").fetchone() == (2,)
+        with pytest.raises(duckdb.CatalogException):
+            connection.execute("SELECT * FROM blocks")
+        provenance = dict(connection.execute("SELECT view_name, run FROM _provenance").fetchall())
+        assert provenance["x_chain_rpc_blocks"] == "x-blocks" and provenance["validator_stakes"] == "validators-new"
+    finally:
+        connection.close()
+
+
+def test_a_pinned_read_ignores_a_newer_run(root, tmp_path):
+    pin = pin_file(root, tmp_path, "snowflake.primary-validator-stakes", "validators-old")
+    make_run(root, "validators-newest", "snowflake.primary-validator-stakes", "primary-validator-stakes", "SELECT 'v9' AS transaction_hash",
+             "2026-09-20T00:00:00Z")
+    chosen = datasets.select_run("snowflake.primary-validator-stakes", pin=pin, root=root)
+    assert chosen["run"] == "validators-old" and chosen["rule"] == "pin" and chosen["capture_id"].endswith("validators-old")
+
+
+def test_a_later_rebuild_of_an_older_capture_does_not_outrank_a_newer_capture(root):
+    set_times(root, "validators-old", built_at="2026-10-01T00:00:00Z")
+    assert datasets.runs("snowflake.primary-validator-stakes", root)[0]["run"] == "validators-new"
+    assert datasets.select_run("snowflake.primary-validator-stakes", newest=True, root=root)["run"] == "validators-new"
+
+
+def test_capture_times_compare_in_utc_across_offsets(root):
+    set_times(root, "validators-old", captured_at="2026-09-14T06:00:00+08:00")
+    set_times(root, "validators-new", captured_at="2026-09-13T23:00:00-02:00")
+    assert datasets.select_run("snowflake.primary-validator-stakes", newest=True, root=root)["run"] == "validators-new"
+
+
+@pytest.mark.parametrize("value", [None, "not a time", "2026-09-14T00:00:00"])
+def test_a_missing_or_unreadable_capture_time_requires_an_exact_run(root, value):
+    path = root / "validators-old" / "capture" / "capture.json"
+    record = json.loads(path.read_text())
+    record["completed_at"] = value
+    path.write_bytes(canonical_bytes(record))
+    with pytest.raises(DataError, match="name the run exactly"):
+        datasets.select_run("snowflake.primary-validator-stakes", newest=True, root=root)
+    assert datasets.select_run("snowflake.primary-validator-stakes", run="validators-old", root=root)["rule"] == "run"
+
+
+def test_a_tied_latest_capture_time_requires_an_exact_run(root):
+    set_times(root, "validators-old", captured_at="2026-09-14T00:00:00Z")
+    with pytest.raises(DataError, match="share the latest capture time"):
+        datasets.select_run("snowflake.primary-validator-stakes", newest=True, root=root)
+
+
+def test_a_corrupted_newest_run_raises_with_its_identity_and_never_falls_back(root):
+    parquet = root / "validators-new" / "dataset" / "primary-validator-stakes.parquet"
+    parquet.write_bytes(parquet.read_bytes() + b" ")
+    with pytest.raises(DataError, match="validators-new"):
+        datasets.select_run("snowflake.primary-validator-stakes", newest=True, root=root)
+    with pytest.raises(DataError, match="exactly one"):
+        datasets.select_run("snowflake.primary-validator-stakes", root=root)
