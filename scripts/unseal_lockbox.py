@@ -19,10 +19,15 @@ commits them to branch ``lockbox/receipt`` and pushes, and only then prints anyt
 from __future__ import annotations
 
 import argparse
-import importlib
+import importlib.util
 import json
+import os
+import re
+import secrets
+import socket
 import subprocess
 import sys
+from collections import defaultdict
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -34,6 +39,9 @@ FOLDER = Path("validation/lockbox")
 OUTPUTS = {"receipt.json", "report.md"}
 WINDOW_END = date(2026, 9, 22)
 RECEIPT_BRANCH = "lockbox/receipt"
+COMMIT_ID = re.compile(r"^[0-9a-f]{40}$")
+# Window ends are exclusive UTC dates: fit_until 2024-12-16 fits on data dated before 16 December 2024. A development
+# window must end on or before the lockbox's first day, 2025-11-19, so it reads nothing from the boundary's day on.
 
 
 class GuardFailed(RuntimeError):
@@ -80,65 +88,134 @@ def guards(repo: Path, args: argparse.Namespace) -> dict[str, str]:
     from avalanche_research.datasets import pins
 
     findings = [finding for pin in spec["pins"] for finding in pins.verify(repo / pin)]
-    need("G3", not findings, f"{len(spec['pins'])} pin files verify" if not findings else "; ".join(findings))
+    need("G3", bool(spec["pins"]) and not findings,
+         f"{len(spec['pins'])} pin files verify" if spec["pins"] and not findings else "; ".join(findings) or "the manifest names no pin")
     need("G4", lockbox.remote_tag(repo) is None and not (repo / FOLDER / "receipt.json").exists() and args.registry_unsealed_at == "none",
          "no unseal tag on the remote, no receipt, registry unsealed_at is none")
     need("G5", Path(args.witness).is_file(), f"witness record {args.witness}")
     need("G6", bool(args.runner) and args.runner != spec["author"], f"runner {args.runner}, author {spec['author']}")
     record = json.loads(Path(args.rehearsal).read_text()) if Path(args.rehearsal).is_file() else {}
-    need("G7", record.get("passed") is True and head.startswith(record.get("commit", "-")) and record.get("script_sha256") == script_hash(),
-         f"rehearsal at {record.get('commit')} with this script")
+    window = spec["rehearsal"]
+    complete = {"commit", "script_sha256", "bundle_hash", "fit_until", "score_until", "results_sha256", "passed", "at"} <= set(record)
+    need("G7", complete and record["passed"] is True and bool(COMMIT_ID.match(str(record["commit"]))) and record["commit"] == head
+         and record["script_sha256"] == script_hash() and record["bundle_hash"] == args.bundle_hash
+         and record["fit_until"] == window["fit_until"] and record["score_until"] == window["score_until"]
+         and bool(re.match(r"^[0-9a-f]{64}$", str(record["results_sha256"]))),
+         f"a complete rehearsal record at {record.get('commit')}, this script, this bundle and the manifest's window")
     answer = spec.get("foundation_answer", {})
     need("G8", answer.get("recorded") is True or answer.get("default_used") is True, "the Foundation's answer, or the default used, is recorded")
     return checked
 
 
-def entry_point(spec: dict):
+def entry_point(spec: dict, repo: Path):
+    """The pre-registered callable, loaded from a file inside the checked repository, never from elsewhere on the path."""
     module, _, function = spec["entry_point"].partition(":")
-    return getattr(importlib.import_module(module), function)
+    relative = Path(*module.split("."))
+    for base in (repo / "src", repo):
+        for candidate in (base / relative.with_suffix(".py"), base / relative / "__init__.py"):
+            if candidate.is_file():
+                loaded = importlib.util.spec_from_file_location(module, candidate)
+                instance = importlib.util.module_from_spec(loaded)
+                sys.modules[module] = instance
+                writing, sys.dont_write_bytecode = sys.dont_write_bytecode, True  # keep the checked checkout clean
+                try:
+                    loaded.loader.exec_module(instance)
+                finally:
+                    sys.dont_write_bytecode = writing
+                return getattr(instance, function)
+    raise GuardFailed(f"entry point {spec['entry_point']} is not a file inside {repo}")
+
+
+def development_window(fit_until: date, score_until: date) -> None:
+    """Refuse a rehearsal window that is unordered or reaches the lockbox, before any model code is imported."""
+    if not fit_until < score_until:
+        raise GuardFailed(f"the rehearsal fits to {fit_until} and scores to {score_until}: the fit must end before the score window ends")
+    if score_until > LOCKBOX_FIRST_DAY:
+        raise GuardFailed(f"the rehearsal ends at {score_until}, after the lockbox's first day {LOCKBOX_FIRST_DAY}; it must use development data only")
 
 
 def rehearse(repo: Path, args: argparse.Namespace) -> Path:
     spec = manifest(repo)
     rehearsal = spec["rehearsal"]
     fit_until, score_until = date.fromisoformat(rehearsal["fit_until"]), date.fromisoformat(rehearsal["score_until"])
-    if score_until > LOCKBOX_FIRST_DAY:
-        raise GuardFailed(f"the rehearsal scores to {score_until}, past the lockbox's first day; it must use development data only")
-    results = entry_point(spec)(None, fit_until=fit_until, score_until=score_until)
-    record = {"commit": git(repo, "rev-parse", "HEAD"), "script_sha256": script_hash(), "fit_until": str(fit_until),
-              "score_until": str(score_until), "results_sha256": sha256(canonical_bytes(results)), "passed": True,
-              "at": datetime.now(UTC).isoformat(timespec="seconds")}
+    development_window(fit_until, score_until)
+    if git(repo, "status", "--porcelain"):
+        raise GuardFailed("the rehearsal runs only from a clean checkout")
+    results = entry_point(spec, repo)(None, fit_until=fit_until, score_until=score_until)
+    record = {"commit": git(repo, "rev-parse", "HEAD"), "script_sha256": script_hash(), "bundle_hash": bundle_hash(repo / FOLDER),
+              "fit_until": str(fit_until), "score_until": str(score_until), "results_sha256": sha256(canonical_bytes(results)),
+              "passed": True, "at": datetime.now(UTC).isoformat(timespec="seconds")}
     out = Path(args.out or "lockbox-rehearsal.json")
     out.write_text(json.dumps(record, indent=1) + "\n")
     return out
 
 
+def acquire(repo: Path, args: argparse.Namespace, started: str) -> str:
+    """Push a tag object no other contender can make, then confirm the remote holds exactly it. Only that holder scores.
+
+    The nonce, host and process make each contender's annotated tag object distinct, so a second push meets a different
+    object on the remote and is refused, and an identical-object push cannot pass as "already up to date"."""
+    nonce = secrets.token_hex(16)
+    git(repo, "tag", "-a", lockbox.TAG, args.commit, "-m",
+        f"lockbox unsealing by {args.runner} at {started}\nnonce {nonce} host {socket.gethostname()} pid {os.getpid()}")
+    mine = git(repo, "rev-parse", f"refs/tags/{lockbox.TAG}")
+    try:
+        git(repo, "push", "origin", f"refs/tags/{lockbox.TAG}")
+    except subprocess.CalledProcessError as error:
+        git(repo, "tag", "-d", lockbox.TAG)
+        raise GuardFailed(f"G4: another runner holds the lock: {error.stderr.strip()[-200:]}") from error
+    held = lockbox.remote_tag(repo)
+    if held != mine:
+        raise GuardFailed(f"G4: the remote lock is {held}, not this runner's {mine}; nothing was scored")
+    return mine
+
+
+def publish(repo: Path, args: argparse.Namespace, receipt: dict, results: dict) -> dict:
+    """Write, commit and push the receipt and report. A failure here never triggers another score: it is recorded locally,
+    with the recovery steps, and the script exits non-zero."""
+    folder = repo / FOLDER
+    (folder / "receipt.json").write_bytes(canonical_bytes(receipt))
+    written = [str(FOLDER / "receipt.json")]
+    template = folder / "template.md"
+    if template.is_file():
+        flat = defaultdict(lambda: "(not computed)", {k: v for k, v in results.items() if not isinstance(v, (dict, list))})
+        (folder / "report.md").write_text(template.read_text().format_map(flat))
+        written.append(str(FOLDER / "report.md"))
+    try:
+        git(repo, "switch", "-q", "-c", RECEIPT_BRANCH)
+        git(repo, "add", *written)
+        git(repo, "commit", "-q", "-m", f"lockbox: receipt of the unseal by {args.runner}")
+        git(repo, "push", "-q", "origin", RECEIPT_BRANCH)
+        receipt["published"] = True
+    except subprocess.CalledProcessError as error:
+        receipt["published"] = False
+        receipt["publish_error"] = error.stderr.strip()[-300:]
+        receipt["recovery"] = (f"The unseal happened and must not run again. Push branch {RECEIPT_BRANCH} from {repo} by hand: "
+                               f"git -C {repo} push origin {RECEIPT_BRANCH}")
+        (folder / "receipt.json").write_bytes(canonical_bytes(receipt))
+    return receipt
+
+
 def unseal(repo: Path, args: argparse.Namespace) -> dict:
     checked = guards(repo, args)
     started = datetime.now(UTC).isoformat(timespec="seconds")
-    git(repo, "tag", "-a", lockbox.TAG, args.commit, "-m", f"lockbox unsealing by {args.runner} at {started}")
-    git(repo, "push", "origin", f"refs/tags/{lockbox.TAG}")
-    token = lockbox.issue(repo)
+    tag_object = acquire(repo, args, started)
+    # From here the unseal has happened. Every failure is recorded and published, and nothing is scored twice.
     try:
-        results = entry_point(manifest(repo))(token, fit_until=LOCKBOX_FIRST_DAY, score_until=WINDOW_END)
+        token = lockbox.issue(repo)
+        results = entry_point(manifest(repo), repo)(token, fit_until=LOCKBOX_FIRST_DAY, score_until=WINDOW_END)
+        if not isinstance(results, dict):
+            results = {"error": f"the entry point returned {type(results).__name__}, not a mapping"}
     except Exception as error:  # noqa: BLE001  the unseal has happened, so a failure is recorded, not retried
         results = {"error": f"{type(error).__name__}: {error}"}
-    receipt = {"commit": args.commit, "bundle_hash": args.bundle_hash, "runner": args.runner, "tag_object": token.tag_object,
+    try:
+        digest = sha256(canonical_bytes(results))
+    except (TypeError, ValueError) as error:
+        results, digest = {"error": f"results are not serialisable: {error}"}, ""
+    receipt = {"commit": args.commit, "bundle_hash": args.bundle_hash, "runner": args.runner, "tag_object": tag_object,
                "guards": checked, "started_at": started, "finished_at": datetime.now(UTC).isoformat(timespec="seconds"),
-               "fit_until": str(LOCKBOX_FIRST_DAY), "score_until": str(WINDOW_END), "results": results,
-               "results_sha256": sha256(canonical_bytes(results))}
-    git(repo, "switch", "-q", "-c", RECEIPT_BRANCH)
-    (repo / FOLDER / "receipt.json").write_bytes(canonical_bytes(receipt))
-    template = repo / FOLDER / "template.md"
-    written = [str(FOLDER / "receipt.json")]
-    if template.is_file():
-        flat = {key: value for key, value in results.items() if not isinstance(value, (dict, list))}
-        (repo / FOLDER / "report.md").write_text(template.read_text().format_map(flat))
-        written.append(str(FOLDER / "report.md"))
-    git(repo, "add", *written)
-    git(repo, "commit", "-q", "-m", f"lockbox: receipt of the unseal by {args.runner}")
-    git(repo, "push", "-q", "origin", RECEIPT_BRANCH)
-    return receipt
+               "fit_until": str(LOCKBOX_FIRST_DAY), "score_until": str(WINDOW_END), "results": results, "results_sha256": digest}
+    return publish(repo, args, receipt, results)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -158,7 +235,9 @@ def main(argv: list[str] | None = None) -> int:
             print(rehearse(args.repo, args))
         else:
             receipt = unseal(args.repo, args)
-            print(json.dumps({key: receipt[key] for key in ("commit", "runner", "tag_object", "results_sha256")}, indent=1))
+            print(json.dumps({key: receipt.get(key) for key in ("commit", "runner", "tag_object", "results_sha256", "published", "recovery")}, indent=1))
+            if not receipt.get("published"):
+                return 3
     except GuardFailed as error:
         print(f"REFUSED | {error}", file=sys.stderr)
         return 2

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -13,7 +16,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import unseal_lockbox as unseal
 
 from avalanche_research.core import lockbox
+from avalanche_research.core.clock import LOCKBOX_START
+from avalanche_research.core.errors import ModelError
 from avalanche_research.core.hashing import sha256
+
+PIN = Path(__file__).resolve().parents[1] / "data" / "pins" / "p7-systems-learning-weeks.json"
 
 ENTRY = '''
 from avalanche_research.core import lockbox
@@ -31,7 +38,7 @@ def git(repo: Path, *args: str) -> None:
 
 
 @pytest.fixture
-def setup(tmp_path, monkeypatch):
+def setup(tmp_path):
     remote, repo = tmp_path / "remote.git", tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
@@ -41,11 +48,14 @@ def setup(tmp_path, monkeypatch):
     folder = repo / unseal.FOLDER
     folder.mkdir(parents=True)
     (folder / "manifest.json").write_text(json.dumps({
-        "entry_point": "lockbox_entry:score", "author": "modeling-lead", "uv_lock_sha256": sha256(b"lock\n"), "pins": [],
+        "entry_point": "lockbox_entry:score", "author": "modeling-lead", "uv_lock_sha256": sha256(b"lock\n"),
+        "pins": ["data/pins/p7-systems-learning-weeks.json"],
         "rehearsal": {"fit_until": "2024-12-16", "score_until": "2025-11-18"}, "foundation_answer": {"default_used": True}}))
     (folder / "template.md").write_text("Verdict: {verdict}. MASE at 90 days: {mase_90}.\n")
-    (tmp_path / "lockbox_entry.py").write_text(ENTRY + f"REPO = {str(repo)!r}\n")
-    monkeypatch.syspath_prepend(str(tmp_path))
+    (repo / "src").mkdir()
+    (repo / "src" / "lockbox_entry.py").write_text(ENTRY + f"REPO = {str(repo)!r}\n")
+    (repo / "data" / "pins").mkdir(parents=True)
+    shutil.copy(PIN, repo / "data" / "pins" / PIN.name)
     sys.modules.pop("lockbox_entry", None)
     git(repo, "add", ".")
     git(repo, "commit", "-q", "-m", "pre-registration")
@@ -96,3 +106,143 @@ def test_the_unseal_locks_before_reading_writes_its_receipt_and_cannot_run_twice
     git(repo, "switch", "-q", "--detach", args.commit)
     with pytest.raises(unseal.GuardFailed, match="^G4"):
         unseal.guards(repo, args)
+
+
+def clone_of(repo: Path, name: str) -> Path:
+    clone = repo.parent / name
+    subprocess.run(["git", "clone", "-q", "-b", "main", str(repo.parent / "remote.git"), str(clone)], check=True)
+    git(clone, "config", "user.name", "t")
+    git(clone, "config", "user.email", "t@t")
+    return clone
+
+
+def test_two_runners_racing_with_the_same_second_score_once(setup, monkeypatch):
+    repo, args = setup
+    clone = clone_of(repo, "repo2")
+    barrier, pushed, original = threading.Barrier(2), threading.Event(), unseal.git
+
+    def ordered(path, *command):
+        if command[:2] == ("push", "origin") and command[-1] == f"refs/tags/{lockbox.TAG}":
+            barrier.wait(timeout=10)
+            if path == clone:
+                assert pushed.wait(timeout=10)
+            try:
+                return original(path, *command)
+            finally:
+                if path == repo:
+                    pushed.set()
+        return original(path, *command)
+
+    monkeypatch.setattr(unseal, "git", ordered)
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "2026-10-08T12:00:00+00:00")
+    scored = []
+    sys.modules.pop("lockbox_entry", None)
+
+    def run(path):
+        try:
+            return unseal.unseal(path, args)
+        except unseal.GuardFailed as error:
+            return str(error)
+
+    real_entry = unseal.entry_point
+
+    def counting(spec, path):
+        function = real_entry(spec, path)
+        return lambda *a, **k: scored.append(path) or function(*a, **k)
+
+    monkeypatch.setattr(unseal, "entry_point", counting)
+    with ThreadPoolExecutor(2) as pool:
+        outcomes = list(pool.map(run, [repo, clone]))
+    assert scored == [repo]
+    assert isinstance(outcomes[0], dict) and outcomes[1].startswith("G4")
+
+
+def test_a_scorer_failure_after_the_lock_is_published_as_the_result(setup, monkeypatch):
+    repo, args = setup
+    (repo / "src" / "lockbox_entry.py").write_text("def score(token, fit_until, score_until):\n    if token is not None:\n"
+                                                   "        raise RuntimeError('synthetic')\n    return {'verdict': 'n/a'}\n")
+    git(repo, "commit", "-q", "-am", "failing scorer")
+    git(repo, "push", "-q", "origin", "main")
+    args.commit = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    args.bundle_hash = unseal.bundle_hash(repo / unseal.FOLDER)
+    args.rehearsal = str(unseal.rehearse(repo, unseal.argparse.Namespace(out=str(repo.parent / "rehearsal-again.json"))))
+    receipt = unseal.unseal(repo, args)
+    assert receipt["published"] and "synthetic" in receipt["results"]["error"]
+    assert "Verdict: (not computed)" in (repo / unseal.FOLDER / "report.md").read_text()
+    assert subprocess.run(["git", "-C", str(repo), "ls-remote", "--heads", "origin", unseal.RECEIPT_BRANCH], capture_output=True, text=True,
+                          check=True).stdout
+
+
+def test_a_failed_publication_is_recorded_with_its_recovery_and_never_rescores(setup, monkeypatch):
+    repo, args = setup
+    original = unseal.git
+
+    def refusing(path, *command):
+        if command[-1] == unseal.RECEIPT_BRANCH and command[0] == "push":
+            raise subprocess.CalledProcessError(1, "git push", stderr="remote refused")
+        return original(path, *command)
+
+    monkeypatch.setattr(unseal, "git", refusing)
+    receipt = unseal.unseal(repo, args)
+    stored = json.loads((repo / unseal.FOLDER / "receipt.json").read_text())
+    assert not receipt["published"] and "must not run again" in stored["recovery"]
+    assert len([call for call in sys.modules["lockbox_entry"].CALLS if call[0] is not None]) == 1
+
+
+@pytest.mark.parametrize(("fit", "score"), [("2026-01-01", "2025-11-18"), ("2025-06-01", "2025-01-01"), ("2024-12-16", "2025-11-20")])
+def test_a_rehearsal_window_that_is_unordered_or_reaches_the_lockbox_is_refused_before_any_call(setup, fit, score):
+    repo, _ = setup
+    path = repo / unseal.FOLDER / "manifest.json"
+    spec = json.loads(path.read_text())
+    spec["rehearsal"] = {"fit_until": fit, "score_until": score}
+    path.write_text(json.dumps(spec))
+    git(repo, "commit", "-q", "-am", "window")
+    sys.modules.pop("lockbox_entry", None)
+    with pytest.raises(unseal.GuardFailed, match="rehearsal"):
+        unseal.rehearse(repo, unseal.argparse.Namespace(out=str(repo.parent / "unsafe.json")))
+    assert "lockbox_entry" not in sys.modules
+
+
+def test_a_rehearsal_from_a_dirty_checkout_is_refused(setup):
+    repo, _ = setup
+    (repo / "stray.txt").write_text("x")
+    with pytest.raises(unseal.GuardFailed, match="clean checkout"):
+        unseal.rehearse(repo, unseal.argparse.Namespace(out=str(repo.parent / "dirty.json")))
+
+
+@pytest.mark.parametrize("spoil", [
+    lambda record: {"commit": "", "passed": True, "script_sha256": record["script_sha256"]},
+    lambda record: {**record, "bundle_hash": "0" * 64},
+    lambda record: {**record, "fit_until": "2024-01-01"},
+    lambda record: {**record, "commit": record["commit"][:12]},
+])
+def test_g7_refuses_a_minimal_or_mismatched_rehearsal_record(setup, spoil):
+    repo, args = setup
+    record = json.loads(Path(args.rehearsal).read_text())
+    Path(args.rehearsal).write_text(json.dumps(spoil(record)))
+    with pytest.raises(unseal.GuardFailed, match="^G7"):
+        unseal.guards(repo, args)
+
+
+def test_g3_refuses_a_manifest_without_pins(setup):
+    repo, args = setup
+    path = repo / unseal.FOLDER / "manifest.json"
+    path.write_text(json.dumps({**json.loads(path.read_text()), "pins": []}))
+    git(repo, "commit", "-q", "-am", "no pins")
+    git(repo, "push", "-q", "origin", "main")
+    args.commit = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    args.bundle_hash = unseal.bundle_hash(repo / unseal.FOLDER)
+    with pytest.raises(unseal.GuardFailed, match="^G3"):
+        unseal.guards(repo, args)
+
+
+def test_an_entry_point_outside_the_repository_is_refused(setup):
+    repo, _ = setup
+    with pytest.raises(unseal.GuardFailed, match="not a file inside"):
+        unseal.entry_point({"entry_point": "json:loads"}, repo)
+
+
+def test_a_forged_token_is_refused():
+    forged = object.__new__(lockbox.Unseal)
+    with pytest.raises(ModelError):
+        lockbox.require(LOCKBOX_START, forged)

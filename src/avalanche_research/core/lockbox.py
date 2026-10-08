@@ -51,6 +51,8 @@ def issue(repo: Path, remote: str = "origin", tag: str = TAG) -> Unseal:
 
 
 def require(latest: datetime, token: Unseal | None) -> None:
-    """Refuse rows that reach the boundary unless a valid token is given."""
-    if as_utc(latest) >= LOCKBOX_START and not isinstance(token, Unseal):
+    """Refuse rows that reach the boundary unless a token built by ``issue`` is given. A token is an accident guard: it
+    proves the unseal tag was on the remote when issued, not that the holder is the only scorer."""
+    valid = isinstance(token, Unseal) and getattr(token, "issued_by", None) is _ISSUER and bool(getattr(token, "tag_object", ""))
+    if as_utc(latest) >= LOCKBOX_START and not valid:
         raise ModelError(f"rows reach {latest}, at or after the lockbox boundary {LOCKBOX_START}, and no Unseal token was given")
