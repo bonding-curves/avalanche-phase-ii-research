@@ -30,6 +30,7 @@ PURPOSES = {
     "return_stake": "the stake after a return",
     "return_days": "the duration after a return",
     "parameter_draw": "one run's draw of fitted parameters",
+    "continuation_resample": "one run's node resample of the continuation and first-commitment tables",
     "failure": "an uptime failure at a commitment's end",
     "large_path": "the large-holder cohort path",
 }

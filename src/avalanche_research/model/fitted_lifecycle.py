@@ -13,12 +13,14 @@ delegations. The yield-gap responses shift renewal and arrivals as in v0.7. Retu
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 
 import duckdb
 import numpy as np
 import pandas as pd
 import param
+from scipy import special
 
 from avalanche_research.mechanisms import ChainReward, RewardMechanism
 from avalanche_research.model.engine import SimulationModel
@@ -86,6 +88,12 @@ class FittedLifecycle(SimulationModel):
         doc="Change in the log of the arrival rate per percentage point of annual rate above the chain's, for a 30-day stake with no tenure",
     )
     renewal_tenure = param.Integer(default=4, bounds=(0, 100), doc="Completed commitments at which the renewal response prices the yield gap")
+    draws = param.DataFrame(
+        default=None, allow_None=True, precedence=-1,
+        doc="One row per run of drawn block parameters: renewal.<name>, renewal_large.<name>, returns.<name>, "
+            "arrivals.<name> and renewal_shift. Run r reads row r - 1, and a block parameter without a column keeps "
+            "its fitted value",
+    )
     supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="The P-Chain reward counter at the origin, nAVAX. The reward formula reads it")
 
     def state_variables(self):
@@ -123,16 +131,51 @@ class FittedLifecycle(SimulationModel):
         chain = ChainReward().annual_rate(30, self.supply0_navax, start, completed_periods=completed_periods)
         return (ours - chain) * 100
 
+    def _blocks_by_run(self):
+        """A function from run number to that run's renewal, large-holder renewal, arrival and return blocks, its
+        renewal shift, its continuation table and its first-ever durations and stakes. Without ``draws`` every run gets
+        the fitted blocks, no shift and the full tables. With them, run r's are built from row r - 1 on first use and
+        kept. A ``resample_seed`` column resamples the tables by node, so it needs a ``node_code`` column in both."""
+        fixed = {"renewal": self.renewal, "renewal_large": self.renewal_large, "arrivals": self.arrivals, "returns": self.returns}
+        moves, first = self.moves, self.first_commitments
+        tables = _continuation_tables(moves, first)
+        if self.draws is None:
+            same = (*fixed.values(), 0.0, *tables)
+            return lambda run: same
+        draws = self.draws
+        if len(draws) < self.runs:
+            raise ValueError(f"the draw table has {len(draws)} rows for {self.runs} runs")
+        if "resample_seed" in draws.columns and not ("node_code" in moves.columns and "node_code" in first.columns):
+            raise ValueError("a resample_seed column needs a node_code column in moves and first_commitments")
+        known = {"renewal_shift", "resample_seed"} | {
+            f"{prefix}.{name}" for prefix, block in fixed.items() if block is not None
+            for name, parameter in block.param.objects().items() if "source" in (getattr(parameter, "metadata", None) or {})
+        }
+        unknown = sorted(set(draws.columns) - known)
+        if unknown:
+            raise ValueError(f"the draw table has columns no block of this model reads: {unknown}")
+        built = {}
+
+        def blocks_for(run: int):
+            if run not in built:
+                row = draws.iloc[run - 1]
+                drawn = {prefix: _drawn(block, prefix, row, run) for prefix, block in fixed.items()}
+                shift = float(row["renewal_shift"]) if "renewal_shift" in row.index else 0.0
+                own = tables
+                if "resample_seed" in row.index:
+                    own = _continuation_tables(*resampled_tables(moves, first, int(row["resample_seed"]), run))
+                built[run] = (*drawn.values(), shift, *own)
+            return built[run]
+
+        return blocks_for
+
     def blocks(self):
         days = [self.origin + timedelta(days=t + 1) for t in range(self.timesteps)]
         gaps = [(self.yield_gap_pp(day, self.renewal_tenure), self.yield_gap_pp(day, 0)) for day in days]
-        renewal, arrivals, returns, mechanism = self.renewal, self.arrivals, self.returns, self.mechanism
-        renewal_large = self.renewal_large
-        large_navax = None if renewal_large is None or self.large_above_avax is None else int(self.large_above_avax * 10**9)
+        mechanism = self.mechanism
+        blocks_for = self._blocks_by_run()
+        large_navax = None if self.renewal_large is None or self.large_above_avax is None else int(self.large_above_avax * 10**9)
         renewal_response, entry_response, seed, origin = self.renewal_response, self.entry_response, self.seed, self.origin
-        moves, first = self.moves, self.first_commitments
-        continuation = Continuation(moves["previous_days"], moves["next_days"], moves["previous_stake_navax"], moves["next_stake_navax"])
-        first_days, first_stakes = _array(first["days"]), _array(first["stake_navax"])
         sched = self.scheduled if self.scheduled is not None else pd.DataFrame(columns=["start_day", "stakes", "days", "done", "after_return", "returns"])
         sched_day = _array(sched["start_day"])
         sched_key = node_keys(KIND_SCHEDULED, 0, np.arange(len(sched_day)))
@@ -140,6 +183,7 @@ class FittedLifecycle(SimulationModel):
         def p_lifecycle(params, substep, history, state):
             t = state["timestep"]
             draw = Streams(seed, int(state["run"]))
+            renewal, renewal_large, arrivals, returns, renewal_shift, continuation, first_days, first_stakes = blocks_for(int(state["run"]))
             renewal_gap, entry_gap = gaps[t]
             start = datetime.combine(origin + timedelta(days=t + 1), time(12), tzinfo=UTC)
             days_left = state["days_left"] - 1
@@ -148,7 +192,7 @@ class FittedLifecycle(SimulationModel):
             ended = {name: state[name][decide] for name in ("stakes", "done", "after_return", "days", "returns", "node_key")}
             decision_inputs = {
                 "done": ended["done"], "after_return": ended["after_return"], "days": ended["days"],
-                "stake_navax": ended["stakes"], "returns": ended["returns"], "shift": renewal_response * renewal_gap,
+                "stake_navax": ended["stakes"], "returns": ended["returns"], "shift": renewal_response * renewal_gap + renewal_shift,
             }
             # Every draw is a uniform keyed by its node and decision count, inverted through the block, so a decision that
             # differs between two designs moves no other node's draws.
@@ -253,6 +297,157 @@ class FittedLifecycle(SimulationModel):
         ]
 
 
+def _continuation_tables(moves: pd.DataFrame, first: pd.DataFrame) -> tuple[Continuation, np.ndarray, np.ndarray]:
+    continuation = Continuation(moves["previous_days"], moves["next_days"], moves["previous_stake_navax"], moves["next_stake_navax"])
+    return continuation, _array(first["days"]), _array(first["stake_navax"])
+
+
+def resampled_tables(moves: pd.DataFrame, first: pd.DataFrame, resample_seed: int, run: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """``moves`` and ``first`` resampled by ``node_code``, as many nodes as each holds, from the run's
+    ``continuation_resample`` stream under ``resample_seed``."""
+    rng = Streams(resample_seed, run).generator("continuation_resample")
+    picked_moves = moves.iloc[node_resample(moves["node_code"].to_numpy(), rng)].reset_index(drop=True)
+    picked_first = first.iloc[node_resample(first["node_code"].to_numpy(), rng)].reset_index(drop=True)
+    return picked_moves, picked_first
+
+
+def _drawn(block, prefix: str, row: pd.Series, run: int):
+    """``block`` with every parameter that ``row`` holds under ``prefix`` replaced, labelled as that run's draw."""
+    if block is None:
+        return None
+    for column, value in row.items():
+        if column.startswith(prefix + "."):
+            name = column[len(prefix) + 1:]
+            evidence = block.sources()[name]["evidence"]
+            block = block.with_value(name, float(value), "fitted", f"bootstrap draw {run} of: {evidence}")
+    return block
+
+
+def node_resample(node_codes: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """Row indices of a bootstrap by node: as many nodes as there are, drawn with replacement, each with all its rows."""
+    codes = np.asarray(node_codes)
+    nodes, inverse = np.unique(codes, return_inverse=True)
+    rows_of = np.split(np.argsort(inverse, kind="stable"), np.cumsum(np.bincount(inverse))[:-1])
+    picked = rng.integers(0, len(nodes), len(nodes))
+    return np.concatenate([rows_of[i] for i in picked]) if len(nodes) else np.zeros(0, dtype=np.int64)
+
+
+def window_tau(observed_share, mean_probability, endings) -> float:
+    """The SD of the renewal log-odds shift between quarters, net of binomial noise.
+
+    For each quarter, ``d = logit(observed share) - logit(mean fitted probability)`` and its binomial variance
+    ``v = 1 / (n p (1 - p))``. The shift's variance is ``max(0, var(d) - mean(v))``.
+    """
+    share = np.clip(np.asarray(observed_share, dtype=float), 1e-6, 1 - 1e-6)
+    p = np.clip(np.asarray(mean_probability, dtype=float), 1e-6, 1 - 1e-6)
+    n = np.asarray(endings, dtype=float)
+    d = special.logit(share) - special.logit(p)
+    v = 1 / (n * p * (1 - p))
+    return float(np.sqrt(max(0.0, d.var(ddof=1) - v.mean())))
+
+
+ARRIVAL_BLOCK_DAYS = 28
+QUARTER_MIN_ENDINGS = 200
+QUARTERS_FOR_TAU = 8
+ASSUMED_TAU = 0.18
+
+
+def renewal_quarters(endings: pd.DataFrame, through_us: int, renewal: RenewalLogit) -> pd.DataFrame:
+    """Each calendar quarter of renewal endings that ended seven days before ``through_us``, so every ending in it is
+    labelled, and that holds at least 200 endings: its count, its observed share renewed, and the mean probability
+    ``renewal`` gives the same endings."""
+    quarter = pd.to_datetime(endings["e"], unit="us").dt.to_period("Q")
+    rows = []
+    for period, part in endings.groupby(quarter.to_numpy(), sort=True):
+        period = pd.Period(period, freq="Q")
+        quarter_end_us = (period + 1).start_time.value // 1_000
+        if quarter_end_us + RENEWAL_DAYS * US_PER_DAY > through_us or len(part) < QUARTER_MIN_ENDINGS:
+            continue
+        rows.append({"quarter": str(period), "endings": len(part), "observed": float(part["renewed"].mean()),
+                     "mean_probability": float(renewal.probability(renewal_inputs(part)).mean())})
+    return pd.DataFrame(rows, columns=["quarter", "endings", "observed", "mean_probability"])
+
+
+def window_sd_from_quarters(table: pd.DataFrame) -> tuple[float, str]:
+    """τ from a :func:`renewal_quarters` table, and its source. With fewer than eight quarters it is the assumed 0.18,
+    the median of earlier in-sample estimates."""
+    if len(table) < QUARTERS_FOR_TAU:
+        return ASSUMED_TAU, f"assumed: {len(table)} quarters of at least {QUARTER_MIN_ENDINGS} labelled endings, fewer than {QUARTERS_FOR_TAU}"
+    tau = window_tau(table["observed"], table["mean_probability"], table["endings"])
+    return tau, f"fitted on {len(table)} quarters, {table['quarter'].iloc[0]} to {table['quarter'].iloc[-1]}"
+
+
+def window_sd(periods_parquet: str, origin: date, renewal: RenewalLogit) -> tuple[float, str]:
+    """τ at ``origin``: the drift of the renewal log-odds between quarters, net of binomial noise, measured against the
+    origin's fitted ``renewal`` block on every labelled quarter before the origin. An origin in the lockbox is refused."""
+    if origin >= LOCKBOX_FIRST_DAY:
+        raise ValueError(f"origin {origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
+    cutoff = _day(origin) * US_PER_DAY + INSTANT_US
+    rows = validator_periods(periods_parquet, cutoff)
+    endings = renewal_endings(rows, -(2**62), cutoff - RENEWAL_DAYS * US_PER_DAY)
+    return window_sd_from_quarters(renewal_quarters(endings, cutoff, renewal))
+
+
+def arrival_block_sample(counts, rng: np.random.Generator, block_days: int = ARRIVAL_BLOCK_DAYS) -> np.ndarray:
+    """A moving-block bootstrap of daily counts: whole runs of ``block_days`` consecutive days, drawn with replacement
+    and joined, the last cut so the sample is as long as ``counts``. Whole blocks keep the week-to-week correlation that
+    resampling single days would break. For 365 days that is 14 blocks, the last cut to one day."""
+    counts = np.asarray(counts)
+    if len(counts) < block_days:
+        raise ValueError(f"at least {block_days} days of counts are needed")
+    starts = rng.integers(0, len(counts) - block_days + 1, -(-len(counts) // block_days))
+    return np.concatenate([counts[start:start + block_days] for start in starts])[:len(counts)]
+
+
+def _prefixed(prefix: str, block) -> dict[str, float]:
+    return {f"{prefix}.{name}": meta["value"] for name, meta in block.sources().items()}
+
+
+def parameter_draws(events: TrainingEvents, n: int, seed: int, tau: float, large_above_avax: float | None = None) -> pd.DataFrame:
+    """``n`` draws of every fitted block parameter, one row per run, for the ``draws`` input of :class:`FittedLifecycle`.
+
+    Draw i refits each block on a resample of its training events: renewal endings and return spells by node, so a
+    node's decisions stay together, and arrivals by 28-day blocks. With ``large_above_avax``, the endings are resampled
+    once and then split at the line, so the two renewal blocks share their nodes. Each draw adds a renewal shift from
+    Normal(0, ``tau``), the drift of the renewal log-odds between quarters, and the seed of the run's continuation
+    resample. Draws come from the ``parameter_draw`` stream, so a seed reproduces its table.
+    """
+    if events.origin >= LOCKBOX_FIRST_DAY:
+        raise ValueError(f"origin {events.origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
+    ended, lapsed = events.endings, events.lapsed
+    rows = []
+    for i in range(n):
+        rng = Streams(seed, 0).generator("parameter_draw", i)
+        evidence = f"bootstrap draw {i} of {events.window}"
+        picked = ended.iloc[node_resample(ended["node_code"].to_numpy(), rng)]
+        row = {}
+        if large_above_avax is None:
+            row |= _prefixed("renewal", RenewalLogit.fit(renewal_inputs(picked), picked["renewed"].to_numpy(), evidence))
+        else:
+            big = (picked["stake_navax"] > large_above_avax * 10**9).to_numpy()
+            small, large = picked[~big], picked[big]
+            row |= _prefixed("renewal", RenewalLogit.fit(renewal_inputs(small), small["renewed"].to_numpy(), evidence))
+            row |= _prefixed("renewal_large", RenewalLogit.fit(renewal_inputs(large), large["renewed"].to_numpy(), evidence))
+        back = lapsed.iloc[node_resample(lapsed["node_code"].to_numpy(), rng)]
+        row |= _prefixed("returns", ReturnHazard.fit(back["stake_navax"].to_numpy(), back["days_out"].to_numpy(),
+                                                    back["came_back"].to_numpy(), evidence))
+        row |= _prefixed("arrivals", Arrivals.fit(arrival_block_sample(events.first_counts, rng), evidence))
+        row["renewal_shift"] = float(rng.normal(0.0, tau))
+        row["resample_seed"] = int(rng.integers(0, 2**31 - 1))
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+RENEWAL_CLIP = 20.0
+
+
+def clipped_draws(draws: pd.DataFrame) -> int:
+    """The number of draws with any renewal log-odds term at the fit's ±20 clip, where a separable cell in a resample
+    sends a coefficient to its bound. The node record's prior strength and the renewal shift are not log-odds terms."""
+    terms = [c for c in draws.columns if c.split(".")[0] in ("renewal", "renewal_large") and not c.split(".")[-1].startswith("node_prior")]
+    return int((draws[terms].abs() >= RENEWAL_CLIP - 1e-9).any(axis=1).sum()) if terms else 0
+
+
 def _day(value: date) -> int:
     return (pd.Timestamp(value) - pd.Timestamp(0)).days
 
@@ -315,21 +510,25 @@ def renewal_inputs(endings: pd.DataFrame) -> dict[str, np.ndarray]:
     }
 
 
-def fitted_inputs(periods_parquet: str, origin: date, run: str = "", large_above_avax: float | None = None) -> dict:
-    """Every input of a v0.8 run from ``origin``, fitted on staking periods that started by the origin's end.
+@dataclass(frozen=True)
+class TrainingEvents:
+    """Everything a v0.8 fit reads from the staking periods at one origin, with each node as an integer ``node_code``
+    shared across the tables, so a bootstrap can resample nodes."""
 
-    * Renewal: endings in the 365 days before the origin with seven days of follow-up before it, as ``AM2`` counts them.
-      With ``large_above_avax``, one renewal block is fitted on the endings at or below that stake and another above it.
-    * Returns: endings in the 730 days before the origin that did not renew, each followed until it returned or the
-      origin came, so a node out at the origin is censored there.
-    * Arrivals: daily counts of first-ever commitments in the 365 days before the origin.
-    * Continuations: renewals and returns that started in the 365 days before the origin.
+    origin: date
+    run: str
+    window: str
+    endings: pd.DataFrame
+    lapsed: pd.DataFrame
+    first_counts: np.ndarray
+    first_total: int
+    moves: pd.DataFrame
+    first_commitments: pd.DataFrame
+    state: dict
 
-    Commitments accepted by the origin that start after it enter on their start day, already minted. An open
-    commitment whose node has one of them is handed on to it, with no renewal draw. A node that ended in the week
-    before the origin without a new commitment is out of the set, so its chance to renew in what is left of its
-    week is not drawn. An origin inside the validation lockbox is refused.
-    """
+
+def training_events(periods_parquet: str, origin: date, run: str = "") -> TrainingEvents:
+    """The events :func:`fitted_inputs` fits on, read from staking periods that started by the origin's end."""
     if origin >= LOCKBOX_FIRST_DAY:
         raise ValueError(f"origin {origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
     day = _day(origin)
@@ -347,30 +546,19 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "", large_above
 
     ended = renewal_endings(rows, cutoff - 365 * US_PER_DAY - follow, cutoff - follow)
     window = f"{run or 'staking periods'}, endings from {pd.Timestamp(int(cutoff - 365 * US_PER_DAY - follow), unit='us').date()} to {pd.Timestamp(int(cutoff - follow), unit='us').date()}"
-    renewal = RenewalLogit.fit(renewal_inputs(ended), ended["renewed"].to_numpy(), f"{window}: {len(ended)} endings, {int(ended['renewed'].sum())} renewed")
-    renewal_large = None
-    if large_above_avax is not None:
-        big = ended["stake_navax"] > large_above_avax * 10**9
-        small, large = ended[~big], ended[big]
-        renewal = RenewalLogit.fit(renewal_inputs(small), small["renewed"].to_numpy(), f"{window}, at or below {large_above_avax:,.0f} AVAX: {len(small)} endings")
-        renewal_large = RenewalLogit.fit(renewal_inputs(large), large["renewed"].to_numpy(), f"{window}, above {large_above_avax:,.0f} AVAX: {len(large)} endings")
 
     lapsed = rows[(rows["e"] > cutoff - 730 * US_PER_DAY) & (rows["e"] <= cutoff) & ~overlapped & ~rows["renewed"]]
     came_back = lapsed["next_s"].notna()
     days_out = np.where(came_back, np.ceil((lapsed["next_s"] - lapsed["e"]) / US_PER_DAY), np.floor((cutoff - lapsed["e"]) / US_PER_DAY))
-    returns = ReturnHazard.fit(
-        lapsed["stake_navax"].to_numpy(), days_out, came_back.to_numpy(),
-        f"{run or 'staking periods'}, {len(lapsed)} endings without renewal in the 730 days before {origin}",
-    )
 
     enter_day = _whole_days(rows["s"])
     year = rows[(enter_day > day - 365) & (enter_day <= day)]
     first = year[year["done"] == 0]
     counts = np.bincount((_whole_days(first["s"]) - (day - 364)).to_numpy(dtype=np.int64), minlength=365)
-    arrivals = Arrivals.fit(counts, f"{run or 'staking periods'}, {len(first)} first-ever commitments in the 365 days to {origin}")
 
     moved = rows[rows["next_s"].notna() & ~overlapped & (rows["next_s"] > cutoff - 365 * US_PER_DAY) & (rows["next_s"] <= cutoff)]
     moves = pd.DataFrame({
+        "node_id": moved["node_id"].to_numpy(),
         "previous_days": moved["days"].to_numpy(),
         "next_days": ((moved["next_e"] - moved["next_s"]) / US_PER_DAY).round().clip(lower=1).astype(np.int64).to_numpy(),
         "previous_stake_navax": moved["stake_navax"].to_numpy(dtype=np.int64),
@@ -416,19 +604,72 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "", large_above
         "AND supply_before_navax IS NOT NULL ORDER BY start_time DESC, transaction_hash LIMIT 1",
         [periods_parquet],
     ).fetchone()[0]
+    codes = {node: i for i, node in enumerate(sorted(set(ended["node_id"]) | set(lapsed["node_id"]) | set(moved["node_id"]) | set(first["node_id"])))}
+
+    def code_of(nodes) -> np.ndarray:
+        return np.array([codes[n] for n in nodes], dtype=np.int64)
+
+    return TrainingEvents(
+        origin=origin, run=run, window=window,
+        endings=ended.assign(node_code=code_of(ended["node_id"])),
+        lapsed=pd.DataFrame({"stake_navax": lapsed["stake_navax"].to_numpy(), "days_out": days_out,
+                             "came_back": came_back.to_numpy(), "node_code": code_of(lapsed["node_id"])}),
+        first_counts=counts, first_total=len(first),
+        moves=moves.assign(node_code=code_of(moves.pop("node_id"))),
+        first_commitments=pd.DataFrame({"days": first["days"].to_numpy(), "stake_navax": first["stake_navax"].to_numpy(dtype=np.int64),
+                                        "node_code": code_of(first["node_id"])}),
+        state={"initial": initial, "out_of_set": out_of_set, "scheduled": scheduled, "supply0_navax": int(supply)},
+    )
+
+
+def fit_blocks(events: TrainingEvents, large_above_avax: float | None = None) -> dict:
+    """Every input of a v0.8 run, with its blocks fitted on ``events``. See :func:`fitted_inputs`."""
+    run, origin, window, ended = events.run, events.origin, events.window, events.endings
+    renewal = RenewalLogit.fit(renewal_inputs(ended), ended["renewed"].to_numpy(), f"{window}: {len(ended)} endings, {int(ended['renewed'].sum())} renewed")
+    renewal_large = None
+    if large_above_avax is not None:
+        big = ended["stake_navax"] > large_above_avax * 10**9
+        small, large = ended[~big], ended[big]
+        renewal = RenewalLogit.fit(renewal_inputs(small), small["renewed"].to_numpy(), f"{window}, at or below {large_above_avax:,.0f} AVAX: {len(small)} endings")
+        renewal_large = RenewalLogit.fit(renewal_inputs(large), large["renewed"].to_numpy(), f"{window}, above {large_above_avax:,.0f} AVAX: {len(large)} endings")
+    lapsed = events.lapsed
+    returns = ReturnHazard.fit(
+        lapsed["stake_navax"].to_numpy(), lapsed["days_out"].to_numpy(), lapsed["came_back"].to_numpy(),
+        f"{run or 'staking periods'}, {len(lapsed)} endings without renewal in the 730 days before {origin}",
+    )
+    arrivals = Arrivals.fit(events.first_counts, f"{run or 'staking periods'}, {events.first_total} first-ever commitments in the 365 days to {origin}")
     renewing = ended[ended["renewed"]]
+    state = events.state
     return {
         "origin": origin,
         "renewal": renewal,
         **({"renewal_large": renewal_large, "large_above_avax": large_above_avax} if renewal_large is not None else {}),
         "arrivals": arrivals,
         "returns": returns,
-        "initial": initial,
-        "out_of_set": out_of_set,
-        "scheduled": scheduled,
-        "moves": moves,
-        "first_commitments": pd.DataFrame({"days": first["days"].to_numpy(), "stake_navax": first["stake_navax"].to_numpy(dtype=np.int64)}),
+        "initial": state["initial"],
+        "out_of_set": state["out_of_set"],
+        "scheduled": state["scheduled"],
+        "moves": events.moves.drop(columns="node_code"),
+        "first_commitments": events.first_commitments.drop(columns="node_code"),
         "renewal_tenure": int(np.median(renewing["done"])) + 1 if len(renewing) else 1,
-        "supply0_navax": int(supply),
+        "supply0_navax": state["supply0_navax"],
         "inputs_source": run,
     }
+
+
+def fitted_inputs(periods_parquet: str, origin: date, run: str = "", large_above_avax: float | None = None) -> dict:
+    """Every input of a v0.8 run from ``origin``, fitted on staking periods that started by the origin's end.
+
+    * Renewal: endings in the 365 days before the origin with seven days of follow-up before it, as ``AM2`` counts them.
+      With ``large_above_avax``, one renewal block is fitted on the endings at or below that stake and another above it.
+    * Returns: endings in the 730 days before the origin that did not renew, each followed until it returned or the
+      origin came, so a node out at the origin is censored there.
+    * Arrivals: daily counts of first-ever commitments in the 365 days before the origin.
+    * Continuations: renewals and returns that started in the 365 days before the origin.
+
+    Commitments accepted by the origin that start after it enter on their start day, already minted. An open
+    commitment whose node has one of them is handed on to it, with no renewal draw. A node that ended in the week
+    before the origin without a new commitment is out of the set, so its chance to renew in what is left of its
+    week is not drawn. An origin inside the validation lockbox is refused.
+    """
+    return fit_blocks(training_events(periods_parquet, origin, run), large_above_avax)

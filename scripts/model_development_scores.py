@@ -15,7 +15,11 @@ with one row per origin, variable, horizon and forecast, and `development-summar
 each model by variable and horizon and a Diebold-Mariano test of it against each benchmark and of v0.8 against v0.7.
 The test takes the origins in date order, and its horizon is one plus the most later origins inside one forecast's
 window (``evaluation.dm_horizon``), counted from the dates because an upgrade can fall a week from a quarter start.
-``v0.8 separate`` fits its renewal block separately for commitments above 1M AVAX and at or below it.
+``v0.8 separate`` fits its renewal block separately for commitments above 1M AVAX and at or below it. ``v0.8 u`` is v0.8
+with one draw of every fitted parameter per run: 200 draws per origin from ``parameter_draws``, with the renewal shift's
+SD from ``window_sd``, batch b reading draws 20b to 20b + 19. The draws depend only on the origin, so every model and
+design at an origin that uses them gets the same rows. They go to ``draws.csv.gz``, and each origin's shift SD, its
+source and the number of draws at the renewal clip to ``tau.csv``.
 """
 
 from __future__ import annotations
@@ -30,7 +34,15 @@ import pandas as pd
 from avalanche_research import datasets
 from avalanche_research.model import evaluation as ev
 from avalanche_research.model.engine import run
-from avalanche_research.model.fitted_lifecycle import FittedLifecycle, fitted_inputs
+from avalanche_research.model.fitted_lifecycle import (
+    FittedLifecycle,
+    clipped_draws,
+    fit_blocks,
+    fitted_inputs,
+    parameter_draws,
+    training_events,
+    window_sd,
+)
 from avalanche_research.model.lifecycle import (
     ValidatorLifecycle,
     actual_path,
@@ -45,26 +57,42 @@ QUARTERS = {f"{y}-{m:02d}-01": date(y, m, 1) for y in (2022, 2023, 2024, 2025) f
             if date(2022, 7, 1) <= date(y, m, 1) <= date(2025, 10, 1)}
 HORIZONS = (30, 90, 180)
 VARIABLES = ("active_validators", "active_validator_stake_navax")
-MODELS = ("v0.7", "v0.8", "v0.8 separate")
+MODELS = ("v0.7", "v0.8", "v0.8 separate", "v0.8 u")
 LARGE_ABOVE_AVAX = 1_000_000
 BATCH_SEEDS = range(10)
 BATCH_RUNS = 20
+DRAW_SEED = 0
 
 
-def model_runs(task: tuple[str, date, str, str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+def batch_draws(draws: pd.DataFrame, batch: int) -> pd.DataFrame:
+    """Batch ``batch``'s rows of an origin's draw table, renumbered from 0, so its run r reads draw 20 x batch + r - 1."""
+    return draws.iloc[batch * BATCH_RUNS:(batch + 1) * BATCH_RUNS].reset_index(drop=True)
+
+
+def model_runs(task: tuple[str, date, str, str]) -> tuple[pd.DataFrame, pd.DataFrame, dict | None]:
     """Every run's value at each horizon for one origin and model, one row per batch seed, run, variable and horizon,
-    and each batch's specification hash."""
+    each batch's specification hash, and for ``v0.8 u`` the origin's draws and shift SD."""
     name, origin, model, periods = task
+    draws, extras = None, None
     if model == "v0.7":
         inputs = origin_inputs(periods, origin)
     elif model == "v0.8 separate":
         inputs = fitted_inputs(periods, origin, RUN, LARGE_ABOVE_AVAX)
+    elif model == "v0.8 u":
+        events = training_events(periods, origin, RUN)
+        inputs = {**fit_blocks(events), "moves": events.moves, "first_commitments": events.first_commitments}
+        tau, source = window_sd(periods, origin, inputs["renewal"])
+        draws = parameter_draws(events, BATCH_RUNS * len(BATCH_SEEDS), DRAW_SEED, tau)
+        extras = {"draws": draws.assign(origin=name, draw=range(len(draws))),
+                  "tau": {"origin": name, "tau": tau, "source": source, "clipped_draws": clipped_draws(draws)}}
     else:
         inputs = fitted_inputs(periods, origin, RUN)
     parts, specifications = [], []
     for seed in BATCH_SEEDS:
         if model == "v0.7":
             simulation = ValidatorLifecycle(origin=origin, inputs_source=RUN, timesteps=max(HORIZONS), runs=BATCH_RUNS, seed=seed, **inputs)
+        elif draws is not None:
+            simulation = FittedLifecycle(timesteps=max(HORIZONS), runs=BATCH_RUNS, seed=seed, draws=batch_draws(draws, seed), **inputs)
         else:
             simulation = FittedLifecycle(timesteps=max(HORIZONS), runs=BATCH_RUNS, seed=seed, **inputs)
         specifications.append({"origin": name, "model": model, "batch_seed": seed, "specification": simulation.specification_hash()})
@@ -73,7 +101,7 @@ def model_runs(task: tuple[str, date, str, str]) -> tuple[pd.DataFrame, pd.DataF
         parts.append(pd.DataFrame({"origin": name, "model": model, "batch_seed": seed, "run": t.run.to_numpy(),
                                    "variable": t.variable.to_numpy(), "horizon_days": t.timestep.to_numpy(),
                                    "value": t.value.astype(float).to_numpy()}))
-    return pd.concat(parts, ignore_index=True), pd.DataFrame(specifications)
+    return pd.concat(parts, ignore_index=True), pd.DataFrame(specifications), extras
 
 
 def main() -> None:
@@ -84,8 +112,14 @@ def main() -> None:
     origins = {**UPGRADES, **QUARTERS}
     with ProcessPoolExecutor(workers) as pool:
         results = list(pool.map(model_runs, [(n, o, m, periods) for n, o in origins.items() for m in MODELS]))
-    runs = pd.concat([r for r, _ in results], ignore_index=True)
-    pd.concat([s for _, s in results], ignore_index=True).to_csv(out / "development-specifications.csv", index=False)
+    runs = pd.concat([r for r, _, _ in results], ignore_index=True)
+    pd.concat([s for _, s, _ in results], ignore_index=True).to_csv(out / "development-specifications.csv", index=False)
+    extras = [e for _, _, e in results if e is not None]
+    if extras:
+        drawn = pd.concat([e["draws"] for e in extras], ignore_index=True)
+        drawn[["origin", "draw", *[c for c in drawn.columns if c not in ("origin", "draw")]]].to_csv(
+            out / "draws.csv.gz", index=False, compression={"method": "gzip", "mtime": 0})
+        pd.DataFrame([e["tau"] for e in extras]).to_csv(out / "tau.csv", index=False)
     # mtime 0 keeps the gzip header free of the clock, so identical runs give identical bytes.
     runs.to_csv(out / "development-runs.csv.gz", index=False, compression={"method": "gzip", "mtime": 0})
     means = runs.groupby(["origin", "model", "variable", "horizon_days"]).value.mean()
@@ -116,7 +150,7 @@ def main() -> None:
         wide = part.pivot(index="origin", columns="forecast", values="scaled_error")
         wide = wide.loc[ev.chronological(wide.index, origins)]
         lags = ev.dm_horizon(h, [origins[o] for o in wide.index])
-        pairs = [(m, b) for m in MODELS for b in ev.BENCHMARKS] + [("v0.8", "v0.7")]
+        pairs = [(m, b) for m in MODELS for b in ev.BENCHMARKS] + [("v0.8", "v0.7"), ("v0.8 u", "v0.8")]
         for model, benchmark in pairs:
             test = ev.diebold_mariano(wide[model], wide[benchmark], horizon=lags)
             summary.append({"variable": variable, "horizon_days": h, "model": model, "benchmark": benchmark, "origins": len(wide),
