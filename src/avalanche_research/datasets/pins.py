@@ -119,33 +119,38 @@ def read(path: Path) -> dict[str, Any]:
     return value
 
 
+def entry_findings(entry: dict[str, Any], root: Path | None = None) -> list[str]:
+    """What no longer matches for one pinned run: missing, a changed Parquet file, another dataset or capture, or a check
+    that no longer passes."""
+    parquet = (datasets.RUNS if root is None else root) / entry["run"] / "dataset" / entry["parquet"]
+    if not parquet.is_file():
+        return [f"{entry['dataset_id']} run {entry['run']} is missing"]
+    findings = []
+    body = parquet.read_bytes()
+    if len(body) != entry["bytes"] or sha256(body) != entry["sha256"]:
+        findings.append(f"{entry['dataset_id']} run {entry['run']} differs from its pin")
+    build = parquet.parent / "build.json"
+    try:
+        built = json.loads(build.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        built = {}
+    if built.get("dataset_id") != entry["dataset_id"]:
+        findings.append(f"{entry['dataset_id']} run {entry['run']} is a run of {built.get('dataset_id')}")
+    elif built.get("source_capture_id") != entry["capture_id"]:
+        findings.append(f"{entry['dataset_id']} run {entry['run']} was built from another capture than its pin names")
+    status = _check_status(entry["run"], root)
+    if status != "pass":
+        findings.append(f"{entry['dataset_id']} run {entry['run']} check is now {status}")
+    return findings
+
+
 def verify(path: Path, root: Path | None = None, repo: Path = ROOT) -> list[str]:
     """What no longer matches: a missing run, a changed Parquet file, a check that no longer passes, or named code that no
     longer resolves."""
-    findings = []
     value = read(path)
-    if "code" in value:
-        findings += code_findings(value["code"], repo)
+    findings = code_findings(value["code"], repo) if "code" in value else []
     for entry in value["runs"]:
-        parquet = (datasets.RUNS if root is None else root) / entry["run"] / "dataset" / entry["parquet"]
-        if not parquet.is_file():
-            findings.append(f"{entry['dataset_id']} run {entry['run']} is missing")
-            continue
-        body = parquet.read_bytes()
-        if len(body) != entry["bytes"] or sha256(body) != entry["sha256"]:
-            findings.append(f"{entry['dataset_id']} run {entry['run']} differs from its pin")
-        build = parquet.parent / "build.json"
-        try:
-            built = json.loads(build.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            built = {}
-        if built.get("dataset_id") != entry["dataset_id"]:
-            findings.append(f"{entry['dataset_id']} run {entry['run']} is a run of {built.get('dataset_id')}")
-        elif built.get("source_capture_id") != entry["capture_id"]:
-            findings.append(f"{entry['dataset_id']} run {entry['run']} was built from another capture than its pin names")
-        status = _check_status(entry["run"], root)
-        if status != "pass":
-            findings.append(f"{entry['dataset_id']} run {entry['run']} check is now {status}")
+        findings += entry_findings(entry, root)
     return findings
 
 

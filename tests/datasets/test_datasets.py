@@ -233,3 +233,25 @@ def test_a_corrupted_newest_run_raises_with_its_identity_and_never_falls_back(ro
         datasets.select_run("snowflake.primary-validator-stakes", newest=True, root=root)
     with pytest.raises(DataError, match="exactly one"):
         datasets.select_run("snowflake.primary-validator-stakes", root=root)
+
+
+def test_a_pinned_read_refuses_when_the_code_the_pin_names_does_not_resolve(root, tmp_path):
+    pin = pin_file(root, tmp_path, "snowflake.primary-validator-stakes", "validators-old")
+    record = json.loads(pin.read_text())
+    record["code"] = {"client_commit": "0" * 40}
+    pin.write_bytes(canonical_bytes(record))
+    with pytest.raises(DataError, match="does not resolve"):
+        datasets.select_run("snowflake.primary-validator-stakes", pin=pin, root=root)
+
+
+def test_an_automatic_reading_takes_the_newest_capture_in_utc_across_offsets(root):
+    set_times(root, "validators-old", captured_at="2026-09-14T06:00:00+08:00")
+    set_times(root, "validators-new", captured_at="2026-09-13T23:00:00-02:00")
+    found = datasets.readings({"previous": "snowflake.primary-validator-stakes"}, {"previous": "auto"}, root)
+    assert found["previous"]["run"] == "validators-new"
+
+
+def test_a_read_without_a_run_keeps_the_newest_build_route(root):
+    set_times(root, "validators-old", built_at="2026-10-08T00:00:00Z")
+    assert datasets.receipt("snowflake.primary-validator-stakes", root=root)["run"] == "validators-old"
+    assert datasets.select_run("snowflake.primary-validator-stakes", newest=True, root=root)["run"] == "validators-new"

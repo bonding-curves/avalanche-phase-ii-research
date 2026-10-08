@@ -7,8 +7,8 @@ Runs are ordered by capture completion in UTC, so a later rebuild of an older ca
 A reviewed read names its run exactly, or through a pin, with ``select_run``, and a failure raises rather than falling
 back to another run. ``select_run(..., newest=True)`` is the explicit exploratory choice, and it refuses a tied or
 unreadable latest capture time. Capture completion is not observation coverage, input availability or comparability.
-``load(dataset_id)`` without a run keeps the old newest-build default as a named migration route until its readers
-are checked.
+``load``, ``parquet_path`` and ``receipt`` without a run keep the old default, the newest build, as the migration
+route until their readers are checked. That route ignores capture order, so it is never a reviewed read.
 
 ``connect`` names each view by its full catalog ID (``canonical_view_name``) and adds the older short name only when
 no other requested dataset shares it. Its ``_provenance`` view maps every view to its catalog ID and exact run.
@@ -46,7 +46,7 @@ def _try_json(path: Path) -> tuple[dict[str, Any] | None, DataError | None]:
 
 
 def runs(dataset_id: str | None = None, root: Path | None = None) -> list[dict[str, Any]]:
-    """Built runs, newest build first, for one dataset or for every dataset.
+    """Built runs, newest capture first, for one dataset or for every dataset.
 
     A run is skipped when no receipt of it names the requested dataset, even if its other receipt is unreadable. A run
     that one of its receipts ties to the requested dataset is refused with its path when a receipt is unreadable or not
@@ -104,21 +104,22 @@ def select_run(dataset_id: str, *, run: str | None = None, pin: Path | None = No
                root: Path | None = None) -> dict[str, Any]:
     """Exactly one run chosen by exactly one rule, verified, with its capture, build and input identities.
 
-    ``run`` names it. ``pin`` takes the run the pin file names for this dataset and requires the pin's hash to match.
+    ``run`` names it. ``pin`` takes the run the pin file names for this dataset, and refuses when that run no longer
+    matches the pin or when the code the pin names no longer resolves.
     ``newest`` takes the run with the latest capture completion, and refuses when that time is missing, unreadable or
     shared by two runs, or when that run fails verification: it never falls back to an older run.
     """
     if sum((run is not None, pin is not None, newest)) != 1:
         raise DataError("select_run needs exactly one of run, pin, or newest=True")
     if pin is not None:
-        from .pins import runs as pinned
-        from .pins import verify
+        from .pins import code_findings, entry_findings, read
 
-        named = pinned(pin)
-        if dataset_id not in named:
+        value = read(pin)
+        entry = next((item for item in value["runs"] if item["dataset_id"] == dataset_id), None)
+        if entry is None:
             raise DataError(f"pin {pin} names no run of {dataset_id}")
-        run = named[dataset_id]
-        findings = [finding for finding in verify(pin, root) if dataset_id in finding]
+        run = entry["run"]
+        findings = (code_findings(value["code"]) if "code" in value else []) + entry_findings(entry, root)
         if findings:
             raise DataError(f"pin {pin}: " + "; ".join(findings))
     elif newest:
@@ -150,7 +151,9 @@ def _select(dataset_id: str, run: str | None, root: Path | None) -> dict[str, An
     if dataset_id not in {item["id"] for item in catalog["datasets"]}:
         raise DataError(f"unknown dataset: {dataset_id}")
     available = runs(dataset_id, root)
-    if run is not None:
+    if run is None:
+        available = sorted(available, key=lambda item: (item["built_at"] or "", item["run"]), reverse=True)
+    else:
         available = [item for item in available if item["run"] == run]
     if not available:
         raise DataError(f"no built run for {dataset_id}" + (f" named {run}" if run else "") + f" under {root}")
@@ -162,7 +165,7 @@ def readings(reads: dict[str, str], parameters: dict[str, str] | None, root: Pat
     """The built runs a capture's parameters name, for a capture module that declares ``READS``.
 
     ``reads`` maps a parameter to the dataset whose run it names, and ``defaults`` gives a parameter's value when it is
-    not given. A value is a run name, ``auto`` for the newest capture by capture time, or ``none``. Each run found
+    not given. A value is a run name, ``auto`` for the run ``select_run(..., newest=True)`` takes, or ``none``. Each run found
     becomes a reading: its dataset, run, capture ID, capture directory, and Parquet path. The capture opens those paths
     itself and never imports this module. A parameter with no value, ``none``, or ``auto`` with no built run is left
     out, and the capture decides what that means.
@@ -174,10 +177,9 @@ def readings(reads: dict[str, str], parameters: dict[str, str] | None, root: Pat
         if not value or value == "none":
             continue
         if value == "auto":
-            available = runs(dataset_id, root)
-            if not available:
+            if not runs(dataset_id, root):
                 continue
-            value = max(available, key=lambda item: (item["captured_at"] or "", item["run"]))["run"]
+            value = select_run(dataset_id, newest=True, root=root)["run"]
         record = receipt(dataset_id, value, root)
         selected = _select(dataset_id, record["run"], root)
         found[name] = {"dataset_id": dataset_id, "run": record["run"], "capture_id": record["capture"]["capture_id"],
@@ -186,7 +188,7 @@ def readings(reads: dict[str, str], parameters: dict[str, str] | None, root: Pat
 
 
 def receipt(dataset_id: str, run: str | None = None, root: Path | None = None) -> dict[str, Any]:
-    """The capture and build receipts of the latest, or the named, run."""
+    """The capture and build receipts of the named run, or of the newest build (the migration route)."""
     selected = _select(dataset_id, run, root)
     return {
         "run": selected["run"],
