@@ -1,6 +1,43 @@
 # Research data
 
-This directory defines the machine-readable contracts for research data used in Avalanche Phase II. The first dataset reconstructs Snowpeer's six network-wide summary metrics. The others preserve every validator staking transaction, every delegation transaction, and every staking reward outcome on the Avalanche Primary Network from the Avalanche Snowflake share. All of them keep the source evidence, transformation, and validation records required to inspect the result.
+This folder defines every dataset the research uses and records how each one was obtained. It holds the data catalog, the SQL behind each Snowflake dataset, the pinned input sets, and two small sets of committed evidence. The data files themselves are too large for Git and are not stored here. They are rebuilt from their definitions with the `avalanche` command line tool into `data/runs/`, which Git ignores.
+
+A **dataset** is one table with a catalog ID, such as `derived.staking-periods`. A **run** is one build of a dataset: a folder `data/runs/<run>/` with a `capture/` folder holding what was fetched and its receipt, and a `dataset/` folder holding the typed Parquet file, its build receipt `build.json`, and its check result `check.json`.
+
+| Path | What it holds |
+| --- | --- |
+| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 16 sources and 69 datasets |
+| [`data-catalog.schema.json`](data-catalog.schema.json) | The JSON schema that validates the catalog |
+| [`queries/`](queries/) | The exact SQL text each Snowflake dataset runs |
+| [`pins/`](pins/) | Pinned input sets: the exact runs a result was made from, with their hashes. See [`pins/README.md`](pins/README.md) |
+| `evidence/` | Committed evidence: the receipt capture that repairs C-Chain block 95,492,477, and the validator commitments open when Helicon activated, with their receipt |
+| [`operator-attributions.json`](operator-attributions.json) | Every name or role attached to a validator reward address, funding address, or node, with its evidence |
+| [`monetary-source-audit.md`](monetary-source-audit.md) | How each part of the daily monetary ledger was sourced and reconciled |
+| [`research-navigation.json`](research-navigation.json) | The registry behind the research site's source collections |
+| [`quartz-link-baseline.json`](quartz-link-baseline.json) | The known rendered-link failures the site check tolerates |
+| `runs/` | Built runs. Not stored in Git |
+
+## Inspect and rebuild
+
+The catalog can be read without any data or credentials. These commands run from the repository root after `uv sync --locked`:
+
+```sh
+uv run avalanche data list
+uv run avalanche data describe derived.staking-periods
+uv run avalanche data manifest --json
+```
+
+Each dataset is rebuilt in three steps, `avalanche data fetch`, `build`, and `check`, into a new run folder. A derived table is built with `avalanche data derive` from runs already built. The Snowpeer summary needs no credentials, the Snowflake datasets need authorized access to the Avalanche data share, and the sections below give the commands for each dataset. To confirm that a set of runs matches the inputs of a published result, check its pin:
+
+```sh
+uv run avalanche data pin-check data/pins/p6-v0.7-report.json
+```
+
+## How this folder connects to the rest
+
+The package in [`src/avalanche_research/`](../src/avalanche_research/) reads the catalog. Its `sources` modules capture each provider, and its `datasets` modules build, check, and load runs. The model in `src/avalanche_research/model/` reads two derived tables, `derived.staking-periods` and `derived.avax-monetary-daily`. The scripts in [`scripts/`](../scripts/) and the notebooks in [`notebooks/`](../notebooks/) load runs by catalog ID, usually the runs a pin names, and write the figures and tables shown on the research site.
+
+The rest of this guide gives the status of every dataset and how to reproduce each one.
 
 ## Current coverage
 
@@ -47,8 +84,6 @@ This directory defines the machine-readable contracts for research data used in 
 | `derived.operators` | One Parquet row per validator node with its operator (latest reward address) and fleet (same entry week, exit week, and fee), and named agents with their evidence | Implemented, tested, and derived on 2026-09-29: 7,644 nodes, 3,963 operators, 4,247 fleets |
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
-
-[`data-catalog.json`](data-catalog.json) records source authority, endpoints, queries, field definitions, units, and derivations. [`data-catalog.schema.json`](data-catalog.schema.json) validates its structure. [`queries/`](queries/) holds the exact SQL text each Snowflake dataset runs. [`research-navigation.json`](research-navigation.json) supports deterministic navigation across the published research.
 
 ## From the chain to the model's tables
 

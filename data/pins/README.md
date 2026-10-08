@@ -1,0 +1,48 @@
+# Pinned input sets
+
+This folder holds the research's pin files. A **pin file** names the exact data runs a result was made from, with the hash of each run's data file, so the result can be rebuilt from those inputs and no others. A **run** is one build of a dataset, a folder under `data/runs/` (see the [data guide](../README.md)). Without a pin, a script reads a dataset's newest run, which changes with every refresh.
+
+## What a pin file holds
+
+Each pin file is JSON with schema version `avalanche-pins/v1`, a `name`, the time it was written (`pinned_at`), and a list of `runs` with these fields.
+
+| Field | Meaning |
+| --- | --- |
+| `dataset_id` | The dataset's catalog ID, such as `derived.staking-periods` |
+| `run` | The run folder under `data/runs/` |
+| `capture_id`, `captured_at` | The capture the run was built from, and when it finished |
+| `parquet`, `bytes`, `sha256` | The run's Parquet file, its size, and its SHA-256 hash |
+| `check` | The run's check result when it was pinned. Only `pass` is accepted |
+
+A pin may also carry `code`: the full commit of this repository the results were made with (`client_commit`) and an optional tag (`ref`).
+
+| File | What it pins |
+| --- | --- |
+| `p1-brief.json` | The seamed validator stakes and staking periods of 2026-10-02 |
+| `p2-model-v0.8.json` | The staking periods and daily monetary ledger of 2026-09-30, read by the model scoring and v0.7 report scripts |
+| `p3-helicon-etf.json` | Eight runs behind the Helicon and exchange-traded fund figures |
+| `p4-opportunity-costs.json` | Eight runs behind the opportunity-cost figure |
+| `p5-v0.7-report.json` | Four runs of 2026-09-30 behind the v0.7 research report, at commit `087484b`, tag `model-v0.7.0` |
+| `p6-v0.7-report.json` | The runs of `p5` plus the operator table, at the same commit and tag |
+
+## Check a pin
+
+`pin-check` confirms that each pinned run's Parquet file exists, has the recorded size and SHA-256, and still passes its check. When the pin names code, it also confirms that the commit exists in this repository and that the tag points at it.
+
+```sh
+uv run avalanche data pin-check data/pins/p6-v0.7-report.json
+```
+
+With the runs in place it prints `PASS | data pin-check | p6-v0.7-report.json: 5 runs; 0 findings`. Otherwise it prints one finding per problem, such as a missing or changed run, and exits with status 1.
+
+## Make a pin
+
+`pin` takes each dataset's newest run, or the one named with `--run`. It refuses a run whose check has not passed, an existing pin name, and a commit or tag that does not resolve.
+
+```sh
+uv run avalanche data pin NAME derived.staking-periods --run derived.staking-periods=staking-periods-2026-09-30
+```
+
+## How pins connect to the rest
+
+The runs come from the build steps in the [data guide](../README.md). The model runs for the v0.7 report, `scripts/model_v07_report_runs.py`, and the record charts, `scripts/figures/model_v07_record.py`, read their runs through `avalanche_research.pins.runs`, which maps each dataset to its pinned run, and stop on any finding. Other scripts in [`scripts/`](../../scripts/) and [`scripts/figures/`](../../scripts/figures/) name a pinned run directly. The figures they write are the ones shown on the research site.
