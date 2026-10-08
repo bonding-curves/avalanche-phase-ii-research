@@ -79,14 +79,16 @@ def upgrade_crossed(frame: pd.DataFrame) -> pd.Series:
 
 def as_of(frame: pd.DataFrame, price_parquet: str, tbill_parquet: str, ledger_parquet: str) -> pd.DataFrame:
     """Each series' last recorded value on a UTC day before the decision day. Days with no value, such as market
-    holidays in the Treasury series, are skipped rather than read as missing."""
+    holidays in the Treasury series, are skipped rather than read as missing. The price series repeats some dates, and
+    the last observation of a day is taken."""
     keys = frame[["transaction_hash", "accepted_at"]].assign(decision_day=frame["accepted_at"].dt.normalize())
     connection = duckdb.connect()
     try:
         connection.register("k", keys)
         return connection.execute(f"""
-            WITH p AS (SELECT observation_date::TIMESTAMP AS day, price_usd, realized_volatility_30d FROM read_parquet('{_quoted(price_parquet)}')
-                       WHERE price_usd IS NOT NULL),
+            WITH p AS (SELECT observation_date::TIMESTAMP AS day, arg_max(price_usd, observed_at) AS price_usd,
+                              arg_max(realized_volatility_30d, observed_at) AS realized_volatility_30d
+                       FROM read_parquet('{_quoted(price_parquet)}') WHERE price_usd IS NOT NULL GROUP BY 1),
                  t AS (SELECT date_utc::TIMESTAMP AS day, discount_rate_pct FROM read_parquet('{_quoted(tbill_parquet)}')
                        WHERE discount_rate_pct IS NOT NULL),
                  l AS (SELECT date_utc::TIMESTAMP AS day,

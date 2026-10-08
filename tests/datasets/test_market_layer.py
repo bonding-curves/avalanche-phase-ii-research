@@ -35,7 +35,11 @@ def write(tmp_path: Path) -> tuple[str, str, str, str]:
     paths = {name: str(tmp_path / f"{name}.parquet") for name in ("periods", "price", "tbill", "ledger")}
     duckdb.from_df(frame.drop(columns=["stake_avax", "reward_avax"])).write_parquet(paths["periods"])
     days = pd.date_range("2022-12-25", "2023-06-01", freq="D")
-    price = pd.DataFrame({"observation_date": days.date, "price_usd": range(len(days)), "realized_volatility_30d": 0.5})
+    price = pd.DataFrame({"observation_date": days.date, "price_usd": range(len(days)), "realized_volatility_30d": 0.5,
+                          "observed_at": days + pd.Timedelta(hours=12)})
+    early = pd.DataFrame({"observation_date": [pd.Timestamp("2023-02-28").date()], "price_usd": [-1], "realized_volatility_30d": 0.5,
+                          "observed_at": [pd.Timestamp("2023-02-28 00:00")]})
+    price = pd.concat([price, early], ignore_index=True)
     duckdb.from_df(price).write_parquet(paths["price"])
     tbill = pd.DataFrame({"date_utc": days[::7].date, "discount_rate_pct": 4.0})
     duckdb.from_df(tbill).write_parquet(paths["tbill"])
@@ -50,6 +54,7 @@ def test_every_series_is_read_from_a_day_before_the_decision_day(tmp_path):
     for column in ("price_day", "tbill_day", "ledger_day"):
         assert (layer[column] < layer["accepted_at"].dt.normalize()).all()
     assert layer.loc["V2", "price_day"] == pd.Timestamp("2023-02-28") and layer.loc["V2", "staking_ratio"] == 0.75
+    assert layer.loc["V2", "price_usd"] >= 0, "a repeated date takes the day's last observation"
 
 
 def test_previous_period_delegations_compounding_and_upgrade_crossing(tmp_path):
