@@ -12,7 +12,8 @@ Two model versions live here. **v0.7** is the released model, `ValidatorLifecycl
 | `replay.py` | `Replay`, which steps recorded stake starts, ends, and reward payments through the engine with no behaviour, and `compare`, which matches it to the daily monetary ledger |
 | `blocks.py` | `BehaviourBlock`, one class per decision, with `sample` for the simulator and `log_prob` for the estimator, and v0.7's one-probability `Renewal` |
 | `lifecycle.py` | v0.7: open commitments end on schedule and either renew on the same node with one observed probability or leave, and new commitments enter at one observed rate (`Entry`). `origin_inputs` measures every input before the origin |
-| `fitted_blocks.py` | v0.8's fitted blocks: `RenewalLogit`, `Arrivals`, `ReturnHazard`, and the `Continuation` draws of duration and stake |
+| `parts/` | v0.8's fitted blocks, one module per part: `base.py` for the contract and shared constants, `renewal.py` for `RenewalLogit`, `arrivals.py` for `Arrivals`, `returns.py` for `ReturnHazard`, and `continuation.py` for the `Continuation` draws of duration and stake |
+| `fitted_blocks.py` | Every name of `parts/` under its earlier path, so existing imports keep working |
 | `fitted_lifecycle.py` | v0.8: `FittedLifecycle`, and `fitted_inputs`, which fits each block on the events before the origin |
 | `streams.py` | `Streams`, which keys each random draw by seed, run, purpose, and node, so two designs on one seed share their draws. v0.8 uses it. v0.7 draws from one generator per run and day |
 | `evaluation.py` | Scores against simple forecasts at 30, 90, and 180 days, and distribution scores |
