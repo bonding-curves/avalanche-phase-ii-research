@@ -78,6 +78,19 @@ The model's input data, a pinned input set, follows on 2026-10-07. Until then th
 | Python package `avalanche-phase-ii-research` | 0.1 (`0.1.0.dev0` in [`pyproject.toml`](pyproject.toml)) |
 | Staking model | v0.7. Each model run records `MODEL_VERSION = "0.7.0"` |
 
+## Writing links
+
+Pages under `content/` are published by the research site, so their links must point at what the site publishes, not at files in this repository.
+
+| Link to | Write it as | Example |
+| --- | --- | --- |
+| Another page | The page's site route, from the root | `[1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/)` |
+| A heading on a page | The route with the heading's anchor | `[the boundary](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/#boundary)` |
+| An image or data file | Copy it into the page's folder and link its route from the root. Relative links such as `figure.png` break, because the site resolves links from its root | `![Figure 1](/Phase-II/Milestones/Milestone-1/milestone-1-chain.png)` |
+| An outside source | Its full `https://` address | `[ACP-285](https://github.com/avalanche-foundation/ACPs)` |
+
+A source file elsewhere in the repository, such as a script or a notebook, is not a published page. Name it in code format, for example `scripts/milestone_pages.py`, rather than linking it. Before committing a change to `content/`, run `npm --prefix .site run verify`, which fails on any new link the site cannot resolve.
+
 ## License
 
 Copyright (c) 2026 Longtail Financial Corp., operating as the Bonding Curve Research Group (BCRG). All rights reserved. See [LICENSE.md](LICENSE.md). The site engine in `.site/` is Quartz, under its own MIT license in [`.site/LICENSE.txt`](.site/LICENSE.txt).
