@@ -124,6 +124,8 @@ def changed(name: str, **fields) -> list[tuple]:
     (changed("D5", end_time="2023-04-02 00:00"), [], "empty_interval 1"),
     (changed("D5", role="observer"), [], "unknown_role 1"),
     (ROWS + [ROWS[-1]], [], "repeated_hash 1"),
+    (changed("D2", node_id=None), [], "missing_fields 1"),
+    (changed("D7", validator_transaction_hash="V3"), [], "validator_accepted_after_origin 1"),
 ])
 def test_inputs_the_consumer_would_misread_are_refused(tmp_path, rows, extra_funding, refusal):
     with pytest.raises(DataError, match=refusal):

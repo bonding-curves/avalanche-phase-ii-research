@@ -24,9 +24,9 @@ end. A new placement is reserved before the next placement reads the room. The w
 placement from the period's own stake on that day, since the room here is the limit at the origin.
 
 ``build`` refuses inputs this reading would get wrong: a period row missing a time or stake, accepted after its
-start, ending at or before its start, with negative stake, an unknown role or a repeated hash. It also refuses a
-delegation with two funding rows, and a delegation accepted by the origin and not yet ended that names no validator
-period, names one of another node, or runs outside it.
+start, ending at or before its start, with negative stake, an unknown role or a repeated hash, or without a node. It
+also refuses a delegation with two funding rows, and a delegation accepted by the origin and not yet ended that names no
+validator period, names one of another node, names one accepted after the origin, or runs outside it.
 
 Origins must fall before the validation lockbox's first day, as in the replay. Inputs are the staking-period log, for
 start, end, stake and fee, and the seamed delegator stakes, for the funding address.
@@ -54,8 +54,8 @@ SELECT transaction_hash, role, node_id, validator_transaction_hash, accepted_at,
 FROM read_parquet('{periods}') WHERE start_time IS NOT NULL AND end_time IS NOT NULL AND stake_navax IS NOT NULL
 """
 SOURCE_SQL = """
-SELECT count(*) FILTER (WHERE transaction_hash IS NULL OR accepted_at IS NULL OR start_time IS NULL OR end_time IS NULL
-                         OR stake_navax IS NULL) AS missing_fields,
+SELECT count(*) FILTER (WHERE transaction_hash IS NULL OR node_id IS NULL OR accepted_at IS NULL OR start_time IS NULL
+                         OR end_time IS NULL OR stake_navax IS NULL) AS missing_fields,
        count(*) FILTER (WHERE accepted_at > start_time) AS accepted_after_start,
        count(*) FILTER (WHERE start_time >= end_time) AS empty_interval,
        count(*) FILTER (WHERE stake_navax < 0) AS negative_stake,
@@ -67,7 +67,8 @@ ASSOCIATION_SQL = """
 WITH r AS (SELECT * FROM d WHERE accepted_at <= ?::TIMESTAMP AND end_time > ?::TIMESTAMP)
 SELECT (SELECT count(*) FROM (SELECT transaction_hash FROM f GROUP BY 1 HAVING count(*) > 1)) AS repeated_funding,
        count(*) FILTER (WHERE v.transaction_hash IS NULL) AS no_validator_period,
-       count(*) FILTER (WHERE v.node_id <> r.node_id) AS other_node,
+       count(*) FILTER (WHERE v.transaction_hash IS NOT NULL AND v.node_id IS DISTINCT FROM r.node_id) AS other_node,
+       count(*) FILTER (WHERE v.accepted_at > ?::TIMESTAMP) AS validator_accepted_after_origin,
        count(*) FILTER (WHERE r.start_time < v.start_time OR r.end_time > v.leave_time) AS outside_validator_period
 FROM r LEFT JOIN p v ON v.transaction_hash = r.validator_transaction_hash AND v.role = 'validator'
 """
@@ -158,7 +159,7 @@ def refusals(connection: duckdb.DuckDBPyConnection, periods_parquet: str, origin
     """Counts of the source conditions ``build`` refuses, each zero for valid inputs."""
     instant = origin_instant(origin)
     source = connection.execute(SOURCE_SQL.format(periods=periods_parquet.replace("'", "''"))).df().iloc[0]
-    association = connection.execute(ASSOCIATION_SQL, [instant, instant]).df().iloc[0]
+    association = connection.execute(ASSOCIATION_SQL, [instant, instant, instant]).df().iloc[0]
     return {name: int(value) for name, value in {**source.to_dict(), **association.to_dict()}.items()}
 
 
