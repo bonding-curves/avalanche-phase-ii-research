@@ -25,6 +25,14 @@ It also builds one candidate on v0.8 by a fourth switch, with and without parame
   on the moves of the 365 days before the origin. Its stake still comes from the continuation table. With parameter
   draws, each run refits the transition on its own node resample of the moves, the one its continuation table reads.
 
+And it builds one model with delegations, outside the development scores:
+
+* ``v0.8.1 stub``: :class:`~avalanche_research.model.delegated_lifecycle.DelegatedLifecycle` on v0.8's inputs, with
+  the delegations open and scheduled at the origin, a Poisson flow of new delegations at the mean daily rate of the
+  year before it and BENQI's share of that year, and the placeholder choice and BENQI allocation blocks. Its
+  ``prepare`` needs ``delegations``: the origin's delegation tables, ``open``, ``validators`` and ``scheduled``, with
+  ``flows``, and ``terms`` from :func:`~avalanche_research.model.delegated_lifecycle.delegation_terms`.
+
 A variant is built in two steps. :meth:`Variant.prepare` reads the staking periods once per origin and returns the
 inputs every batch shares, with the draw table for a variant that reads draws. :meth:`Variant.simulation` builds one
 batch from them.
@@ -38,6 +46,11 @@ from datetime import date
 
 import pandas as pd
 
+from avalanche_research.model.delegated_lifecycle import (
+    DelegatedLifecycle,
+    delegation_inputs,
+    historical_flow,
+)
 from avalanche_research.model.engine import SimulationModel
 from avalanche_research.model.fitted_lifecycle import (
     FittedLifecycle,
@@ -72,10 +85,11 @@ class Variant:
     name: str
     model: type[SimulationModel]
     description: str
-    build: Callable[[str, date, str, int, int], Prepared]
+    build: Callable[..., Prepared]
 
-    def prepare(self, periods: str, origin: date, run: str, draws: int = 0, draw_seed: int = 0) -> Prepared:
-        return self.build(periods, origin, run, draws, draw_seed)
+    def prepare(self, periods: str, origin: date, run: str, draws: int = 0, draw_seed: int = 0, **tables) -> Prepared:
+        """The inputs at ``origin``. ``tables`` passes any further input tables a variant reads, by name."""
+        return self.build(periods, origin, run, draws, draw_seed, **tables)
 
     def simulation(self, prepared: Prepared, seed: int, timesteps: int, runs: int,
                    draws: pd.DataFrame | None = None) -> SimulationModel:
@@ -140,6 +154,17 @@ def _fitted_with_draws(switches: Switches = V08) -> Callable[..., Prepared]:
     return build
 
 
+def _delegated_stub(periods: str, origin: date, run: str, draws: int, draw_seed: int,
+                    delegations: dict[str, pd.DataFrame] | None = None) -> Prepared:
+    if delegations is None:
+        raise ValueError("v0.8.1 stub needs the origin's delegation tables and terms as delegations")
+    events = training_events(periods, origin, run)
+    return Prepared({
+        **switched_inputs(events, V08), **delegation_inputs(delegations, periods, origin, events.state),
+        "delegation_terms": delegations["terms"], "delegation_flow": historical_flow(delegations["flows"], origin),
+    })
+
+
 _CANDIDATE_DESCRIPTIONS = {
     "v0.8-a": "v0.8 without the node's own renewal record, with the stake ratio drawn unweighted within three stake bands",
     "v0.8-c": "v0.8-a with the node's own renewal record and the stake ratio weighted by previous stake",
@@ -164,6 +189,9 @@ VARIANTS: dict[str, Variant] = {
                 _fitted(DURATION)),
         Variant("v0.8 duration u", FittedLifecycle, "v0.8 duration with one draw of every fitted parameter per run",
                 _fitted_with_draws(DURATION)),
+        Variant("v0.8.1 stub", DelegatedLifecycle,
+                "v0.8 with delegations: the open and scheduled ones at the origin, a flow at the year's rate, and placeholder choices",
+                _delegated_stub),
     )
 }
 

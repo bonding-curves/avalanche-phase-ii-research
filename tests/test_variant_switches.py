@@ -93,7 +93,7 @@ def synthetic_periods(monkeypatch):
 def test_the_candidates_are_registered_and_the_development_scores_run_the_four_variants_as_before():
     assert DEVELOPMENT_MODELS == ("v0.7", "v0.8", "v0.8 separate", "v0.8 u")
     assert list(VARIANTS) == [*DEVELOPMENT_MODELS, "v0.8-a", "v0.8-a u", "v0.8-c", "v0.8-c u", "v0.8-e", "v0.8-e u",
-                              "v0.8 duration", "v0.8 duration u"]
+                              "v0.8 duration", "v0.8 duration u", "v0.8.1 stub"]
     spec = importlib.util.spec_from_file_location("model_development_scores", SCRIPT)
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)

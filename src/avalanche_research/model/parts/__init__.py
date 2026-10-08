@@ -8,6 +8,8 @@
   that renews or returns.
 * :mod:`~avalanche_research.model.parts.duration_transition`: :class:`DurationTransition`, a fitted transition between
   duration bands that a model variant draws the next duration from in place of the continuation table.
+* :mod:`~avalanche_research.model.parts.delegations`: the delegations stage, which ages, starts and places delegations
+  on the day's validators by the blocks of :mod:`~avalanche_research.model.delegation_blocks`, and mints their rewards.
 * :mod:`~avalanche_research.model.parts.stages`: the daily step as an ordered list of stages. Each behaviour part's
   stage lives in its own module, and the rewards and assembly stages live here.
 

@@ -31,10 +31,14 @@ PURPOSES = {
     "return_days": "the duration after a return",
     "parameter_draw": "one run's draw of fitted parameters",
     "continuation_resample": "one run's node resample of the continuation and first-commitment tables",
-    "design": "a sweep design generator's own draws, such as the scrambling of a Sobol sequence",
     "failure": "an uptime failure at a commitment's end",
     "large_path": "the large-holder cohort path",
     "design": "the scramble of a sweep design's Sobol points",
+    "delegations": "the count of new delegations today",
+    "delegation_benqi": "whether a new delegation is BENQI's",
+    "delegation_terms": "a new delegation's stake and duration",
+    "delegator_choice": "the validator a delegator other than BENQI chooses",
+    "benqi_allocation": "the validator BENQI delegates to",
 }
 
 KIND_OPEN, KIND_OUT, KIND_SCHEDULED, KIND_ARRIVAL = 0, 1, 2, 3
