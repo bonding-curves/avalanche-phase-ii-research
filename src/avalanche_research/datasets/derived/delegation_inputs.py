@@ -9,6 +9,11 @@ after that instant. The open delegations' count and stake therefore equal the re
 set apart before public evidence existed. A validator's room is its weight limit (``weeks.max_weight_sql``: five times
 its stake, at most 3M AVAX from Apricot Phase 3) less its own stake and its open delegations.
 
+A commitment accepted by the origin instant but starting after it is scheduled: the chain already holds it, and it will
+add load. Before Durango a stake could be accepted up to two weeks before its start. ``scheduled`` lists those
+validator and delegation periods, and each open validator's ``room_reserved_navax`` also subtracts its scheduled
+delegations over their whole interval, a conservative bound on the room left for new delegations.
+
 Origins must fall before the validation lockbox's first day, as in the replay. Inputs are the staking-period log, for
 start, end, stake and fee, and the seamed delegator stakes, for the funding address.
 """
@@ -73,13 +78,29 @@ def validator_room(connection: duckdb.DuckDBPyConnection, origin: date) -> pd.Da
     return connection.execute(f"""
         WITH v AS (SELECT * FROM p WHERE role = 'validator' AND start_time <= ?::TIMESTAMP AND leave_time > ?::TIMESTAMP),
              o AS (SELECT validator_transaction_hash, count(*) AS delegations, sum(stake_navax) AS delegated_navax
-                   FROM d WHERE start_time <= ?::TIMESTAMP AND end_time > ?::TIMESTAMP GROUP BY 1)
+                   FROM d WHERE start_time <= ?::TIMESTAMP AND end_time > ?::TIMESTAMP GROUP BY 1),
+             s AS (SELECT validator_transaction_hash, count(*) AS scheduled, sum(stake_navax) AS scheduled_navax
+                   FROM d WHERE accepted_at <= ?::TIMESTAMP AND start_time > ?::TIMESTAMP GROUP BY 1)
         SELECT v.transaction_hash, v.node_id, v.stake_navax, v.delegation_fee_rate, v.leave_time AS end_time,
                coalesce(o.delegations, 0)::INTEGER AS delegations, coalesce(o.delegated_navax, 0)::BIGINT AS delegated_navax,
                ({limit})::BIGINT AS max_weight_navax,
-               (({limit}) - v.stake_navax - coalesce(o.delegated_navax, 0))::BIGINT AS room_navax
-        FROM v LEFT JOIN o ON o.validator_transaction_hash = v.transaction_hash ORDER BY v.node_id, v.transaction_hash
-        """, [instant, instant, instant, instant, instant, instant]).df()
+               (({limit}) - v.stake_navax - coalesce(o.delegated_navax, 0))::BIGINT AS room_navax,
+               coalesce(s.scheduled, 0)::INTEGER AS scheduled_delegations, coalesce(s.scheduled_navax, 0)::BIGINT AS scheduled_delegated_navax,
+               (({limit}) - v.stake_navax - coalesce(o.delegated_navax, 0) - coalesce(s.scheduled_navax, 0))::BIGINT AS room_reserved_navax
+        FROM v LEFT JOIN o ON o.validator_transaction_hash = v.transaction_hash
+               LEFT JOIN s ON s.validator_transaction_hash = v.transaction_hash ORDER BY v.node_id, v.transaction_hash
+        """, [instant] * 9).df()
+
+
+def scheduled(connection: duckdb.DuckDBPyConnection, origin: date) -> pd.DataFrame:
+    """Validator and delegation periods accepted by the origin instant that start after it."""
+    instant = origin_instant(origin)
+    return connection.execute("""
+        SELECT p.role, p.transaction_hash, p.node_id, p.validator_transaction_hash, p.accepted_at, p.start_time, p.leave_time AS end_time,
+               p.stake_navax, d.delegator_address, coalesce(d.benqi, false) AS benqi
+        FROM p LEFT JOIN d USING (transaction_hash)
+        WHERE p.accepted_at <= ?::TIMESTAMP AND p.start_time > ?::TIMESTAMP ORDER BY p.start_time, p.transaction_hash
+        """, [instant, instant]).df()
 
 
 def flows(connection: duckdb.DuckDBPyConnection, origin: date, days: int = FLOW_DAYS) -> pd.DataFrame:
@@ -104,7 +125,7 @@ def build(periods_parquet: str, delegators_parquet: str, origin: date) -> dict[s
     connection = _connect(periods_parquet, delegators_parquet)
     try:
         return {"open": open_delegations(connection, origin), "validators": validator_room(connection, origin),
-                "flows": flows(connection, origin)}
+                "scheduled": scheduled(connection, origin), "flows": flows(connection, origin)}
     finally:
         connection.close()
 
@@ -115,7 +136,8 @@ def check(inputs: dict[str, pd.DataFrame], replay_day: pd.Series) -> dict:
     result = {"delegations": len(opened), "replay_delegations": int(replay_day["active_delegations"]),
               "delegated_navax": int(opened["stake_navax"].sum()), "replay_delegated_navax": int(replay_day["active_delegated_stake_navax"]),
               "unfunded": int(opened["delegator_address"].isna().sum()), "benqi": int(opened["benqi"].sum()),
-              "validators": len(inputs["validators"]), "over_limit": int((inputs["validators"]["room_navax"] < 0).sum())}
+              "validators": len(inputs["validators"]), "over_limit": int((inputs["validators"]["room_navax"] < 0).sum()),
+              "scheduled": len(inputs["scheduled"]), "over_limit_with_scheduled": int((inputs["validators"]["room_reserved_navax"] < 0).sum())}
     result["equal"] = (result["delegations"] == result["replay_delegations"]
                        and result["delegated_navax"] == result["replay_delegated_navax"])
     return result

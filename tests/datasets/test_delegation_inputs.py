@@ -29,7 +29,10 @@ ROWS = [
     ("D5", "delegator", "C", "V3", "2023-04-02 00:00", "2023-06-01 00:00", None, 300, None, "avax1other"),
     # Funded by BENQI's key before its evidence date, so not set apart.
     ("D6", "delegator", "A", "V1", "2021-12-01 00:00", "2023-09-01 00:00", None, 400, None, BENQI),
+    # Accepted on the origin day, starting two days later: scheduled, so it reserves room on V1.
+    ("D7", "delegator", "A", "V1", "2023-04-03 00:00", "2023-05-03 00:00", None, 250, None, "avax1other"),
 ]
+ACCEPTED_EARLY = {"D7": "2023-04-01 08:00"}
 
 
 def write(tmp_path: Path) -> tuple[str, str]:
@@ -38,6 +41,8 @@ def write(tmp_path: Path) -> tuple[str, str]:
     for column in ("start_time", "end_time", "last_cycle_end_time"):
         frame[column] = pd.to_datetime(frame[column])
     frame["accepted_at"] = frame["start_time"]
+    for name, accepted in ACCEPTED_EARLY.items():
+        frame.loc[frame["transaction_hash"] == name, "accepted_at"] = pd.Timestamp(accepted)
     frame["stake_navax"] = frame["stake_avax"].astype("int64") * NAVAX
     periods, delegators = tmp_path / "periods.parquet", tmp_path / "delegators.parquet"
     duckdb.from_df(frame.drop(columns=["delegator_address"])).write_parquet(str(periods))
@@ -77,3 +82,12 @@ def test_check_compares_with_the_replay_and_origins_in_the_lockbox_are_refused(t
     assert not di.check(made, replay.replace({4: 5}))["equal"]
     with pytest.raises(ValueError, match="lockbox"):
         di.origin_instant(date(2025, 11, 19))
+
+
+
+def test_commitments_accepted_by_the_origin_that_start_later_are_scheduled_and_reserve_room(tmp_path):
+    made = di.build(*write(tmp_path), ORIGIN)
+    assert made["scheduled"]["transaction_hash"].tolist() == ["D7"]
+    assert "D7" not in set(made["open"]["transaction_hash"])
+    room = made["validators"].set_index("transaction_hash").loc["V1"]
+    assert room["scheduled_delegated_navax"] == 250 * NAVAX and room["room_reserved_navax"] == room["room_navax"] - 250 * NAVAX
