@@ -1,15 +1,32 @@
 """A sweep from a design file: rows, base models built from pinned data, the row runner, and the sweep's receipt.
 
-v0, unreviewed. The design file is JSON:
+v0, unreviewed. Two commands run it:
+
+    avalanche model sweep DESIGN OUT [--pin PIN]
+    avalanche model run PIN OUT --origin 2025-04-08 [--model v0.8] [--runs 20] [--timesteps 180] [--seed 0]
+
+The design file is JSON:
 
     {"generator": "cartesian", "levels": {"renewal_probability": [0.7, 0.8]}, "seed": 0,
      "origins": ["2025-04-08"], "models": ["v0.7"], "rows": 2,
      "pin": "data/pins/p5-v0.7-report.json", "runs": 20, "timesteps": 180, "workers": "auto"}
 
-or ``"generator": "sobol"`` with ``bounds``, ``m`` and ``design_seed``. Rows are crossed with every origin and model,
-so the row count is the generator's rows times origins times models; ``rows`` must say so before anything runs. Each
-base model is built once per origin and model from the staking periods the pin names. With ``workers: "auto"`` the pool
-is sized from free memory at launch and a measured v0.8 cost per worker until a sweep's own pilot replaces it.
+- ``generator``: ``cartesian``, crossing every ``levels`` list, or ``sobol`` with ``bounds`` (name to low and high),
+  ``m`` (2^m points) and ``design_seed``. A level named ``seed`` sets each row's random seed. Other levels are model
+  settings.
+- ``origins``: model origin days, each before the validation lockbox. ``models``: names from ``MODELS``.
+- ``rows``: the generator's rows times origins times models, stated so a wrong design stops before anything runs.
+- ``pin``: a pin file (below). ``--pin`` on the command replaces it.
+- ``runs`` per row, ``timesteps`` in days, and ``workers``: a number, or ``auto`` to size the pool from free memory at
+  launch and a measured v0.8 cost per worker until a sweep's own pilot replaces it.
+
+``model run`` is a one-row design: one origin, one model and one seed.
+
+A pin file (``avalanche data pin``) is ``avalanche-pins/v1`` JSON naming one checked run per dataset, with its capture
+ID, Parquet file, bytes and sha256, and optionally the client commit its results were made with. A sweep reads the
+``derived.staking-periods`` run it names, and refuses to start when the pin no longer verifies: a run missing, changed or
+no longer passing its check, or a named commit that does not resolve. Each base model is built once per origin and model
+from those staking periods.
 
 This module reads pin files, so it lives outside ``model``: contracts K4 and K5 keep the model free of the catalog.
 """
@@ -22,6 +39,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from ..core.catalog import DataError
 from ..datasets import parquet_path, pins
 from ..model import designs, runner
 from ..model.engine import SimulationModel
@@ -65,16 +83,36 @@ def rows(design: dict) -> list[dict]:
     return crossed
 
 
-def run(design_path: Path, out: Path, build: Callable[[Any, str], SimulationModel] | None = None,
-        reducer: Callable | None = None) -> dict:
-    """Run the design into ``out`` and write ``receipt.json`` beside its rows. Returns the receipt."""
+def pinned_periods(pin_file: Path) -> tuple[str, str]:
+    """The staking periods' Parquet path and run that a pin names, after the whole pin verifies."""
+    findings = pins.verify(pin_file)
+    if findings:
+        raise DataError(f"pin {pin_file} does not verify: " + "; ".join(findings))
+    named = pins.runs(pin_file)
+    if "derived.staking-periods" not in named:
+        raise DataError(f"pin {pin_file} names no derived.staking-periods run")
+    run_name = named["derived.staking-periods"]
+    return str(parquet_path("derived.staking-periods", run_name)), run_name
+
+
+def scenario(pin: Path, origin: str, model: str, runs: int, timesteps: int, seed: int = 0, workers: int | str = "auto") -> dict:
+    """A one-row design: one origin, one model and one seed from a pin file."""
+    return {"generator": "cartesian", "levels": {"seed": [seed]}, "origins": [origin], "models": [model], "rows": 1, "pin": str(pin),
+            "runs": runs, "timesteps": timesteps, "workers": workers}
+
+
+def run(design_path: Path | dict, out: Path, build: Callable[[Any, str], SimulationModel] | None = None,
+        reducer: Callable | None = None, pin: Path | None = None) -> dict:
+    """Run the design, a file or its dictionary, into ``out`` and write ``receipt.json`` beside its rows. ``pin``
+    replaces the design's pin file. Returns the receipt."""
     from ..core.clock import now
 
-    design = json.loads(design_path.read_text())
+    design = dict(json.loads(design_path.read_text()) if isinstance(design_path, Path) else design_path)
+    if pin is not None:
+        design["pin"] = str(pin)
     pin_file = Path(design["pin"])
-    named = pins.runs(pin_file)
-    periods_run = named["derived.staking-periods"]
-    build = build or builder(str(parquet_path("derived.staking-periods", periods_run)), periods_run, design["runs"], design["timesteps"])
+    periods, periods_run = pinned_periods(pin_file)
+    build = build or builder(periods, periods_run, design["runs"], design["timesteps"])
     planned = rows(design)
     workers = design.get("workers", "auto")
     if workers == "auto":

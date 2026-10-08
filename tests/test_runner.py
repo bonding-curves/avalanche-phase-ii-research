@@ -222,3 +222,51 @@ def test_a_base_model_is_built_in_a_child_process_and_its_failure_is_raised(tmp_
 
     with pytest.raises(RuntimeError, match="failed in its child process"):
         runner.build_apart(broken, "2025-04-08", "test", tmp_path / "other.pickle")
+
+
+def pinned_sweep(tmp_path, monkeypatch, findings=()):
+    """The sweep module with a synthetic pin, a synthetic builder, and the pin's verification returning ``findings``."""
+    from avalanche_research.experiments import receipt, sweep
+
+    pin_file = tmp_path / "pin.json"
+    pin_file.write_text('{"schema_version": "avalanche-pins/v1", "name": "p", "runs": [{"dataset_id": "derived.staking-periods", '
+                        '"run": "synthetic", "sha256": "x", "parquet": "x.parquet", "bytes": 0, "check": "pass"}]}')
+    monkeypatch.setattr(sweep, "builder", lambda periods, run, runs, timesteps: builder)
+    monkeypatch.setattr(sweep, "parquet_path", lambda dataset, run: "unused")
+    monkeypatch.setattr(receipt, "code_commit", lambda directory=None: {"commit": "abc", "dirty": False, "package_version": "test"})
+    monkeypatch.setattr(receipt.pins, "verify", lambda path, root=None: list(findings))
+    return pin_file
+
+
+def test_the_run_command_runs_one_scenario_from_a_pin_file(tmp_path, monkeypatch):
+    import json
+
+    from click.testing import CliRunner
+
+    from avalanche_research import cli
+    from avalanche_research.experiments import receipt
+
+    pin_file = pinned_sweep(tmp_path, monkeypatch)
+    args = ["model", "run", str(pin_file), str(tmp_path / "out"), "--origin", "2025-04-08", "--model", "v0.7", "--runs", "3",
+            "--timesteps", "6", "--seed", "4", "--workers", "1", "--json"]
+    result = CliRunner().invoke(cli.cli, args)
+    assert result.exit_code == 0, result.output
+    made = json.loads(result.output)["receipt"]
+    assert made["sweep"]["rows_written"] == 1 and made["seeds"] == [4] and receipt.check(made) == []
+    assert made["sweep"]["design_file"]["pin"] == str(pin_file)
+
+
+def test_a_sweep_takes_the_pin_given_on_the_command_and_refuses_one_that_does_not_verify(tmp_path, monkeypatch):
+    import json
+
+    from avalanche_research.core.catalog import DataError
+    from avalanche_research.experiments import sweep
+
+    pin_file = pinned_sweep(tmp_path, monkeypatch)
+    design = sweep.scenario(tmp_path / "missing.json", "2025-04-08", "v0.7", 3, 6, workers=1)
+    made = sweep.run(design, tmp_path / "out", pin=pin_file)
+    assert made["sweep"]["design_file"]["pin"] == str(pin_file) and json.loads((tmp_path / "out" / "receipt.json").read_text())
+    pinned_sweep(tmp_path, monkeypatch, findings=["derived.staking-periods run synthetic differs from its pin"])
+    with pytest.raises(DataError, match="does not verify"):
+        sweep.run(sweep.scenario(pin_file, "2025-04-08", "v0.7", 3, 6, workers=1), tmp_path / "refused")
+    assert not (tmp_path / "refused").exists()
