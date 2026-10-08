@@ -216,3 +216,185 @@ def test_scores_refuse_empty_draws_and_accept_a_single_draw():
         ev.distribution_scores([], 0.0, scale=1.0)
     single = ev.distribution_scores([3.0], 5.0, scale=1.0)
     assert single["crps"] == pytest.approx(2.0) and single["width80"] == 0.0 and single["in80"] == 0.0
+
+
+ADOPTION_ORIGINS = pd.date_range("2021-01-01", periods=19, freq="QS")
+PASSED = {"event_test": True, "calibration": True, "origin_available": True}
+
+
+def _system(worse_by=None, wobble: float = 2.0) -> pd.DataFrame:
+    """Scaled CRPS for an incumbent and a challenger at 19 quarterly origins, six cells. ``worse_by`` maps a cell to
+    the challenger's mean worsening there. The spread around it sums to zero, so the mean is exact."""
+    worse_by = worse_by or {}
+    spread = np.sin(np.arange(19) * 2.3)
+    spread -= spread.mean()
+    rows = []
+    for variable in ("active_validators", "active_validator_stake_navax"):
+        for horizon in (30, 90, 180):
+            incumbent = 5.0 + np.cos(np.arange(19) * 0.7)
+            challenger = incumbent + worse_by.get((variable, horizon), 0.0) + wobble * spread
+            rows += [{"origin": f"o{i}", "date": ADOPTION_ORIGINS[i], "variable": variable, "horizon": horizon,
+                      "incumbent": incumbent[i], "challenger": challenger[i]} for i in range(19)]
+    return pd.DataFrame(rows)
+
+
+def test_adoption_accepts_a_passing_block_within_the_margin():
+    """A block that passes its event tests and worsens 90-day stake by 1.0 scaled unit, under the 2.2 margin, is adopted.
+    The spread across origins, about 3.5 units, is near the measured one that makes 2.2 the smallest detectable mean."""
+    verdict = ev.adoption_verdict(PASSED, _system({("active_validator_stake_navax", 90): 1.0}, wobble=5.0))
+    assert verdict["verdict"] == "adopt" and verdict["reasons"] == []
+    assert verdict["primary_mean_difference"] == pytest.approx(1.0)
+
+
+def test_adoption_rejects_a_worsening_beyond_the_margin():
+    """A mean worsening of 3.0 on 90-day stake is past the margin, so the system clause rejects."""
+    verdict = ev.adoption_verdict(PASSED, _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0))
+    assert verdict["verdict"] == "reject" and verdict["reasons"] == ["system"]
+
+
+def test_adoption_never_rests_on_the_system_score_alone():
+    """A block that fails its event test is rejected however much the forecast improves."""
+    block = dict(PASSED, event_test=False)
+    verdict = ev.adoption_verdict(block, _system({("active_validator_stake_navax", 90): -5.0}))
+    assert verdict["verdict"] == "reject" and verdict["reasons"] == ["event test"]
+
+
+def test_adoption_rejects_one_clearly_worse_cell():
+    """One cell worse with a one-sided p near 0.001 or below rejects, even with the primary cell unchanged."""
+    verdict = ev.adoption_verdict(PASSED, _system({("active_validators", 30): 0.5}, wobble=0.1))
+    assert verdict["verdict"] == "reject" and verdict["reasons"] == ["cell active_validators 30"]
+    assert verdict["worst_cell"] == ("active_validators", 30) and verdict["worst_cell_p"] < 0.001
+
+
+def test_adoption_needs_an_event_test():
+    """A block with no held-out event test cannot be adopted, and its system score is still reported."""
+    block = {"event_test": None, "calibration": None, "origin_available": None}
+    verdict = ev.adoption_verdict(block, _system({("active_validator_stake_navax", 90): -1.0}))
+    assert verdict["verdict"] == "no event test"
+    assert verdict["primary_mean_difference"] == pytest.approx(-1.0)
+
+
+def test_adoption_does_not_depend_on_row_order():
+    """The paired test runs on origins in date order, so shuffled rows give the same verdict and p-values."""
+    system = _system({("active_validators", 180): 0.4}, wobble=0.5)
+    shuffled = system.sample(frac=1.0, random_state=3).reset_index(drop=True)
+    assert ev.adoption_verdict(PASSED, shuffled) == ev.adoption_verdict(PASSED, system)
+
+
+def test_adoption_refuses_scores_that_are_not_finite():
+    """A missing or infinite score cannot pass the margin by comparing false, so it is refused."""
+    system = _system()
+    system.loc[0, "challenger"] = np.nan
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, system)
+
+
+def test_adoption_reads_numpy_flags_and_refuses_other_types():
+    """A failed test given as a NumPy boolean rejects as a Python one does. A flag that is not a boolean or None is
+    refused."""
+    system = _system()
+    assert ev.adoption_verdict(dict(PASSED, event_test=np.bool_(False)), system)["reasons"] == ["event test"]
+    assert ev.adoption_verdict(dict(PASSED, origin_available=np.bool_(False)), system)["reasons"] == ["origin-available"]
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(dict(PASSED, calibration="yes"), system)
+
+
+def test_adoption_needs_every_cell():
+    """The rule tests six cells, two variables at three horizons, so a table missing one is refused."""
+    system = _system()
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, system[~((system.variable == "active_validators") & (system.horizon == 180))])
+
+
+def test_adoption_reads_dates_given_as_text():
+    """Dates given as text are ordered in time, not as text, so the verdict matches the one from datetimes."""
+    system = _system({("active_validators", 180): 0.4}, wobble=0.5)
+    dates = pd.Series(ADOPTION_ORIGINS.strftime("%Y-%m-%d"), index=ADOPTION_ORIGINS)
+    as_text = system.assign(date=dates.reindex(system["date"]).to_numpy())
+    as_text["date"] = as_text["date"].str.replace(r"^(\d{4})-0?(\d+)-0?(\d+)$", r"\1-\2-\3", regex=True)
+    assert ev.adoption_verdict(PASSED, as_text) == ev.adoption_verdict(PASSED, system)
+
+
+def test_adoption_refuses_a_repeated_origin():
+    """Each cell holds one row per origin. A repeated row would reweight the mean, so it is refused."""
+    system = _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0)
+    primary = system[(system.variable == "active_validator_stake_navax") & (system.horizon == 90)]
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, pd.concat([system, primary.iloc[[0]]], ignore_index=True))
+
+
+def test_adoption_refuses_malformed_tables_and_thresholds():
+    """A horizon that is not a whole number of days or a missing date is refused, so neither can turn a rejection into
+    an adoption."""
+    system = _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0)
+    primary = system[(system.variable == "active_validator_stake_navax") & (system.horizon == 90)]
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, pd.concat([system, primary.assign(horizon=90.5, challenger=0.0)], ignore_index=True))
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, system.assign(date=system["date"].where(system.index != 0)))
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, pd.concat([system, primary.assign(horizon=0)], ignore_index=True))
+
+
+def test_adoption_refuses_unlabelled_rows_and_uneven_origins():
+    """A row with no variable, cells scored on different origins, or fewer than three origins is refused, so no row
+    can be dropped or left out to turn a rejection into an adoption."""
+    system = _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0)
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, system.assign(variable=system["variable"].where(system.index != 0)))
+    primary = (system.variable == "active_validator_stake_navax") & (system.horizon == 90)
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, system[~(primary & (system["date"] > ADOPTION_ORIGINS[0]))])
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, system[system["date"] < ADOPTION_ORIGINS[2]])
+
+
+def test_adoption_does_not_depend_on_the_scale_of_scores():
+    """The paired test does not depend on the scale of the differences, so very large finite scores give the same p
+    and the same verdict instead of overflowing."""
+    system = _system({("active_validators", 30): 0.5}, wobble=0.1)
+    cell = (system.variable == "active_validators") & (system.horizon == 30)
+    scaled = system.copy()
+    scaled.loc[cell, ["incumbent", "challenger"]] *= 1e160
+    small, large = ev.adoption_verdict(PASSED, system), ev.adoption_verdict(PASSED, scaled)
+    assert large["verdict"] == small["verdict"] == "reject"
+    assert large["cells"][("active_validators", 30)]["p_worse"] == pytest.approx(small["worst_cell_p"], rel=1e-9)
+
+
+def test_adoption_refuses_scores_that_are_not_exact_real_numbers():
+    """Complex scores or horizons, and integers too large to hold exactly as floats, are refused rather than
+    converted with a loss that could change the verdict."""
+    system = _system()
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, system.assign(challenger=system["challenger"].astype(complex)))
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, system.assign(horizon=system["horizon"].astype(complex)))
+    large = system.assign(incumbent=np.int64(2**60), challenger=np.int64(2**60) + 3)
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, large)
+    small = system.assign(incumbent=np.int64(5), challenger=np.int64(8))
+    assert ev.adoption_verdict(PASSED, small)["verdict"] == "reject"
+
+
+def test_adoption_thresholds_are_fixed_and_inputs_are_checked():
+    """The margin, the cell test level and the cells are fixed in the module, so no caller can loosen the rule. A block
+    that is not a mapping, a table that is not a DataFrame, or a table missing a column is refused with ValueError."""
+    import inspect
+
+    assert list(inspect.signature(ev.adoption_verdict).parameters) == ["block", "system"]
+    assert ev.ADOPTION_MARGIN == 2.2 and ev.ADOPTION_CELL_ALPHA == pytest.approx(0.05 / 6)
+    system = _system()
+    for block, table in ((None, system), (PASSED, None), (PASSED, system.to_dict("records")),
+                         (PASSED, system.drop(columns="date")), (PASSED, system.drop(columns="challenger"))):
+        with pytest.raises(ValueError):
+            ev.adoption_verdict(block, table)
+
+
+def test_adoption_a_failed_test_rejects_even_without_an_event_test():
+    """A failed calibration or origin-available test rejects, and the missing event test is named among the reasons.
+    With no failure and no event test the verdict is "no event test"."""
+    system = _system()
+    verdict = ev.adoption_verdict({"event_test": None, "calibration": False, "origin_available": None}, system)
+    assert verdict["verdict"] == "reject" and verdict["reasons"] == ["no event test", "calibration"]
+    verdict = ev.adoption_verdict({"event_test": None, "calibration": None, "origin_available": False}, system)
+    assert verdict["verdict"] == "reject" and verdict["reasons"] == ["no event test", "origin-available"]

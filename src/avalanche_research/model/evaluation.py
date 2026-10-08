@@ -23,7 +23,7 @@ reads the realized value a forecast is scored against.
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -319,3 +319,130 @@ def dm_horizon(horizon_days: int, origin_dates=None, origin_spacing_days: int = 
 def chronological(origins, dates) -> list:
     """``origins`` sorted by their dates in ``dates``, a mapping or Series from origin to date, for lagged tests."""
     return sorted(origins, key=lambda origin: pd.Timestamp(dates[origin]))
+
+
+ADOPTION_MARGIN = 2.2
+"""The smallest mean 90-day difference in scaled CRPS that the scored origins can detect, fixed before any score."""
+
+ADOPTION_CELL_ALPHA = 0.05 / 6
+"""The one-sided test level at which one cell clearly worse rejects a challenger: 0.05 shared by six cells."""
+
+ADOPTION_PRIMARY = ("active_validator_stake_navax", 90)
+"""The cell whose mean worsening must stay below the margin: validator stake at 90 days."""
+
+ADOPTION_CELLS = tuple((variable, horizon) for variable in ("active_validators", "active_validator_stake_navax")
+                       for horizon in (30, 90, 180))
+"""The cells a challenger may not be clearly worse in: two variables at three horizons."""
+
+ADOPTION_COLUMNS = ("date", "variable", "horizon", "challenger", "incumbent")
+
+
+def _real(column: pd.Series, name: str) -> np.ndarray:
+    """A column of real numbers as floats. Other types, and integers too large to hold exactly as floats, are refused,
+    since converting them would lose information."""
+    dtype = column.dtype
+    if pd.api.types.is_bool_dtype(dtype) or not (pd.api.types.is_integer_dtype(dtype)
+                                                 or pd.api.types.is_float_dtype(dtype)):
+        raise ValueError(f"{name} must hold real numbers, not {dtype}")
+    if pd.api.types.is_integer_dtype(dtype) and ((column > 2**53) | (column < -(2**53))).any():
+        raise ValueError(f"{name} holds integers too large to compare exactly as floats")
+    return column.to_numpy(float)
+
+
+def _flag(block, name: str):
+    """A test result as True, False or None. NumPy booleans count as booleans, and any other value is refused."""
+    value = block.get(name)
+    if value is None or isinstance(value, (bool, np.bool_)):
+        return None if value is None else bool(value)
+    raise ValueError(f"{name} must be True, False or None, not {value!r}")
+
+
+def adoption_verdict(block, system: pd.DataFrame) -> dict[str, object]:
+    """Whether a challenger block replaces the incumbent, by a rule fixed before either is scored.
+
+    The rule's margin, test level and cells are the module constants ``ADOPTION_MARGIN``, ``ADOPTION_CELL_ALPHA``,
+    ``ADOPTION_PRIMARY`` and ``ADOPTION_CELLS``, not arguments, so no caller can loosen it. They change only in the
+    code, before any challenger is scored.
+
+    ``block`` holds the block's own tests on held-out events: ``event_test`` (lower pooled log score, a paired
+    bootstrap p below 0.05, lower at 14 or more of 19 origins), ``calibration`` (calibration error at most 0.02) and
+    ``origin_available`` (no worse once inputs unknown at the origin are integrated out). Each is True or False.
+    ``event_test`` is None when the block has no held-out event test, and ``origin_available`` is None when the block
+    reads no such input.
+
+    ``system`` has one row per origin, variable and horizon, with the origin's ``date`` and the ``challenger`` and
+    ``incumbent`` scaled CRPS from the same seeds and parameter draws. The challenger must worsen the primary cell by
+    less than the margin on average over origins, and no cell may be worse by a one-sided Diebold-Mariano test, on
+    origins in date order, with p below the test level. ``block`` must be a mapping and ``system`` a DataFrame with
+    every column. Every cell must be present, every score finite, horizons whole days, every row labelled and dated,
+    and every cell must hold one row for each of the same origins, at least three, or a ValueError is raised. Dates
+    given as text are parsed.
+
+    The verdict is "reject" when any test fails, "no event test" when none fails but the block has no event test, and
+    "adopt" otherwise. The reasons name every failure, and "no event test" first when it applies. The system figures
+    are returned in every case, so a rejected challenger's forecast score is still on record.
+    """
+    if not isinstance(block, Mapping):
+        raise ValueError("block must be a mapping of test results")  # noqa: TRY004, one error type for every bad input
+    if not isinstance(system, pd.DataFrame) or set(ADOPTION_COLUMNS) - set(system.columns):
+        raise ValueError(f"system must be a DataFrame with the columns {', '.join(ADOPTION_COLUMNS)}")
+    event_test, calibration, origin_available = (_flag(block, name) for name in
+                                                 ("event_test", "calibration", "origin_available"))
+    reasons = ["no event test"] if event_test is None else []
+    if event_test is False:
+        reasons.append("event test")
+    if calibration is False or (event_test is not None and calibration is not True):
+        reasons.append("calibration")
+    if origin_available is False:
+        reasons.append("origin-available")
+
+    horizons = _real(system["horizon"], "horizon")
+    if not (np.isfinite(horizons).all() and (horizons == np.round(horizons)).all() and (horizons > 0).all()):
+        raise ValueError("every horizon must be a whole, positive number of days")
+    system = system.assign(date=pd.to_datetime(system["date"]), horizon=horizons.astype(int))
+    if system["date"].isna().any() or not system["variable"].map(lambda value: isinstance(value, str)).all():
+        raise ValueError("every row needs its variable, as text, and its origin date")
+    if system.duplicated(["variable", "horizon", "date"]).any():
+        raise ValueError("each cell must hold one row per origin date")
+    scores = np.column_stack([_real(system[name], name) for name in ("challenger", "incumbent")])
+    if not np.isfinite(scores).all():
+        raise ValueError("every challenger and incumbent score must be finite")
+    required = set(ADOPTION_CELLS) | {ADOPTION_PRIMARY}
+    present = {(variable, int(horizon)) for variable, horizon in zip(system["variable"], system["horizon"])}
+    if required - present:
+        raise ValueError(f"the system table has no rows for {sorted(required - present)}")
+
+    origins = {cell: frozenset(rows["date"]) for cell, rows in system.groupby(["variable", "horizon"], sort=True)}
+    if len(set(origins.values())) != 1 or len(next(iter(origins.values()))) < 3:
+        raise ValueError("every cell must be scored on the same origins, at least three")
+
+    scored = {}
+    for (variable, horizon), rows in system.groupby(["variable", "horizon"], sort=True):
+        rows = rows.sort_values("date", kind="stable")
+        difference = rows["challenger"].to_numpy(float) - rows["incumbent"].to_numpy(float)
+        if not np.isfinite(difference).all():
+            raise ValueError("a challenger and incumbent score differ by more than a float can hold")
+        size = np.abs(difference).max()
+        if np.ptp(difference) == 0:
+            p_worse = 0.0 if difference[0] > 0 else 1.0
+        else:
+            # The statistic does not depend on the scale of the differences, so they are scaled to at most 1 in size
+            # first, which keeps very large scores from overflowing the variance.
+            lags = dm_horizon(int(horizon), rows["date"])
+            p_worse = diebold_mariano(-difference / size, np.zeros(len(difference)), horizon=lags)["p_less"]
+        mean = float(np.mean(difference / size) * size) if size > 0 else 0.0
+        scored[(variable, int(horizon))] = {"mean_difference": mean, "p_worse": float(p_worse)}
+
+    primary_mean = scored[ADOPTION_PRIMARY]["mean_difference"]
+    if primary_mean >= ADOPTION_MARGIN:
+        reasons.append("system")
+    worst = min(scored, key=lambda cell: scored[cell]["p_worse"])
+    reasons += [f"cell {variable} {horizon}" for (variable, horizon), cell in scored.items()
+                if cell["p_worse"] < ADOPTION_CELL_ALPHA]
+
+    if [reason for reason in reasons if reason != "no event test"]:
+        verdict = "reject"
+    else:
+        verdict = "no event test" if event_test is None else "adopt"
+    return {"verdict": verdict, "reasons": reasons, "primary_mean_difference": primary_mean,
+            "worst_cell": worst, "worst_cell_p": scored[worst]["p_worse"], "cells": scored}
