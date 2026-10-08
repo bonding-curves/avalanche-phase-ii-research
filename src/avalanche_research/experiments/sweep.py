@@ -22,6 +22,12 @@ The design file is JSON:
 
 ``model run`` is a one-row design: one origin, one model and one seed.
 
+With ``"reducer": {"kind": "kpis", "horizons": [365, 180], "competing_yield": 0.04, "operating_costs": {"mid": 0.01}}``
+each row keeps one value per run, KPI, horizon and cost level instead of its daily paths: the KPI module's
+``kpi_table`` on the run's daily table, which follows the chain's daily table up to the origin. The chain table, the
+realized supply at the origin and the mean daily burn before it come from the ``derived.avax-monetary-daily`` run the
+pin names. Measures against a baseline run are left to the analysis, which has every run's absolute values.
+
 A pin file (``avalanche data pin``) is ``avalanche-pins/v1`` JSON naming one checked run per dataset, with its capture
 ID, Parquet file, bytes and sha256, and optionally the client commit its results were made with. A sweep reads the
 ``derived.staking-periods`` run it names, and refuses to start when the pin no longer verifies: a run missing, changed or
@@ -83,6 +89,60 @@ def rows(design: dict) -> list[dict]:
     return crossed
 
 
+REBUILT_AFTER_ORIGIN = {"burned_navax", "total_supply_navax"}
+
+
+class KpiReducer:
+    """One row per run, KPI, horizon and cost level, from each run's daily table after the chain's table to its origin.
+    A chain column the run does not produce, such as delegated stake for a model without delegations, is dropped, so
+    its measures are left out rather than read from empty days. Burn and realized supply are rebuilt after the origin."""
+
+    def __init__(self, chains: dict[str, Any], horizons: list[int], competing_yield: float, operating_costs: dict[str, float]):
+        self.chains, self.horizons = chains, list(horizons)
+        self.competing_yield, self.operating_costs = competing_yield, dict(operating_costs)
+
+    def __call__(self, table, row):
+        import pandas as pd
+
+        from ..model import kpis
+
+        origin = date.fromisoformat(str(row["origin"]))
+        chain = self.chains[str(origin)]
+        supply = float(chain.loc[pd.Timestamp(origin), "total_supply_navax"])
+        burn = kpis.mean_daily_burn(chain, origin)
+        frames = []
+        for run_number, one in table.groupby("run"):
+            daily = kpis.run_daily_table(one, origin, chain=chain)
+            after = daily.index > pd.Timestamp(origin)
+            produced = set(one["variable"]) | REBUILT_AFTER_ORIGIN
+            daily = daily.drop(columns=[c for c in daily.columns if c not in produced and daily.loc[after, c].isna().any()])
+            values = kpis.kpi_table(daily, origin, self.horizons, competing_yield=self.competing_yield,
+                                    operating_costs=self.operating_costs, starting_supply_navax=supply, burn_navax_per_day=burn,
+                                    missing="skip")
+            values.insert(0, "run", int(run_number))
+            frames.append(values)
+        return pd.concat(frames, ignore_index=True)
+
+
+def kpi_reducer(design: dict, pin_file: Path, periods: str) -> KpiReducer | None:
+    """The design's KPI reducer with the chain's daily table for each origin, or None when it keeps daily paths."""
+    spec = design.get("reducer")
+    if spec is None:
+        return None
+    if spec.get("kind") != "kpis":
+        raise ValueError(f"unknown reducer {spec.get('kind')!r}; known: kpis")
+    if max(spec["horizons"]) > design["timesteps"]:
+        raise ValueError(f"a KPI horizon of {max(spec['horizons'])} days is past the run's {design['timesteps']} timesteps")
+    from ..model import kpis
+
+    named = pins.runs(pin_file)
+    if "derived.avax-monetary-daily" not in named:
+        raise DataError(f"pin {pin_file} names no derived.avax-monetary-daily run, which the KPI reducer reads")
+    ledger = str(parquet_path("derived.avax-monetary-daily", named["derived.avax-monetary-daily"]))
+    chains = {str(origin): kpis.chain_daily_table(periods, ledger, date.fromisoformat(str(origin))) for origin in design["origins"]}
+    return KpiReducer(chains, spec["horizons"], spec["competing_yield"], spec["operating_costs"])
+
+
 def pinned_periods(pin_file: Path) -> tuple[str, str]:
     """The staking periods' Parquet path and run that a pin names, after the whole pin verifies."""
     findings = pins.verify(pin_file)
@@ -113,6 +173,7 @@ def run(design_path: Path | dict, out: Path, build: Callable[[Any, str], Simulat
     pin_file = Path(design["pin"])
     periods, periods_run = pinned_periods(pin_file)
     build = build or builder(periods, periods_run, design["runs"], design["timesteps"])
+    reducer = reducer or kpi_reducer(design, pin_file, periods)
     planned = rows(design)
     workers = design.get("workers", "auto")
     if workers == "auto":

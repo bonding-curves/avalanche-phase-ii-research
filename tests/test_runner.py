@@ -107,7 +107,7 @@ def test_the_pool_is_sized_from_a_pilot_and_never_exceeds_memory_or_cpus():
         runner.worker_memory(pilot, [20, 20])
 
 
-def final_counts(table):
+def final_counts(table, row):
     """A reducer: one row per run with the last day's validators, as a registry KPI reducer would."""
     last = table[(table.variable == "active_validators") & (table.timestep == table.timestep.max())]
     return pd.DataFrame({"run": last.run.to_numpy(), "final_validators": last.value.map(int).to_numpy()})
@@ -270,3 +270,39 @@ def test_a_sweep_takes_the_pin_given_on_the_command_and_refuses_one_that_does_no
     with pytest.raises(DataError, match="does not verify"):
         sweep.run(sweep.scenario(pin_file, "2025-04-08", "v0.7", 3, 6, workers=1), tmp_path / "refused")
     assert not (tmp_path / "refused").exists()
+
+
+def test_a_kpi_reducer_refuses_an_unknown_kind_or_a_horizon_past_the_run():
+    from pathlib import Path
+
+    from avalanche_research.experiments import sweep
+
+    design = {"timesteps": 90, "origins": ["2025-04-08"], "reducer": {"kind": "kpis", "horizons": [180], "competing_yield": 0.04,
+                                                                       "operating_costs": {}}}
+    with pytest.raises(ValueError, match="past the run"):
+        sweep.kpi_reducer(design, Path("unused.json"), "unused")
+    with pytest.raises(ValueError, match="unknown reducer"):
+        sweep.kpi_reducer({**design, "reducer": {"kind": "paths"}}, Path("unused.json"), "unused")
+    assert sweep.kpi_reducer({k: v for k, v in design.items() if k != "reducer"}, Path("unused.json"), "unused") is None
+
+
+def test_the_kpi_reducer_keeps_one_row_per_run_measure_and_horizon_on_pinned_data(tmp_path):
+    from pathlib import Path
+
+    from avalanche_research.catalog import DataError
+    from avalanche_research.experiments import sweep
+
+    pin = Path("data/pins/p5-v0.7-report.json")
+    design = {**sweep.scenario(pin, "2025-04-08", "v0.8", 2, 90, workers=1),
+              "reducer": {"kind": "kpis", "horizons": [90, 30], "competing_yield": 0.04, "operating_costs": {"mid": 0.01}}}
+    try:
+        periods, run_name = sweep.pinned_periods(pin)
+    except (DataError, FileNotFoundError, StopIteration):
+        pytest.skip("the pinned runs are not built in this checkout")
+    reducer = sweep.kpi_reducer(design, pin, periods)
+    runner.run_design(sweep.rows(design), 1, sweep.builder(periods, run_name, 2, 90), tmp_path, workers=1, reducer=reducer)
+    kept = __import__("duckdb").execute(f"SELECT * FROM read_parquet('{tmp_path}/*.parquet')").df()
+    assert not kept.duplicated(["run", "measure", "horizon_days", "cost_level"]).any()
+    assert set(kept["run"]) == {1, 2} and set(kept["horizon_days"]) == {30, 90}
+    assert {"validator_stake_navax", "active_validators", "net_inflation"} <= set(kept["measure"])
+    assert kept["value"].notna().all() and "timestep" not in kept.columns

@@ -75,7 +75,7 @@ def _simulate(row: dict) -> pd.DataFrame:
     with contextlib.redirect_stdout(io.StringIO()):  # cadCAD prints a banner per execution
         table = run(model)
     if _REDUCER is not None:
-        paths = _REDUCER(table)
+        paths = _REDUCER(table, row)
     else:
         paths = table[table["variable"].isin(_VARIABLES)][["run", "timestep", "variable", "value"]].copy()
         paths["value"] = paths["value"].map(int).astype("int64")
@@ -132,7 +132,7 @@ def run_sweep(base: SimulationModel, rows: Iterable[Mapping], out: Path, variabl
               in_flight: int | None = None, stop_after: int | None = None,
               reducer: Callable[[pd.DataFrame], pd.DataFrame] | None = None) -> dict:
     """Run every row not yet finished under ``out``. Returns counts and timing. ``stop_after`` stops after that many rows
-    are written, to test resume. ``reducer``, a module-level function, turns a row's long table into the rows to keep,
+    are written, to test resume. ``reducer``, a module-level function or a picklable callable, turns a row's long table and the row into the rows to keep,
     such as one row of KPIs per run; without it the row keeps the daily paths of ``variables``."""
     with tempfile.TemporaryDirectory() as scratch:
         base_path = Path(scratch) / "base.pickle"
