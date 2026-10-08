@@ -130,7 +130,7 @@ def test_a_design_across_origins_is_hashed_and_written_before_its_rows(tmp_path)
     calls = []
     totals = runner.run_design(rows, 4, lambda o, m: calls.append(o) or builder(o, m), tmp_path, workers=2)
     record = __import__("json").loads((tmp_path / "design.json").read_text())
-    assert totals["written"] == 4 and totals["groups"] == 2 and len(calls) == 2
+    assert totals["written"] == 4 and totals["groups"] == 2 and len(calls) == 2 and totals["seconds"] > 0
     assert record["rows"] == 4 and len(record["row_ids"]) == 4 and record["design_hash"] == totals["design_hash"]
     written = [p.stat().st_mtime_ns for p in tmp_path.glob("*.parquet")]
     assert (tmp_path / "design.json").stat().st_mtime_ns <= min(written)

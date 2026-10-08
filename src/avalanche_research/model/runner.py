@@ -173,11 +173,12 @@ def run_design(rows: Sequence[Mapping], expected_rows: int, build_base: Callable
     record["design_hash"] = design_hash([{"row_id": r} for r in record["row_ids"]], "design")
     out.mkdir(parents=True, exist_ok=True)
     (out / "design.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n")
-    totals = {"design_hash": record["design_hash"], "skipped": 0, "written": 0, "groups": len(groups)}
+    totals = {"design_hash": record["design_hash"], "skipped": 0, "written": 0, "groups": len(groups), "seconds": 0.0}
     for key, group in groups.items():
         stats = run_sweep(bases[key], group, out, variables, **options)
         totals["skipped"] += stats["skipped"]
         totals["written"] += stats["written"]
+        totals["seconds"] = round(totals["seconds"] + stats["seconds"], 3)
         totals["parent_peak_mib"] = max(totals.get("parent_peak_mib", 0), stats["parent_peak_mib"])
         if stats["stopped"]:
             totals["stopped"] = True

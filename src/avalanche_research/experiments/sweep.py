@@ -9,7 +9,7 @@ v0, unreviewed. The design file is JSON:
 or ``"generator": "sobol"`` with ``bounds``, ``m`` and ``design_seed``. Rows are crossed with every origin and model,
 so the row count is the generator's rows times origins times models; ``rows`` must say so before anything runs. Each
 base model is built once per origin and model from the staking periods the pin names. With ``workers: "auto"`` the pool
-is sized from free memory at launch and RG1's measured cost per run until a pilot replaces it.
+is sized from free memory at launch and a measured v0.8 cost per worker until a sweep's own pilot replaces it.
 
 This module reads pin files, so it lives outside ``model``: contracts K4 and K5 keep the model free of the catalog.
 """
@@ -27,8 +27,10 @@ from ..model import designs, runner
 from ..model.engine import SimulationModel
 from . import receipt
 
-# RG1-V10's measurement on v0.8, fitted as base plus per run: 409 MiB at 5 runs, 2,100 MiB at 40.
-RG1_BASE_MIB, RG1_PER_RUN_MIB = 167.4, 48.31
+# Measured on 2026-10-07 by a v0.8 pilot at the Fortuna origin, 180 days, with v0.8's fitted inputs in each worker:
+# 1,222 MiB at 5 runs and 2,092 MiB at 20, fitted as a base plus a per-run cost. RG1-V10 had 409 MiB at 5 runs without
+# the fitted inputs, so this base is the safer default until a sweep's own pilot replaces it.
+PILOT_BASE_MIB, PILOT_PER_RUN_MIB = 931.9, 58.0
 MODELS = ("v0.7", "v0.8", "v0.8 separate")
 
 
@@ -76,7 +78,7 @@ def run(design_path: Path, out: Path, build: Callable[[Any, str], SimulationMode
     planned = rows(design)
     workers = design.get("workers", "auto")
     if workers == "auto":
-        workers = runner.size_pool(runner.available_mib(), RG1_BASE_MIB, RG1_PER_RUN_MIB, design["runs"])["workers"]
+        workers = runner.size_pool(runner.available_mib(), PILOT_BASE_MIB, PILOT_PER_RUN_MIB, design["runs"])["workers"]
     started = now()
     stats = runner.run_design(planned, design["rows"], build, out, workers=workers, reducer=reducer)
     first = build(planned[0]["origin"], planned[0]["model"])
