@@ -130,3 +130,14 @@ def changed(name: str, **fields) -> list[tuple]:
 def test_inputs_the_consumer_would_misread_are_refused(tmp_path, rows, extra_funding, refusal):
     with pytest.raises(DataError, match=refusal):
         di.build(*write(tmp_path, rows, extra_funding=extra_funding), ORIGIN)
+
+
+def test_starts_hold_one_row_per_delegation_started_in_the_year_and_add_up_to_the_flows(tmp_path):
+    made = di.build(*write(tmp_path), ORIGIN)
+    started = made["starts"].set_index("transaction_hash")
+    assert sorted(started.index) == ["D1", "D2", "D3", "D4"]
+    assert started.loc["D1", "benqi"] and not started.loc["D2", "benqi"]
+    assert started.loc["D1", "days"] == 61 and started.loc["D1", "stake_navax"] == 5_000 * NAVAX
+    assert started.loc["D2", "accepted_at"] == pd.Timestamp("2023-04-01 23:59")
+    by_flags = made["starts"].groupby("benqi").size().to_dict()
+    assert by_flags == made["flows"].groupby("benqi")["started"].sum().to_dict()

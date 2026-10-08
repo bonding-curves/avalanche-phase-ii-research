@@ -1,5 +1,5 @@
 """Delegation inputs at a model origin: the delegations open at the origin instant, each open validator's room for more
-delegation, and the year of delegation flows before it. A model with delegations starts from this state, and its
+delegation, and the year of delegation flows before it, by day and one row per started delegation. A model with delegations starts from this state, and its
 delegation blocks are fitted on these flows.
 
 Open follows the replay's rule: a period started by 23:59:59 UTC on the origin day whose end, counting its last cycle, is
@@ -50,7 +50,7 @@ FLOW_DAYS = 365
 PERIODS_SQL = """
 CREATE OR REPLACE TEMP VIEW p AS
 SELECT transaction_hash, role, node_id, validator_transaction_hash, accepted_at, start_time, stake_navax, delegation_fee_rate,
-       greatest(end_time, coalesce(last_cycle_end_time, end_time)) AS leave_time
+       end_time AS committed_end_time, greatest(end_time, coalesce(last_cycle_end_time, end_time)) AS leave_time
 FROM read_parquet('{periods}') WHERE start_time IS NOT NULL AND end_time IS NOT NULL AND stake_navax IS NOT NULL
 """
 SOURCE_SQL = """
@@ -76,7 +76,7 @@ FUNDING_SQL = "CREATE OR REPLACE TEMP VIEW f AS SELECT transaction_hash, delegat
 DELEGATIONS_SQL = f"""
 SELECT p.transaction_hash, p.node_id, p.validator_transaction_hash, f.delegator_address,
        coalesce(f.delegator_address = '{BENQI_FUNDING}' AND p.accepted_at >= TIMESTAMP '{BENQI_EVIDENCE}', false) AS benqi,
-       p.accepted_at, p.start_time, p.leave_time AS end_time, p.stake_navax
+       p.accepted_at, p.start_time, p.leave_time AS end_time, p.committed_end_time, p.stake_navax
 FROM p LEFT JOIN f USING (transaction_hash) WHERE p.role = 'delegator'
 """
 
@@ -163,6 +163,18 @@ def refusals(connection: duckdb.DuckDBPyConnection, periods_parquet: str, origin
     return {name: int(value) for name, value in {**source.to_dict(), **association.to_dict()}.items()}
 
 
+def starts(connection: duckdb.DuckDBPyConnection, origin: date, days: int = FLOW_DAYS) -> pd.DataFrame:
+    """Every delegation started in the ``days`` UTC days up to the origin instant, one row each: its stake, its committed
+    days from start to its stated end, BENQI's flag by the rule above, and its acceptance time. The daily flows' starts
+    are these rows counted by day."""
+    instant = origin_instant(origin)
+    return connection.execute("""
+        SELECT transaction_hash, node_id, validator_transaction_hash, delegator_address, benqi, accepted_at, start_time,
+               committed_end_time, epoch(committed_end_time - start_time) / 86400.0 AS days, stake_navax
+        FROM d WHERE start_time > ?::TIMESTAMP AND start_time <= ?::TIMESTAMP ORDER BY start_time, transaction_hash
+        """, [instant - timedelta(days=days), instant]).df()
+
+
 def build(periods_parquet: str, delegators_parquet: str, origin: date) -> dict[str, pd.DataFrame]:
     connection = _connect(periods_parquet, delegators_parquet)
     try:
@@ -170,7 +182,7 @@ def build(periods_parquet: str, delegators_parquet: str, origin: date) -> dict[s
         if found:
             raise DataError(f"delegation inputs at {origin} refused: " + ", ".join(f"{name} {count}" for name, count in found.items()))
         return {"open": open_delegations(connection, origin), "validators": validator_room(connection, origin),
-                "scheduled": scheduled(connection, origin), "flows": flows(connection, origin)}
+                "scheduled": scheduled(connection, origin), "flows": flows(connection, origin), "starts": starts(connection, origin)}
     finally:
         connection.close()
 
