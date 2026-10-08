@@ -15,8 +15,8 @@ with one row per origin, variable, horizon and forecast, and `development-summar
 each model by variable and horizon and a Diebold-Mariano test of it against each benchmark and of v0.8 against v0.7.
 The test takes the origins in date order, and its horizon is one plus the most later origins inside one forecast's
 window (``evaluation.dm_horizon``), counted from the dates because an upgrade can fall a week from a quarter start.
-The models and how each is built come from ``avalanche_research.model.variants``. ``v0.8 separate`` fits its renewal
-block separately for commitments above 1M AVAX and at or below it. ``v0.8 u`` is v0.8 with one draw of every fitted
+The models are ``DEVELOPMENT_MODELS`` of ``avalanche_research.model.variants``, which also says how each is built.
+``v0.8 separate`` fits its renewal block separately for commitments above 1M AVAX and at or below it. ``v0.8 u`` is v0.8 with one draw of every fitted
 parameter per run: 200 draws per origin from ``parameter_draws``, with the renewal shift's SD from ``window_sd``, batch b
 reading draws 20b to 20b + 19. The draws depend only on the origin, so every model and design at an origin that uses
 them gets the same rows. They go to ``draws.csv.gz``, and each origin's shift SD, its source and the number of draws at
@@ -38,7 +38,7 @@ from avalanche_research.model.engine import run
 from avalanche_research.model.fitted_lifecycle import clipped_draws
 from avalanche_research.model.lifecycle import actual_path
 from avalanche_research.model.replay import LOCKBOX_FIRST_DAY, daily_events
-from avalanche_research.model.variants import VARIANTS
+from avalanche_research.model.variants import DEVELOPMENT_MODELS, VARIANTS
 
 RUN = "staking-periods-2026-09-30"
 UPGRADES = {"Banff": date(2022, 10, 18), "Cortina": date(2023, 4, 25), "Durango": date(2024, 3, 6),
@@ -47,7 +47,7 @@ QUARTERS = {f"{y}-{m:02d}-01": date(y, m, 1) for y in (2022, 2023, 2024, 2025) f
             if date(2022, 7, 1) <= date(y, m, 1) <= date(2025, 10, 1)}
 HORIZONS = (30, 90, 180)
 VARIABLES = ("active_validators", "active_validator_stake_navax")
-MODELS = tuple(VARIANTS)
+MODELS = DEVELOPMENT_MODELS
 BATCH_SEEDS = range(10)
 BATCH_RUNS = 20
 DRAW_SEED = 0

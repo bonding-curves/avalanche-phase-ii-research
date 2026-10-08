@@ -39,16 +39,28 @@ class SimulationModel(param.Parameterized):
     runs = param.Integer(default=1, bounds=(1, None), doc="Monte Carlo runs per setting combination")
 
     def settings(self) -> dict[str, Any]:
-        """The values block functions read, without the run controls or input tables.
+        """The values block functions read, without the run controls, the input tables, or a setting left out at its
+        default (``_omitted``).
 
         A parameter with negative precedence is an input, such as a table of exogenous events. Blocks read
         it from the model instance, and a companion string setting names its source.
         """
-        return {key: value for key, value in self.param.values().items() if key not in RUN_CONTROLS and not self._is_input(key)}
+        return {key: value for key, value in self.param.values().items()
+                if key not in RUN_CONTROLS and not self._is_input(key) and not self._omitted(key)}
 
     def _is_input(self, key: str) -> bool:
         precedence = self.param[key].precedence
         return precedence is not None and precedence < 0
+
+    def _omitted(self, key: str) -> bool:
+        """Whether a setting declared with ``metadata={"omit_at_default": True}`` is at its default.
+
+        Such a setting was added after runs were recorded. At its default the model is the one those runs recorded,
+        so the setting is left out of the specification and of the settings, and their hashes and tables keep their
+        values. Its default must therefore never change.
+        """
+        parameter = self.param[key]
+        return bool((getattr(parameter, "metadata", None) or {}).get("omit_at_default")) and getattr(self, key) == parameter.default
 
     def initial_state(self) -> dict[str, float]:
         raise NotImplementedError
@@ -83,8 +95,10 @@ class SimulationModel(param.Parameterized):
         return [*self.blocks(), {"policies": {"invariants": p_invariants}, "variables": {}}]
 
     def specification(self) -> dict[str, Any]:
-        """Everything that decides the result: the model class, run controls, and settings."""
-        values = {key: _plain(value) for key, value in self.param.values().items() if key != "name" and not self._is_input(key)}
+        """Everything that decides the result: the model class, run controls, and settings, less a setting left out
+        at its default (``_omitted``)."""
+        values = {key: _plain(value) for key, value in self.param.values().items()
+                  if key != "name" and not self._is_input(key) and not self._omitted(key)}
         values["inputs_sha256"] = {key: _digest(value) for key, value in self.param.values().items() if self._is_input(key)}
         return {"model": f"{type(self).__module__}.{type(self).__qualname__}", **values}
 

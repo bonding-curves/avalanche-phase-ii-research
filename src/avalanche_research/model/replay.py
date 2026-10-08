@@ -3,7 +3,7 @@
 The replay has no behaviour. Each day's validator and delegation starts, ends, and reward payments are
 exogenous inputs taken from ``derived.staking-periods``. The model's state is the active stake and counts
 and the rewards paid that day, in integer nAVAX. It must equal ``derived.avax-monetary-daily`` on every
-complete day, to the wei. That proves the engine, the state layout, and the day convention before any
+complete day, to the nAVAX. That proves the engine, the state layout, and the day convention before any
 behaviour is added.
 
 The ledger observes stake at the last second of each UTC day: a period counts on day D when it starts at

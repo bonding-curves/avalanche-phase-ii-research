@@ -33,7 +33,7 @@ from avalanche_research.model.fitted_blocks import (
     ReturnHazard,
 )
 from avalanche_research.model.parts.arrivals import arrivals_stage
-from avalanche_research.model.parts.continuation import continuation_stage
+from avalanche_research.model.parts.continuation import STAKE_BANDS, continuation_stage
 from avalanche_research.model.parts.renewal import renewal_stage
 from avalanche_research.model.parts.returns import returns_stage
 from avalanche_research.model.parts.stages import (
@@ -124,6 +124,17 @@ class FittedLifecycle(SimulationModel):
             "its fitted value",
     )
     supply0_navax = param.Integer(default=450_000_000 * 10**9, bounds=(1, 720_000_000 * 10**9), doc="The P-Chain reward counter at the origin, nAVAX. The reward formula reads it")
+    # Two switches added after runs were recorded. At their defaults they are left out of the specification and the
+    # settings, so a run made before they existed keeps its hash and table (engine.SimulationModel._omitted).
+    move_stake_bands = param.Selector(
+        default="ten log-spaced", objects=list(STAKE_BANDS), metadata={"omit_at_default": True},
+        doc="The stake bands within which a moving node draws its stake ratio: ten split at nine log-spaced edges from "
+            "2,100 to 2,000,000 AVAX, or the return block's three",
+    )
+    move_stake_weighted = param.Boolean(
+        default=True, metadata={"omit_at_default": True},
+        doc="Whether each move in the stake-ratio draw is weighted by its previous stake. False weights every move the same",
+    )
 
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
     # specification and its hash do not record it.
@@ -184,7 +195,8 @@ class FittedLifecycle(SimulationModel):
         ``node_code`` column in both."""
         fixed = {"renewal": self.renewal, "renewal_large": self.renewal_large, "arrivals": self.arrivals, "returns": self.returns}
         moves, first = self.moves, self.first_commitments
-        tables = _continuation_tables(moves, first)
+        stake_draw = (STAKE_BANDS[self.move_stake_bands], self.move_stake_weighted)
+        tables = _continuation_tables(moves, first, *stake_draw)
         if self.draws is None:
             same = RunBlocks(*fixed.values(), 0.0, *tables)
             return lambda run: same
@@ -209,7 +221,7 @@ class FittedLifecycle(SimulationModel):
                 shift = float(row["renewal_shift"]) if "renewal_shift" in row.index else 0.0
                 own = tables
                 if "resample_seed" in row.index:
-                    own = _continuation_tables(*resampled_tables(moves, first, int(row["resample_seed"]), run))
+                    own = _continuation_tables(*resampled_tables(moves, first, int(row["resample_seed"]), run), *stake_draw)
                 built[run] = RunBlocks(*drawn.values(), shift, *own)
             return built[run]
 
@@ -280,8 +292,10 @@ class FittedLifecycle(SimulationModel):
         ]
 
 
-def _continuation_tables(moves: pd.DataFrame, first: pd.DataFrame) -> tuple[Continuation, np.ndarray, np.ndarray]:
-    continuation = Continuation(moves["previous_days"], moves["next_days"], moves["previous_stake_navax"], moves["next_stake_navax"])
+def _continuation_tables(moves: pd.DataFrame, first: pd.DataFrame, stake_edges: tuple[float, ...],
+                         stake_weighted: bool) -> tuple[Continuation, np.ndarray, np.ndarray]:
+    continuation = Continuation(moves["previous_days"], moves["next_days"], moves["previous_stake_navax"], moves["next_stake_navax"],
+                                stake_edges, stake_weighted)
     return continuation, _array(first["days"]), _array(first["stake_navax"])
 
 
@@ -386,14 +400,16 @@ def _prefixed(prefix: str, block) -> dict[str, float]:
     return {f"{prefix}.{name}": meta["value"] for name, meta in block.sources().items()}
 
 
-def parameter_draws(events: TrainingEvents, n: int, seed: int, tau: float, large_above_avax: float | None = None) -> pd.DataFrame:
+def parameter_draws(events: TrainingEvents, n: int, seed: int, tau: float, large_above_avax: float | None = None,
+                    node_record: bool = True) -> pd.DataFrame:
     """``n`` draws of every fitted block parameter, one row per run, for the ``draws`` input of :class:`FittedLifecycle`.
 
     Draw i refits each block on a resample of its training events: renewal endings and return spells by node, so a
     node's decisions stay together, and arrivals by 28-day blocks. With ``large_above_avax``, the endings are resampled
     once and then split at the line, so the two renewal blocks share their nodes. Each draw adds a renewal shift from
     Normal(0, ``tau``), the drift of the renewal log-odds between quarters, and the seed of the run's continuation
-    resample. Draws come from the ``parameter_draw`` stream, so a seed reproduces its table.
+    resample. Draws come from the ``parameter_draw`` stream, so a seed reproduces its table. ``node_record`` is as in
+    :func:`fit_blocks`. It changes only the renewal fits, not the resamples or the draws.
     """
     if events.origin >= LOCKBOX_FIRST_DAY:
         raise ValueError(f"origin {events.origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
@@ -405,12 +421,12 @@ def parameter_draws(events: TrainingEvents, n: int, seed: int, tau: float, large
         picked = ended.iloc[node_resample(ended["node_code"].to_numpy(), rng)]
         row = {}
         if large_above_avax is None:
-            row |= _prefixed("renewal", RenewalLogit.fit(renewal_inputs(picked), picked["renewed"].to_numpy(), evidence))
+            row |= _prefixed("renewal", RenewalLogit.fit(renewal_inputs(picked, node_record), picked["renewed"].to_numpy(), evidence))
         else:
             big = (picked["stake_navax"] > large_above_avax * 10**9).to_numpy()
             small, large = picked[~big], picked[big]
-            row |= _prefixed("renewal", RenewalLogit.fit(renewal_inputs(small), small["renewed"].to_numpy(), evidence))
-            row |= _prefixed("renewal_large", RenewalLogit.fit(renewal_inputs(large), large["renewed"].to_numpy(), evidence))
+            row |= _prefixed("renewal", RenewalLogit.fit(renewal_inputs(small, node_record), small["renewed"].to_numpy(), evidence))
+            row |= _prefixed("renewal_large", RenewalLogit.fit(renewal_inputs(large, node_record), large["renewed"].to_numpy(), evidence))
         back = lapsed.iloc[node_resample(lapsed["node_code"].to_numpy(), rng)]
         row |= _prefixed("returns", ReturnHazard.fit(back["stake_navax"].to_numpy(), back["days_out"].to_numpy(),
                                                     back["came_back"].to_numpy(), evidence))
@@ -484,13 +500,14 @@ def renewal_endings(rows: pd.DataFrame, after_us: int, through_us: int) -> pd.Da
     return rows[(rows["e"] > after_us) & (rows["e"] <= through_us) & ~overlapped]
 
 
-def renewal_inputs(endings: pd.DataFrame) -> dict[str, np.ndarray]:
-    """The inputs :class:`RenewalLogit` reads, from rows of :func:`renewal_endings`."""
-    return {
+def renewal_inputs(endings: pd.DataFrame, node_record: bool = True) -> dict[str, np.ndarray]:
+    """The inputs :class:`RenewalLogit` reads, from rows of :func:`renewal_endings`. Without ``node_record`` they leave
+    out the count of returns, so a fit on them leaves out the node's own renewal record."""
+    inputs = {
         "done": endings["done"].to_numpy(), "after_return": endings["after_return"].to_numpy(),
         "days": endings["days"].to_numpy(), "stake_navax": endings["stake_navax"].to_numpy(),
-        "returns": endings["returns"].to_numpy(),
     }
+    return inputs | ({"returns": endings["returns"].to_numpy()} if node_record else {})
 
 
 @dataclass(frozen=True)
@@ -605,16 +622,24 @@ def training_events(periods_parquet: str, origin: date, run: str = "") -> Traini
     )
 
 
-def fit_blocks(events: TrainingEvents, large_above_avax: float | None = None) -> dict:
-    """Every input of a v0.8 run, with its blocks fitted on ``events``. See :func:`fitted_inputs`."""
+def fit_blocks(events: TrainingEvents, large_above_avax: float | None = None, node_record: bool = True) -> dict:
+    """Every input of a v0.8 run, with its blocks fitted on ``events``. See :func:`fitted_inputs`.
+
+    Without ``node_record`` the renewal blocks are fitted without the node's own renewal record: their other twelve
+    terms are fitted alone, and the node record's term stays at zero.
+    """
     run, origin, window, ended = events.run, events.origin, events.window, events.endings
-    renewal = RenewalLogit.fit(renewal_inputs(ended), ended["renewed"].to_numpy(), f"{window}: {len(ended)} endings, {int(ended['renewed'].sum())} renewed")
+    left_out = "" if node_record else ", node record left out"
+    renewal = RenewalLogit.fit(renewal_inputs(ended, node_record), ended["renewed"].to_numpy(),
+                               f"{window}: {len(ended)} endings, {int(ended['renewed'].sum())} renewed{left_out}")
     renewal_large = None
     if large_above_avax is not None:
         big = ended["stake_navax"] > large_above_avax * 10**9
         small, large = ended[~big], ended[big]
-        renewal = RenewalLogit.fit(renewal_inputs(small), small["renewed"].to_numpy(), f"{window}, at or below {large_above_avax:,.0f} AVAX: {len(small)} endings")
-        renewal_large = RenewalLogit.fit(renewal_inputs(large), large["renewed"].to_numpy(), f"{window}, above {large_above_avax:,.0f} AVAX: {len(large)} endings")
+        renewal = RenewalLogit.fit(renewal_inputs(small, node_record), small["renewed"].to_numpy(),
+                                   f"{window}, at or below {large_above_avax:,.0f} AVAX: {len(small)} endings{left_out}")
+        renewal_large = RenewalLogit.fit(renewal_inputs(large, node_record), large["renewed"].to_numpy(),
+                                         f"{window}, above {large_above_avax:,.0f} AVAX: {len(large)} endings{left_out}")
     lapsed = events.lapsed
     returns = ReturnHazard.fit(
         lapsed["stake_navax"].to_numpy(), lapsed["days_out"].to_numpy(), lapsed["came_back"].to_numpy(),
@@ -643,20 +668,22 @@ def fit_blocks(events: TrainingEvents, large_above_avax: float | None = None) ->
     }
 
 
-def fitted_inputs(periods_parquet: str, origin: date, run: str = "", large_above_avax: float | None = None) -> dict:
+def fitted_inputs(periods_parquet: str, origin: date, run: str = "", large_above_avax: float | None = None,
+                  node_record: bool = True) -> dict:
     """Every input of a v0.8 run from ``origin``, fitted on staking periods that started by the origin's end.
 
     * Renewal: endings in the 365 days before the origin with seven days of follow-up before it, as ``AM2`` counts them.
       With ``large_above_avax``, one renewal block is fitted on the endings at or below that stake and another above it.
+      Without ``node_record``, renewal leaves out the node's own renewal record.
     * Returns: endings in the 730 days before the origin that did not renew, each followed until it returned or the
       origin came, so a node out at the origin is censored there.
     * Arrivals: daily counts of first-ever commitments in the 365 days before the origin.
     * Continuations: renewals and returns that started in the 365 days before the origin.
     * Fitted menu: the chain's reward rule at the origin's end, the point the behaviour responses count from.
 
-    Commitments accepted by the origin that start after it enter on their start day, already minted. An open
-    commitment whose node has one of them is handed on to it, with no renewal draw. A node that ended in the week
-    before the origin without a new commitment is out of the set, so its chance to renew in what is left of its
-    week is not drawn. An origin inside the validation lockbox is refused.
+    Commitments accepted by the origin that start after it enter on their start day as already accepted, and the
+    model adds no issuance for them. An open commitment whose node has one of them is handed on to it, with no renewal
+    draw. A node that ended in the week before the origin without a new commitment is out of the set, so its chance to
+    renew in what is left of its week is not drawn. An origin inside the validation lockbox is refused.
     """
-    return fit_blocks(training_events(periods_parquet, origin, run), large_above_avax)
+    return fit_blocks(training_events(periods_parquet, origin, run), large_above_avax, node_record)

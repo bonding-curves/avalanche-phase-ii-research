@@ -21,7 +21,7 @@ from test_parts_split import as_recorded, small_lifecycle, table_sha256
 
 from avalanche_research.model.engine import run
 from avalanche_research.model.fitted_lifecycle import FittedLifecycle, parameter_draws
-from avalanche_research.model.variants import VARIANTS, Prepared
+from avalanche_research.model.variants import DEVELOPMENT_MODELS, VARIANTS, Prepared
 
 EXPECTED_SPECIFICATION_HASH = "5f4a4626852e1e5a"
 RECORDED_SPECIFICATION_HASH = "76edf0402231e521"
@@ -62,7 +62,8 @@ def test_the_stage_list_is_not_a_setting():
 
 
 def test_the_registry_names_the_variants_the_development_scores_run():
-    assert list(VARIANTS) == ["v0.7", "v0.8", "v0.8 separate", "v0.8 u"]
+    assert DEVELOPMENT_MODELS == ("v0.7", "v0.8", "v0.8 separate", "v0.8 u")
+    assert set(DEVELOPMENT_MODELS) <= set(VARIANTS)
 
 
 def test_a_variant_builds_the_model_its_inputs_describe():
