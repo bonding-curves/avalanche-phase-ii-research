@@ -257,3 +257,96 @@ def test_a_scale_that_is_not_finite_and_non_negative_is_refused():
         for block in (Arrivals(mean_per_day=0.0), Arrivals(mean_per_day=3.0)):
             with pytest.raises(ValueError):
                 block.scaled_mean(scale)
+
+
+POST_HELICON_ORIGIN = date(2026, 10, 7)
+
+
+def test_the_responses_count_from_the_menu_of_the_lockbox_start_by_default():
+    from avalanche_research.core.clock import LOCKBOX_START
+    from avalanche_research.model.response import FittedMenu
+
+    lifecycle = FittedLifecycle()
+    assert isinstance(lifecycle.fitted_menu, FittedMenu)
+    assert lifecycle.fitted_menu.fitted_at == LOCKBOX_START
+    assert lifecycle.outside_yield_pp is None and lifecycle.fitted_outside_yield_pp is None
+
+
+@pytest.mark.parametrize("tenure", [0, 4])
+def test_after_helicon_the_chains_own_rule_carries_acp_285s_change_in_the_30_day_rate(tenure):
+    """The chain's rule moved at Helicon and the fitted menu did not, so the gap is ACP-285's change in the rate of a
+    30-day stake, worked out here from the chain's rule on the day and on a day before Helicon."""
+    from datetime import UTC, datetime, time, timedelta
+
+    from avalanche_research.mechanisms import ChainReward
+
+    lifecycle = model(origin=POST_HELICON_ORIGIN, timesteps=5, runs=1, supply0_navax=450_000_000 * AVAX)
+    before = datetime(2026, 9, 21, 12, tzinfo=UTC)
+    for t in range(1, 6):
+        day = POST_HELICON_ORIGIN + timedelta(days=t)
+        start = datetime.combine(day, time(12), tzinfo=UTC)
+        change = (ChainReward().annual_rate(30, lifecycle.supply0_navax, start, completed_periods=tenure)
+                  - ChainReward().annual_rate(30, lifecycle.supply0_navax, before, completed_periods=tenure)) * 100
+        gap = lifecycle.yield_gap_pp(day, tenure)
+        assert gap != 0.0
+        assert gap == change
+
+
+def test_after_helicon_the_run_records_the_gap_its_renewal_stage_reads():
+    from datetime import timedelta
+
+    lifecycle = model(origin=POST_HELICON_ORIGIN, timesteps=5, runs=1)
+    table = run(lifecycle)
+    recorded = table[table["timestep"] > 0].drop_duplicates("timestep").sort_values("timestep")["yield_gap_pp"].tolist()
+    expected = [lifecycle.yield_gap_pp(POST_HELICON_ORIGIN + timedelta(days=t), lifecycle.renewal_tenure) for t in range(1, 6)]
+    assert recorded == expected
+    assert all(gap < 0.0 for gap in recorded)
+
+
+def test_an_outside_yield_at_its_fitted_level_changes_nothing():
+    from datetime import timedelta
+
+    stochastic = {"origin": POST_HELICON_ORIGIN, "renewal": RenewalLogit(), "arrivals": Arrivals(mean_per_day=3.0, dispersion=1.0),
+                  "renewal_response": 0.5, "entry_response": 0.5, "timesteps": 20, "runs": 2}
+    plain = model(**stochastic)
+    level = model(**stochastic, outside_yield_pp=4.2, fitted_outside_yield_pp=4.2)
+    day = POST_HELICON_ORIGIN + timedelta(days=3)
+    for tenure in (0, 4):
+        assert level.yield_gap_pp(day, tenure).hex() == plain.yield_gap_pp(day, tenure).hex()
+    paths = ["run", "timestep", "variable", "value", "yield_gap_pp"]
+    assert run(level)[paths].equals(run(plain)[paths])
+
+
+def test_a_rise_in_the_outside_yield_narrows_the_gap_point_for_point():
+    from datetime import timedelta
+
+    day = POST_HELICON_ORIGIN + timedelta(days=3)
+    plain = model(origin=POST_HELICON_ORIGIN).yield_gap_pp(day, 4)
+    higher = model(origin=POST_HELICON_ORIGIN, outside_yield_pp=5.2, fitted_outside_yield_pp=4.2).yield_gap_pp(day, 4)
+    assert higher == pytest.approx(plain - 1.0)
+
+
+@pytest.mark.parametrize("given", [{"outside_yield_pp": 4.2}, {"fitted_outside_yield_pp": 4.2}])
+def test_an_outside_yield_without_its_fitted_level_or_the_reverse_is_refused(given):
+    with pytest.raises(ValueError, match="outside yield"):
+        FittedLifecycle(**given)
+    with pytest.raises(ValueError, match="outside yield"):
+        FittedLifecycle().with_settings(**given)
+
+
+def test_fitted_inputs_record_the_menu_of_the_origins_fitting_window():
+    from dataclasses import replace
+    from datetime import UTC, datetime
+
+    from test_parameter_draws import synthetic_events
+
+    from avalanche_research.model.fitted_lifecycle import fit_blocks
+
+    origin = date(2024, 3, 6)
+    empty = pd.DataFrame(columns=["stakes", "days_left", "done", "after_return", "days", "handed_on", "returns"])
+    events = replace(synthetic_events(origin), state={"initial": empty, "out_of_set": None, "scheduled": None, "supply0_navax": 450_000_000 * AVAX})
+    inputs = fit_blocks(events)
+    assert inputs["fitted_menu"].fitted_at == datetime(2024, 3, 7, tzinfo=UTC)
+    assert FittedLifecycle(**inputs).fitted_menu.fitted_at == datetime(2024, 3, 7, tzinfo=UTC)
+    last = fit_blocks(replace(events, origin=date(2025, 11, 18)))
+    assert last["fitted_menu"].fitted_at == datetime(2025, 11, 19, tzinfo=UTC)

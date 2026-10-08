@@ -5,6 +5,9 @@ and reads a small table of parameter draws, with a renewal shift and a continuat
 the same specification hash and the same simulated table. The draws are rounded to ten decimals and then to six
 significant digits before the lifecycle reads them, and a negative zero becomes zero, since the fits' last digits
 differ between processors.
+
+The specification hash and table are compared as in test_parts_split, after the three settings added since the
+recording.
 """
 
 import pandas as pd
@@ -14,13 +17,14 @@ pytest.importorskip("cadCAD")
 pytest.importorskip("scipy")
 
 from test_parameter_draws import synthetic_events
-from test_parts_split import small_lifecycle, table_sha256
+from test_parts_split import as_recorded, small_lifecycle, table_sha256
 
 from avalanche_research.model.engine import run
 from avalanche_research.model.fitted_lifecycle import FittedLifecycle, parameter_draws
 from avalanche_research.model.variants import VARIANTS, Prepared
 
-EXPECTED_SPECIFICATION_HASH = "76edf0402231e521"
+EXPECTED_SPECIFICATION_HASH = "5f4a4626852e1e5a"
+RECORDED_SPECIFICATION_HASH = "76edf0402231e521"
 EXPECTED_TABLE_SHA256 = "f31aa8731da06f569db1c4506287cd8517be6070303d5df2e3add5c0fc2a2b43"
 
 
@@ -44,7 +48,7 @@ def test_the_specification_hash_with_draws_is_unchanged():
 
 
 def test_the_simulated_table_with_draws_is_unchanged():
-    assert table_sha256(run(drawn_lifecycle())) == EXPECTED_TABLE_SHA256
+    assert table_sha256(as_recorded(run(drawn_lifecycle()), RECORDED_SPECIFICATION_HASH)) == EXPECTED_TABLE_SHA256
 
 
 def test_the_daily_step_runs_its_stages_in_order():

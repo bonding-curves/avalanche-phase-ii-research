@@ -45,6 +45,7 @@ from avalanche_research.model.parts.stages import (
     run_stages,
 )
 from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
+from avalanche_research.model.response import FittedMenu, response_gap_pp
 from avalanche_research.model.streams import (
     KIND_OPEN,
     KIND_OUT,
@@ -90,13 +91,30 @@ class FittedLifecycle(SimulationModel):
     first_commitments = param.DataFrame(default=None, allow_None=True, precedence=-1, doc="First-ever commitments of the year before the origin: days, stake_navax")
     inputs_source = param.String(default="", doc="The staking-periods run the inputs came from")
     mechanism = param.ClassSelector(class_=RewardMechanism, default=ChainReward(), doc="The reward rule that prices each new commitment")
+    fitted_menu = param.ClassSelector(
+        class_=RewardMechanism, default=FittedMenu(),
+        doc="The reward rule in force while the blocks were fitted, the point the responses count from. The default "
+            "holds the chain's rule at the lockbox start, 2025-11-19 16:00 UTC. fitted_inputs sets the menu of the "
+            "origin's fitting window",
+    )
+    outside_yield_pp = param.Number(
+        default=None, allow_None=True,
+        doc="An outside yield over the run, such as a Treasury bill rate, in percent a year. Given with "
+            "fitted_outside_yield_pp or not at all. None leaves it out of the gap",
+    )
+    fitted_outside_yield_pp = param.Number(
+        default=None, allow_None=True,
+        doc="The outside yield's level over the fitting window, in percent a year, which the fitted blocks already carry",
+    )
     renewal_response = param.Number(
         default=0.0, bounds=(-2.0, 2.0), metadata={"source": "assumed", "evidence": "Not identified from history, swept (RD3)"},
-        doc="Shift in the log-odds of renewal per percentage point of annual rate above the chain's, for a 30-day stake at the renewal tenure",
+        doc="Shift in the log-odds of renewal per percentage point of annual rate above the fitted menu's rate, less "
+            "the outside yield's change from its fitting-window level, for a 30-day stake at the renewal tenure",
     )
     entry_response = param.Number(
         default=0.0, bounds=(-2.0, 2.0), metadata={"source": "assumed", "evidence": "Not identified from history, swept (RD3)"},
-        doc="Change in the log of the arrival rate per percentage point of annual rate above the chain's, for a 30-day stake with no tenure",
+        doc="Change in the log of the arrival rate per percentage point of annual rate above the fitted menu's rate, "
+            "less the outside yield's change from its fitting-window level, for a 30-day stake with no tenure",
     )
     renewal_tenure = param.Integer(default=4, bounds=(0, 100), doc="Completed commitments at which the renewal response prices the yield gap")
     draws = param.DataFrame(
@@ -128,6 +146,8 @@ class FittedLifecycle(SimulationModel):
         super().__init__(**params)
         if self.dt != 1:
             raise ValueError(f"the lifecycle clock is one UTC day per step, so dt must be 1, not {self.dt}")
+        if (self.outside_yield_pp is None) != (self.fitted_outside_yield_pp is None):
+            raise ValueError("give the outside yield and its level over the fitting window together, or neither")
 
     def initial_state(self):
         initial = self.initial if self.initial is not None else pd.DataFrame(columns=COMMITMENT)
@@ -147,11 +167,14 @@ class FittedLifecycle(SimulationModel):
         }
 
     def yield_gap_pp(self, day: date, completed_periods: int) -> float:
-        """The mechanism's annual rate minus the chain's, in percentage points, for a 30-day stake started on ``day``."""
-        start = datetime.combine(day, time(12), tzinfo=UTC)
-        ours = self.mechanism.annual_rate(30, self.supply0_navax, start, completed_periods=completed_periods)
-        chain = ChainReward().annual_rate(30, self.supply0_navax, start, completed_periods=completed_periods)
-        return (ours - chain) * 100
+        """The mechanism's annual rate above the fitted menu's rate, less the outside yield's change from its
+        fitting-window level, in percentage points, for a 30-day stake started on ``day`` (model.response).
+
+        Before Helicon the fitted menu is the chain's rule, so with no outside yield this is the mechanism's rate minus
+        the chain's. From Helicon the chain's own rule carries ACP-285's change in the rate.
+        """
+        return response_gap_pp(self.mechanism, self.fitted_menu, day, self.supply0_navax, completed_periods,
+                               self.outside_yield_pp, self.fitted_outside_yield_pp)
 
     def _blocks_by_run(self):
         """A function from run number to that run's :class:`RunBlocks`: its renewal, large-holder renewal, arrival and
@@ -600,6 +623,8 @@ def fit_blocks(events: TrainingEvents, large_above_avax: float | None = None) ->
     arrivals = Arrivals.fit(events.first_counts, f"{run or 'staking periods'}, {events.first_total} first-ever commitments in the 365 days to {origin}")
     renewing = ended[ended["renewed"]]
     state = events.state
+    # The fitting window ends with the origin's day. Its widest block, returns, reaches back 730 days.
+    fitting_end = datetime.combine(origin + timedelta(days=1), time(0), tzinfo=UTC)
     return {
         "origin": origin,
         "renewal": renewal,
@@ -614,6 +639,7 @@ def fit_blocks(events: TrainingEvents, large_above_avax: float | None = None) ->
         "renewal_tenure": int(np.median(renewing["done"])) + 1 if len(renewing) else 1,
         "supply0_navax": state["supply0_navax"],
         "inputs_source": run,
+        "fitted_menu": FittedMenu.for_window(fitting_end - timedelta(days=730), fitting_end),
     }
 
 
@@ -626,6 +652,7 @@ def fitted_inputs(periods_parquet: str, origin: date, run: str = "", large_above
       origin came, so a node out at the origin is censored there.
     * Arrivals: daily counts of first-ever commitments in the 365 days before the origin.
     * Continuations: renewals and returns that started in the 365 days before the origin.
+    * Fitted menu: the chain's reward rule at the origin's end, the point the behaviour responses count from.
 
     Commitments accepted by the origin that start after it enter on their start day, already minted. An open
     commitment whose node has one of them is handed on to it, with no renewal draw. A node that ended in the week

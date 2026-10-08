@@ -4,6 +4,11 @@ The expected hashes were recorded on the single-file code before the move. A sma
 with blocks fitted on synthetic events, must give the same specification hash and the same simulated table. The fitted
 values are rounded to ten decimals before the lifecycle uses them, since the renewal fit's last digits differ between
 processors, so the hashes are the same on every machine.
+
+Three settings were added after the recording: the fitted menu and the outside yield with its fitted level, the point
+the behaviour responses count from. They change the specification hash, so its expected value is the one the recorded
+code gives with those settings added at their defaults. The table carries every setting as a column and the
+specification hash, so the table is compared with those three columns dropped and the hash it was recorded with.
 """
 
 import hashlib
@@ -26,7 +31,8 @@ from avalanche_research.model.fitted_blocks import (
 )
 from avalanche_research.model.fitted_lifecycle import FittedLifecycle
 
-EXPECTED_SPECIFICATION_HASH = "becbdac26d612e50"
+EXPECTED_SPECIFICATION_HASH = "f223799dee2fe217"
+RECORDED_SPECIFICATION_HASH = "becbdac26d612e50"
 EXPECTED_TABLE_SHA256 = "05a448d503bf035ed222ad19d65c7d2b23bbf8974dafc8b51c25824d6c7373e0"
 
 # Every name the single-file module offered, and the module of the package that now defines it. None is a name the
@@ -96,6 +102,15 @@ def small_lifecycle():
     )
 
 
+# Settings added after the tables were recorded, at their defaults in every test here.
+ADDED_SETTINGS = ["fitted_menu", "outside_yield_pp", "fitted_outside_yield_pp"]
+
+
+def as_recorded(table: pd.DataFrame, specification_hash: str) -> pd.DataFrame:
+    """The table as the recorded code wrote it: without the settings added since, and with its specification hash."""
+    return table.drop(columns=ADDED_SETTINGS).assign(specification=specification_hash)
+
+
 def table_sha256(table: pd.DataFrame) -> str:
     ordered = table.sort_values(list(table.columns)).reset_index(drop=True)
     return hashlib.sha256(ordered.to_csv(index=False).encode()).hexdigest()
@@ -106,7 +121,7 @@ def test_the_specification_hash_is_unchanged_by_the_move():
 
 
 def test_the_simulated_table_is_unchanged_by_the_move():
-    assert table_sha256(run(small_lifecycle())) == EXPECTED_TABLE_SHA256
+    assert table_sha256(as_recorded(run(small_lifecycle()), RECORDED_SPECIFICATION_HASH)) == EXPECTED_TABLE_SHA256
 
 
 @pytest.mark.parametrize("name", sorted(NAMES))
