@@ -1,0 +1,203 @@
+{
+ "schema_version": "operator-events/v1",
+ "description": "Dated events of the named operators in operator-attributions.json, one row per event, for the model's operator event blocks. happened_at is when the event took place, as precise as known: a UTC instant, a day or a month. evidence_public_at is the earliest UTC time at which public evidence of the event can be shown: on chain, on a dated web capture, or when a page was read. A forecast from an origin may schedule an event only when its evidence_public_at is on or before the origin (forecast_use schedulable). An event with no public evidence before it happened is record-only: it stays in the history the model is fitted and scored on, and no forecast schedules it. Counts come from the dataset runs named in data_runs.",
+ "events": [
+  {
+   "event_id": "NE1",
+   "operator": "GoGoPool (Hypha)",
+   "attributions": [
+    "OA1"
+   ],
+   "subject": "avax10f8305248c0wsfsdempdtpx7lpkc30vwzl9y9q",
+   "kind": "identity",
+   "statement": "GoGoPool's first validator stake paying its reward address, the start of the evidence that groups its decisions",
+   "happened_at": "2023-04-12T20:23:19Z",
+   "evidence_public_at": "2023-04-12T20:23:19Z",
+   "evidence_note": "On chain from the stake itself",
+   "evidence": [
+    "https://subnets.avax.network/p-chain/tx/2gfK1MVsQAjNhAXkWmTKvn4Yi1tpqX7gHVR1J8RyTa7iqT96C8"
+   ],
+   "data_runs": [
+    "validator-stakes-helicon-plus-7d"
+   ],
+   "forecast_use": "schedulable"
+  },
+  {
+   "event_id": "NE2",
+   "operator": "GoGoPool (Hypha)",
+   "attributions": [
+    "OA1"
+   ],
+   "subject": "avax10f8305248c0wsfsdempdtpx7lpkc30vwzl9y9q",
+   "kind": "fleet-end",
+   "statement": "GoGoPool stops funding the validators it ran directly from its liquid staking pool. Its active nodes fall from 381 at the end of 2025-07-31 to 114 at the end of 2025-08-31, and to 35 at the end of 2025",
+   "happened_at": "2025-08",
+   "evidence_public_at": null,
+   "evidence_note": "No announcement or public reason was found. Each node's last period end was on chain from its stake, but not that it would not renew",
+   "evidence": [],
+   "data_runs": [
+    "validator-stakes-helicon-plus-7d"
+   ],
+   "forecast_use": "record-only"
+  },
+  {
+   "event_id": "NE3",
+   "operator": "GoGoPool (Hypha)",
+   "attributions": [
+    "OA1"
+   ],
+   "subject": "avax10f8305248c0wsfsdempdtpx7lpkc30vwzl9y9q",
+   "kind": "announcement",
+   "statement": "gogopool.com says the GoGoPool brand will move to Hypha over the next few months",
+   "happened_at": null,
+   "evidence_public_at": "2026-03-06T07:47:45Z",
+   "evidence_note": "The earliest archived capture found that carries the notice. An earlier capture, 2026-02-10, was not checked for it",
+   "evidence": [
+    "https://web.archive.org/web/20260306074745/https://www.gogopool.com/"
+   ],
+   "data_runs": [],
+   "forecast_use": "schedulable"
+  },
+  {
+   "event_id": "NE4",
+   "operator": "GoGoPool (Hypha)",
+   "attributions": [
+    "OA1"
+   ],
+   "subject": "avax10f8305248c0wsfsdempdtpx7lpkc30vwzl9y9q",
+   "kind": "shutdown",
+   "statement": "GoGoPool's protocol support ends: no new minipools, and stAVAX stops earning. One GoGoPool node is active on that day, and its last new commitment started on 2026-06-16",
+   "happened_at": "2026-08-15",
+   "evidence_public_at": "2026-09-29",
+   "evidence_note": "The end-of-life page states the date in the future tense, so it was published before 2026-08-15 and after the 2026-03-06 capture. No archived copy dates it. 2026-09-29 is when it was read here, the earliest date that can be shown",
+   "evidence": [
+    "https://eol.gogopool.com/"
+   ],
+   "data_runs": [
+    "validator-stakes-helicon-plus-7d"
+   ],
+   "forecast_use": "schedulable"
+  },
+  {
+   "event_id": "NE5",
+   "operator": "GoGoPool (Hypha)",
+   "attributions": [
+    "OA1"
+   ],
+   "subject": "avax10f8305248c0wsfsdempdtpx7lpkc30vwzl9y9q",
+   "kind": "redemption-end",
+   "statement": "The end-of-life site closes. Holders must withdraw before this date",
+   "happened_at": "2026-12-31",
+   "evidence_public_at": "2026-09-29",
+   "evidence_note": "Same page and reading as NE4",
+   "evidence": [
+    "https://eol.gogopool.com/"
+   ],
+   "data_runs": [],
+   "forecast_use": "schedulable"
+  },
+  {
+   "event_id": "NE6",
+   "operator": "BENQI",
+   "attributions": [
+    "OA9"
+   ],
+   "subject": "avax1tnuesf6cqwnjw7fxjyk7lhch0vhf0v95wj5jvy",
+   "kind": "identity",
+   "statement": "The sAVAX contract grants BENQI's key ROLE_DEPOSIT at 12:22:21 UTC (block 10,079,793) and ROLE_WITHDRAW at 12:22:42 UTC (block 10,079,804). Neither role is revoked later. The key's only revoked role is ROLE_ACCRUE_REWARDS, on 2024-03-25",
+   "happened_at": "2022-01-26T12:22:21Z",
+   "evidence_public_at": "2022-01-26T12:22:21Z",
+   "evidence_note": "RoleGranted and RoleRevoked events of 0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE for account 0x565f0fe9715e3cb0df579f186c299d6707887e83",
+   "evidence": [
+    "https://snowtrace.io/tx/0x40fcc0e8bff8ebe16d18b8852f075603daed0a00d02d5c98e5af9ac0081a2572",
+    "https://snowtrace.io/tx/0xe47fc9db040a59d34dc5795829fa1d59155a62d00323c9afcb3706083b46af39"
+   ],
+   "data_runs": [],
+   "forecast_use": "schedulable"
+  },
+  {
+   "event_id": "NE7",
+   "operator": "BENQI",
+   "attributions": [
+    "OA10"
+   ],
+   "subject": "avax19zfygxaf59stehzedhxjesads0p5jdvfeedal0",
+   "kind": "identity",
+   "statement": "BENQI's first delegation. Every one of the 5,962,350 delegations its key funded before 2025-11-19 16:00 UTC names this address as its only reward owner",
+   "happened_at": "2022-01-27T19:54:14Z",
+   "evidence_public_at": "2022-01-27T19:54:14Z",
+   "evidence_note": "On chain from the delegation. Funding is the address with the largest share of a delegation's staked UTXOs, as in primary-delegator-stakes. Reward owners are the delegations' reward_addresses in the same P_TRANSACTIONS table",
+   "evidence": [
+    "https://subnets.avax.network/p-chain/tx/21iSffD6iY1GL985RCuSxdjJ8KG3KidvvGnuugZB4tNS75KukK"
+   ],
+   "data_runs": [
+    "delegator-stakes-helicon-plus-7d"
+   ],
+   "forecast_use": "schedulable"
+  },
+  {
+   "event_id": "NE8",
+   "operator": "mainnet genesis allocation holder",
+   "attributions": [
+    "OA5"
+   ],
+   "subject": "avax1dwkwval9epuwxpy0g2m6xg2l00fx4yxtzah80t",
+   "kind": "identity",
+   "statement": "The address holds a mainnet genesis allocation, so it is known from launch. Its first validator stake is on 2020-10-29",
+   "happened_at": "2020-09-10",
+   "evidence_public_at": "2020-09-10",
+   "evidence_note": "The mainnet genesis file",
+   "evidence": [
+    "https://github.com/ava-labs/avalanchego/blob/70bd6d063b7343fd2cd8217200aaf77b57f19f68/genesis/genesis_mainnet.json#L8185-L8188",
+    "https://subnets.avax.network/p-chain/tx/2rCbniHVrNXckzYdhsRhFP5wFDUePt6SfMZSeno36S5XZsKtYP"
+   ],
+   "data_runs": [
+    "validator-stakes-helicon-plus-7d"
+   ],
+   "forecast_use": "schedulable"
+  },
+  {
+   "event_id": "NE9",
+   "operator": "mainnet genesis allocation holder",
+   "attributions": [
+    "OA5"
+   ],
+   "subject": "avax1dwkwval9epuwxpy0g2m6xg2l00fx4yxtzah80t",
+   "kind": "fleet-start",
+   "statement": "The holder starts a fleet of 82 nodes at exactly 2,000 AVAX each, the first on 2025-06-19. Every period of the fleet ends by 2025-08-01 15:00 UTC, and each end is on chain from its stake",
+   "happened_at": "2025-06-19T08:18:25Z",
+   "evidence_public_at": "2025-06-19T08:18:25Z",
+   "evidence_note": "On chain from the stakes",
+   "evidence": [
+    "https://subnets.avax.network/p-chain/tx/FwctFTbsST533kQKEDGc3GF2jPfYuHJP3zSvqMiESdoMp2T8R"
+   ],
+   "data_runs": [
+    "validator-stakes-helicon-plus-7d"
+   ],
+   "forecast_use": "schedulable"
+  },
+  {
+   "event_id": "NE10",
+   "operator": "mainnet genesis allocation holder",
+   "attributions": [
+    "OA5"
+   ],
+   "subject": "avax1dwkwval9epuwxpy0g2m6xg2l00fx4yxtzah80t",
+   "kind": "fleet-end",
+   "statement": "The fleet's last periods end on 2025-08-01 and none renews. The holder then delegates to validators run by others: 164,540 AVAX in two delegations on 2025-08-29 and 64,844 AVAX on 2025-09-14",
+   "happened_at": "2025-08-01T15:00:00Z",
+   "evidence_public_at": null,
+   "evidence_note": "No announcement was found. That the fleet would not renew was not public before it happened",
+   "evidence": [
+    "https://subnets.avax.network/p-chain/tx/Bi54d85UaKd2mVTmUZAVeVHVXJ2KkXKqxtEVXccS9iKaKYWEt",
+    "https://subnets.avax.network/p-chain/tx/CUMezk8fpYSCKX76om79JG1ovV1MQDqLixbaJY7ikf6k29kaN",
+    "https://subnets.avax.network/p-chain/tx/2i9kFdeLgk5YTo44H8psjmawdTxXHRAc4LY19dgSttqat3Bc3G"
+   ],
+   "data_runs": [
+    "validator-stakes-helicon-plus-7d",
+    "delegator-stakes-helicon-plus-7d"
+   ],
+   "forecast_use": "record-only"
+  }
+ ]
+}
