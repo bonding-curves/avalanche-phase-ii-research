@@ -1,0 +1,17 @@
+{
+  "name": "p7-systems-learning-weeks",
+  "pinned_at": "2026-10-08T19:16:58Z",
+  "runs": [
+    {
+      "bytes": 24392425,
+      "capture_id": "capture:derived:2026-10-06T03:22:17Z:93950692baaa",
+      "captured_at": "2026-10-06T03:22:17Z",
+      "check": "pass",
+      "dataset_id": "derived.validator-weeks",
+      "parquet": "validator-weeks.parquet",
+      "run": "validator-weeks-2026-10-06",
+      "sha256": "e152cda94898a2fd038700c6b6294279254b792e0f426c0935e4bfb600a33e59"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}

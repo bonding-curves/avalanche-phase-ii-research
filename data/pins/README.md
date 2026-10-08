@@ -24,6 +24,7 @@ A pin may also carry `code`: the full commit of this repository the results were
 | `p4-opportunity-costs.json` | Eight runs behind the opportunity-cost figure |
 | `p5-v0.7-report.json` | Four runs of 2026-09-30 behind the v0.7 research report, at commit `087484b`, tag `model-v0.7.0` |
 | `p6-v0.7-report.json` | The runs of `p5` plus the operator table, at the same commit and tag |
+| `p7-systems-learning-weeks.json` | The validator-week panel of 2026-10-06, whose reward addresses as of each week allow an operator grouping that reads no later data |
 
 ## Check a pin
 
