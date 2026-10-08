@@ -1,0 +1,47 @@
+{
+  "name": "p8-v0.9.5-inputs",
+  "pinned_at": "2026-10-08T20:11:42Z",
+  "runs": [
+    {
+      "bytes": 233931,
+      "capture_id": "capture:derived:2026-10-08T03:25:45Z:0b2552e26a25",
+      "captured_at": "2026-10-08T03:25:45Z",
+      "check": "pass",
+      "dataset_id": "derived.avax-monetary-daily",
+      "parquet": "avax-monetary-daily.parquet",
+      "run": "avax-monetary-daily-2026-10-08",
+      "sha256": "e0764e21d7e2b5ddae446824224f526eba453fd53c37ac72fea65f0685d2d524"
+    },
+    {
+      "bytes": 66176,
+      "capture_id": "capture:defillama:2026-10-05T20:53:21Z:6316ac2eca63",
+      "captured_at": "2026-10-05T20:53:21Z",
+      "check": "pass",
+      "dataset_id": "defillama.avax-price-daily",
+      "parquet": "avax-price-daily.parquet",
+      "run": "avax-price-2026-10-05",
+      "sha256": "2a558579840b935cee7dfbf76ee33714f6330748c7880586c89348164936e79e"
+    },
+    {
+      "bytes": 22991,
+      "capture_id": "capture:defillama:2026-09-29T18:46:55Z:aaac291d6498",
+      "captured_at": "2026-09-29T18:46:55Z",
+      "check": "pass",
+      "dataset_id": "defillama.avalanche-fees-daily",
+      "parquet": "avalanche-fees-daily.parquet",
+      "run": "avalanche-fees-daily-2026-09-29",
+      "sha256": "2cec7127c71e7ac8757fed8557cd0ceeea8ba42bbd50a339cab8dc84ce9157f2"
+    },
+    {
+      "bytes": 508436,
+      "capture_id": "capture:derived:2026-10-06T16:32:49Z:be6b2cccf1fd",
+      "captured_at": "2026-10-06T16:32:49Z",
+      "check": "pass",
+      "dataset_id": "derived.opportunity-costs-daily",
+      "parquet": "opportunity-costs-daily.parquet",
+      "run": "opportunity-costs-daily-2026-10-06",
+      "sha256": "0de364e4aa3b2a281a44a29dd99b977006f79094210e731a9891520d84396275"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
