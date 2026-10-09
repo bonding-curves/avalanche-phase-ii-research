@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import json
 from pathlib import Path
 
@@ -159,3 +160,22 @@ def test_two_times_on_one_day_are_ordered_by_instant_in_any_order(tmp_path):
                                "evidence_from": pd.Timestamp(at)} for name, at in order])
         assert identity.groups(edges, "2022-12-01 12:00", named).set_index("node_id").loc["C", "name"] == "X"
         assert identity.groups(edges, "2022-12-01 18:00", named).set_index("node_id").loc["C", "name"] == "Y"
+
+
+def test_an_attribution_named_by_two_events_takes_the_earliest_start_and_end_in_any_order(tmp_path):
+    attributions = {"attributions": [
+        {"attribution_id": f"X{i}", "subject_kind": "reward-address", "subject": "addr4", "name": name, "tier": "AS1",
+         "class": "EVIDENCE", "replaces": None} for i, name in ((1, "Fleet"), (2, "Buyer"))]}
+    events = [{"kind": "identity", "attributions": ["X1"], "evidence_public_at": "2022-12-01"},
+              {"kind": "identity", "attributions": ["X1"], "evidence_public_at": "2022-12-01T23:59:59.999999Z"},
+              {"kind": "identity", "attributions": ["X2"], "evidence_public_at": "2022-12-01T17:00:00Z"}]
+    edges = identity.edges(write(tmp_path))
+    seen = set()
+    for order in itertools.permutations(events):
+        (tmp_path / "a.json").write_text(json.dumps(attributions))
+        (tmp_path / "e.json").write_text(json.dumps({"events": list(order)}))
+        named = identity.dated_names(tmp_path / "a.json", tmp_path / "e.json").set_index("attribution_id")
+        assert named.loc["X1", "evidence_from"] == pd.Timestamp("2022-12-01")
+        row = identity.groups(edges, "2022-12-02", named.reset_index()).set_index("node_id").loc["C"]
+        seen.add((row["name"] if pd.notna(row["name"]) else None, row["names"]))
+    assert seen == {(None, "Buyer; Fleet")}

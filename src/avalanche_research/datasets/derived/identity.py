@@ -71,9 +71,10 @@ def evidence_window(value: str) -> tuple[pd.Timestamp, pd.Timestamp]:
 
 
 def dated_names(attributions_path: Path = ATTRIBUTIONS, events_path: Path = EVENTS) -> pd.DataFrame:
-    """AS1 evidence attributions of reward addresses not replaced by a later row, each dated by the earliest identity
-    event that names it: ``named_from`` is the end of its evidence window, from which the name applies, and
-    ``evidence_from`` its start."""
+    """AS1 evidence attributions of reward addresses not replaced by a later row, each dated by the identity events that
+    name it: ``named_from`` is the earliest end of their evidence windows, from which the name surely applies, and
+    ``evidence_from`` the earliest start, when it may first have been public. Both are minima, so the window does not
+    depend on the order of the events."""
     attributions = json.loads(attributions_path.read_text())["attributions"]
     events = json.loads(events_path.read_text())["events"]
     dated: dict[str, tuple[pd.Timestamp, pd.Timestamp]] = {}
@@ -81,8 +82,8 @@ def dated_names(attributions_path: Path = ATTRIBUTIONS, events_path: Path = EVEN
         if event["kind"] == "identity" and event["evidence_public_at"]:
             window = evidence_window(event["evidence_public_at"])
             for code in event["attributions"]:
-                if code not in dated or window[1] < dated[code][1]:
-                    dated[code] = window
+                known = dated.get(code, window)
+                dated[code] = (min(known[0], window[0]), min(known[1], window[1]))
     replaced = {row["replaces"] for row in attributions if row["replaces"]}
     by_id = {row["attribution_id"]: row for row in attributions}
     for row in attributions:
