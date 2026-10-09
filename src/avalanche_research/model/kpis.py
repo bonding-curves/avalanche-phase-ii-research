@@ -169,6 +169,8 @@ def _one_row_a_day(daily: pd.DataFrame) -> None:
         raise ValueError(f"the daily table has more than one row for {days[days.duplicated()][0].date()}")
     if (daily.index != days).any():
         raise ValueError("each row of the daily table must be dated at midnight of its day")
+    if not daily.index.is_monotonic_increasing:
+        raise ValueError("the daily table's days must be in increasing order")
 
 
 def _finite(rows: pd.DataFrame) -> None:

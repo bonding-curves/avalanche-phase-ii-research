@@ -590,3 +590,14 @@ def test_run_daily_table_keeps_only_the_chain_columns_a_run_continues():
     daily = kpis.run_daily_table(long, ORIGIN, chain)
     assert "active_delegated_stake_navax" not in daily.columns
     assert {"burned_navax", "total_supply_navax"} <= set(daily.columns)
+
+
+def test_a_daily_table_out_of_date_order_is_refused():
+    """The measures that read the last rows of a window read them by position, so a table whose days are not in
+    increasing order is refused rather than read wrongly. Shuffling 366 complete days must not change the mean burn."""
+    burn = [1.0] * 365 + [1000.0]
+    daily = table(ORIGIN, {"burned_navax": burn + [0.0]}, before=365)
+    shuffled = daily.sample(frac=1.0, random_state=7)
+    assert kpis.mean_daily_burn(daily, ORIGIN) == pytest.approx(sum(burn[1:]) / 365)
+    with pytest.raises(ValueError):
+        kpis.mean_daily_burn(shuffled, ORIGIN)
