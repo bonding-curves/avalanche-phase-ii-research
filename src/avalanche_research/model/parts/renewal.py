@@ -29,6 +29,7 @@ RENEWAL_TERMS = (
     "days_21_40", "days_41_100", "days_over_100", "stake_2k_100k", "stake_100k_1m", "stake_over_1m", "node_record",
 )
 NODE_PRIOR_GRID = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0)
+LOG_ODDS_CLIP = 20.0
 
 
 def tenure_bin(done: np.ndarray) -> np.ndarray:
@@ -131,12 +132,18 @@ class RenewalLogit(BehaviourBlock):
     def fit(cls, inputs: Mapping[str, np.ndarray], decisions: np.ndarray, evidence: str, ridge: float = 1.0) -> RenewalLogit:
         """The posterior mode under a normal prior with variance ``1 / ridge`` on every term but the intercept.
 
-        The prior keeps a term whose cell is empty in a short window at zero instead of at infinity. Newton steps
-        on the penalized log-likelihood, which is concave, until the step is below 1e-10. With ``returns`` in the
-        inputs, the node record's prior share is the share renewed, and its prior strength is the value on
-        :data:`NODE_PRIOR_GRID` with the highest penalized log-likelihood. Without it, the node record stays at zero.
+        The prior keeps a term whose cell is empty in a short window at zero instead of at infinity. A term whose
+        column is zero for every ending stays at the prior's zero, with or without a penalty, and is labelled by the
+        prior rather than as fitted. Newton steps on the penalized log-likelihood, which is concave, until the step is
+        below 1e-10. With ``returns`` in the inputs, the node record's prior share is the share renewed, and its prior
+        strength is the value on :data:`NODE_PRIOR_GRID` with the highest penalized log-likelihood. Without it, the
+        node record stays at zero. Inputs with no endings are refused, as no term can be fitted on them. When every
+        ending renewed, or none did, the intercept's mode is at infinity: it is held at the clip, and every other term
+        at the prior's zero.
         """
         y = _outcomes(decisions, len(inputs["done"])).astype(float)
+        if not len(y):
+            raise ValueError(f"no endings to fit the renewal logit on: {evidence}")
         share = float(np.clip(y.mean(), 1e-3, 1 - 1e-3))
         if inputs.get("returns") is None:
             design = renewal_design(inputs["done"], inputs["after_return"], inputs["days"], inputs["stake_navax"])[:, :-1]
@@ -149,10 +156,21 @@ class RenewalLogit(BehaviourBlock):
                                         inputs["returns"], strength, share)
                 beta, objective = _newton(design, y, ridge)
                 if best is None or objective > best[2]:
-                    best = (beta, strength, objective)
-            fitted, extra = list(best[0]), {"node_prior_strength": best[1], "node_prior_share": share}
+                    best = (beta, strength, objective, design)
+            fitted, extra, design = list(best[0]), {"node_prior_strength": best[1], "node_prior_share": share}, best[3]
         values = {term: float(np.clip(b, -20.0, 20.0)) for term, b in zip(RENEWAL_TERMS, fitted)} | extra
         provenance = {term: {"source": "fitted", "evidence": evidence, "value": value} for term, value in values.items()}
+        for term, column in zip(RENEWAL_TERMS[1:], design[:, 1:].T):
+            if not column.any():
+                provenance[term] = {"source": "prior", "value": values[term],
+                                    "evidence": f"{evidence}; no endings in this term's cell, so it stays at the prior's zero"}
+        if y.min() == y.max():
+            words = "every ending renewed" if y[0] > 0 else "no ending renewed"
+            provenance["intercept"] = {"source": "fitted", "value": values["intercept"],
+                                       "evidence": f"{evidence}; {words}, so the intercept is held at the clip"}
+            for term in RENEWAL_TERMS[1:]:
+                provenance[term] = {"source": "prior", "value": values[term],
+                                    "evidence": f"{evidence}; {words}, so this term stays at the prior's zero"}
         return cls(provenance=provenance, **values)
 
 
@@ -160,20 +178,34 @@ def _newton(design: np.ndarray, y: np.ndarray, ridge: float) -> tuple[np.ndarray
     """The penalized logit's mode and its penalized log-likelihood. The intercept, column 0, is not penalized."""
     penalty = np.full(design.shape[1], float(ridge))
     penalty[0] = 0.0
+    # A column that is zero for every ending carries no information. Without a penalty its row of the Hessian is zero,
+    # so it is held at its starting zero and the step is solved on the other columns.
+    free = design.any(axis=0) | (penalty > 0)
     beta = np.zeros(design.shape[1])
+    if y.min() == y.max():
+        # Every ending has one outcome, so the intercept's mode is at infinity and the other terms' modes go to the
+        # prior's zero. Newton steps would run the intercept off until its Hessian entry is zero.
+        beta[0] = LOG_ODDS_CLIP if y[0] > 0 else -LOG_ODDS_CLIP
+        return beta, _penalized(design, y, beta, penalty)
     beta[0] = special.logit(np.clip(y.mean(), 1e-6, 1 - 1e-6))
     for _ in range(100):
         p = special.expit(design @ beta)
         gradient = design.T @ (y - p) - penalty * beta
         hessian = (design * (p * (1 - p))[:, None]).T @ design + np.diag(penalty)
-        step = np.linalg.solve(hessian, gradient)
+        step = np.zeros_like(beta)
+        step[free] = np.linalg.solve(hessian[np.ix_(free, free)], gradient[free])
         beta += step
         if np.abs(step).max() < 1e-10:
             break
     else:
         raise RuntimeError("the renewal logit did not converge in 100 Newton steps")
+    return beta, _penalized(design, y, beta, penalty)
+
+
+def _penalized(design: np.ndarray, y: np.ndarray, beta: np.ndarray, penalty: np.ndarray) -> float:
+    """The logit's log-likelihood at ``beta`` less the normal prior's penalty."""
     eta = design @ beta
-    return beta, float(-np.logaddexp(0.0, np.where(y > 0, -eta, eta)).sum() - 0.5 * (penalty * beta**2).sum())
+    return float(-np.logaddexp(0.0, np.where(y > 0, -eta, eta)).sum() - 0.5 * (penalty * beta**2).sum())
 
 
 ENDED = ("stakes", "done", "after_return", "days", "returns", "node_key")

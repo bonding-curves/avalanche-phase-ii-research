@@ -446,8 +446,7 @@ def parameter_draws(events: TrainingEvents, n: int, seed: int, tau: float, large
         if large_above_avax is None:
             row |= _prefixed("renewal", RenewalLogit.fit(renewal_inputs(picked, node_record), picked["renewed"].to_numpy(), evidence))
         else:
-            big = (picked["stake_navax"] > large_above_avax * 10**9).to_numpy()
-            small, large = picked[~big], picked[big]
+            small, large = split_at_line(picked, large_above_avax, evidence)
             row |= _prefixed("renewal", RenewalLogit.fit(renewal_inputs(small, node_record), small["renewed"].to_numpy(), evidence))
             row |= _prefixed("renewal_large", RenewalLogit.fit(renewal_inputs(large, node_record), large["renewed"].to_numpy(), evidence))
         back = lapsed.iloc[node_resample(lapsed["node_code"].to_numpy(), rng)]
@@ -658,6 +657,19 @@ def training_events(periods_parquet: str, origin: date, run: str = "") -> Traini
     )
 
 
+def split_at_line(endings: pd.DataFrame, large_above_avax: float, window: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """The endings at or below ``large_above_avax`` and those above it, for the renewal and renewal_large blocks.
+
+    A line that leaves either side without endings is refused, as that side's block cannot be fitted.
+    """
+    big = (endings["stake_navax"] > large_above_avax * 10**9).to_numpy()
+    for block, side, count in (("renewal", "at or below", (~big).sum()), ("renewal_large", "above", big.sum())):
+        if not count:
+            raise ValueError(f"the renewal block {block} cannot be fitted: {window} has no endings {side} "
+                             f"{large_above_avax:,.0f} AVAX, the large-holder line")
+    return endings[~big], endings[big]
+
+
 def fit_blocks(events: TrainingEvents, large_above_avax: float | None = None, node_record: bool = True) -> dict:
     """Every input of a v0.8 run, with its blocks fitted on ``events``. See :func:`fitted_inputs`.
 
@@ -670,8 +682,7 @@ def fit_blocks(events: TrainingEvents, large_above_avax: float | None = None, no
                                f"{window}: {len(ended)} endings, {int(ended['renewed'].sum())} renewed{left_out}")
     renewal_large = None
     if large_above_avax is not None:
-        big = ended["stake_navax"] > large_above_avax * 10**9
-        small, large = ended[~big], ended[big]
+        small, large = split_at_line(ended, large_above_avax, window)
         renewal = RenewalLogit.fit(renewal_inputs(small, node_record), small["renewed"].to_numpy(),
                                    f"{window}, at or below {large_above_avax:,.0f} AVAX: {len(small)} endings{left_out}")
         renewal_large = RenewalLogit.fit(renewal_inputs(large, node_record), large["renewed"].to_numpy(),

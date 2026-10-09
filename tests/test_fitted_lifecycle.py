@@ -19,6 +19,7 @@ from avalanche_research.model.fitted_blocks import (
     Continuation,
     RenewalLogit,
     ReturnHazard,
+    _newton,
     renewal_design,
     return_cell,
 )
@@ -63,6 +64,71 @@ def test_a_term_with_no_events_stays_at_zero_under_the_prior():
     inputs["stake_navax"] = np.full(5_000, 2_000 * AVAX)
     fitted = RenewalLogit.fit(inputs, rng.random(5_000) < 0.8, "synthetic")
     assert fitted.stake_over_1m == 0.0
+
+
+@pytest.mark.parametrize("ridge", [1.0, 0.0])
+@pytest.mark.parametrize("record", [False, True])
+def test_a_term_with_no_events_fits_at_its_prior_and_is_labelled_by_it(ridge, record):
+    """A cell with no endings fits with or without a penalty. Its term sits at the prior's zero, labelled by the prior,
+    and every other term is fitted as if the cell's column were absent."""
+    rng = np.random.default_rng(3)
+    inputs = synthetic_endings(5_000, rng) | {"stake_navax": np.full(5_000, 2_000 * AVAX), "days": np.full(5_000, 14)}
+    if record:
+        inputs["returns"] = np.minimum(rng.integers(0, 3, 5_000), inputs["done"])
+    decisions = rng.random(5_000) < 0.8
+    fitted = RenewalLogit.fit(inputs, decisions, "synthetic", ridge=ridge)
+    empty = ("days_21_40", "days_41_100", "days_over_100", "stake_2k_100k", "stake_100k_1m", "stake_over_1m")
+    sources = fitted.sources()
+    assert all(getattr(fitted, term) == 0.0 for term in empty)
+    assert {sources[term]["source"] for term in empty} == {"prior"}
+    assert all("no endings" in sources[term]["evidence"] for term in empty)
+    assert {sources[term]["source"] for term in RENEWAL_TERMS if term not in empty} == {"fitted"}
+    assert np.isfinite(fitted.coefficients()).all()
+    check_sources([fitted])
+    if ridge == 0.0 and not record:
+        kept = [i for i, term in enumerate(RENEWAL_TERMS[:-1]) if term not in empty]
+        design = renewal_design(inputs["done"], inputs["after_return"], inputs["days"], inputs["stake_navax"])[:, kept]
+        beta, _ = _newton(design, decisions.astype(float), 0.0)
+        assert fitted.coefficients()[kept] == pytest.approx(beta, abs=1e-9)
+
+
+@pytest.mark.parametrize("ridge", [1.0, 0.0])
+@pytest.mark.parametrize("record", [False, True])
+@pytest.mark.parametrize(("outcome", "intercept", "words"), [(True, 20.0, "every ending renewed"), (False, -20.0, "no ending renewed")])
+def test_a_block_where_every_ending_has_one_outcome_holds_the_intercept_at_the_clip(outcome, intercept, words, ridge, record):
+    """The intercept's mode is at infinity, so it is held at the clip and every other term at the prior's zero."""
+    rng = np.random.default_rng(5)
+    inputs = synthetic_endings(40, rng)
+    if record:
+        inputs["returns"] = np.minimum(rng.integers(0, 3, 40), inputs["done"])
+    fitted = RenewalLogit.fit(inputs, np.full(40, outcome), "small block", ridge=ridge)
+    sources = fitted.sources()
+    assert fitted.intercept == intercept
+    assert sources["intercept"]["source"] == "fitted"
+    assert sources["intercept"]["evidence"] == f"small block; {words}, so the intercept is held at the clip"
+    assert all(getattr(fitted, term) == 0.0 for term in RENEWAL_TERMS[1:])
+    check_sources([fitted])
+
+
+def test_a_renewal_fit_with_no_endings_is_refused():
+    inputs = {name: np.array([], dtype=np.int64) for name in ("done", "after_return", "days", "stake_navax", "returns")}
+    with pytest.raises(ValueError, match="no endings.*synthetic window"):
+        RenewalLogit.fit(inputs, np.array([], dtype=bool), "synthetic window")
+
+
+@pytest.mark.parametrize(("line", "block", "side"), [(2_000, "renewal", "at or below"), (3_000_000, "renewal_large", "above")])
+def test_a_stake_line_that_leaves_one_renewal_block_without_endings_is_refused(line, block, side):
+    """The synthetic stakes run from above 2,000 to below 3,000,000 AVAX, so each line leaves one side empty."""
+    from test_parameter_draws import synthetic_events
+
+    from avalanche_research.model.fitted_lifecycle import fit_blocks, parameter_draws
+
+    events = synthetic_events()
+    message = f"{block} .*no endings {side} {line:,} AVAX"
+    with pytest.raises(ValueError, match=message):
+        fit_blocks(events, large_above_avax=line)
+    with pytest.raises(ValueError, match=message):
+        parameter_draws(events, n=1, seed=0, tau=0.2, large_above_avax=line)
 
 
 def test_arrivals_recover_a_negative_binomial_mean_and_dispersion():
