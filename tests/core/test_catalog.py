@@ -1,4 +1,4 @@
-"""Restructure step M1: the catalog, errors, hashing, units and the clock in ``core``, and the old names as aliases.
+"""The catalog, errors, hashing, units and the clock in ``core``, and the old names as aliases.
 
 The pinned hashes were computed by the code before the move, from the catalog written in this test. A change to how a
 contract is cut from the catalog, or to the canonical bytes, changes every receipt's contract hash, so it fails here.

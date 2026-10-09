@@ -189,7 +189,7 @@ def test_the_receipt_source_refuses_receipts_that_are_not_the_blocks(tmp_path, a
 
 
 def test_a_capture_is_given_its_blocks_and_reads_no_dataset_code(tmp_path):
-    """IB4: the command line resolves the gaps run. The capture refuses a run it was not given."""
+    """The command line resolves the gaps run. The capture refuses a run it was not given."""
     assert not hasattr(cblocks, "datasets")
     make_gaps_run(tmp_path / "runs")
     with pytest.raises(DataError, match="not resolved"):

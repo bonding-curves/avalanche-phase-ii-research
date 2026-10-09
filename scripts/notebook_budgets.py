@@ -4,9 +4,8 @@
 
 Paths are notebooks or folders of notebooks, `notebooks/` by default. A notebook calls library functions and does not
 define them, so a new notebook has at most 15 code lines per cell and 120 in all, and runs each cell in 20 s and the
-whole in 60 s. An existing notebook may not grow past what it measures today. This is report mode, step `M0` of the
-library restructure: it prints the table and marks what exceeds the new-notebook budgets, and always exits 0. Step
-`M8` switches it to enforce. Code lines are the lines of each code cell's source, blank and comment lines included.
+whole in 60 s. An existing notebook may not grow past what it measures today. This is report mode: it prints the table and marks
+what exceeds the new-notebook budgets, and always exits 0. Code lines are the lines of each code cell's source, blank and comment lines included.
 """
 
 from __future__ import annotations

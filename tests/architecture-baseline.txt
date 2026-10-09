@@ -1,5 +1,5 @@
 # Imports that break the package's contracts today, one per line: contract, importer, imported.
 # The restructure removes them. A new violation fails tests/test_architecture.py, and a fixed one must be deleted
-# here in the same commit, so this list only shrinks. It is empty after step M8.
-# IB1: the backtest checks data against the rules, so it moves to cli.checks.backtest at M7.
+# here in the same commit, so this list only shrinks.
+# The backtest checks data against the rules, so it is to move to cli.checks.backtest.
 K4 avalanche_research.model.backtest -> avalanche_research.catalog

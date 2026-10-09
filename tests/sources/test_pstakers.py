@@ -81,7 +81,7 @@ def test_extend_reads_only_stakes_the_earlier_capture_lacks(root):
 
 
 def test_a_capture_is_given_its_walk_and_reads_no_dataset_code(tmp_path):
-    """IB4: the command line resolves the walk run. The capture refuses a run it was not given."""
+    """The command line resolves the walk run. The capture refuses a run it was not given."""
     assert not hasattr(pstakers, "datasets")
     with pytest.raises(DataError, match="not resolved"):
         pstakers.capture_preview(pstakers.STAKING_ID, tmp_path / "capture", {"blocks": "walk"})

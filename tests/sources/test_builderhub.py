@@ -180,7 +180,7 @@ def test_ended_nodes_the_source_cannot_serve_never_count_as_an_outage(tmp_path):
 
 
 def test_the_previous_capture_is_resolved_by_the_command_line(tmp_path):
-    """IB4: auto with no built run means no previous capture. A named run the command line did not resolve is refused."""
+    """Auto with no built run means no previous capture. A named run the command line did not resolve is refused."""
     assert datasets.readings(builderhub.READS, {}, tmp_path, builderhub.READ_DEFAULTS) == {}
     assert builderhub._previous("auto", {}) is None and builderhub._previous("none", None) is None
     with pytest.raises(DataError, match="not resolved"):
