@@ -1,0 +1,2 @@
+[      63ms] [LOG] [bokeh 3.9.2] setting log level to: 'info' @ https://cdn.bokeh.org/bokeh/release/bokeh-3.9.2.min.js:185
+[     208ms] [INFO] [bokeh 3.9.2] document idle at 141 ms @ https://cdn.bokeh.org/bokeh/release/bokeh-3.9.2.min.js:165

@@ -1,0 +1,606 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - heading [level=2] [ref=e5]:
+      - link "Avalanche Phase II" [ref=e6] [cursor=pointer]:
+        - /url: ../../..
+        - generic [ref=e7]: Avalanche.
+        - generic [ref=e8]: Research by BCRG
+    - generic [ref=e9]:
+      - button [ref=e12] [cursor=pointer]:
+        - img "Search" [ref=e13]
+        - paragraph [ref=e17]: Search
+      - button [ref=e19] [cursor=pointer]:
+        - img "Light mode" [ref=e20]
+      - button [ref=e23] [cursor=pointer]:
+        - img "Reader mode" [ref=e24]
+    - group [ref=e28]:
+      - list [ref=e29]:
+        - listitem [ref=e30]:
+          - generic [ref=e31]:
+            - img [ref=e32] [cursor=pointer]
+            - button "Phase 1" [ref=e34] [cursor=pointer]
+          - generic:
+            - list:
+              - listitem [ref=e35]:
+                - 'link "Overview: Phase 1" [ref=e36] [cursor=pointer]':
+                  - /url: ../../../Phase-I/
+                  - text: Overview
+              - listitem [ref=e37]:
+                - generic [ref=e38]:
+                  - img [ref=e39] [cursor=pointer]
+                  - button "about" [ref=e41] [cursor=pointer]
+                - generic:
+                  - list:
+                    - listitem [ref=e42]:
+                      - 'link "Overview: about" [ref=e43] [cursor=pointer]':
+                        - /url: ../../../Phase-I/about/
+                        - text: Overview
+                    - listitem [ref=e44]:
+                      - link "About the BCRG" [ref=e45] [cursor=pointer]:
+                        - /url: ../../../Phase-I/about/About-The-BCRG
+                    - listitem [ref=e46]:
+                      - link "Project Proposal" [ref=e47] [cursor=pointer]:
+                        - /url: ../../../Phase-I/about/Project-Proposal
+              - listitem [ref=e48]:
+                - generic [ref=e49]:
+                  - img [ref=e50] [cursor=pointer]
+                  - button "articles" [ref=e52] [cursor=pointer]
+                - generic:
+                  - list:
+                    - listitem [ref=e53]:
+                      - 'link "Overview: articles" [ref=e54] [cursor=pointer]':
+                        - /url: ../../../Phase-I/articles/
+                        - text: Overview
+                    - listitem [ref=e55]:
+                      - link "How the Avalanche Economy Aims to Defy Gravity" [ref=e56] [cursor=pointer]:
+                        - /url: ../../../Phase-I/articles/2025-10-29-avalanche-defi-gravity
+              - listitem [ref=e57]:
+                - generic [ref=e58]:
+                  - img [ref=e59] [cursor=pointer]
+                  - button "data" [ref=e61] [cursor=pointer]
+                - generic:
+                  - list:
+                    - listitem [ref=e62]:
+                      - 'link "Overview: data" [ref=e63] [cursor=pointer]':
+                        - /url: ../../../Phase-I/data/
+                        - text: Overview
+                    - listitem [ref=e64]:
+                      - link "Avalanche Economic Data Snapshots" [ref=e65] [cursor=pointer]:
+                        - /url: ../../../Phase-I/data/README
+                    - listitem [ref=e66]:
+                      - link "Avalanche Network Data Snapshot" [ref=e67] [cursor=pointer]:
+                        - /url: ../../../Phase-I/data/snapshot-2025-11-28
+              - listitem [ref=e68]:
+                - generic [ref=e69]:
+                  - img [ref=e70] [cursor=pointer]
+                  - button "milestone1" [ref=e72] [cursor=pointer]
+                - generic:
+                  - list:
+                    - listitem [ref=e73]:
+                      - 'link "Overview: milestone1" [ref=e74] [cursor=pointer]':
+                        - /url: ../../../Phase-I/milestone1/
+                        - text: Overview
+                    - listitem [ref=e75]:
+                      - link "Avalanche Economic Primitives" [ref=e76] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone1/Economic-Taxonomy
+                    - listitem [ref=e77]:
+                      - link "Avalanche Economy relative to the Open Economy" [ref=e78] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone1/Avalanche-Economy-relative-to-the-Open-Economy
+                    - listitem [ref=e79]:
+                      - link "Avalanche Mechanism Taxonomy" [ref=e80] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone1/Mechanism-Taxonomy
+                    - listitem [ref=e81]:
+                      - link "Avalanche Participant Roles Taxonomy" [ref=e82] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone1/Participant-Roles-Taxonomy
+              - listitem [ref=e83]:
+                - generic [ref=e84]:
+                  - img [ref=e85] [cursor=pointer]
+                  - button "milestone2" [ref=e87] [cursor=pointer]
+                - generic:
+                  - list:
+                    - listitem [ref=e88]:
+                      - 'link "Overview: milestone2" [ref=e89] [cursor=pointer]':
+                        - /url: ../../../Phase-I/milestone2/
+                        - text: Overview
+                    - listitem [ref=e90]:
+                      - link "ACP Summaries" [ref=e91] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone2/ACP-Summaries
+                    - listitem [ref=e92]:
+                      - link "Avalanche Economic Model - A Systems Engineering Perspective" [ref=e93] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone2/Avalanche-Economic-Model-A-Systems-Engineering-Perspective
+                    - listitem [ref=e94]:
+                      - link "Subsystem Analysis and MultiGraph" [ref=e95] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone2/Subsystem_Analysis_and_MultiGraph
+              - listitem [ref=e96]:
+                - generic [ref=e97]:
+                  - img [ref=e98] [cursor=pointer]
+                  - button "milestone3" [ref=e100] [cursor=pointer]
+                - generic:
+                  - list:
+                    - listitem [ref=e101]:
+                      - 'link "Overview: milestone3" [ref=e102] [cursor=pointer]':
+                        - /url: ../../../Phase-I/milestone3/
+                        - text: Overview
+                    - listitem [ref=e103]:
+                      - link "Differential Specification" [ref=e104] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone3/Differential_Specification
+              - listitem [ref=e105]:
+                - generic [ref=e106]:
+                  - img [ref=e107] [cursor=pointer]
+                  - button "milestone4" [ref=e109] [cursor=pointer]
+                - generic:
+                  - list:
+                    - listitem [ref=e110]:
+                      - 'link "Overview: milestone4" [ref=e111] [cursor=pointer]':
+                        - /url: ../../../Phase-I/milestone4/
+                        - text: Overview
+                    - listitem [ref=e112]:
+                      - link "Economic Hypotheses" [ref=e113] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone4/economic_hypotheses
+                    - listitem [ref=e114]:
+                      - link "Mission Elements Need Statement" [ref=e115] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone4/MENS
+                    - listitem [ref=e116]:
+                      - link "Research Insights and Future Roadmap" [ref=e117] [cursor=pointer]:
+                        - /url: ../../../Phase-I/milestone4/insights
+              - listitem [ref=e118]:
+                - link "Avalanche Economic Research" [ref=e119] [cursor=pointer]:
+                  - /url: ../../../Phase-I/source-index
+        - listitem [ref=e120]:
+          - generic [ref=e121]:
+            - img [ref=e122] [cursor=pointer]
+            - button "Phase II" [expanded] [ref=e124] [cursor=pointer]
+          - list [ref=e126]:
+            - listitem [ref=e127]:
+              - 'link "Overview: Phase II" [ref=e128] [cursor=pointer]':
+                - /url: ../../../Phase-II/
+                - text: Overview
+            - listitem [ref=e129]:
+              - generic [ref=e130]:
+                - img [ref=e131] [cursor=pointer]
+                - button "Calls" [expanded] [ref=e133] [cursor=pointer]
+              - list [ref=e135]:
+                - listitem [ref=e136]:
+                  - link "Call, 2026-10-02" [ref=e137] [cursor=pointer]:
+                    - /url: ../../../Phase-II/Calls/2026-10-02/
+            - listitem [ref=e138]:
+              - generic [ref=e139]:
+                - img [ref=e140] [cursor=pointer]
+                - button "Essential Readings" [ref=e142] [cursor=pointer]
+              - generic:
+                - list:
+                  - listitem [ref=e143]:
+                    - 'link "Overview: Essential Readings" [ref=e144] [cursor=pointer]':
+                      - /url: ../../../Phase-II/Essential-Readings/
+                      - text: Overview
+                  - listitem [ref=e145]:
+                    - generic [ref=e146]:
+                      - img [ref=e147] [cursor=pointer]
+                      - button "ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment" [ref=e149] [cursor=pointer]
+                    - generic:
+                      - list:
+                        - listitem [ref=e150]:
+                          - 'link "Overview: ACP 285 - Avalanche Community Call - Staking Reward Curve Adjustment" [ref=e151] [cursor=pointer]':
+                            - /url: ../../../Phase-II/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/
+                            - text: Overview
+                        - listitem [ref=e152]:
+                          - link "Source Video" [ref=e153] [cursor=pointer]:
+                            - /url: ../../../Phase-II/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/Source-Video
+                  - listitem [ref=e154]:
+                    - generic [ref=e155]:
+                      - img [ref=e156] [cursor=pointer]
+                      - 'button "From Gross Chain Product to Gross Chain Income: Where the Value Goes" [ref=e158] [cursor=pointer]'
+                    - generic:
+                      - list:
+                        - listitem [ref=e159]:
+                          - 'link "Overview: From Gross Chain Product to Gross Chain Income: Where the Value Goes" [ref=e160] [cursor=pointer]':
+                            - /url: ../../../Phase-II/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/
+                            - text: Overview
+                        - listitem [ref=e161]:
+                          - link "Source Article" [ref=e162] [cursor=pointer]:
+                            - /url: ../../../Phase-II/Essential-Readings/From-Gross-Chain-Product-to-Gross-Chain-Income-Where-the-Value-Goes/Source-Article
+                  - listitem [ref=e163]:
+                    - generic [ref=e164]:
+                      - img [ref=e165] [cursor=pointer]
+                      - button "How Do Avalanche Validators Actually Think About Staking Rewards?" [ref=e167] [cursor=pointer]
+                    - generic:
+                      - list:
+                        - listitem [ref=e168]:
+                          - 'link "Overview: How Do Avalanche Validators Actually Think About Staking Rewards?" [ref=e169] [cursor=pointer]':
+                            - /url: ../../../Phase-II/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/
+                            - text: Overview
+                        - listitem [ref=e170]:
+                          - link "Source Article" [ref=e171] [cursor=pointer]:
+                            - /url: ../../../Phase-II/Essential-Readings/How-Do-Avalanche-Validators-Actually-Think-About-Staking-Rewards/Source-Article
+                  - listitem [ref=e172]:
+                    - generic [ref=e173]:
+                      - img [ref=e174] [cursor=pointer]
+                      - 'button "January Staking and Price Model: A Three-Image Reconstruction" [ref=e176] [cursor=pointer]'
+                    - generic:
+                      - list:
+                        - listitem [ref=e177]:
+                          - 'link "Overview: January Staking and Price Model: A Three-Image Reconstruction" [ref=e178] [cursor=pointer]':
+                            - /url: ../../../Phase-II/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/
+                            - text: Overview
+                        - listitem [ref=e179]:
+                          - link "Source Model Artifact" [ref=e180] [cursor=pointer]:
+                            - /url: ../../../Phase-II/Essential-Readings/January-Staking-and-Price-Model-A-Three-Image-Reconstruction/Source-Model-Artifact
+                  - listitem [ref=e181]:
+                    - generic [ref=e182]:
+                      - img [ref=e183] [cursor=pointer]
+                      - button "The Avalanche Foundation Unveils its Economic Research Agenda" [ref=e185] [cursor=pointer]
+                    - generic:
+                      - list:
+                        - listitem [ref=e186]:
+                          - 'link "Overview: The Avalanche Foundation Unveils its Economic Research Agenda" [ref=e187] [cursor=pointer]':
+                            - /url: ../../../Phase-II/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/
+                            - text: Overview
+                        - listitem [ref=e188]:
+                          - link "Source Article" [ref=e189] [cursor=pointer]:
+                            - /url: ../../../Phase-II/Essential-Readings/The-Avalanche-Foundation-Unveils-its-Economic-Research-Agenda/Source-Article
+                  - listitem [ref=e190]:
+                    - generic [ref=e191]:
+                      - img [ref=e192] [cursor=pointer]
+                      - 'button "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics" [ref=e194] [cursor=pointer]'
+                    - generic:
+                      - list:
+                        - listitem [ref=e195]:
+                          - 'link "Overview: Value Accrual as Equilibrium: How We Think About AVAX Tokenomics" [ref=e196] [cursor=pointer]':
+                            - /url: ../../../Phase-II/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/
+                            - text: Overview
+                        - listitem [ref=e197]:
+                          - link "Source Article" [ref=e198] [cursor=pointer]:
+                            - /url: ../../../Phase-II/Essential-Readings/Value-Accrual-as-Equilibrium-How-We-Think-About-AVAX-Tokenomics/Source-Article
+            - listitem [ref=e199]:
+              - generic [ref=e200]:
+                - img [ref=e201] [cursor=pointer]
+                - button "Milestone 0" [ref=e203] [cursor=pointer]
+              - generic:
+                - list:
+                  - listitem [ref=e204]:
+                    - 'link "Overview: Milestone 0" [ref=e205] [cursor=pointer]':
+                      - /url: ../../../Phase-II/Milestone-0/
+                      - text: Overview
+                  - listitem [ref=e206]:
+                    - link "Proposal v2.5" [ref=e207] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-0/Proposal-v2.5/
+                  - listitem [ref=e208]:
+                    - link "Signed Grant Agreement" [ref=e209] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-0/Signed-Grant-Agreement
+            - listitem [ref=e210]:
+              - generic [ref=e211]:
+                - img [ref=e212] [cursor=pointer]
+                - button "Milestone 1" [ref=e214] [cursor=pointer]
+              - generic:
+                - list:
+                  - listitem [ref=e215]:
+                    - 'link "Overview: Milestone 1" [ref=e216] [cursor=pointer]':
+                      - /url: ../../../Phase-II/Milestone-1/
+                      - text: Overview
+                  - listitem [ref=e217]:
+                    - link "1.1 Data Ingestion" [ref=e218] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-1/1-1-Data-Ingestion/
+                  - listitem [ref=e219]:
+                    - link "1.2 Data Manifest" [ref=e220] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-1/1-2-Data-Manifest/
+                  - listitem [ref=e221]:
+                    - link "1.3 Staking Model Spec" [ref=e222] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-1/1-3-Staking-Model-Spec/
+                  - listitem [ref=e223]:
+                    - link "1.4 Behavioral Calibration" [ref=e224] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-1/1-4-Behavioral-Calibration/
+                  - listitem [ref=e225]:
+                    - link "Preliminary Validation Report" [ref=e226] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-1/Preliminary-Validation-Report/
+            - listitem [ref=e227]:
+              - generic [ref=e228]:
+                - img [ref=e229] [cursor=pointer]
+                - button "Milestone 2" [ref=e231] [cursor=pointer]
+              - generic:
+                - list:
+                  - listitem [ref=e232]:
+                    - 'link "Overview: Milestone 2" [ref=e233] [cursor=pointer]':
+                      - /url: ../../../Phase-II/Milestone-2/
+                      - text: Overview
+                  - listitem [ref=e234]:
+                    - link "2.1 PSUU Infrastructure" [ref=e235] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-2/2-1-PSUU-Infrastructure/
+                  - listitem [ref=e236]:
+                    - link "2.2 Simulation Execution" [ref=e237] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-2/2-2-Simulation-Execution/
+                  - listitem [ref=e238]:
+                    - link "2.3 KPI Computation" [ref=e239] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-2/2-3-KPI-Computation/
+                  - listitem [ref=e240]:
+                    - link "2.4 Validation Confirmation" [ref=e241] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-2/2-4-Validation-Confirmation/
+                  - listitem [ref=e242]:
+                    - link "2.5 Sensitivity Analysis" [ref=e243] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-2/2-5-Sensitivity-Analysis/
+                  - listitem [ref=e244]:
+                    - link "2.6 Risk Surface Map" [ref=e245] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-2/2-6-Risk-Surface-Map/
+                  - listitem [ref=e246]:
+                    - link "2.7 Workshop 1" [ref=e247] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-2/2-7-Workshop-1/
+                  - listitem [ref=e248]:
+                    - link "2.8 Collaborative Mechanism Design" [ref=e249] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-2/2-8-Collaborative-Mechanism-Design/
+            - listitem [ref=e250]:
+              - generic [ref=e251]:
+                - img [ref=e252] [cursor=pointer]
+                - button "Milestone 3" [ref=e254] [cursor=pointer]
+              - generic:
+                - list:
+                  - listitem [ref=e255]:
+                    - 'link "Overview: Milestone 3" [ref=e256] [cursor=pointer]':
+                      - /url: ../../../Phase-II/Milestone-3/
+                      - text: Overview
+                  - listitem [ref=e257]:
+                    - link "3.1 Parameter Recommendation Report" [ref=e258] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-3/3-1-Parameter-Recommendation-Report/
+                  - listitem [ref=e259]:
+                    - link "3.2 Scenario Playbook" [ref=e260] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-3/3-2-Scenario-Playbook/
+                  - listitem [ref=e261]:
+                    - link "3.3 Open Source Release" [ref=e262] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-3/3-3-Open-Source-Release/
+                  - listitem [ref=e263]:
+                    - link "3.4 Workshop 2" [ref=e264] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Milestone-3/3-4-Workshop-2/
+            - listitem [ref=e265]:
+              - generic [ref=e266]:
+                - img [ref=e267] [cursor=pointer]
+                - button "Validator Interviews" [ref=e269] [cursor=pointer]
+              - generic:
+                - list:
+                  - listitem [ref=e270]:
+                    - 'link "Overview: Validator Interviews" [ref=e271] [cursor=pointer]':
+                      - /url: ../../../Phase-II/Interviews/
+                      - text: Overview
+                  - listitem [ref=e272]:
+                    - link "BENQI, 2026-08-31" [ref=e273] [cursor=pointer]:
+                      - /url: ../../../Phase-II/Interviews/BENQI-2026-08-31/
+        - listitem [ref=e274]:
+          - generic [ref=e275]:
+            - img [ref=e276] [cursor=pointer]
+            - button "Reference" [ref=e278] [cursor=pointer]
+          - generic:
+            - list:
+              - listitem [ref=e279]:
+                - link "Data" [ref=e280] [cursor=pointer]:
+                  - /url: ../../../Reference/Data
+              - listitem [ref=e281]:
+                - link "Glossary and Notation" [ref=e282] [cursor=pointer]:
+                  - /url: ../../../Reference/Glossary-and-Notation
+              - listitem [ref=e283]:
+                - link "Notebooks" [ref=e284] [cursor=pointer]:
+                  - /url: ../../../Reference/Notebooks
+        - listitem [ref=e285]
+  - generic [ref=e286]:
+    - generic [ref=e288]:
+      - navigation "breadcrumbs" [ref=e289]:
+        - generic [ref=e290]:
+          - link "Home" [ref=e291] [cursor=pointer]:
+            - /url: ../../../
+          - paragraph [ref=e292]: ❯
+        - generic [ref=e293]:
+          - link "Phase II" [ref=e294] [cursor=pointer]:
+            - /url: ../../../Phase-II/
+          - paragraph [ref=e295]: ❯
+        - generic [ref=e296]:
+          - link "Calls" [ref=e297] [cursor=pointer]:
+            - /url: ../../../Phase-II/Calls/
+          - paragraph [ref=e298]: ❯
+        - link "Call, 2026 10 02" [ref=e300] [cursor=pointer]:
+          - /url: ""
+      - heading "Call, 2026-10-02" [level=1] [ref=e301]
+      - paragraph [ref=e302]:
+        - time [ref=e303]: Sep 28, 2026,
+        - text: 4 min read
+    - article [ref=e304]:
+      - heading "Call, 2026-10-02" [level=1] [ref=e305]:
+        - text: Call, 2026-10-02
+        - link [aria-hidden] [ref=e306] [cursor=pointer]:
+          - /url: "#call-2026-10-02"
+      - paragraph [ref=e310]:
+        - text: The call planned for 2026-09-25 moved to 2026-10-02. This page carries its results, the answers to the Foundation’s comments on the agenda of 2026-09-25, and what is new since. The terms used here are defined in
+        - link "Glossary and Notation" [ref=e311] [cursor=pointer]:
+          - /url: ../../.././../../Reference/Glossary-and-Notation
+        - text: .
+      - heading "1. How validators commit, six years of staking" [level=2] [ref=e312]:
+        - text: 1. How validators commit, six years of staking
+        - link [aria-hidden] [ref=e313] [cursor=pointer]:
+          - /url: "#1-how-validators-commit-six-years-of-staking"
+      - paragraph [ref=e317]:
+        - text: A
+        - strong [ref=e318]: commitment
+        - text: "is one staking transaction’s period, from its start to its end. The research holds all 57,560 validator commitments and 7,056,798 delegator commitments since September 2020 in one checked table. From Durango to Fortuna the median validator commitment lasted 2.1 weeks, down from about 4.3 weeks before Durango. The typical commitment at that minimum also stakes the minimum, 2,000 AVAX. Short commitments are most of the decisions but little of the capital: 62% to 69% of new validator commitments from Durango to Fortuna, holding 3% to 5% of committed AVAX-days."
+      - paragraph [ref=e319]: "Validator commitments by the upgrade period in which they began:"
+      - table [ref=e321]:
+        - rowgroup [ref=e322]:
+          - row [ref=e323]:
+            - columnheader "Measure" [ref=e324]
+            - columnheader "Genesis" [ref=e325]
+            - columnheader "Apricot" [ref=e326]
+            - columnheader "Banff" [ref=e327]
+            - columnheader "Cortina" [ref=e328]
+            - columnheader "Durango" [ref=e329]
+            - columnheader "Etna" [ref=e330]
+            - columnheader "Fortuna" [ref=e331]
+            - columnheader "Granite" [ref=e332]
+        - rowgroup [ref=e333]:
+          - row [ref=e334]:
+            - cell "Validator commitments" [ref=e335]
+            - cell "2,951" [ref=e336]
+            - cell "11,847" [ref=e337]
+            - cell "3,431" [ref=e338]
+            - cell "9,101" [ref=e339]
+            - cell "12,657" [ref=e340]
+            - cell "5,179" [ref=e341]
+            - cell "7,775" [ref=e342]
+            - cell "4,580" [ref=e343]
+          - row [ref=e344]:
+            - cell "Distinct node IDs" [ref=e345]
+            - cell "1,218" [ref=e346]
+            - cell "2,811" [ref=e347]
+            - cell "1,360" [ref=e348]
+            - cell "2,388" [ref=e349]
+            - cell "2,672" [ref=e350]
+            - cell "1,762" [ref=e351]
+            - cell "2,012" [ref=e352]
+            - cell "996" [ref=e353]
+          - row [ref=e354]:
+            - cell "Median duration (weeks)" [ref=e355]
+            - cell "4.4" [ref=e356]
+            - cell "4.3" [ref=e357]
+            - cell "4.4" [ref=e358]
+            - cell "4.3" [ref=e359]
+            - cell "2.1" [ref=e360]
+            - cell "2.1" [ref=e361]
+            - cell "2.1" [ref=e362]
+            - cell "3.6" [ref=e363]
+          - row [ref=e364]:
+            - cell "Stake-weighted median duration (weeks)" [ref=e365]
+            - cell "12.4" [ref=e366]
+            - cell "8.8" [ref=e367]
+            - cell "9.7" [ref=e368]
+            - cell "7.0" [ref=e369]
+            - cell "4.4" [ref=e370]
+            - cell "4.4" [ref=e371]
+            - cell "4.2" [ref=e372]
+            - cell "4.0" [ref=e373]
+          - row [ref=e374]:
+            - cell "Median self-stake per commitment (AVAX)" [ref=e375]
+            - cell "5,000" [ref=e376]
+            - cell "2,085" [ref=e377]
+            - cell "2,202" [ref=e378]
+            - cell "2,005" [ref=e379]
+            - cell "2,005" [ref=e380]
+            - cell "2,000" [ref=e381]
+            - cell "2,000" [ref=e382]
+            - cell "14,585" [ref=e383]
+          - row [ref=e384]:
+            - cell "Self-stake committed (million AVAX)" [ref=e385]
+            - cell "756" [ref=e386]
+            - cell "1,271" [ref=e387]
+            - cell "390" [ref=e388]
+            - cell "725" [ref=e389]
+            - cell "731" [ref=e390]
+            - cell "301" [ref=e391]
+            - cell "601" [ref=e392]
+            - cell "890" [ref=e393]
+      - paragraph [ref=e394]:
+        - text: The median duration falls to 2.1 weeks at Durango and holds there until Granite. Weighted by self-stake, the median falls from 7.0 weeks under Cortina to about 4 weeks from Durango on, so large validators shortened too, but less. Under Granite the median self-stake rises from 2,000 to 14,585 AVAX. Self-stake committed sums every commitment’s stake, so a validator that renews every two weeks is counted at each renewal. It measures decisions, not stake held at one time. The table is built from the 2026-09-19 capture of 57,521 validator commitments by the
+        - link "validator rewards notebook" [ref=e395] [cursor=pointer]:
+          - /url: ../../.././../../Reference/Notebooks
+        - text: ", which runs it and shows it interactively."
+      - paragraph [ref=e396]:
+        - text: The
+        - link "staking-periods notebook" [ref=e397] [cursor=pointer]:
+          - /url: ../../.././../../Reference/Notebooks
+        - text: "holds four linked views on one time axis: commitments begun by stake, commitments begun by duration, each node’s history as a line coloured by its fee, and the stock of commitments open each week. A selection in one view filters the others."
+      - heading "2. Answers to the comments on the 2026-09-25 agenda" [level=2] [ref=e398]:
+        - text: 2. Answers to the comments on the 2026-09-25 agenda
+        - link [aria-hidden] [ref=e399] [cursor=pointer]:
+          - /url: "#2-answers-to-the-comments-on-the-2026-09-25-agenda"
+      - table [ref=e404]:
+        - rowgroup [ref=e405]:
+          - row [ref=e406]:
+            - columnheader "Comment" [ref=e407]
+            - columnheader "What was done" [ref=e408]
+        - rowgroup [ref=e409]:
+          - row [ref=e410]:
+            - cell "”Do you mean the amount or duration?”, on what changed at Durango" [ref=e411]
+            - 'cell "Duration. The median validator commitment moves to 2.1 weeks at Durango and stays there until Granite, as the table above shows. The question stands: what changed at Durango that moved most new commitments to the minimum duration?" [ref=e412]'
+          - row [ref=e413]:
+            - cell "”Interesting idea”, and “Sure if it does not result in a huge incremental lift.”, on a minimum stake that falls as committed duration rises" [ref=e414]
+            - cell [ref=e415]:
+              - text: It will be evaluated as one more reward mechanism in the parameter sweeps of Milestone 2, through the swappable mechanism interface of
+              - link "2.8" [ref=e416] [cursor=pointer]:
+                - /url: ../../.././../Milestone-2/2-8-Collaborative-Mechanism-Design/
+              - text: . It adds a mechanism, not a new model, so the added work is small
+          - row [ref=e417]:
+            - cell "”Yes, let me follow up with Matias on that.”, on introductions to the institutional staking panel and the Summit slides" [ref=e418]
+            - cell "Waiting on the Foundation" [ref=e419]
+          - row [ref=e420]:
+            - cell "Live tracking after Helicon of new nodes’ duration choices, old nodes lowering their duration, and the overall duration distribution" [ref=e421]
+            - cell "Started. The validator set has been captured daily since Helicon, and the first full comparison runs on 2026-09-29, after the first 48-hour cycles have renewed. The three views are next" [ref=e422]
+          - row [ref=e423]:
+            - cell "New flow is likely to come from ETFs, so check for a notable NAV increase in the AVAX ETF or ETFs holding AVAX" [ref=e424]
+            - cell "To be added to the data catalogue" [ref=e425]
+          - row [ref=e426]:
+            - cell [ref=e427]:
+              - text: Use
+              - link "https://snowpeer.io/delegations" [ref=e428] [cursor=pointer]:
+                - /url: https://snowpeer.io/delegations
+              - text: to identify BENQI’s addresses
+            - cell "Will be used to measure BENQI’s share of delegated stake directly, instead of inferring it" [ref=e431]
+      - heading "3. Helicon, the first week" [level=2] [ref=e432]:
+        - text: 3. Helicon, the first week
+        - link [aria-hidden] [ref=e433] [cursor=pointer]:
+          - /url: "#3-helicon-the-first-week"
+      - paragraph [ref=e437]: "Helicon activated on 2026-09-22 at 15:00 UTC. It allows validator commitments of 48 hours with automatic renewal and raises the uptime requirement to 90% for validations that start after it. By 2026-09-24, 20 validator commitments had begun under the new rules. Two chose 48 hours, both auto-renewed, both at about 2,000 AVAX. The largest new commitments went the other way: two of about 1.75 million AVAX each, for about 198 days. Delegations keep the 14-day minimum. The first full comparison is added here after its run on 2026-09-29."
+      - heading "4. Access to the research" [level=2] [ref=e438]:
+        - text: 4. Access to the research
+        - link [aria-hidden] [ref=e439] [cursor=pointer]:
+          - /url: "#4-access-to-the-research"
+      - paragraph [ref=e443]:
+        - text: The Foundation’s repository now carries this site, the code, both notebooks, and the data.
+        - code [ref=e444]: SETUP.md
+        - text: in the repository takes a new machine from cloning to running notebooks, and an AI coding agent can follow it as written. The data is attached to the repository’s release
+        - code [ref=e445]: v0.1.0
+        - text: .
+      - heading "5. Next steps" [level=2] [ref=e446]:
+        - text: 5. Next steps
+        - link [aria-hidden] [ref=e447] [cursor=pointer]:
+          - /url: "#5-next-steps"
+      - list [ref=e451]:
+        - listitem [ref=e452]: The Helicon comparison after 2026-09-29, with the three tracking views.
+        - listitem [ref=e453]: Milestone 1 deliverables 1.3 and 1.4, then the Preliminary Validation Report.
+        - listitem [ref=e454]: The ETF and BENQI measurements from the comments above.
+        - listitem [ref=e455]: Introductions for the next interviews, when the Foundation has followed up with Matias.
+    - separator [ref=e456]
+  - generic [ref=e457]:
+    - generic [ref=e458]:
+      - heading "Graph View" [level=3] [ref=e459]
+      - generic [ref=e460]:
+        - img "Force-directed graph of linked research notes" [ref=e462]
+        - button "Global Graph" [ref=e463] [cursor=pointer]
+    - generic [ref=e466]:
+      - button [expanded] [ref=e467] [cursor=pointer]:
+        - heading "Table of Contents" [level=3] [ref=e468]
+      - list "Table of contents" [ref=e471]:
+        - listitem [ref=e472]:
+          - link "Call, 2026-10-02" [ref=e473] [cursor=pointer]:
+            - /url: "#call-2026-10-02"
+        - listitem [ref=e474]:
+          - link "1. How validators commit, six years of staking" [ref=e475] [cursor=pointer]:
+            - /url: "#1-how-validators-commit-six-years-of-staking"
+        - listitem [ref=e476]:
+          - link "2. Answers to the comments on the 2026-09-25 agenda" [ref=e477] [cursor=pointer]:
+            - /url: "#2-answers-to-the-comments-on-the-2026-09-25-agenda"
+        - listitem [ref=e478]:
+          - link "3. Helicon, the first week" [ref=e479] [cursor=pointer]:
+            - /url: "#3-helicon-the-first-week"
+        - listitem [ref=e480]:
+          - link "4. Access to the research" [ref=e481] [cursor=pointer]:
+            - /url: "#4-access-to-the-research"
+        - listitem [ref=e482]:
+          - link "5. Next steps" [ref=e483] [cursor=pointer]:
+            - /url: "#5-next-steps"
+        - listitem [ref=e484]
+    - generic [ref=e485]:
+      - heading "Backlinks" [level=3] [ref=e486]
+      - list [ref=e487]:
+        - listitem [ref=e488]:
+          - link "Avalanche Phase II Research" [ref=e489] [cursor=pointer]:
+            - /url: ../../../
+        - listitem [ref=e490]
+  - contentinfo [ref=e491]:
+    - paragraph [ref=e492]:
+      - text: Created with
+      - link "Quartz v4.5.2" [ref=e493] [cursor=pointer]:
+        - /url: https://quartz.jzhao.xyz/
+      - text: © 2026
+    - list

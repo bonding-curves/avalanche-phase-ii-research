@@ -1,0 +1,6 @@
+[     652ms] [LOG] [bokeh 3.9.2] setting log level to: 'info' @ https://cdn.bokeh.org/bokeh/release/bokeh-3.9.2.min.js:185
+[     844ms] [INFO] [bokeh 3.9.2] document idle at 189 ms @ https://cdn.bokeh.org/bokeh/release/bokeh-3.9.2.min.js:165
+[     855ms] [WARNING] [.WebGL-0x3bec001adc00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:8871/fig_minimum.html:0
+[     855ms] [WARNING] [.WebGL-0x3bec001adc00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:8871/fig_minimum.html:0
+[     855ms] [WARNING] [.WebGL-0x3bec001adc00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:8871/fig_minimum.html:0
+[     855ms] [WARNING] [.WebGL-0x3bec001adc00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat) @ http://localhost:8871/fig_minimum.html:0

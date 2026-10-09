@@ -1,0 +1,9 @@
+[     142ms] [WARNING] No available adapters. @ http://localhost:8847/Phase-II/Calls/2026-10-02/:0
+[     221ms] [WARNING] [.WebGL-0x365c001a9400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:8847/Phase-II/Calls/2026-10-02/:0
+[     223ms] [WARNING] [.WebGL-0x365c001a9400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:8847/Phase-II/Calls/2026-10-02/:0
+[     231ms] [WARNING] [.WebGL-0x365c001a9400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:8847/Phase-II/Calls/2026-10-02/:0
+[     247ms] [WARNING] [.WebGL-0x365c001a9400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat) @ http://localhost:8847/Phase-II/Calls/2026-10-02/:0
+[   24163ms] [WARNING] No available adapters. @ http://localhost:8847/Phase-II/Calls/2026-10-02/:0
+[   30868ms] [WARNING] No available adapters. @ http://localhost:8847/Phase-II/Calls/2026-10-02/:0
+[   40070ms] [WARNING] No available adapters. @ http://localhost:8847/Phase-II/Calls/2026-10-02/:0
+[   47067ms] [WARNING] No available adapters. @ http://localhost:8847/Phase-II/Calls/2026-10-02/:0

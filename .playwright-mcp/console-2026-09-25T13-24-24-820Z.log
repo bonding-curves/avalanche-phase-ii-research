@@ -1,0 +1,7 @@
+[     373ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8872/favicon.ico:0
+[    5175ms] [LOG] Bokeh: BokehJS was loaded multiple times but one version failed to initialize. @ http://localhost:8872/03_validator_rewards_study.html:8744
+[    5568ms] [WARNING] [.WebGL-0x3ae40199a800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:8872/03_validator_rewards_study.html:0
+[    5568ms] [WARNING] [.WebGL-0x3ae40199a800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:8872/03_validator_rewards_study.html:0
+[    5568ms] [WARNING] [.WebGL-0x3ae40199a800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://localhost:8872/03_validator_rewards_study.html:0
+[    5648ms] [LOG] [bokeh 3.9.2] setting log level to: 'info' @ https://cdn.bokeh.org/bokeh/release/bokeh-3.9.2.min.js:185
+[    5649ms] [WARNING] [.WebGL-0x3ae40199a800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat) @ http://localhost:8872/03_validator_rewards_study.html:0

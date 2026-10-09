@@ -1,0 +1,27 @@
+- generic [active] [ref=f2e1]:
+  - banner [ref=f2e2]:
+    - link [ref=f2e5] [cursor=pointer]:
+      - /url: /
+    - navigation [ref=f2e9]:
+      - button [ref=f2e11] [cursor=pointer]
+  - button "Search" [ref=f2e18] [cursor=pointer]
+  - generic [ref=f2e23]:
+    - link "Home" [ref=f2e24] [cursor=pointer]:
+      - /url: /
+    - link "Stats" [ref=f2e27] [cursor=pointer]:
+      - /url: /stats/overview
+    - link "L1s" [ref=f2e30] [cursor=pointer]:
+      - /url: /l1s
+    - generic [ref=f2e33]: Validators
+    - link "Delegations" [ref=f2e35] [cursor=pointer]:
+      - /url: /delegations
+    - link "Network" [ref=f2e38] [cursor=pointer]:
+      - /url: /network
+    - link "ICM" [ref=f2e41] [cursor=pointer]:
+      - /url: /icm
+    - link "ACPs" [ref=f2e44] [cursor=pointer]:
+      - /url: /acps
+    - generic [ref=f2e47]: Economics
+    - generic [ref=f2e49]: Ecosystem
+  - main [ref=f2e51]
+  - alert [ref=f2e52]

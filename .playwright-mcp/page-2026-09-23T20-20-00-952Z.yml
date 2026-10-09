@@ -1,0 +1,832 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic "Main" [ref=e3]:
+      - navigation [ref=e5]:
+        - link "Avalanche Builder Hub" [ref=e6] [cursor=pointer]:
+          - /url: /
+        - list [ref=e12]:
+          - listitem [ref=e13]:
+            - button [ref=e14]:
+              - link "Solutions" [ref=e15] [cursor=pointer]:
+                - /url: /solutions
+          - listitem [ref=e16]:
+            - button [ref=e17]:
+              - link "Documentation" [ref=e18] [cursor=pointer]:
+                - /url: /docs/primary-network
+          - listitem [ref=e19]:
+            - button [ref=e20]:
+              - link "Console" [ref=e21] [cursor=pointer]:
+                - /url: /console
+          - listitem [ref=e22]:
+            - button [ref=e23]:
+              - link "Explorer" [ref=e24]:
+                - /url: /explorer
+          - listitem [ref=e25]:
+            - button "Ecosystem" [ref=e26]
+        - generic [ref=e27]:
+          - button "Search ⌘ K" [ref=e28]:
+            - text: Search
+            - generic [ref=e32]:
+              - generic [ref=e33]: ⌘
+              - generic [ref=e34]: K
+          - button "Toggle Theme" [ref=e35]
+          - list [ref=e44]:
+            - button "Login" [ref=e47]
+    - main [ref=e53]:
+      - generic [ref=e54]:
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - button "C-Chain" [ref=e60]
+            - navigation "Explorer sections" [ref=e66]:
+              - link "Overview" [ref=e67] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain
+              - link "Blocks" [ref=e68] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain/blocks
+              - link "Transactions" [ref=e69] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain/txs
+              - link "Gas" [ref=e70] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain/gas
+              - link "Atomic" [ref=e71] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain/atomic
+              - link "Accounts" [ref=e72] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain/accounts
+              - link "Details" [ref=e73] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain/details
+              - link "Staking" [ref=e74] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain/staking
+              - link "Validators" [ref=e75]:
+                - /url: /explorer/mainnet/c-chain/validators
+              - link "ICM" [ref=e77] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain/icm
+          - generic [ref=e79]:
+            - link "Mainnet" [ref=e80] [cursor=pointer]:
+              - /url: /explorer/mainnet/c-chain
+            - link "Fuji" [ref=e81] [cursor=pointer]:
+              - /url: /explorer/fuji/c-chain
+        - generic [ref=e84]:
+          - generic [ref=e87]:
+            - paragraph [ref=e88]: Avalanche Primary Network
+            - heading "Contract Chain." [level=1] [ref=e89]
+          - generic [ref=e91]:
+            - textbox "Search chains by name or ID, block, tx hash, address, or any P-Chain ID" [ref=e92]
+            - generic: /
+        - generic [ref=e95]:
+          - generic [ref=e97]:
+            - generic [ref=e98]:
+              - paragraph [ref=e99]: Primary Network Validators
+              - link "Staking economics" [ref=e100] [cursor=pointer]:
+                - /url: /explorer/mainnet/c-chain/staking
+            - generic [ref=e103]:
+              - generic [ref=e104]:
+                - generic [ref=e105]: Validators
+                - generic [ref=e106]: "612"
+              - generic [ref=e107]:
+                - generic [ref=e108]: Up to Date · 1.15
+                - generic [ref=e109]: 96.7%
+                - generic [ref=e110]: 93.3% of nodes
+              - generic [ref=e111]:
+                - generic [ref=e112]: Total Weight
+                - generic [ref=e113]: 205.6MAVAX
+                - generic [ref=e114]: own stake + delegations
+              - generic [ref=e115]:
+                - generic [ref=e116]: Expiring · 30d
+                - generic [ref=e117]: —
+          - generic [ref=e118]:
+            - textbox "Filter by NodeID or version" [ref=e120]
+            - generic [ref=e121]:
+              - generic [ref=e122]:
+                - paragraph [ref=e123]:
+                  - generic [ref=e124]: Validator Set
+                - generic [ref=e125]: 612 validators
+              - table [ref=e127]:
+                - rowgroup [ref=e128]:
+                  - row [ref=e129]:
+                    - columnheader "#" [ref=e130]
+                    - columnheader "Node" [ref=e131]
+                    - columnheader [ref=e132]:
+                      - button "Version" [ref=e133]
+                    - columnheader [ref=e134]:
+                      - button "Total Stake ↓" [ref=e135]
+                    - columnheader [ref=e136]:
+                      - button "Delegators" [ref=e137]
+                    - columnheader [ref=e138]:
+                      - button "Fee" [ref=e139]
+                    - columnheader [ref=e140]:
+                      - button "Uptime" [ref=e141]
+                    - columnheader [ref=e142]:
+                      - button "Days Left" [ref=e143]
+                    - columnheader [ref=e144]:
+                      - button "Miss · 14d" [ref=e145]
+                - rowgroup [ref=e146]:
+                  - row [ref=e147]:
+                    - cell "1" [ref=e148]
+                    - cell [ref=e149]:
+                      - link "NodeID-FcJF4…vapfEEBS" [ref=e150] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-FcJF4qeHfTDzBV7YEy9zKkx7TvapfEEBS
+                    - cell "1.15.0" [ref=e151]
+                    - cell "3.0M AVAX" [ref=e152]
+                    - cell "1,468" [ref=e153]
+                    - cell "5%" [ref=e154]
+                    - cell "—" [ref=e155]
+                    - cell "—" [ref=e156]
+                    - cell "—" [ref=e157]
+                  - row [ref=e158]:
+                    - cell "2" [ref=e159]
+                    - cell [ref=e160]:
+                      - link "NodeID-Dz5xT…SbyNxABw" [ref=e161] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-Dz5xT3a4F73jC6HNHDZ6JsE64SbyNxABw
+                    - cell "1.15.0" [ref=e162]
+                    - cell "3.0M AVAX" [ref=e163]
+                    - cell "1,590" [ref=e164]
+                    - cell "2%" [ref=e165]
+                    - cell "—" [ref=e166]
+                    - cell "—" [ref=e167]
+                    - cell "—" [ref=e168]
+                  - row [ref=e169]:
+                    - cell "3" [ref=e170]
+                    - cell [ref=e171]:
+                      - link "NodeID-8mJL8…sfW45Y1R" [ref=e172] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-8mJL8AgUyaPvtoidS91rNSgohsfW45Y1R
+                    - cell "1.15.0" [ref=e173]
+                    - cell "3.0M AVAX" [ref=e174]
+                    - cell "1,622" [ref=e175]
+                    - cell "5%" [ref=e176]
+                    - cell "—" [ref=e177]
+                    - cell "—" [ref=e178]
+                    - cell "—" [ref=e179]
+                  - row [ref=e180]:
+                    - cell "4" [ref=e181]
+                    - cell [ref=e182]:
+                      - link "NodeID-4pmpS…u8pfz2Kv" [ref=e183] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-4pmpS7zznorSbCyDRxnfFriggu8pfz2Kv
+                    - cell "1.15.0" [ref=e184]
+                    - cell "3.0M AVAX" [ref=e185]
+                    - cell "1" [ref=e186]
+                    - cell "20%" [ref=e187]
+                    - cell "—" [ref=e188]
+                    - cell "—" [ref=e189]
+                    - cell "—" [ref=e190]
+                  - row [ref=e191]:
+                    - cell "5" [ref=e192]
+                    - cell [ref=e193]:
+                      - link "NodeID-2CTvG…EzxAZnez" [ref=e194] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-2CTvGMCiBECry6Gu4vxY7uJBtEzxAZnez
+                    - cell "1.15.0" [ref=e195]
+                    - cell "3.0M AVAX" [ref=e196]
+                    - cell "1,248" [ref=e197]
+                    - cell "5%" [ref=e198]
+                    - cell "—" [ref=e199]
+                    - cell "—" [ref=e200]
+                    - cell "—" [ref=e201]
+                  - row [ref=e202]:
+                    - cell "6" [ref=e203]
+                    - cell [ref=e204]:
+                      - link "NodeID-8su1e…Pp8p2wSe" [ref=e205] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-8su1eeSjb4emswAx453du7ya3Pp8p2wSe
+                    - cell "1.15.0" [ref=e206]
+                    - cell "3.0M AVAX" [ref=e207]
+                    - cell "0" [ref=e208]
+                    - cell "20%" [ref=e209]
+                    - cell "—" [ref=e210]
+                    - cell "—" [ref=e211]
+                    - cell "—" [ref=e212]
+                  - row [ref=e213]:
+                    - cell "7" [ref=e214]
+                    - cell [ref=e215]:
+                      - link "NodeID-HqeE7…oSH76pcw" [ref=e216] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-HqeE7wcqkoZwhnwv6ADxudhZvoSH76pcw
+                    - cell "1.15.0" [ref=e217]
+                    - cell "3.0M AVAX" [ref=e218]
+                    - cell "0" [ref=e219]
+                    - cell "20%" [ref=e220]
+                    - cell "—" [ref=e221]
+                    - cell "—" [ref=e222]
+                    - cell "—" [ref=e223]
+                  - row [ref=e224]:
+                    - cell "8" [ref=e225]
+                    - cell [ref=e226]:
+                      - link "NodeID-EboRg…LFaNQjin" [ref=e227] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-EboRgvw57eqzfafbFxwF3NAPLLFaNQjin
+                    - cell "1.15.0" [ref=e228]
+                    - cell "3.0M AVAX" [ref=e229]
+                    - cell "0" [ref=e230]
+                    - cell "20%" [ref=e231]
+                    - cell "—" [ref=e232]
+                    - cell "—" [ref=e233]
+                    - cell "—" [ref=e234]
+                  - row [ref=e235]:
+                    - cell "9" [ref=e236]
+                    - cell [ref=e237]:
+                      - link "NodeID-BXZr1…e8oxwRnF" [ref=e238] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-BXZr17N75YvPPaLqRPdyNATT1e8oxwRnF
+                    - cell "1.15.0" [ref=e239]
+                    - cell "3.0M AVAX" [ref=e240]
+                    - cell "0" [ref=e241]
+                    - cell "20%" [ref=e242]
+                    - cell "—" [ref=e243]
+                    - cell "—" [ref=e244]
+                    - cell "—" [ref=e245]
+                  - row [ref=e246]:
+                    - cell "10" [ref=e247]
+                    - cell [ref=e248]:
+                      - link "NodeID-99hQv…1pNMHFhg" [ref=e249] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-99hQvpQKJi1y7gTjD2icHKYwk1pNMHFhg
+                    - cell "1.15.0" [ref=e250]
+                    - cell "3.0M AVAX" [ref=e251]
+                    - cell "828" [ref=e252]
+                    - cell "2%" [ref=e253]
+                    - cell "—" [ref=e254]
+                    - cell "—" [ref=e255]
+                    - cell "—" [ref=e256]
+                  - row [ref=e257]:
+                    - cell "11" [ref=e258]
+                    - cell [ref=e259]:
+                      - link "NodeID-Ha5u9…w8PSF7em" [ref=e260] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-Ha5u99aoKUdNdTdomp8bQcWHUw8PSF7em
+                    - cell "1.15.0" [ref=e261]
+                    - cell "3.0M AVAX" [ref=e262]
+                    - cell "0" [ref=e263]
+                    - cell "20%" [ref=e264]
+                    - cell "—" [ref=e265]
+                    - cell "—" [ref=e266]
+                    - cell "—" [ref=e267]
+                  - row [ref=e268]:
+                    - cell "12" [ref=e269]
+                    - cell [ref=e270]:
+                      - link "NodeID-Q1ZzB…1q3tTjT5" [ref=e271] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-Q1ZzBXtcP9xUMTEUEks5cpx9f1q3tTjT5
+                    - cell "1.15.0" [ref=e272]
+                    - cell "2.9M AVAX" [ref=e273]
+                    - cell "0" [ref=e274]
+                    - cell "20%" [ref=e275]
+                    - cell "—" [ref=e276]
+                    - cell "—" [ref=e277]
+                    - cell "—" [ref=e278]
+                  - row [ref=e279]:
+                    - cell "13" [ref=e280]
+                    - cell [ref=e281]:
+                      - link "NodeID-Hq4Mp…cY5zVEWA" [ref=e282] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-Hq4MpMS7A2WXakmiEEPC2S7iccY5zVEWA
+                    - cell "1.15.0" [ref=e283]
+                    - cell "2.9M AVAX" [ref=e284]
+                    - cell "0" [ref=e285]
+                    - cell "20%" [ref=e286]
+                    - cell "—" [ref=e287]
+                    - cell "—" [ref=e288]
+                    - cell "—" [ref=e289]
+                  - row [ref=e290]:
+                    - cell "14" [ref=e291]
+                    - cell [ref=e292]:
+                      - link "NodeID-BVjnU…YuBw9uT5" [ref=e293] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-BVjnUhsfLGXBWSzYmmcEC3Ak4YuBw9uT5
+                    - cell "—" [ref=e294]
+                    - cell "2.9M AVAX" [ref=e295]
+                    - cell "1,087" [ref=e296]
+                    - cell "2%" [ref=e297]
+                    - cell "—" [ref=e298]
+                    - cell "—" [ref=e299]
+                    - cell "—" [ref=e300]
+                  - row [ref=e301]:
+                    - cell "15" [ref=e302]
+                    - cell [ref=e303]:
+                      - link "NodeID-EmyEA…2zphK3J6" [ref=e304] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-EmyEA3mdxUZibCy8heBSV1hj52zphK3J6
+                    - cell "1.15.0" [ref=e305]
+                    - cell "2.9M AVAX" [ref=e306]
+                    - cell "1,487" [ref=e307]
+                    - cell "5%" [ref=e308]
+                    - cell "—" [ref=e309]
+                    - cell "—" [ref=e310]
+                    - cell "—" [ref=e311]
+                  - row [ref=e312]:
+                    - cell "16" [ref=e313]
+                    - cell [ref=e314]:
+                      - link "NodeID-DVh35…2BzPrJQt" [ref=e315] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-DVh35F3R11HAAxzeSTbk3eR9w2BzPrJQt
+                    - cell "1.15.0" [ref=e316]
+                    - cell "2.8M AVAX" [ref=e317]
+                    - cell "2" [ref=e318]
+                    - cell "100%" [ref=e319]
+                    - cell "—" [ref=e320]
+                    - cell "—" [ref=e321]
+                    - cell "—" [ref=e322]
+                  - row [ref=e323]:
+                    - cell "17" [ref=e324]
+                    - cell [ref=e325]:
+                      - link "NodeID-4gTwe…FsYh4faj" [ref=e326] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-4gTwepTF5fcacXB7gdYZLTtfSFsYh4faj
+                    - cell "1.15.0" [ref=e327]
+                    - cell "2.7M AVAX" [ref=e328]
+                    - cell "172" [ref=e329]
+                    - cell "2%" [ref=e330]
+                    - cell "—" [ref=e331]
+                    - cell "—" [ref=e332]
+                    - cell "—" [ref=e333]
+                  - row [ref=e334]:
+                    - cell "18" [ref=e335]
+                    - cell [ref=e336]:
+                      - link "NodeID-HySJo…X211ykY1" [ref=e337] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-HySJoQ5AEJw8KUd3TUtS4NimsX211ykY1
+                    - cell "1.15.0" [ref=e338]
+                    - cell "2.5M AVAX" [ref=e339]
+                    - cell "0" [ref=e340]
+                    - cell "20%" [ref=e341]
+                    - cell "—" [ref=e342]
+                    - cell "—" [ref=e343]
+                    - cell "—" [ref=e344]
+                  - row [ref=e345]:
+                    - cell "19" [ref=e346]
+                    - cell [ref=e347]:
+                      - link "NodeID-BLjWt…Scn1gyyB" [ref=e348] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-BLjWtGBQU3PxgBSMvhiGxHGZ6Scn1gyyB
+                    - cell "1.15.0" [ref=e349]
+                    - cell "2.5M AVAX" [ref=e350]
+                    - cell "0" [ref=e351]
+                    - cell "20%" [ref=e352]
+                    - cell "—" [ref=e353]
+                    - cell "—" [ref=e354]
+                    - cell "—" [ref=e355]
+                  - row [ref=e356]:
+                    - cell "20" [ref=e357]
+                    - cell [ref=e358]:
+                      - link "NodeID-69vkf…59ePbeWw" [ref=e359] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-69vkfdsq14i5HZSd6m2kUwRAu59ePbeWw
+                    - cell "1.15.0" [ref=e360]
+                    - cell "2.3M AVAX" [ref=e361]
+                    - cell "357" [ref=e362]
+                    - cell "2%" [ref=e363]
+                    - cell "—" [ref=e364]
+                    - cell "—" [ref=e365]
+                    - cell "—" [ref=e366]
+                  - row [ref=e367]:
+                    - cell "21" [ref=e368]
+                    - cell [ref=e369]:
+                      - link "NodeID-HReqp…FuX8TBZp" [ref=e370] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-HReqpxf7pRpfyCiiwBWNpqyx6FuX8TBZp
+                    - cell "1.15.0" [ref=e371]
+                    - cell "2.2M AVAX" [ref=e372]
+                    - cell "0" [ref=e373]
+                    - cell "5%" [ref=e374]
+                    - cell "—" [ref=e375]
+                    - cell "—" [ref=e376]
+                    - cell "—" [ref=e377]
+                  - row [ref=e378]:
+                    - cell "22" [ref=e379]
+                    - cell [ref=e380]:
+                      - link "NodeID-DaKj4…jxYGUFzX" [ref=e381] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-DaKj4jkyyCN4B5zVW65krECqpjxYGUFzX
+                    - cell "1.15.0" [ref=e382]
+                    - cell "2.2M AVAX" [ref=e383]
+                    - cell "1,036" [ref=e384]
+                    - cell "5%" [ref=e385]
+                    - cell "—" [ref=e386]
+                    - cell "—" [ref=e387]
+                    - cell "—" [ref=e388]
+                  - row [ref=e389]:
+                    - cell "23" [ref=e390]
+                    - cell [ref=e391]:
+                      - link "NodeID-2BET5…AerETJWW" [ref=e392] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-2BET5GEQm8YKa1GTRe3DjR64XAerETJWW
+                    - cell "1.15.0" [ref=e393]
+                    - cell "2.2M AVAX" [ref=e394]
+                    - cell "669" [ref=e395]
+                    - cell "2%" [ref=e396]
+                    - cell "—" [ref=e397]
+                    - cell "—" [ref=e398]
+                    - cell "—" [ref=e399]
+                  - row [ref=e400]:
+                    - cell "24" [ref=e401]
+                    - cell [ref=e402]:
+                      - link "NodeID-5zENH…EupejYhD" [ref=e403] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-5zENHPe3oP2SdU13oTAvxZA2cEupejYhD
+                    - cell "1.15.0" [ref=e404]
+                    - cell "2.1M AVAX" [ref=e405]
+                    - cell "0" [ref=e406]
+                    - cell "20%" [ref=e407]
+                    - cell "—" [ref=e408]
+                    - cell "—" [ref=e409]
+                    - cell "—" [ref=e410]
+                  - row [ref=e411]:
+                    - cell "25" [ref=e412]
+                    - cell [ref=e413]:
+                      - link "NodeID-KWyfH…iwfzhyhb" [ref=e414] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-KWyfHHaNzGBA1xfNgYV8hy6W7iwfzhyhb
+                    - cell "1.15.0" [ref=e415]
+                    - cell "2.0M AVAX" [ref=e416]
+                    - cell "0" [ref=e417]
+                    - cell "20%" [ref=e418]
+                    - cell "—" [ref=e419]
+                    - cell "—" [ref=e420]
+                    - cell "—" [ref=e421]
+                  - row [ref=e422]:
+                    - cell "26" [ref=e423]
+                    - cell [ref=e424]:
+                      - link "NodeID-Jfx9F…EgRQUUMg" [ref=e425] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-Jfx9FcVMQuy1FXGd53EuigXnCEgRQUUMg
+                    - cell "1.15.0" [ref=e426]
+                    - cell "2.0M AVAX" [ref=e427]
+                    - cell "0" [ref=e428]
+                    - cell "20%" [ref=e429]
+                    - cell "—" [ref=e430]
+                    - cell "—" [ref=e431]
+                    - cell "—" [ref=e432]
+                  - row [ref=e433]:
+                    - cell "27" [ref=e434]
+                    - cell [ref=e435]:
+                      - link "NodeID-65khN…11MoS2mR" [ref=e436] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-65khN3oXiDJdVCuT19HsbF7o311MoS2mR
+                    - cell "1.15.0" [ref=e437]
+                    - cell "2.0M AVAX" [ref=e438]
+                    - cell "0" [ref=e439]
+                    - cell "100%" [ref=e440]
+                    - cell "—" [ref=e441]
+                    - cell "—" [ref=e442]
+                    - cell "—" [ref=e443]
+                  - row [ref=e444]:
+                    - cell "28" [ref=e445]
+                    - cell [ref=e446]:
+                      - link "NodeID-JkkAM…W9MDCK2o" [ref=e447] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-JkkAMfM1tVHKhHWbz9yCJTmneW9MDCK2o
+                    - cell "1.15.0" [ref=e448]
+                    - cell "1.9M AVAX" [ref=e449]
+                    - cell "2" [ref=e450]
+                    - cell "20%" [ref=e451]
+                    - cell "—" [ref=e452]
+                    - cell "—" [ref=e453]
+                    - cell "—" [ref=e454]
+                  - row [ref=e455]:
+                    - cell "29" [ref=e456]
+                    - cell [ref=e457]:
+                      - link "NodeID-7M4A3…Wj1JYnkU" [ref=e458] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-7M4A3bYgjDVq6zS9Qs5QFpGb6Wj1JYnkU
+                    - cell "1.15.1" [ref=e459]
+                    - cell "1.8M AVAX" [ref=e460]
+                    - cell "0" [ref=e461]
+                    - cell "50%" [ref=e462]
+                    - cell "—" [ref=e463]
+                    - cell "—" [ref=e464]
+                    - cell "—" [ref=e465]
+                  - row [ref=e466]:
+                    - cell "30" [ref=e467]
+                    - cell [ref=e468]:
+                      - link "NodeID-3PzXJ…Hjn17Q7b" [ref=e469] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-3PzXJGD9n7TUrV4RiAArnWpoRHjn17Q7b
+                    - cell "—" [ref=e470]
+                    - cell "1.8M AVAX" [ref=e471]
+                    - cell "485" [ref=e472]
+                    - cell "2%" [ref=e473]
+                    - cell "—" [ref=e474]
+                    - cell "—" [ref=e475]
+                    - cell "—" [ref=e476]
+                  - row [ref=e477]:
+                    - cell "31" [ref=e478]
+                    - cell [ref=e479]:
+                      - link "NodeID-N2t1C…RF1rRo1B" [ref=e480] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-N2t1CAS75972obgtRPHwVanMnRF1rRo1B
+                    - cell "1.15.0" [ref=e481]
+                    - cell "1.8M AVAX" [ref=e482]
+                    - cell "154" [ref=e483]
+                    - cell "2%" [ref=e484]
+                    - cell "—" [ref=e485]
+                    - cell "—" [ref=e486]
+                    - cell "—" [ref=e487]
+                  - row [ref=e488]:
+                    - cell "32" [ref=e489]
+                    - cell [ref=e490]:
+                      - link "NodeID-ChZBe…3RCSc2YP" [ref=e491] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-ChZBezF4HQjxhYZEDcTFjJBT93RCSc2YP
+                    - cell "1.15.1" [ref=e492]
+                    - cell "1.8M AVAX" [ref=e493]
+                    - cell "0" [ref=e494]
+                    - cell "50%" [ref=e495]
+                    - cell "—" [ref=e496]
+                    - cell "—" [ref=e497]
+                    - cell "—" [ref=e498]
+                  - row [ref=e499]:
+                    - cell "33" [ref=e500]
+                    - cell [ref=e501]:
+                      - link "NodeID-J6og8…6iqMjRSC" [ref=e502] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-J6og828vTYU1Vpb5MET9MT7JS6iqMjRSC
+                    - cell "1.15.0" [ref=e503]
+                    - cell "1.8M AVAX" [ref=e504]
+                    - cell "1" [ref=e505]
+                    - cell "5%" [ref=e506]
+                    - cell "—" [ref=e507]
+                    - cell "—" [ref=e508]
+                    - cell "—" [ref=e509]
+                  - row [ref=e510]:
+                    - cell "34" [ref=e511]
+                    - cell [ref=e512]:
+                      - link "NodeID-CLquK…sp6GXQoG" [ref=e513] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-CLquKzhJZaQ2B5XxpKnk3HjnRsp6GXQoG
+                    - cell "1.15.0" [ref=e514]
+                    - cell "1.8M AVAX" [ref=e515]
+                    - cell "0" [ref=e516]
+                    - cell "5%" [ref=e517]
+                    - cell "—" [ref=e518]
+                    - cell "—" [ref=e519]
+                    - cell "—" [ref=e520]
+                  - row [ref=e521]:
+                    - cell "35" [ref=e522]
+                    - cell [ref=e523]:
+                      - link "NodeID-KJyun…tmY3YmAt" [ref=e524] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-KJyunRUfEvDFctr15YPumRauQtmY3YmAt
+                    - cell "1.15.0" [ref=e525]
+                    - cell "1.7M AVAX" [ref=e526]
+                    - cell "0" [ref=e527]
+                    - cell "20%" [ref=e528]
+                    - cell "—" [ref=e529]
+                    - cell "—" [ref=e530]
+                    - cell "—" [ref=e531]
+                  - row [ref=e532]:
+                    - cell "36" [ref=e533]
+                    - cell [ref=e534]:
+                      - link "NodeID-BBWjV…hLcSkMUh" [ref=e535] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-BBWjVkuZscpyuhWtWmsLMFyeKhLcSkMUh
+                    - cell "1.15.0" [ref=e536]
+                    - cell "1.6M AVAX" [ref=e537]
+                    - cell "666" [ref=e538]
+                    - cell "2%" [ref=e539]
+                    - cell "—" [ref=e540]
+                    - cell "—" [ref=e541]
+                    - cell "—" [ref=e542]
+                  - row [ref=e543]:
+                    - cell "37" [ref=e544]
+                    - cell [ref=e545]:
+                      - link "NodeID-BSDn9…96fYKRSr" [ref=e546] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-BSDn9cwxnNdJLjNj1pHKt6yek96fYKRSr
+                    - cell "1.15.0" [ref=e547]
+                    - cell "1.6M AVAX" [ref=e548]
+                    - cell "0" [ref=e549]
+                    - cell "100%" [ref=e550]
+                    - cell "—" [ref=e551]
+                    - cell "—" [ref=e552]
+                    - cell "—" [ref=e553]
+                  - row [ref=e554]:
+                    - cell "38" [ref=e555]
+                    - cell [ref=e556]:
+                      - link "NodeID-9DCqb…9FDkqUnL" [ref=e557] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-9DCqby2EWyUKFsKs1VNH5mX7V9FDkqUnL
+                    - cell "1.15.0" [ref=e558]
+                    - cell "1.5M AVAX" [ref=e559]
+                    - cell "0" [ref=e560]
+                    - cell "6%" [ref=e561]
+                    - cell "—" [ref=e562]
+                    - cell "—" [ref=e563]
+                    - cell "—" [ref=e564]
+                  - row [ref=e565]:
+                    - cell "39" [ref=e566]
+                    - cell [ref=e567]:
+                      - link "NodeID-EFHu9…dth4UZ8R" [ref=e568] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-EFHu9didDPWweR3XG8A67L9vzdth4UZ8R
+                    - cell "1.15.0" [ref=e569]
+                    - cell "1.5M AVAX" [ref=e570]
+                    - cell "0" [ref=e571]
+                    - cell "100%" [ref=e572]
+                    - cell "—" [ref=e573]
+                    - cell "—" [ref=e574]
+                    - cell "—" [ref=e575]
+                  - row [ref=e576]:
+                    - cell "40" [ref=e577]
+                    - cell [ref=e578]:
+                      - link "NodeID-6HTKn…GDn3aTeW" [ref=e579] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-6HTKn9FJ52yTaWGatYkxhJkapGDn3aTeW
+                    - cell "1.15.0" [ref=e580]
+                    - cell "1.5M AVAX" [ref=e581]
+                    - cell "0" [ref=e582]
+                    - cell "100%" [ref=e583]
+                    - cell "—" [ref=e584]
+                    - cell "—" [ref=e585]
+                    - cell "—" [ref=e586]
+                  - row [ref=e587]:
+                    - cell "41" [ref=e588]
+                    - cell [ref=e589]:
+                      - link "NodeID-73fRC…cDMff3Fj" [ref=e590] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-73fRCGNv6Z1oZG78tqvyP4qaccDMff3Fj
+                    - cell "1.15.0" [ref=e591]
+                    - cell "1.5M AVAX" [ref=e592]
+                    - cell "0" [ref=e593]
+                    - cell "100%" [ref=e594]
+                    - cell "—" [ref=e595]
+                    - cell "—" [ref=e596]
+                    - cell "—" [ref=e597]
+                  - row [ref=e598]:
+                    - cell "42" [ref=e599]
+                    - cell [ref=e600]:
+                      - link "NodeID-KNLkh…Jc3BbdNA" [ref=e601] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-KNLkh3KVKFFhBWujmcZ5P3p2fJc3BbdNA
+                    - cell "1.15.0" [ref=e602]
+                    - cell "1.5M AVAX" [ref=e603]
+                    - cell "0" [ref=e604]
+                    - cell "20%" [ref=e605]
+                    - cell "—" [ref=e606]
+                    - cell "—" [ref=e607]
+                    - cell "—" [ref=e608]
+                  - row [ref=e609]:
+                    - cell "43" [ref=e610]
+                    - cell [ref=e611]:
+                      - link "NodeID-PD6eQ…vWePjxDV" [ref=e612] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-PD6eQhHhuAWd7rDX1wq62bHNJvWePjxDV
+                    - cell "1.15.0" [ref=e613]
+                    - cell "1.4M AVAX" [ref=e614]
+                    - cell "416" [ref=e615]
+                    - cell "2%" [ref=e616]
+                    - cell "—" [ref=e617]
+                    - cell "—" [ref=e618]
+                    - cell "—" [ref=e619]
+                  - row [ref=e620]:
+                    - cell "44" [ref=e621]
+                    - cell [ref=e622]:
+                      - link "NodeID-JzujC…3Tutsd4Y" [ref=e623] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-JzujCiknqcLonphwjDvzBiJy33Tutsd4Y
+                    - cell "1.15.0" [ref=e624]
+                    - cell "1.4M AVAX" [ref=e625]
+                    - cell "0" [ref=e626]
+                    - cell "20%" [ref=e627]
+                    - cell "—" [ref=e628]
+                    - cell "—" [ref=e629]
+                    - cell "—" [ref=e630]
+                  - row [ref=e631]:
+                    - cell "45" [ref=e632]
+                    - cell [ref=e633]:
+                      - link "NodeID-Ns1eD…CxJ55Xhc" [ref=e634] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-Ns1eDN3K9HTnavgiBQhtpzRxUCxJ55Xhc
+                    - cell "1.15.0" [ref=e635]
+                    - cell "1.4M AVAX" [ref=e636]
+                    - cell "161" [ref=e637]
+                    - cell "2%" [ref=e638]
+                    - cell "—" [ref=e639]
+                    - cell "—" [ref=e640]
+                    - cell "—" [ref=e641]
+                  - row [ref=e642]:
+                    - cell "46" [ref=e643]
+                    - cell [ref=e644]:
+                      - link "NodeID-58Rq1…WRq367ak" [ref=e645] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-58Rq14dZFfsdbxVRf1rYsXcCoWRq367ak
+                    - cell "1.15.0" [ref=e646]
+                    - cell "1.4M AVAX" [ref=e647]
+                    - cell "0" [ref=e648]
+                    - cell "100%" [ref=e649]
+                    - cell "—" [ref=e650]
+                    - cell "—" [ref=e651]
+                    - cell "—" [ref=e652]
+                  - row [ref=e653]:
+                    - cell "47" [ref=e654]
+                    - cell [ref=e655]:
+                      - link "NodeID-Bom5d…FFDZXGGK" [ref=e656] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-Bom5dUsayGwdagVLoNNxe1t1FFDZXGGK
+                    - cell "1.15.0" [ref=e657]
+                    - cell "1.4M AVAX" [ref=e658]
+                    - cell "0" [ref=e659]
+                    - cell "20%" [ref=e660]
+                    - cell "—" [ref=e661]
+                    - cell "—" [ref=e662]
+                    - cell "—" [ref=e663]
+                  - row [ref=e664]:
+                    - cell "48" [ref=e665]
+                    - cell [ref=e666]:
+                      - link "NodeID-5LGFW…fVRimjh5" [ref=e667] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-5LGFWx2kfwMZXpyG52FkRtrfYfVRimjh5
+                    - cell "1.15.0" [ref=e668]
+                    - cell "1.3M AVAX" [ref=e669]
+                    - cell "0" [ref=e670]
+                    - cell "20%" [ref=e671]
+                    - cell "—" [ref=e672]
+                    - cell "—" [ref=e673]
+                    - cell "—" [ref=e674]
+                  - row [ref=e675]:
+                    - cell "49" [ref=e676]
+                    - cell [ref=e677]:
+                      - link "NodeID-6w8o4…SqX37TFL" [ref=e678] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-6w8o4bbNdVLscimLv4X6BA7QuSqX37TFL
+                    - cell "1.15.0" [ref=e679]
+                    - cell "1.3M AVAX" [ref=e680]
+                    - cell "0" [ref=e681]
+                    - cell "20%" [ref=e682]
+                    - cell "—" [ref=e683]
+                    - cell "—" [ref=e684]
+                    - cell "—" [ref=e685]
+                  - row [ref=e686]:
+                    - cell "50" [ref=e687]
+                    - cell [ref=e688]:
+                      - link "NodeID-9cFYF…W9oY9yZW" [ref=e689] [cursor=pointer]:
+                        - /url: /explorer/mainnet/p-chain/node/NodeID-9cFYF35nTK7Jv58i491Yj2wKVW9oY9yZW
+                    - cell "1.15.0" [ref=e690]
+                    - cell "1.3M AVAX" [ref=e691]
+                    - cell "0" [ref=e692]
+                    - cell "100%" [ref=e693]
+                    - cell "—" [ref=e694]
+                    - cell "—" [ref=e695]
+                    - cell "—" [ref=e696]
+            - button "Load more · 562 remaining" [ref=e697]
+          - generic [ref=e698]:
+            - generic [ref=e699]:
+              - paragraph [ref=e700]:
+                - generic [ref=e701]: Client Versions
+              - generic [ref=e702]:
+                - generic [ref=e703]: Target
+                - combobox "Target" [ref=e704]:
+                  - option "1.15" [selected]
+                  - option "1.14"
+            - generic [ref=e705]:
+              - generic [ref=e706]:
+                - 'generic "1.15: 570 nodes (93.3%)" [ref=e707]'
+                - 'generic "1.14: 27 nodes (4.4%)" [ref=e708]'
+                - 'generic "Unknown: 14 nodes (2.3%)" [ref=e709]'
+              - generic [ref=e710]:
+                - generic [ref=e711]: "Version Breakdown:"
+                - generic [ref=e713]:
+                  - generic [ref=e715]: "1.15"
+                  - generic [ref=e716]: (570)
+                - generic [ref=e717]:
+                  - generic [ref=e719]: "1.14"
+                  - generic [ref=e720]: (27)
+                - generic [ref=e721]:
+                  - generic [ref=e723]: Unknown
+                  - generic [ref=e724]: (14)
+              - paragraph [ref=e725]: 96.7% of stake runs 1.15 or newer
+          - generic [ref=e726]:
+            - generic [ref=e727]:
+              - paragraph [ref=e729]:
+                - generic [ref=e730]: Block Miss Rate · 14d
+              - paragraph [ref=e732]: Loading…
+            - generic [ref=e733]:
+              - paragraph [ref=e735]:
+                - generic [ref=e736]: Time Remaining · current set
+              - paragraph [ref=e738]: Loading…
+          - generic [ref=e739]:
+            - generic [ref=e741]:
+              - paragraph [ref=e742]:
+                - generic [ref=e743]: Validator Count · All Time
+              - generic [ref=e744]:
+                - generic [ref=e745]: primary network
+                - generic [ref=e747]: seats incl. L1s
+            - paragraph [ref=e760]: After the Etna upgrade (ACP-77), L1 validators no longer stake on the Primary Network — the blue line counts every validator seat across the ecosystem since then.
+    - generic [ref=e762]:
+      - generic [ref=e763]:
+        - generic [ref=e764]: BUILDER HUB
+        - link [ref=e770] [cursor=pointer]:
+          - /url: https://status.avax.network/
+      - generic [ref=e774]:
+        - generic [ref=e775]:
+          - heading "AVALANCHE" [level=3] [ref=e776]
+          - list [ref=e777]:
+            - link "Audits" [ref=e778] [cursor=pointer]:
+              - /url: https://github.com/ava-labs/audits
+            - link "Explorer" [ref=e782] [cursor=pointer]:
+              - /url: /explorer
+            - link "GitHub" [ref=e783] [cursor=pointer]:
+              - /url: https://github.com/ava-labs
+            - link "Network Status" [ref=e787] [cursor=pointer]:
+              - /url: https://status.avax.network/
+            - link "Whitepapers" [ref=e791] [cursor=pointer]:
+              - /url: https://avalabs.org/whitepapers
+        - generic [ref=e795]:
+          - heading "COMMUNITY" [level=3] [ref=e796]
+          - generic [ref=e797]:
+            - link "Blog" [ref=e798] [cursor=pointer]:
+              - /url: https://www.avax.network/blog
+            - link "Discord" [ref=e802] [cursor=pointer]:
+              - /url: https://discord.gg/avax
+            - link "Facebook" [ref=e806] [cursor=pointer]:
+              - /url: https://www.facebook.com/avalancheavax
+            - link "Forum" [ref=e810] [cursor=pointer]:
+              - /url: https://forum.avax.network
+            - link "LinkedIn" [ref=e814] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/avalancheavax
+            - link "Medium" [ref=e818] [cursor=pointer]:
+              - /url: https://medium.com/@avaxdevelopers
+            - link "Telegram" [ref=e822] [cursor=pointer]:
+              - /url: https://t.me/+KDajA4iToKY2ZjBk
+            - link "X" [ref=e826] [cursor=pointer]:
+              - /url: https://x.com/AvaxDevelopers
+            - link "Youtube" [ref=e830] [cursor=pointer]:
+              - /url: https://www.youtube.com/@Avalancheavax
+        - generic [ref=e834]:
+          - heading "MORE" [level=3] [ref=e835]
+          - list [ref=e836]:
+            - link "Legal" [ref=e837] [cursor=pointer]:
+              - /url: https://www.avax.network/legal
+            - link "LLMs" [ref=e841] [cursor=pointer]:
+              - /url: /llms-full.txt
+        - generic [ref=e845]:
+          - heading "STAY IN TOUCH" [level=3] [ref=e846]
+          - paragraph [ref=e847]: Don't miss new grant opportunities, tools and resource launches, event announcements, and more.
+          - generic [ref=e848]:
+            - textbox "you@domain.com" [ref=e849]
+            - button "Subscribe" [ref=e850]
+      - generic [ref=e853]:
+        - paragraph [ref=e854]: CRAFTED WITH ❤ BY THE AVA LABS DEVREL TEAM
+        - paragraph [ref=e855]: © 2026 AVA LABS, INC.
+  - generic [ref=e857]:
+    - generic [ref=e858]: Privacy Policy
+    - paragraph [ref=e863]: We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you about how we look after your personal data and tell you about your privacy rights.
+    - generic [ref=e864]:
+      - generic [ref=e865]:
+        - button "Accept" [ref=e866] [cursor=pointer]
+        - button "Decline" [ref=e867] [cursor=pointer]
+      - link "Read full policy" [ref=e868] [cursor=pointer]:
+        - /url: https://www.avax.network/privacy-policy
+  - button "Open chat" [ref=e870]
+  - region "Notifications alt+T"
+  - alert [ref=e874]

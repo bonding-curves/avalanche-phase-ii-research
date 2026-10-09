@@ -1,0 +1,799 @@
+- main [ref=f2e2]:
+  - generic [ref=f2e7]:
+    - 'heading "Staking periods: every validator and delegator period since genesis" [level=1] [ref=f2e8]'
+    - table [ref=f2e9]:
+      - rowgroup [ref=f2e10]:
+        - row [ref=f2e11]:
+          - columnheader "Field" [ref=f2e12]
+          - columnheader "Value" [ref=f2e13]
+      - rowgroup [ref=f2e14]:
+        - row [ref=f2e15]:
+          - cell "Provider" [ref=f2e16]
+          - cell [ref=f2e17]:
+            - text: Avalanche Snowflake data share, read through
+            - code [ref=f2e18]: derived.staking-periods
+            - text: ", which joins the built runs of"
+            - code [ref=f2e19]: snowflake.primary-validator-stakes
+            - text: ","
+            - code [ref=f2e20]: snowflake.primary-delegator-stakes
+            - text: ","
+            - code [ref=f2e21]: snowflake.primary-staking-rewards
+            - text: ", and"
+            - code [ref=f2e22]: snowflake.primary-staking-supply
+        - row [ref=f2e23]:
+          - cell "Question" [ref=f2e24]
+          - cell "Does one log of staking periods, validators and delegators together, hold up row by row against the protocol kernel, and where does the provider's data have gaps?" [ref=f2e25]
+        - row [ref=f2e26]:
+          - cell "Proves" [ref=f2e27]
+          - cell [ref=f2e28]:
+            - text: Access through
+            - code [ref=f2e29]: datasets.connect()
+            - text: ", the derived schema, the persisted check, the provider's limits, and that every interaction stays under 100 ms"
+        - row [ref=f2e30]:
+          - cell "Build" [ref=f2e31]
+          - cell [ref=f2e32]:
+            - code [ref=f2e33]: uv run --locked avalanche data derive derived.staking-periods --output data/runs/<run>
+            - text: in the repository root, sixteen seconds on the full history; this notebook never builds
+    - paragraph [ref=f2e34]: "A staking period is one transaction that locked AVAX for a validator or a delegator: accepted at a block, active from a start time to an end time, with a weight, a potential reward the protocol committed to at acceptance, and, once the period ended, a reward transaction that realised it or not. The derived dataset adds the network upgrade regime at acceptance and the reward the protocol kernel computes for the row from the supply reading before its block. Where kernel and recorded potential reward agree, the row is reproduced."
+    - paragraph [ref=f2e35]: The class below takes a DuckDB connection with one view per built dataset and only aggregates. Every data method returns a frame of at most a few thousand rows, and every view draws one of those frames.
+  - generic [ref=f2e38]:
+    - generic [ref=f2e39]: "In [1]:"
+    - generic [ref=f2e40]: "import time import hvplot.pandas # noqa: F401 import pandas as pd import panel as pn import param as pm from avalanche_research import datasets pn.extension()"
+  - generic [ref=f2e44]:
+    - generic [ref=f2e46]:
+      - generic [ref=f2e47]: "In [2]:"
+      - generic [ref=f2e48]: "class StakingPeriods(pm.Parameterized): \"\"\"Aggregate views over the derived staking-period log. Reads only; the build lives in the client package.\"\"\" role = pm.Selector(default=\"all\", objects=[\"all\", \"validator\", \"delegator\"]) regime = pm.Selector(default=\"all\", objects=[\"all\"]) measure = pm.Selector(default=\"stake_avax\", objects=[\"stake_avax\", \"duration_days\", \"potential_reward_avax\", \"realized_reward_avax\"]) periods = pm.Integer(0, constant=True) stake_avax = pm.Number(0, constant=True) reproduced_share = pm.Number(0, constant=True) def __init__(self, db, **params): super().__init__(**params) self.db = db self.load() self.param[\"regime\"].objects = [\"all\", *self.regimes()[\"regime\"]] self.update_totals() def load(self): \"\"\"Copy the columns the views aggregate into an in-memory table once per kernel, so every redraw scans memory, not Parquet.\"\"\" self.db.execute(\"\"\" CREATE OR REPLACE TABLE sp AS SELECT node_id, role, regime, start_kind, accepted_at, start_time, end_time, duration_days, stake_avax, potential_reward_avax, realized_reward_avax, realized_reward_navax, rewarded_at, delegation_fee_rate, reproduced, kernel_reward_navax IS NOT NULL AS has_kernel FROM staking_periods \"\"\") self.db.execute(\"\"\" CREATE OR REPLACE TABLE sp_totals AS SELECT role, regime, count(*) AS periods, sum(stake_avax) AS stake_avax, count(*) FILTER (WHERE has_kernel) AS with_kernel, count(*) FILTER (WHERE reproduced) AS reproduced FROM sp GROUP BY role, regime \"\"\") # ---------------------------------------------------------------- data methods, each a small frame def where(self, role: bool = True) -> str: clauses = [\"TRUE\"] if role and self.role != \"all\": clauses.append(f\"role = '{self.role}'\") if self.regime != \"all\": clauses.append(f\"regime = '{self.regime}'\") return \" AND \".join(clauses) def regimes(self) -> pd.DataFrame: \"\"\"Regimes in acceptance order with their row counts.\"\"\" return self.db.execute(\"\"\" SELECT regime, min(accepted_at) AS first_accepted, count(*) AS periods FROM sp GROUP BY regime ORDER BY first_accepted \"\"\").df() def reproduction(self) -> pd.DataFrame: \"\"\"Share of rows whose kernel reward equals the recorded potential reward, by regime and start kind.\"\"\" return self.db.execute(\"\"\" SELECT regime, start_kind, count(*) AS periods, avg(CASE WHEN reproduced THEN 1.0 ELSE 0.0 END) AS reproduced_share, min(accepted_at) AS first_accepted FROM sp WHERE has_kernel GROUP BY regime, start_kind ORDER BY first_accepted, start_kind \"\"\").df() def daily(self) -> pd.DataFrame: \"\"\"Periods accepted per day by role, for the current regime selection.\"\"\" return self.db.execute(f\"\"\" SELECT date_trunc('day', accepted_at) AS day, role, count(*) AS periods, sum(stake_avax) AS stake_avax FROM sp WHERE {self.where(role=False)} GROUP BY day, role ORDER BY day \"\"\").df() def distribution(self) -> pd.DataFrame: \"\"\"The selected measure binned in DuckDB on a log10 axis, one row per tenth of a decade.\"\"\" return self.db.execute(f\"\"\" SELECT floor(log10({self.measure}) * 10) / 10 AS log10_value, count(*) AS periods FROM sp WHERE {self.where()} AND {self.measure} > 0 GROUP BY log10_value ORDER BY log10_value \"\"\").df() def provenance(self) -> pd.DataFrame: \"\"\"The derived run and the four input runs it was built from.\"\"\" receipt = datasets.receipt(\"derived.staking-periods\") rows = [{\"dataset\": \"derived.staking-periods\", \"run\": receipt[\"run\"], \"captured_at\": receipt[\"capture\"][\"completed_at\"], \"rows\": receipt[\"build\"][\"summary\"][\"rows\"]}] rows += [{\"dataset\": item[\"dataset_id\"], \"run\": item[\"run\"], \"captured_at\": item[\"captured_at\"], \"rows\": item[\"rows\"]} for item in receipt[\"capture\"][\"inputs\"]] return pd.DataFrame(rows) # ---------------------------------------------------------------- invariant @pm.depends(\"role\", \"regime\", watch=True) def update_totals(self): periods, stake, share = self.db.execute(f\"\"\" SELECT coalesce(sum(periods), 0), coalesce(sum(stake_avax), 0), coalesce(sum(reproduced) / nullif(sum(with_kernel), 0), 0) FROM sp_totals WHERE {self.where()} \"\"\").fetchone() with pm.edit_constant(self): self.periods = int(periods) self.stake_avax = float(stake) self.reproduced_share = float(share) # ---------------------------------------------------------------- instruments @pm.depends(\"role\", \"regime\", \"measure\") def view_distribution(self): return self.distribution().hvplot.bar( x=\"log10_value\", y=\"periods\", title=f\"log10({self.measure}) over {self.periods:,} periods ({self.role}, {self.regime})\", width=620, height=320, xlabel=f\"log10({self.measure})\", rot=90, ) def view_reproduction(self): table = self.reproduction() table[\"label\"] = table[\"regime\"] + \" \" + table[\"start_kind\"] return table.hvplot.bar( x=\"label\", y=\"reproduced_share\", by=\"start_kind\", rot=60, ylim=(0, 1.02), title=\"Kernel reproduces recorded potential reward\", width=620, height=360, ) @pm.depends(\"regime\") def view_daily(self): return self.daily().hvplot.line(x=\"day\", y=\"periods\", by=\"role\", logy=True, title=\"Periods accepted per day\", width=620, height=320) def view_provenance(self): return pn.pane.DataFrame(self.provenance(), index=False, sizing_mode=\"stretch_width\") @pm.depends(\"periods\", \"stake_avax\", \"reproduced_share\") def counters(self): return pn.pane.Markdown(f\"**{self.periods:,}** periods, **{self.stake_avax / 1e6:,.1f}M** AVAX staked, kernel reproduces **{self.reproduced_share:.2%}**\") def view(self): return pn.Column( pn.Row(pn.Column(pn.Param(self, parameters=[\"role\", \"regime\", \"measure\"]), self.counters), self.view_distribution), pn.Row(self.view_daily), self.view_provenance, ) staking = StakingPeriods(datasets.connect()) staking.view()"
+    - generic [ref=f2e54]:
+      - generic [ref=f2e55]: "Out[2]:"
+      - generic [ref=f2e59]:
+        - generic [ref=f2e60]:
+          - generic [ref=f2e61]:
+            - generic [ref=f2e62]:
+              - generic [ref=f2e63]: StakingPeriods
+              - generic [ref=f2e66]:
+                - generic [ref=f2e67]: Role
+                - combobox "Role" [ref=f2e68]:
+                  - option "all" [selected]
+                  - option "validator"
+                  - option "delegator"
+              - generic [ref=f2e70]:
+                - generic [ref=f2e71]: Regime
+                - combobox "Regime" [ref=f2e72]:
+                  - option "all" [selected]
+                  - option "genesis"
+                  - option "apricot_phase_1"
+                  - option "apricot_phase_2"
+                  - option "apricot_phase_3"
+                  - option "apricot_phase_4"
+                  - option "apricot_phase_5"
+                  - option "apricot_phase_pre_6"
+                  - option "apricot_phase_6"
+                  - option "apricot_phase_post_6"
+                  - option "banff"
+                  - option "cortina"
+                  - option "durango"
+                  - option "etna"
+                  - option "fortuna"
+                  - option "granite"
+              - generic [ref=f2e74]:
+                - generic [ref=f2e75]: Measure
+                - combobox "Measure" [ref=f2e76]:
+                  - option "stake_avax" [selected]
+                  - option "duration_days"
+                  - option "potential_reward_avax"
+                  - option "realized_reward_avax"
+            - paragraph [ref=f2e80]:
+              - strong [ref=f2e81]: 7,114,358
+              - text: periods,
+              - strong [ref=f2e82]: 8,480.4M
+              - text: AVAX staked, kernel reproduces
+              - strong [ref=f2e83]: 69.62%
+          - generic [ref=f2e92]:
+            - link "Bokeh 3.9.2" [ref=f2e93] [cursor=pointer]:
+              - /url: https://bokeh.org/
+            - generic "Pan" [ref=f2e94] [cursor=pointer]
+            - generic "Box Zoom" [ref=f2e96] [cursor=pointer]
+            - generic "Wheel Zoom" [ref=f2e99] [cursor=pointer]
+            - generic "Tap" [ref=f2e102] [cursor=pointer]
+            - generic "Save" [ref=f2e105] [cursor=pointer]
+            - generic "Reset" [ref=f2e107] [cursor=pointer]
+            - generic "Hover" [ref=f2e110] [cursor=pointer]
+        - generic [ref=f2e120]:
+          - generic:
+            - generic [ref=f2e121]:
+              - generic [ref=f2e122]: role
+              - generic [ref=f2e123]:
+                - generic [ref=f2e124] [cursor=pointer]: validator
+                - generic [ref=f2e127] [cursor=pointer]: delegator
+            - generic [ref=f2e130]:
+              - link "Bokeh 3.9.2" [ref=f2e131] [cursor=pointer]:
+                - /url: https://bokeh.org/
+              - generic "Pan" [ref=f2e132] [cursor=pointer]
+              - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e134] [cursor=pointer]
+              - generic "Wheel Zoom" [ref=f2e137] [cursor=pointer]
+              - generic "Save" [ref=f2e140] [cursor=pointer]
+              - generic "Reset" [ref=f2e142] [cursor=pointer]
+              - generic "Hover" [ref=f2e145] [cursor=pointer]
+        - table [ref=f2e150]:
+          - rowgroup [ref=f2e151]:
+            - row [ref=f2e152]:
+              - columnheader "dataset" [ref=f2e153]
+              - columnheader "run" [ref=f2e154]
+              - columnheader "captured_at" [ref=f2e155]
+              - columnheader "rows" [ref=f2e156]
+          - rowgroup [ref=f2e157]:
+            - row [ref=f2e158]:
+              - cell "derived.staking-periods" [ref=f2e159]
+              - cell "staking-periods-2026-09-22" [ref=f2e160]
+              - cell "2026-09-22T16:20:25Z" [ref=f2e161]
+              - cell "7114358" [ref=f2e162]
+            - row [ref=f2e163]:
+              - cell "snowflake.primary-validator-stakes" [ref=f2e164]
+              - cell "validator-stakes-2026-09-22" [ref=f2e165]
+              - cell "2026-09-22T16:15:10Z" [ref=f2e166]
+              - cell "57560" [ref=f2e167]
+            - row [ref=f2e168]:
+              - cell "snowflake.primary-delegator-stakes" [ref=f2e169]
+              - cell "delegator-stakes-helicon-baseline-early" [ref=f2e170]
+              - cell "2026-09-21T23:14:42Z" [ref=f2e171]
+              - cell "7056798" [ref=f2e172]
+            - row [ref=f2e173]:
+              - cell "snowflake.primary-staking-rewards" [ref=f2e174]
+              - cell "staking-rewards-helicon-baseline-early" [ref=f2e175]
+              - cell "2026-09-21T23:11:29Z" [ref=f2e176]
+              - cell "7080343" [ref=f2e177]
+            - row [ref=f2e178]:
+              - cell "snowflake.primary-staking-supply" [ref=f2e179]
+              - cell "staking-supply-helicon-baseline-early" [ref=f2e180]
+              - cell "2026-09-21T23:08:14Z" [ref=f2e181]
+              - cell "7114342" [ref=f2e182]
+  - generic [ref=f2e183]:
+    - generic [ref=f2e185]:
+      - generic [ref=f2e186]: "In [3]:"
+      - generic [ref=f2e187]: "# The persisted check from `avalanche data check`, and the rule that every interaction stays under 100 ms. import json run = datasets.runs(\"derived.staking-periods\")[0] check = json.loads((run[\"dataset_dir\"] / \"check.json\").read_text()) assert check[\"status\"] == \"pass\", check[\"findings\"] started = time.perf_counter() staking.load() load_ms = round((time.perf_counter() - started) * 1000) timings = {} for name in (\"regimes\", \"reproduction\", \"daily\", \"distribution\", \"provenance\", \"update_totals\"): samples = [] for _ in range(3): started = time.perf_counter() getattr(staking, name)() samples.append((time.perf_counter() - started) * 1000) timings[name] = round(min(samples), 1) slow = {name: ms for name, ms in timings.items() if ms > 100} assert not slow, f\"over 100 ms: {slow}\" summary = check[\"summary\"] pd.DataFrame({ \"value\": { \"rows\": summary[\"rows\"], \"validators\": summary[\"validators\"], \"delegators\": summary[\"delegators\"], \"immediate reproduced\": f\"{summary['immediate_reproduced']:,} of {summary['immediate_rows']:,}\", \"pending reproduced\": f\"{summary['pending_reproduced']:,} of {summary['pending_rows']:,}\", \"without supply row\": summary[\"gap_without_supply_row\"], \"ended without reward row\": summary[\"gap_ended_without_reward_row\"], \"open periods\": summary[\"open_periods\"], \"zero realized\": summary[\"zero_realized\"], \"load into memory ms (once per kernel)\": load_ms, **{f\"{name} ms\": ms for name, ms in timings.items()}, } })"
+    - generic [ref=f2e193]:
+      - generic [ref=f2e194]: "Out[3]:"
+      - table [ref=f2e197]:
+        - rowgroup [ref=f2e198]:
+          - row [ref=f2e199]:
+            - columnheader [ref=f2e200]
+            - columnheader "value" [ref=f2e201]
+        - rowgroup [ref=f2e202]:
+          - row [ref=f2e203]:
+            - rowheader "rows" [ref=f2e204]
+            - cell "7114358" [ref=f2e205]
+          - row [ref=f2e206]:
+            - rowheader "validators" [ref=f2e207]
+            - cell "57560" [ref=f2e208]
+          - row [ref=f2e209]:
+            - rowheader "delegators" [ref=f2e210]
+            - cell "7056798" [ref=f2e211]
+          - row [ref=f2e212]:
+            - rowheader "immediate reproduced" [ref=f2e213]
+            - cell "4,438,082 of 4,438,083" [ref=f2e214]
+          - row [ref=f2e215]:
+            - rowheader "pending reproduced" [ref=f2e216]
+            - cell "515,093 of 2,676,119" [ref=f2e217]
+          - row [ref=f2e218]:
+            - rowheader "without supply row" [ref=f2e219]
+            - cell "156" [ref=f2e220]
+          - row [ref=f2e221]:
+            - rowheader "ended without reward row" [ref=f2e222]
+            - cell "916" [ref=f2e223]
+          - row [ref=f2e224]:
+            - rowheader "open periods" [ref=f2e225]
+            - cell "33099" [ref=f2e226]
+          - row [ref=f2e227]:
+            - rowheader "zero realized" [ref=f2e228]
+            - cell "67991" [ref=f2e229]
+          - row [ref=f2e230]:
+            - rowheader "load into memory ms (once per kernel)" [ref=f2e231]
+            - cell "287" [ref=f2e232]
+          - row [ref=f2e233]:
+            - rowheader "regimes ms" [ref=f2e234]
+            - cell "19.8" [ref=f2e235]
+          - row [ref=f2e236]:
+            - rowheader "reproduction ms" [ref=f2e237]
+            - cell "36.3" [ref=f2e238]
+          - row [ref=f2e239]:
+            - rowheader "daily ms" [ref=f2e240]
+            - cell "38.1" [ref=f2e241]
+          - row [ref=f2e242]:
+            - rowheader "distribution ms" [ref=f2e243]
+            - cell "32.3" [ref=f2e244]
+          - row [ref=f2e245]:
+            - rowheader "provenance ms" [ref=f2e246]
+            - cell "46.5" [ref=f2e247]
+          - row [ref=f2e248]:
+            - rowheader "update_totals ms" [ref=f2e249]
+            - cell "0.7" [ref=f2e250]
+  - generic [ref=f2e255]:
+    - heading "Findings" [level=2] [ref=f2e256]
+    - paragraph [ref=f2e257]: From the derived run built on 2026-09-19 from the 2026-09-19 captures.
+    - table [ref=f2e258]:
+      - rowgroup [ref=f2e259]:
+        - row [ref=f2e260]:
+          - columnheader "ID" [ref=f2e261]
+          - columnheader "Finding" [ref=f2e262]
+      - rowgroup [ref=f2e263]:
+        - row [ref=f2e264]:
+          - cell [ref=f2e265]:
+            - code [ref=f2e266]: F1
+          - 'cell "One log holds every staking period: 7,110,868 rows, 57,521 validators and 7,053,347 delegators, each with role, regime, start kind, recorded potential reward, realised reward where a reward row exists, the supply reading before its block, and the kernel reward. Transaction hashes are unique across roles." [ref=f2e267]'
+        - row [ref=f2e268]:
+          - cell [ref=f2e269]:
+            - code [ref=f2e270]: F2
+          - cell "Every period accepted before Durango is a pending start, and every period from Durango on starts at acceptance. The regime column makes that visible without a date filter." [ref=f2e271]
+        - row [ref=f2e272]:
+          - cell [ref=f2e273]:
+            - code [ref=f2e274]: F3
+          - cell "For the 4,434,628 immediate starts the kernel reproduces the recorded potential reward on all but one row. For the 2,676,119 pending starts it reproduces 515,093 (19%) from the acceptance-block supply, and the share falls with each regime as the pending set grew. Those rows were priced by the protocol later, at their start time, with a later supply, so the acceptance-block reading is the wrong input, not the formula. Reproducing them needs the supply at start time." [ref=f2e275]
+        - row [ref=f2e276]:
+          - cell [ref=f2e277]:
+            - code [ref=f2e278]: F4
+          - 'cell "Two disjoint gaps. 121 periods have no supply row: 75 are genesis validators, whose stake sits in the genesis block rather than in a transaction with supply context, and 46 are delegations accepted in the last hours before the supply capture. 120 periods ended before the reward capture without a reward row. None of the 121 is among the 120." [ref=f2e279]'
+        - row [ref=f2e280]:
+          - cell [ref=f2e281]:
+            - code [ref=f2e282]: F5
+          - cell "7,078,063 periods have a reward row. 68,003 of them realised zero, which is the uptime failure count, and 32,685 were still open at the reward capture." [ref=f2e283]
+        - row [ref=f2e284]:
+          - cell [ref=f2e285]:
+            - code [ref=f2e286]: F6
+          - cell [ref=f2e287]:
+            - text: Every data method answers in under 100 ms against the Parquet file, without an in-memory copy, because the log is stored once by the data layer and the notebook only aggregates. The build that used to sit in this notebook now runs as
+            - code [ref=f2e288]: avalanche data derive
+            - text: in sixteen seconds.
+    - heading "Next" [level=2] [ref=f2e289]
+    - paragraph [ref=f2e290]:
+      - text: Add the supply reading at start time to the supply dataset so pending starts can be reproduced. Explain the 120 ended periods without a reward row against the provider. Every notebook then reads
+      - code [ref=f2e291]: staking_periods
+      - text: through
+      - code [ref=f2e292]: datasets.connect()
+      - text: and never joins the four inputs itself.
+  - generic [ref=f2e297]:
+    - heading "V1 Validator lifelines" [level=2] [ref=f2e298]
+    - paragraph [ref=f2e299]: "One row per validator node, sorted by first stake, x is time in weeks, and each staking period is a bar in the node's row. Colour is one categorical: the delegation fee class, whether the period ended with zero realized reward, or whether it is still open. Network upgrades are the shaded bands, named above the frame. Rows are binned to at most 500 pixel rows, because an image with more rows than pixels silently drops rows; within a row the most common fee class wins, and a failure or an open period wins over the rest. Filter to one cohort year for one node per row. Tap a row to list its nodes and the periods of the node at the tapped height."
+    - paragraph [ref=f2e300]:
+      - text: The rows, their order, the cohort year, and
+      - code [ref=f2e301]: active only
+      - text: read
+      - code [ref=f2e302]: derived.node-table
+      - text: ", one row per node with every per-node number defined once. Active means a period still open at the table's capture, so an active node's span, days staked, and current streak are lower bounds. A tap shows those three clocks for the tapped node. Weeks are the time bin, so re-staking gaps under a week (the median is five hours) do not show as breaks; real exits do."
+  - generic [ref=f2e303]:
+    - generic [ref=f2e305]:
+      - generic [ref=f2e306]: "In [4]:"
+      - generic [ref=f2e307]: "import numpy as np import holoviews as hv from bokeh.models import DatetimeAxis, FixedTicker, Title from avalanche_research.model.protocol import MAINNET_UPGRADES FEE_CLASSES = {1: \"2%\", 2: \"5%\", 3: \"other\", 4: \"10 to 20%\", 5: \"100%\"} PIXEL_ROWS = 500 PALETTES = { \"fee class\": ({1: \"#1f77b4\", 2: \"#2ca02c\", 3: \"#7f7f7f\", 4: \"#ff7f0e\", 5: \"#d62728\"}, FEE_CLASSES), \"failure\": ({1: \"#9ecae1\", 2: \"#d62728\"}, {1: \"rewarded or open\", 2: \"ended with zero reward\"}), \"open period\": ({1: \"#9ecae1\", 2: \"#ff7f0e\"}, {1: \"closed\", 2: \"open today\"}), } def regimes() -> list[tuple[str, np.datetime64]]: \"\"\"The regimes of the validator rewards notebook: genesis, every apricot phase as one, then each upgrade by name.\"\"\" named = [(\"genesis\", np.datetime64(\"2020-09-21\"))] for item in MAINNET_UPGRADES.upgrades: name = \"apricot\" if item.name.startswith(\"apricot\") else item.name if name != named[-1][0]: named.append((name, np.datetime64(item.activated_at.replace(tzinfo=None)))) return named REGIMES = regimes() def regime_axis(plot, element): \"\"\"The regime names above the frame: a second axis with one fixed tick per regime start and the name as its label. Added once per figure. A hook for the outermost overlay of a chart, not for its image: on every update HoloViews writes the week label onto the first x axis it finds, which is this one once it sits above, and that would grow the axis and push the frame down under the mouse. The overlay's hooks run after that, on every update, so the label is cleared again each time.\"\"\" if \"regime_axis\" in plot.handles: plot.handles[\"regime_axis\"].axis_label = None return ticks = [float(start.astype(\"datetime64[ms]\").astype(np.int64)) for _, start in REGIMES] axis = DatetimeAxis(ticker=FixedTicker(ticks=ticks), major_label_overrides={tick: name for tick, (name, _) in zip(ticks, REGIMES)}, major_label_text_font_size=\"8pt\", major_tick_in=0, major_tick_out=4, axis_line_color=None, major_label_standoff=2) plot.state.above = [axis, *plot.state.above] # nearest the frame, so the subtitle sits under the title and the names sit on the data plot.handles[\"regime_axis\"] = axis # Pan is the drag tool by default and is never named in active_tools: HoloViews re-applies active_tools on every update, # so a named drag tool would undo the box select a person picked in the toolbar the moment a chart redraws. An overlay # with no active_tools of its own gets HoloViews' default, pan and wheel, on every update, so every outermost overlay # names the wheel too. Overlay options are dropped under a multiply, so the outermost one is the one that counts. ACTIVE_TOOLS = [\"wheel_zoom\"] SUBTITLE_STYLE = dict(text_font_size=\"10pt\", text_font_style=\"normal\", text_color=\"#555555\") WEEK_ZERO = np.datetime64(\"2020-09-07\") def subtitle(owner, name: str = \"summary\", box: str | None = None): \"\"\"A hook that keeps the caption under the figure's title in step with parameters on its owner. Line 1 is the summary of what is in view. Line 2 is the box parameter, shown only while it is not empty, between line 1 and the regime names: models in `above` stack outward from the frame, so line 2 goes just inside line 1.\"\"\" def hook(plot, element): text = getattr(owner, name) if \"subtitle\" in plot.handles: plot.handles[\"subtitle\"].text = text else: model = Title(text=text, **SUBTITLE_STYLE) plot.state.add_layout(model, \"above\") plot.handles[\"subtitle\"] = model if box is None: return second = getattr(owner, box) line = plot.handles.get(\"subtitle_box\") if line is None: line = plot.handles[\"subtitle_box\"] = Title(text=\"\", **SUBTITLE_STYLE) above = [model for model in plot.state.above if model is not line] if second: line.text = second above.insert(above.index(plot.handles[\"subtitle\"]), line) if above != list(plot.state.above): plot.state.above = above return hook def caption(owner, name: str = \"summary\", box: str | None = None, on_range=None): \"\"\"An invisible zero-width span whose only job is to carry the caption hook. It is redrawn when a caption parameter changes, so the chart's image is not. It is also where a chart whose main element is an overlay takes its range stream: a stream's source must draw one element.\"\"\" def element(**_): return hv.VSpan(WEEK_ZERO, WEEK_ZERO).opts(alpha=0, hooks=[subtitle(owner, name, box)]) span = hv.DynamicMap(element, streams=[hv.streams.Params(owner, parameters=[name] + ([box] if box else []))]) if on_range is not None: hv.streams.RangeXY(source=span).add_subscriber(on_range) return span DATA_WEEKS = None # (first week, last week) of the staking-period log, set by the first chart that needs it def compact(avax: float) -> str: \"\"\"An AVAX amount short enough for a subtitle: 1,778, 52.3k, 7.9M.\"\"\" if avax >= 1e6: return f\"{avax / 1e6:,.1f}M\" if avax >= 1e4: return f\"{avax / 1e3:,.1f}k\" return f\"{avax:,.0f}\" def week_span(x_range): \"\"\"The visible weeks of a zoomed chart as dates, or None when the view covers the whole history, which the first range event always does.\"\"\" if x_range is None: return None low, high = sorted(pd.Timestamp(v, unit=\"ms\") if isinstance(v, (int, float)) else pd.Timestamp(v) for v in x_range) if DATA_WEEKS is not None and low <= DATA_WEEKS[0] and high >= DATA_WEEKS[1]: return None return (low.strftime(\"%Y-%m-%d\"), high.strftime(\"%Y-%m-%d\")) def bound_ranges(plot, element): \"\"\"Pan and zoom stay inside the data. Each range's bounds are fixed at its first extent, once, so a later redraw does not move them. The week range is shared across a canvas, so the first chart drawn sets the bounds for all.\"\"\" for axis in (\"x_range\", \"y_range\"): handle = plot.handles.get(axis) if handle is not None and handle.bounds is None: handle.bounds = (min(handle.start, handle.end), max(handle.start, handle.end)) class ValidatorLifelines(pm.Parameterized): \"\"\"Every validator node as a row, time as weeks, one categorical colour. Binned in DuckDB, drawn as an image. The rows and every per-node number come from derived.node-table, the periods from the staking-period log it was built from.\"\"\" color_by = pm.Selector(default=\"fee class\", objects=list(PALETTES), doc=\"What the colour of a period means: its delegation fee class, whether it ended with zero reward, or whether it is still open today\") sort_by = pm.Selector(default=\"first stake\", objects=[\"first stake\", \"last end\", \"periods\", \"stake-days\"], doc=\"The order of the rows from the top: by the node's first stake, its last end, its number of periods, or its stake-days, stake times days summed over its periods\") first_stake_year = pm.Selector(default=\"all\", objects=[\"all\", *range(2020, 2027)], doc=\"Keep only nodes whose first period started in this year\") active_only = pm.Boolean(False, doc=\"Keep only nodes the node table marks active: a period still open at its capture\") visible = pm.Tuple(default=None, length=2, allow_None=True, precedence=-1, doc=\"Top and bottom of the view as fractions of the sorted nodes, None for all. Written by the zoom.\") weeks_in_view = pm.Tuple(default=None, length=2, allow_None=True, precedence=-1, doc=\"First and last week in the view, None for the whole history. Written by the zoom.\") cohort = pm.Tuple(default=None, length=6, allow_None=True, precedence=-1, doc=\"(axis, week0, week1, low, high, rule): the box a linked grid drew, see cohort_sql\") box_line = pm.String(\"\", precedence=-1, doc=\"Caption line 2, what the box drawn on this chart does, written by a canvas\") probe = pm.Tuple(default=None, length=2, allow_None=True, precedence=-1, doc=\"(x, y) of the last tap that probed a row, None for none\") population = pm.Integer(0, constant=True, precedence=-1, doc=\"Nodes kept by the knobs and the box\") nodes = pm.Integer(0, constant=True, precedence=-1, doc=\"Nodes in view: kept, with a row in the vertical view and a period in the visible weeks\") periods = pm.Integer(0, constant=True, precedence=-1, doc=\"Periods of the nodes in view that overlap the visible weeks\") summary = pm.String(\"\", constant=True, precedence=-1, doc=\"The subtitle: nodes in view of the population, their periods, and the grain\") def __init__(self, db, select=False, height=580, **params): super().__init__(**params) self.db = db self.cache = {} self.select = select self.height = height self.lanes = pd.DataFrame() self.grids = {} self.registered = None self.lanes_table = f\"lifeline_lanes_{id(self)}\" self.db.execute(\"\"\" CREATE OR REPLACE TABLE validator_weeks AS WITH weeks AS (SELECT unnest(generate_series(DATE '2020-09-07', (SELECT max(end_time)::DATE FROM sp WHERE role = 'validator') + 7, INTERVAL 7 DAY))::DATE AS week) SELECT p.node_id, w.week, p.delegation_fee_rate, p.realized_reward_navax = 0 AS failed, p.rewarded_at IS NULL AND p.end_time > now() AS open_period FROM sp p JOIN weeks w ON w.week >= p.start_time::DATE - 6 AND w.week <= p.end_time::DATE WHERE p.role = 'validator' \"\"\") # The node table must describe the same log the periods are drawn from. used = datasets.runs(\"derived.staking-periods\")[0][\"run\"] built_from = {item[\"dataset_id\"]: item[\"run\"] for item in datasets.receipt(\"derived.node-table\")[\"capture\"][\"inputs\"]} assert built_from[\"derived.staking-periods\"] == used, f\"the node table was built from {built_from['derived.staking-periods']}, the log in use is {used}\" self.as_of = pd.Timestamp(self.db.execute(\"SELECT max(as_of) FROM node_table\").fetchone()[0]) global DATA_WEEKS first, last = self.db.execute(\"SELECT min(start_time)::DATE, max(end_time)::DATE FROM sp\").fetchone() DATA_WEEKS = (pd.Timestamp(first), pd.Timestamp(last)) self.update_counts() # The chart the tap points at draws one element. Bands and the today line are overlaid outside, in chart(). self.raster_map = hv.DynamicMap(self.raster_image, streams=[hv.streams.Params(self, parameters=[\"color_by\", \"sort_by\", \"first_stake_year\", \"active_only\", \"cohort\", \"visible\"])]) self.tap = hv.streams.Tap(source=self.raster_map, x=None, y=None) self.tap.add_subscriber(self.on_tap) self.consume_tap = None # a canvas sets this: it returns True when a click was taken to clear a box hv.streams.RangeXY(source=self.raster_map).add_subscriber(self.on_range) # ---------------------------------------------------------------- data methods def node_filter(self) -> str: clauses = [\"TRUE\"] if self.first_stake_year != \"all\": clauses.append(f\"year(first_start) = {self.first_stake_year}\") if self.active_only: clauses.append(\"active\") if self.cohort is not None: clauses.append(self.cohort_sql()) return \" AND \".join(clauses) def cohort_sql(self) -> str: \"\"\"Nodes kept by a box on a linked grid. The box keeps the grid cells whose centre it covers: weeks accepted across, and tenths of a decade of stake or weeks of duration up, exactly as the grids bin them.\"\"\" axis, week0, week1, low, high, rule = self.cohort measure = \"floor(log10(stake_avax) * 10) / 10\" if axis == \"stake\" else \"least(greatest(round(duration_days / 7.0), 1), 52)\" inside = f\"date_trunc('week', accepted_at)::DATE BETWEEN DATE '{week0}' AND DATE '{week1}' AND {measure} BETWEEN {low} AND {high}\" if rule == \"nodes whose first period is in the box\": firsts = \"SELECT node_id, arg_min(stake_avax, accepted_at) AS stake_avax, arg_min(duration_days, accepted_at) AS duration_days, min(accepted_at) AS accepted_at FROM sp WHERE role = 'validator' GROUP BY node_id\" return f\"node_id IN (SELECT node_id FROM ({firsts}) WHERE stake_avax > 0 AND {inside})\" return f\"node_id IN (SELECT node_id FROM sp WHERE role = 'validator' AND stake_avax > 0 AND {inside})\" def node_order(self) -> str: return {\"first stake\": \"first_start, node_id\", \"last end\": \"last_end DESC, node_id\", \"periods\": \"periods DESC, first_start\", \"stake-days\": \"stake_days_avax DESC, first_start\"}[self.sort_by] def class_sql(self) -> str: return { \"fee class\": \"CASE WHEN p.delegation_fee_rate <= 0.0201 THEN 1 WHEN p.delegation_fee_rate <= 0.0501 THEN 2 WHEN p.delegation_fee_rate BETWEEN 0.09 AND 0.21 THEN 4 WHEN p.delegation_fee_rate >= 0.99 THEN 5 ELSE 3 END\", \"failure\": \"CASE WHEN p.failed THEN 2 ELSE 1 END\", \"open period\": \"CASE WHEN p.open_period THEN 2 ELSE 1 END\", }[self.color_by] def lanes_frame(self) -> pd.DataFrame: \"\"\"One row per kept node of the node table in sort order, with its lane from 0. Registered in DuckDB so the grid can join it.\"\"\" key = (self.sort_by, self.first_stake_year, self.active_only, self.cohort) if key not in self.cache: self.cache[key] = self.db.execute(f\"\"\" SELECT node_id, first_start, last_end, active, periods, failed_periods, span_days, tenure_days, current_streak_days, stake_days_avax, latest_stake_avax, latest_fee_rate, rewards_avax, operator_group, (row_number() OVER (ORDER BY {self.node_order()}) - 1)::INTEGER AS lane FROM node_table WHERE {self.node_filter()} ORDER BY lane \"\"\").df() if self.registered != key: self.db.register(self.lanes_table, self.cache[key][[\"node_id\", \"lane\"]]) self.registered = key return self.cache[key] def span(self, count: int) -> tuple[int, int]: \"\"\"The lanes to bin: what is in view plus half a view on each side, so a small pan does not show an edge.\"\"\" if self.visible is None or count == 0: return 0, max(count - 1, 0) first, last = int(self.visible[0] * count), min(count - 1, int(self.visible[1] * count)) margin = (last - first + 1) // 2 return max(0, first - margin), min(count - 1, last + margin) def grid(self) -> tuple[pd.DataFrame, int, int, int]: \"\"\"(grid, first lane, last lane, rows): one row per (pixel row, week) with the colour class, for the lanes in view. Lanes are binned into at most PIXEL_ROWS rows, because an image with more rows than pixels drops rows when drawn. Zooming in bins again over fewer lanes, until each row is one node. Within a row and week the most common fee class wins, but a failure or an open period wins over the rest, so composition reads as composition and rare events stay visible.\"\"\" lanes = self.lanes_frame() first, last = self.span(len(lanes)) count = last - first + 1 rows = min(PIXEL_ROWS, count) key = (\"grid\", self.color_by, self.registered, first, last) if key not in self.grids: if len(self.grids) > 24: self.grids.pop(next(iter(self.grids))) self.grids[key] = self.db.execute(f\"\"\" WITH counted AS ( SELECT floor((l.lane - {first}) * {rows} / {count})::INTEGER AS row, p.week, {self.class_sql()} AS klass, count(*) AS n FROM validator_weeks p JOIN {self.lanes_table} l USING (node_id) WHERE l.lane BETWEEN {first} AND {last} GROUP BY 1, 2, 3 ) SELECT row, week, {'arg_max(klass, n)' if self.color_by == 'fee class' else 'max(klass)'} AS klass FROM counted GROUP BY row, week \"\"\").df() return self.grids[key], first, last, rows def grain(self) -> str: count = len(self.lanes_frame()) first, last = self.span(count) per_row = (last - first + 1) / max(1, min(PIXEL_ROWS, last - first + 1)) return \"one node per row\" if per_row <= 1 else f\"{per_row:.1f} nodes per row\" def lanes_at(self, low: float, high: float) -> pd.DataFrame: \"\"\"The nodes between two heights on the chart, where height is the fraction of the sorted nodes.\"\"\" lanes = self.lanes if lanes.empty: return lanes count = len(lanes) first, last = max(0, int(np.floor(low * count))), min(count - 1, int(np.floor(high * count))) return lanes.iloc[first:last + 1] def node_periods(self, node_id: str) -> pd.DataFrame: return self.db.execute(\"\"\" SELECT start_time, end_time, round(duration_days) AS days, stake_avax, delegation_fee_rate AS fee, regime, potential_reward_avax AS potential, realized_reward_avax AS realized, start_kind FROM staking_periods WHERE role = 'validator' AND node_id = ? ORDER BY start_time \"\"\", [node_id]).df() # ---------------------------------------------------------------- instruments def regime_bands(self): \"\"\"Alternate shading on the same regimes the axis names, so a band and its name always agree. The names come from regime_axis.\"\"\" bands = [] for index, (_, start) in enumerate(REGIMES): end = REGIMES[index + 1][1] if index + 1 < len(REGIMES) else np.datetime64(\"2027-12-31\") bands.append(hv.VSpan(start, end).opts(color=\"#000000\", alpha=0.04 if index % 2 else 0.0)) return hv.Overlay(bands) @pm.depends(\"sort_by\", \"first_stake_year\", \"active_only\", \"cohort\", \"visible\", \"weeks_in_view\", watch=True) def update_counts(self): \"\"\"Invariant: the counters and the subtitle follow the selection and the view. Runs when inputs change, never while drawing.\"\"\" lanes = self.lanes_frame() self.lanes = lanes population = int(len(lanes)) all_periods = int(lanes[\"periods\"].sum()) if len(lanes) else 0 nodes, periods = self.counts_in_view(lanes) # Always \"x of y\", at full extent too, so the sentence keeps its shape as the view changes. with pm.edit_constant(self): self.param.update(population=population, nodes=nodes, periods=periods, summary=f\"{nodes:,} of {population:,} nodes in view, {periods:,} of {all_periods:,} periods, {self.grain()}\") def on_tap(self, x=None, y=None): \"\"\"A tap probes a row, unless a canvas took it to clear a box.\"\"\" if self.consume_tap is not None and self.consume_tap(): return self.probe = None if y is None else (x, y) def on_range(self, x_range=None, y_range=None): \"\"\"The zoom writes the view. Only the vertical axis re-bins: weeks already fit the screen at full history. Both axes narrow the counts.\"\"\" if y_range is None: return low, high = sorted(float(v) for v in y_range) low, high = round(max(0.0, low), 4), round(min(1.0, high), 4) self.param.update(visible=None if (low <= 0.0 and high >= 1.0) or high <= low else (low, high), weeks_in_view=week_span(x_range)) def counts_in_view(self, lanes: pd.DataFrame) -> tuple[int, int]: \"\"\"Nodes with a row in the vertical view and a period overlapping the visible weeks, and those periods.\"\"\" count = len(lanes) if count == 0: return 0, 0 low, high = self.visible or (0.0, 1.0) first, last = max(0, int(np.floor(low * count))), min(count - 1, int(np.floor(high * count))) week0, week1 = self.weeks_in_view or (\"2020-01-01\", \"2030-01-01\") nodes, periods = self.db.execute(f\"\"\" SELECT count(DISTINCT node_id), count(*) FROM sp JOIN {self.lanes_table} USING (node_id) WHERE role = 'validator' AND lane BETWEEN {first} AND {last} AND start_time::DATE <= DATE '{week1}' + 6 AND end_time::DATE >= DATE '{week0}' \"\"\").fetchone() return int(nodes), int(periods) def raster_image(self, **_): \"\"\"The lifelines image alone. A view reads; it never writes state. Height is the fraction of the sorted nodes, so it means the same nodes before and after a re-bin.\"\"\" lanes = self.lanes_frame() if lanes.empty: return hv.Image((np.array([\"2020-09-07\", \"2020-09-14\"], dtype=\"datetime64[ns]\"), np.array([0.25, 0.75]), np.full((2, 2), np.nan)), kdims=[\"week\", \"position\"], vdims=[\"class\"]).opts(width=920, height=self.height, title=\"no validator node matches\", yaxis=None, invert_yaxis=True, ylim=(0, 1), hooks=[bound_ranges]) grid, first, last, rows = self.grid() count = len(lanes) per_row = (last - first + 1) / rows centres = (first + (np.arange(rows) + 0.5) * per_row) / count tools = [\"hover\", \"tap\", \"box_select\"] if self.select else [\"hover\", \"tap\"] pivot = grid.pivot(index=\"row\", columns=\"week\", values=\"klass\").reindex(range(rows)) colors, labels = PALETTES[self.color_by] return hv.Image((pivot.columns.values.astype(\"datetime64[ns]\"), centres, pivot.values.astype(float)), kdims=[\"week\", \"position\"], vdims=[\"class\"], rtol=1e-3).opts( cmap=list(colors.values()), color_levels=len(colors), clim=(0.5, len(colors) + 0.5), clipping_colors={\"NaN\": (0, 0, 0, 0)}, width=920, height=self.height, tools=tools, active_tools=[\"wheel_zoom\"], colorbar=False, invert_yaxis=True, xlabel=\"week\", yaxis=None, ylim=(0, 1), hooks=[bound_ranges], title=f\"validator nodes by {self.color_by}\", ) def chart(self): today = hv.VLine(np.datetime64(pd.Timestamp.utcnow().tz_localize(None))).opts(color=\"black\", line_dash=\"dashed\", line_width=1) return (self.regime_bands() * self.raster_map * today * caption(self, box=\"box_line\")).opts(active_tools=ACTIVE_TOOLS, hooks=[regime_axis]) @pm.depends(\"color_by\") def legend(self): colors, labels = PALETTES[self.color_by] return pn.pane.HTML(\" &nbsp; \".join(f'<span style=\"color:{colors[k]}\">&#9632;</span> {labels[k]}' for k in colors)) def probe_table(self, probe): \"\"\"The row's nodes from the node table, the tapped node's three clocks (GA7), and its periods.\"\"\" x, y = probe or (None, None) if y is None or self.lanes.empty: return pn.pane.Markdown(\"Tap a row to list the nodes drawn in it and the periods of the node at the tapped height.\") count = len(self.lanes) first, last = self.span(count) per_row = max(1.0, (last - first + 1) / min(PIXEL_ROWS, last - first + 1)) lane = int(np.floor(y * count)) start = first + int((lane - first) // per_row * per_row) nodes = self.lanes.iloc[max(0, start):max(0, start) + int(np.ceil(per_row))] if 0 <= lane < count else self.lanes.iloc[:0] if nodes.empty: return pn.pane.Markdown(\"No node at that height.\") summary = nodes[[\"node_id\", \"first_start\", \"last_end\", \"active\", \"periods\", \"failed_periods\", \"span_days\", \"tenure_days\", \"current_streak_days\", \"latest_stake_avax\", \"latest_fee_rate\", \"rewards_avax\"]].round( {\"span_days\": 0, \"tenure_days\": 0, \"current_streak_days\": 0, \"latest_stake_avax\": 0, \"rewards_avax\": 1}).astype( {\"first_start\": \"datetime64[s]\", \"last_end\": \"datetime64[s]\", \"span_days\": int, \"tenure_days\": int, \"current_streak_days\": int, \"latest_stake_avax\": int}) summary[[\"first_start\", \"last_end\"]] = summary[[\"first_start\", \"last_end\"]].apply(lambda column: column.dt.strftime(\"%Y-%m-%d\")) chosen = self.lanes.iloc[lane] table = self.node_periods(chosen[\"node_id\"]) years = lambda days: f\"**{days / 365.25:.1f}** years\" streak = \"current streak\" if chosen[\"active\"] else \"last streak\" bound = f\", lower bounds because it was active at the node table's capture, {self.as_of:%Y-%m-%d %H:%M} UTC\" if chosen[\"active\"] else \"\" return pn.Column( pn.pane.Markdown(f\"That row draws {len(nodes)} node{'s' if len(nodes) > 1 else ''}. **{chosen['node_id']}**, the node at the tapped height: \" f\"span {years(chosen['span_days'])}, days staked {years(chosen['tenure_days'])}, {streak} {years(chosen['current_streak_days'])}{bound}. \" f\"Operator group {chosen['operator_group']}. Its periods are below.\"), pn.pane.DataFrame(summary, index=False, sizing_mode=\"stretch_width\"), pn.pane.DataFrame(table, index=False, sizing_mode=\"stretch_width\"), ) @pm.depends(\"nodes\", \"periods\") def counters(self): return pn.pane.Markdown(f\"**{self.nodes:,}** nodes, **{self.periods:,}** periods\") def view(self): return pn.Column( pn.Row(pn.Column(pn.Param(self, parameters=[\"color_by\", \"sort_by\", \"first_stake_year\", \"active_only\"]), self.counters), pn.Column(self.legend, pn.pane.HoloViews(self.chart(), linked_axes=False))), pn.bind(self.probe_table, probe=self.param.probe), ) lifelines = ValidatorLifelines(staking.db) lifelines.view()"
+    - generic [ref=f2e313]:
+      - generic [ref=f2e314]: "Out[4]:"
+      - generic [ref=f2e318]:
+        - generic [ref=f2e319]:
+          - generic [ref=f2e320]:
+            - generic [ref=f2e321]:
+              - generic [ref=f2e322]: ValidatorLifelines
+              - generic [ref=f2e325]:
+                - generic [ref=f2e326]:
+                  - text: Color by
+                  - generic [ref=f2e327] [cursor=pointer]
+                - combobox "Color by" [ref=f2e329]:
+                  - option "fee class" [selected]
+                  - option "failure"
+                  - option "open period"
+              - generic [ref=f2e331]:
+                - generic [ref=f2e332]:
+                  - text: Sort by
+                  - generic [ref=f2e333] [cursor=pointer]
+                - combobox "Sort by" [ref=f2e335]:
+                  - option "first stake" [selected]
+                  - option "last end"
+                  - option "periods"
+                  - option "stake-days"
+              - generic [ref=f2e337]:
+                - generic [ref=f2e338]:
+                  - text: First stake year
+                  - generic [ref=f2e339] [cursor=pointer]
+                - combobox "First stake year" [ref=f2e341]:
+                  - option "all" [selected]
+                  - option "2020"
+                  - option "2021"
+                  - option "2022"
+                  - option "2023"
+                  - option "2024"
+                  - option "2025"
+                  - option "2026"
+              - generic [ref=f2e342]:
+                - checkbox [ref=f2e343]
+                - text: Active only
+            - paragraph [ref=f2e347]:
+              - strong [ref=f2e348]: 7,644
+              - text: nodes,
+              - strong [ref=f2e349]: 57,560
+              - text: periods
+          - generic [ref=f2e350]:
+            - generic [ref=f2e351]: ■ 2% ■ 5% ■ other ■ 10 to 20% ■ 100%
+            - generic [ref=f2e361]:
+              - link "Bokeh 3.9.2" [ref=f2e362] [cursor=pointer]:
+                - /url: https://bokeh.org/
+              - generic "Pan" [ref=f2e363] [cursor=pointer]
+              - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e365] [cursor=pointer]
+              - generic "Wheel Zoom" [ref=f2e368] [cursor=pointer]
+              - generic "Tap" [ref=f2e371] [cursor=pointer]
+              - generic "Save" [ref=f2e374] [cursor=pointer]
+              - generic "Reset" [ref=f2e376] [cursor=pointer]
+              - generic "Hover" [ref=f2e379] [cursor=pointer]
+        - paragraph [ref=f2e384]: Tap a row to list the nodes drawn in it and the periods of the node at the tapped height.
+  - generic [ref=f2e389]:
+    - heading "What to look for in V1" [level=3] [ref=f2e390]
+    - list [ref=f2e391]:
+      - listitem [ref=f2e392]:
+        - code [ref=f2e393]: L1
+        - text: Rows are cohorts. 859 nodes first staked in 2020, then 1,315, 1,284, 1,223, 1,501, 1,254, and 208 in 2026. 598 nodes were active at the node table's capture on 2026-09-22 (run
+        - code [ref=f2e394]: node-table-2026-09-22b
+        - text: ). Their median span is 3.1 years, their median days staked 2.4 years, and their median current streak 0.3 years. All three are lower bounds, because these nodes are still staking.
+      - listitem [ref=f2e395]:
+        - code [ref=f2e396]: L2
+        - text: Exits cluster. 2,095 nodes ended their last period in 2025 and 1,638 in 2024, against 704 in 2023. Sort by last end to see the exit waves against the regime bands.
+      - listitem [ref=f2e397]:
+        - code [ref=f2e398]: L3
+        - text: Fee class is a cohort trait. 2% fees dominate every cohort from 2021 (73 to 84%), but 40% of the 2026 cohort charges 100%, which means they accept no delegation; those are private validators, and their median stake is 16,878 AVAX against 2,000 for the cohorts before.
+      - listitem [ref=f2e399]:
+        - code [ref=f2e400]: L4
+        - text: "Failures are rare and concentrated: 1,296 validator periods ended with zero reward, on 838 nodes. Colour by failure and sort by periods to see whether repeat offenders exist."
+      - listitem [ref=f2e401]:
+        - code [ref=f2e402]: L5
+        - text: 2,224 nodes staked exactly once and 1,537 staked eleven or more times. The one-timers are the thin single bars; the long rows are the operators the network runs on.
+      - listitem [ref=f2e403]:
+        - code [ref=f2e404]: L6
+        - text: "Failures precede exits. Sort by last end and colour by failure: the red segments sit at the right-hand end of lifelines, so a validator's last period before leaving is the one that missed uptime. Whether the failure caused the exit or the exit caused the failure (an operator switching off early) is an open question."
+      - listitem [ref=f2e405]:
+        - code [ref=f2e406]: L7
+        - text: "Cohorts contain batches. Filter to 2024: about two hundred nodes start within days of each other in October 2024 at 2% fee and end together in July 2025, a single operator or service running a fleet. Node ids are not operators; a lifecycle analysis needs an operator key."
+  - generic [ref=f2e411]:
+    - heading "V2 Arrivals grid" [level=2] [ref=f2e412]
+    - paragraph [ref=f2e413]: "A grid of weeks across and stake-size buckets up. Each cell is coloured by one number about the staking periods that were accepted in that week at that size: how many there were, how long they committed for, or, for validators, what share came from nodes staking for the first time. Buckets are a tenth of a decade wide, so every ten rows is a factor of ten in stake. Validators above, delegators below, same weeks, regime bands behind. It is the crowd, not the individuals; V1 holds the individuals."
+  - generic [ref=f2e414]:
+    - generic [ref=f2e416]:
+      - generic [ref=f2e417]: "In [5]:"
+      - generic [ref=f2e418]: "import functools from bokeh.models import CustomJSTickFormatter, FixedTicker def shade(values: np.ndarray, kind: str, title: str, levels=None) -> tuple[np.ndarray, dict]: \"\"\"(what the colour scale sees, the options that go with it), for a chart whose colouring changes in place. HoloViews creates the colour scale and the colorbar once. An update can change the scale's range, palette, and levels, but not its kind. Bokeh redraws a colorbar for a new title or for a change inside its ticker and formatter, and ignores a replaced ticker or formatter. Options also persist from one update to the next. So every colouring uses a linear scale and sets every option, counts are drawn as their log10, and a hook edits the one ticker and the one formatter in place.\"\"\" values = values.astype(float) if kind == \"log\": drawn = np.log10(np.where(values > 0, values, np.nan)) top = max(1, int(np.ceil(np.nanmax(drawn)))) if np.isfinite(drawn).any() else 1 options = dict(cmap=\"viridis\", color_levels=None, clim=(0, top)) ticks, code = list(range(top + 1)), \"return Math.round(10 ** tick).toLocaleString()\" elif kind == \"share\": drawn, options = values, dict(cmap=\"viridis\", color_levels=None, clim=(0, 1)) ticks, code = [0, 0.25, 0.5, 0.75, 1], \"return Math.round(tick * 100) + '%'\" else: drawn, options = values, dict(cmap=levels[\"colours\"], color_levels=levels[\"edges\"], clim=(levels[\"edges\"][0], levels[\"edges\"][-1])) ticks, code = [round(edge) for edge in levels[\"edges\"][1:]], \"return Math.round(tick / 7) + 'w'\" def relabel(plot, element): bar = plot.handles.get(\"colorbar\") if bar is None: return bar.title = title if isinstance(bar.ticker, FixedTicker) and isinstance(bar.formatter, CustomJSTickFormatter): bar.ticker.ticks, bar.formatter.code = ticks, code else: bar.ticker, bar.formatter = FixedTicker(ticks=ticks), CustomJSTickFormatter(code=code) return drawn, dict(options, logz=False, colorbar=True, hooks=[relabel, bound_ranges]) # relabel the colorbar, and keep pan and zoom inside the data COLOURINGS = { \"count\": (\"periods\", \"periods accepted\"), \"median duration\": (\"duration\", \"median duration, in classes\"), \"first-time share\": (\"first_share\", \"share from first-time nodes\"), } DURATION_EDGES = [0, 14.01, 28.01, 56.01, 112.01, 224.01, 366] DURATION_COLOURS = [\"#440154\", \"#3b528b\", \"#21918c\", \"#5ec962\", \"#fde725\", \"#f58518\"] def stake_tick(bucket: float) -> str | None: \"\"\"Label integer decades and the 2 and 5 marks between them: 1,000, 2,000, 5,000, 10,000.\"\"\" power, frac = divmod(round(bucket, 1), 1) for target, mult in ((0.0, 1), (0.3, 2), (0.7, 5)): if abs(frac - target) < 1e-9: return f\"{mult * 10 ** power:,.0f}\" return None class ArrivalsGrid(pm.Parameterized): \"\"\"Weeks across, log stake up, one number per cell. Binned in DuckDB, drawn as an image per role.\"\"\" color_by = pm.Selector(default=\"count\", objects=list(COLOURINGS), doc=\"What the colour of a cell means: how many periods were accepted, their median duration, or the share that were a node's first period\") box_line = pm.String(\"\", precedence=-1, doc=\"Validator caption line 2, what the box drawn on this grid does, written by a canvas\") summary_validator = pm.String(\"\", constant=True, precedence=-1, doc=\"The validator chart's subtitle: periods accepted in the cells in view\") summary_delegator = pm.String(\"\", constant=True, precedence=-1, doc=\"The delegator chart's subtitle: periods accepted in the cells in view\") def __init__(self, db, select=False, height=300, **params): super().__init__(**params) self.db = db self.cache = {} self.select = select self.height = height self.total = int(self.grid(\"validator\")[\"periods\"].sum() + self.grid(\"delegator\")[\"periods\"].sum()) # a fact of the run, not a knob # One chart per role, each drawing one element. Regime bands are overlaid outside, in chart(). self.maps = {role: hv.DynamicMap(functools.partial(self.image, role), streams=[hv.streams.Params(self, parameters=[\"color_by\"])]) for role in (\"validator\", \"delegator\")} self.views = {role: None for role in self.maps} for role, source in self.maps.items(): hv.streams.RangeXY(source=source).add_subscriber(functools.partial(self.on_range, role)) self.describe(role) def on_range(self, role: str, x_range=None, y_range=None): \"\"\"The zoom writes the view, then the subtitle.\"\"\" self.views[role] = (week_span(x_range), None if y_range is None else tuple(sorted(float(v) for v in y_range))) self.describe(role) def describe(self, role: str): \"\"\"Periods accepted in the cells in view, as the chart's subtitle.\"\"\" grid = self.grid(role) weeks, buckets = self.views[role] or (None, None) inside = pd.Series(True, index=grid.index) if weeks is not None: inside &= (pd.to_datetime(grid[\"week\"]) >= pd.Timestamp(weeks[0])) & (pd.to_datetime(grid[\"week\"]) <= pd.Timestamp(weeks[1])) if buckets is not None: inside &= (grid[\"bucket\"] >= buckets[0]) & (grid[\"bucket\"] <= buckets[1]) text = f\"{int(grid.loc[inside, 'periods'].sum()):,} of {int(grid['periods'].sum()):,} periods accepted in view\" with pm.edit_constant(self): setattr(self, f\"summary_{role}\", text) def grid(self, role: str) -> pd.DataFrame: \"\"\"One row per (week, stake bucket): periods, median duration, and the first-time share for validators.\"\"\" if role not in self.cache: self.cache[role] = self.db.execute(\"\"\" WITH first AS (SELECT node_id, min(accepted_at) AS first_accepted FROM sp WHERE role = 'validator' GROUP BY node_id) SELECT date_trunc('week', p.accepted_at)::DATE AS week, floor(log10(p.stake_avax) * 10) / 10 AS bucket, count(*) AS periods, median(p.duration_days) AS duration, avg(CASE WHEN p.role <> 'validator' THEN NULL WHEN p.accepted_at = f.first_accepted THEN 1.0 ELSE 0.0 END) AS first_share FROM sp p LEFT JOIN first f USING (node_id) WHERE p.role = ? AND p.stake_avax > 0 GROUP BY week, bucket ORDER BY week, bucket \"\"\", [role]).df() return self.cache[role] def buckets(self, role: str) -> np.ndarray: grid = self.grid(role) return np.round(np.arange(grid[\"bucket\"].min(), grid[\"bucket\"].max() + 0.05, 0.1), 1) def image(self, role: str, **_): \"\"\"The grid image alone. Delegators have no first-time share yet (DC1), so that choice draws their count.\"\"\" colouring = \"count\" if role == \"delegator\" and self.color_by == \"first-time share\" else self.color_by column, label = COLOURINGS[colouring] grid = self.grid(role) weeks = pd.date_range(grid[\"week\"].min(), grid[\"week\"].max(), freq=\"7D\") buckets = self.buckets(role) pivot = grid.pivot(index=\"bucket\", columns=\"week\", values=column) pivot.index = np.round(pivot.index, 1) pivot = pivot.reindex(index=buckets, columns=weeks.date) ticks = [(b, stake_tick(b)) for b in buckets if stake_tick(b)] tools = [\"hover\", \"box_select\"] if self.select and role == \"validator\" else [\"hover\"] kind = {\"periods\": \"log\", \"duration\": \"levels\", \"first_share\": \"share\"}[column] drawn, colour = shade(pivot.values, kind, label, levels={\"colours\": DURATION_COLOURS, \"edges\": DURATION_EDGES}) note = \" (first-time share needs delegator identity, DC1)\" if colouring != self.color_by else \"\" return hv.Image((weeks.values.astype(\"datetime64[ns]\"), buckets, drawn, pivot.values.astype(float)), kdims=[\"week\", \"log10 stake\"], vdims=[\"shade\", \"value\"]).opts( width=920, height=self.height, tools=tools, active_tools=[\"wheel_zoom\"], yticks=ticks, xlabel=\"week accepted\", ylabel=\"stake (AVAX, log)\", clipping_colors={\"NaN\": (0, 0, 0, 0)}, hover_tooltips=[\"week\", \"log10 stake\", \"value\"], title=f\"{role.capitalize()} staking periods begun, by stake{note}\", **colour, ) def chart(self, role: str, *marks): \"\"\"Regime bands, the role's image, and any marks that respond to a link, composed outside the callbacks.\"\"\" buckets = self.buckets(role) chart = lifelines.regime_bands() * self.maps[role] * caption(self, f\"summary_{role}\", \"box_line\" if role == \"validator\" else None) for mark in marks: chart = chart * mark return chart.opts(ylim=(buckets.min() - 0.05, buckets.max() + 0.4), active_tools=ACTIVE_TOOLS, hooks=[regime_axis]) def view(self): return pn.Column( pn.Row(pn.Param(self, parameters=[\"color_by\"]), pn.pane.Markdown(f\"**{self.total:,}** periods, validators and delegators\")), pn.pane.HoloViews(self.chart(\"validator\"), linked_axes=False), pn.pane.HoloViews(self.chart(\"delegator\"), linked_axes=False), ) arrivals = ArrivalsGrid(staking.db) arrivals.view()"
+    - generic [ref=f2e424]:
+      - generic [ref=f2e425]: "Out[5]:"
+      - generic [ref=f2e429]:
+        - generic [ref=f2e430]:
+          - generic [ref=f2e431]:
+            - generic [ref=f2e432]: ArrivalsGrid
+            - generic [ref=f2e435]:
+              - generic [ref=f2e436]:
+                - text: Color by
+                - generic [ref=f2e437] [cursor=pointer]
+              - combobox "Color by" [ref=f2e439]:
+                - option "count" [selected]
+                - option "median duration"
+                - option "first-time share"
+          - paragraph [ref=f2e442]:
+            - strong [ref=f2e443]: 7,114,358
+            - text: periods, validators and delegators
+        - generic [ref=f2e451]:
+          - link "Bokeh 3.9.2" [ref=f2e452] [cursor=pointer]:
+            - /url: https://bokeh.org/
+          - generic "Pan" [ref=f2e453] [cursor=pointer]
+          - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e455] [cursor=pointer]
+          - generic "Wheel Zoom" [ref=f2e458] [cursor=pointer]
+          - generic "Save" [ref=f2e461] [cursor=pointer]
+          - generic "Reset" [ref=f2e463] [cursor=pointer]
+          - generic [ref=f2e466]: ⋯
+        - generic [ref=f2e474]:
+          - link "Bokeh 3.9.2" [ref=f2e475] [cursor=pointer]:
+            - /url: https://bokeh.org/
+          - generic "Pan" [ref=f2e476] [cursor=pointer]
+          - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e478] [cursor=pointer]
+          - generic "Wheel Zoom" [ref=f2e481] [cursor=pointer]
+          - generic "Save" [ref=f2e484] [cursor=pointer]
+          - generic "Reset" [ref=f2e486] [cursor=pointer]
+          - generic [ref=f2e489]: ⋯
+  - generic [ref=f2e494]:
+    - heading "What to look for in V2" [level=3] [ref=f2e495]
+    - list [ref=f2e496]:
+      - listitem [ref=f2e497]:
+        - code [ref=f2e498]: A1
+        - text: "The floors are bright lines: validators at 2,000 AVAX for the whole history, delegators at 25 AVAX from September 2022. Everything above a floor is a choice."
+      - listitem [ref=f2e499]:
+        - code [ref=f2e500]: A2
+        - text: Delegator behaviour changed twice, and both changes are blocks, not gradients. From Banff to Durango, nearly every delegation under 2,000 AVAX was the minimum two weeks (the dark block in the duration view); after Durango the same crowd commits for two to eight weeks. From January 2025 a bright band appears at 100 to 200 AVAX with its own duration pattern. Blocks with hard edges are products or services, not thousands of independent choices.
+      - listitem [ref=f2e501]:
+        - code [ref=f2e502]: A3
+        - text: Validators above 200,000 AVAX commit for the full year (orange cells) and re-stake on a yearly rhythm; the columns of orange in 2023 and 2024 are those renewals. Small validators sit in the two-to-eight-week classes.
+      - listitem [ref=f2e503]:
+        - code [ref=f2e504]: A4
+        - text: The 2026 validator cohort arrives at 10,000 AVAX and above, not on the floor. That is the fleet and private-validator shift from
+        - code [ref=f2e505]: L3
+        - text: and
+        - code [ref=f2e506]: L7
+        - text: ", seen from the arrivals side."
+      - listitem [ref=f2e507]:
+        - code [ref=f2e508]: A5
+        - text: "First-time share is bright in 2020 and 2021 and sparse afterwards: the validator set has been mostly returning nodes since 2022, and new entrants arrive in small clusters that line up with the fleets on V1."
+      - listitem [ref=f2e509]:
+        - code [ref=f2e510]: A6
+        - text: "Each grid is one group-by: 26 ms for validators, 69 ms for delegators, cached afterwards."
+  - generic [ref=f2e515]:
+    - heading "V2b Duration grid" [level=2] [ref=f2e516]
+    - paragraph [ref=f2e517]: "Weeks across, duration up. Each row is one week of commitment length, rounded to the nearest week, from the two-week floor to the 52-week cap, and each cell is coloured by one number about the periods accepted that week with that duration: how many, how much stake in total, or the median or mean stake per period. Validators above, delegators below. Where V2 asked how much people stake, this asks how long they commit and how much money sits behind each commitment length."
+  - generic [ref=f2e518]:
+    - generic [ref=f2e520]:
+      - generic [ref=f2e521]: "In [6]:"
+      - generic [ref=f2e522]: "import functools DURATION_COLOURINGS = { \"count\": (\"periods\", \"periods accepted\"), \"total stake\": (\"total_stake\", \"total stake accepted (AVAX)\"), \"median stake\": (\"median_stake\", \"median stake per period (AVAX)\"), \"mean stake\": (\"mean_stake\", \"mean stake per period (AVAX)\"), } DURATION_WEEK_TICKS = [(2, \"2w\"), *[(w, f\"{w}w\") for w in range(8, 53, 8)], (52, \"52w\")] class DurationGrid(pm.Parameterized): \"\"\"Weeks accepted across, duration in weeks up, one number per cell, per role.\"\"\" color_by = pm.Selector(default=\"count\", objects=list(DURATION_COLOURINGS), doc=\"What the colour of a cell means: how many periods were accepted, or their total, median, or mean stake\") box_line = pm.String(\"\", precedence=-1, doc=\"Validator caption line 2, what the box drawn on this grid does, written by a canvas\") summary_validator = pm.String(\"\", constant=True, precedence=-1, doc=\"The validator chart's subtitle: periods accepted in the cells in view\") summary_delegator = pm.String(\"\", constant=True, precedence=-1, doc=\"The delegator chart's subtitle: periods accepted in the cells in view\") def __init__(self, db, select=False, height=300, **params): super().__init__(**params) self.db = db self.cache = {} self.select = select self.height = height self.total = int(self.grid(\"validator\")[\"periods\"].sum() + self.grid(\"delegator\")[\"periods\"].sum()) # a fact of the run, not a knob # One chart per role, each drawing one element. Regime bands are overlaid outside, in chart(). self.maps = {role: hv.DynamicMap(functools.partial(self.image, role), streams=[hv.streams.Params(self, parameters=[\"color_by\"])]) for role in (\"validator\", \"delegator\")} self.views = {role: None for role in self.maps} for role, source in self.maps.items(): hv.streams.RangeXY(source=source).add_subscriber(functools.partial(self.on_range, role)) self.describe(role) def on_range(self, role: str, x_range=None, y_range=None): \"\"\"The zoom writes the view, then the subtitle.\"\"\" self.views[role] = (week_span(x_range), None if y_range is None else tuple(sorted(float(v) for v in y_range))) self.describe(role) def describe(self, role: str): \"\"\"Periods accepted in the cells in view, as the chart's subtitle.\"\"\" grid = self.grid(role) weeks, rows = self.views[role] or (None, None) inside = pd.Series(True, index=grid.index) if weeks is not None: inside &= (pd.to_datetime(grid[\"week\"]) >= pd.Timestamp(weeks[0])) & (pd.to_datetime(grid[\"week\"]) <= pd.Timestamp(weeks[1])) if rows is not None: inside &= (grid[\"duration_weeks\"] >= rows[0]) & (grid[\"duration_weeks\"] <= rows[1]) text = f\"{int(grid.loc[inside, 'periods'].sum()):,} of {int(grid['periods'].sum()):,} periods accepted in view\" with pm.edit_constant(self): setattr(self, f\"summary_{role}\", text) def grid(self, role: str) -> pd.DataFrame: \"\"\"One row per (week accepted, duration week): count, total, median, and mean stake. Duration rounds to the nearest week. Only 630 validator periods last exactly 14 days and 21,469 last between 14 and 15 days, because stakers add a buffer to the minimum; a ceiling put them in the 3w row.\"\"\" if role not in self.cache: self.cache[role] = self.db.execute(\"\"\" SELECT date_trunc('week', accepted_at)::DATE AS week, least(greatest(round(duration_days / 7.0), 1), 52)::INTEGER AS duration_weeks, count(*) AS periods, sum(stake_avax) AS total_stake, median(stake_avax) AS median_stake, avg(stake_avax) AS mean_stake FROM sp WHERE role = ? AND duration_days > 0 GROUP BY week, duration_weeks ORDER BY week, duration_weeks \"\"\", [role]).df() return self.cache[role] def image(self, role: str, **_): column, label = DURATION_COLOURINGS[self.color_by] grid = self.grid(role) weeks = pd.date_range(grid[\"week\"].min(), grid[\"week\"].max(), freq=\"7D\") rows = np.arange(1, 53) pivot = grid.pivot(index=\"duration_weeks\", columns=\"week\", values=column).reindex(index=rows, columns=weeks.date) selecting = self.select and role == \"validator\" drawn, colour = shade(pivot.values, \"log\", label) return hv.Image((weeks.values.astype(\"datetime64[ns]\"), rows, drawn, pivot.values.astype(float)), kdims=[\"week\", \"duration (weeks)\"], vdims=[\"shade\", \"value\"]).opts( width=920, height=self.height, tools=[\"hover\", \"box_select\"] if selecting else [\"hover\"], active_tools=[\"wheel_zoom\"], yticks=DURATION_WEEK_TICKS, xlabel=\"week accepted\", ylabel=\"duration (weeks)\", clipping_colors={\"NaN\": (0, 0, 0, 0)}, hover_tooltips=[\"week\", \"duration (weeks)\", \"value\"], title=f\"{role.capitalize()} staking periods begun, by duration\", **colour, ) def chart(self, role: str, *marks): \"\"\"Regime bands, the role's image, and any marks that respond to a link, composed outside the callbacks.\"\"\" chart = lifelines.regime_bands() * self.maps[role] * caption(self, f\"summary_{role}\", \"box_line\" if role == \"validator\" else None) for mark in marks: chart = chart * mark return chart.opts(ylim=(0.5, 57), active_tools=ACTIVE_TOOLS, hooks=[regime_axis]) def view(self): return pn.Column( pn.Row(pn.Param(self, parameters=[\"color_by\"]), pn.pane.Markdown(f\"**{self.total:,}** periods, validators and delegators\")), pn.pane.HoloViews(self.chart(\"validator\"), linked_axes=False), pn.pane.HoloViews(self.chart(\"delegator\"), linked_axes=False), ) durations = DurationGrid(staking.db) durations.view()"
+    - generic [ref=f2e528]:
+      - generic [ref=f2e529]: "Out[6]:"
+      - generic [ref=f2e533]:
+        - generic [ref=f2e534]:
+          - generic [ref=f2e535]:
+            - generic [ref=f2e536]: DurationGrid
+            - generic [ref=f2e539]:
+              - generic [ref=f2e540]:
+                - text: Color by
+                - generic [ref=f2e541] [cursor=pointer]
+              - combobox "Color by" [ref=f2e543]:
+                - option "count" [selected]
+                - option "total stake"
+                - option "median stake"
+                - option "mean stake"
+          - paragraph [ref=f2e546]:
+            - strong [ref=f2e547]: 7,114,358
+            - text: periods, validators and delegators
+        - generic [ref=f2e555]:
+          - link "Bokeh 3.9.2" [ref=f2e556] [cursor=pointer]:
+            - /url: https://bokeh.org/
+          - generic "Pan" [ref=f2e557] [cursor=pointer]
+          - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e559] [cursor=pointer]
+          - generic "Wheel Zoom" [ref=f2e562] [cursor=pointer]
+          - generic "Save" [ref=f2e565] [cursor=pointer]
+          - generic "Reset" [ref=f2e567] [cursor=pointer]
+          - generic [ref=f2e570]: ⋯
+        - generic [ref=f2e578]:
+          - link "Bokeh 3.9.2" [ref=f2e579] [cursor=pointer]:
+            - /url: https://bokeh.org/
+          - generic "Pan" [ref=f2e580] [cursor=pointer]
+          - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e582] [cursor=pointer]
+          - generic "Wheel Zoom" [ref=f2e585] [cursor=pointer]
+          - generic "Save" [ref=f2e588] [cursor=pointer]
+          - generic "Reset" [ref=f2e590] [cursor=pointer]
+          - generic [ref=f2e593]: ⋯
+  - generic [ref=f2e598]:
+    - heading "What to look for in V2b" [level=3] [ref=f2e599]
+    - list [ref=f2e600]:
+      - listitem [ref=f2e601]:
+        - code [ref=f2e602]: D1
+        - text: The diagonals are the protocol's geometry made visible. A delegation must end before its validator's period ends, so as the weeks pass the longest duration still available to a delegator shrinks by one week per week. Every diagonal running down and to the right is one validator's end date, and the delegations that chose to run right up to it. The delegator grid is a picture of validator end dates seen through delegator choices.
+      - listitem [ref=f2e603]:
+        - code [ref=f2e604]: D2
+        - text: "The horizontal lines are round numbers: 2, 4, 13, 26, and 52 weeks. People choose durations by calendar, and the protocol's two-week floor and 52-week cap are the two brightest rows. Validators cluster at 52 weeks and at 2 to 4 weeks with little in between; delegators fill the space between because the diagonals force them to."
+      - listitem [ref=f2e605]:
+        - code [ref=f2e606]: D3
+        - text: Total stake and count disagree at the top. By count the 52-week validator row is faint; by total stake it is the brightest row, at 10^8 AVAX in some weeks. The network's weight commits for a year; its headcount commits for a fortnight.
+      - listitem [ref=f2e607]:
+        - code [ref=f2e608]: D4
+        - text: "Median stake separates the fleets from the rest. The 2024 to 2025 block at 2 to 4 weeks that is bright by count is dark by median stake: many small periods. The bright cells in the median view at 26 and 52 weeks are the large validators renewing."
+      - listitem [ref=f2e609]:
+        - code [ref=f2e610]: D5
+        - text: Delegator behaviour after Durango spreads upward from the two-week row into 2 to 13 weeks, the same shift V2 showed by stake size, now seen by duration.
+      - listitem [ref=f2e611]:
+        - code [ref=f2e612]: D6
+        - text: "One group-by per role: 9 ms for validators, 50 ms for delegators, cached afterwards."
+      - listitem [ref=f2e613]:
+        - code [ref=f2e614]: D7
+        - text: "The bright rows are the protocol's limits and the wallets' menu. The protocol refuses periods shorter than 14 days or longer than 365, so those two rows are the shortest and longest anyone can choose, and people bunch at both. Forty percent of validator periods and 95 percent of delegator periods last 14 to 17 days, the floor plus a buffer. The next peaks are 28 to 31, 90 to 92, 180 to 183, and 365 days: one month, three months, six months, a year, the presets staking interfaces offer. Two thirds of validator periods land within a day of one of those. Periods of a year or more were 9.5 percent of validator periods in 2020 and are 0.9 percent in 2026. The reward curve pays for longer commitment and almost nobody responds to it."
+  - generic [ref=f2e619]:
+    - heading "V2c Size against duration" [level=2] [ref=f2e620]
+    - paragraph [ref=f2e621]: "Time goes away. Stake up on the log axis, duration across in weeks rounded to the nearest week, colour by how many periods, one panel per era: before Banff, Banff and Cortina, Durango, and Etna onward. The question is whether big stakes commit longer, and whether the shape changed at an upgrade. One role at a time, because their counts differ a hundredfold; the colour scale is shared across the four panels so eras compare."
+  - generic [ref=f2e622]:
+    - generic [ref=f2e624]:
+      - generic [ref=f2e625]: "In [7]:"
+      - generic [ref=f2e626]: "ERAS = { \"before Banff\": (\"genesis\", \"apricot_phase_1\", \"apricot_phase_2\", \"apricot_phase_3\", \"apricot_phase_4\", \"apricot_phase_5\", \"apricot_phase_pre_6\", \"apricot_phase_6\", \"apricot_phase_post_6\"), \"Banff and Cortina\": (\"banff\", \"cortina\"), \"Durango\": (\"durango\",), \"Etna onward\": (\"etna\", \"fortuna\", \"granite\", \"helicon\"), } class SizeDurationGrid(pm.Parameterized): \"\"\"Log stake up, duration across, count as colour, one panel per era, one role at a time.\"\"\" role = pm.Selector(default=\"validator\", objects=[\"validator\", \"delegator\"]) periods = pm.Integer(0, constant=True) def __init__(self, db, **params): super().__init__(**params) self.db = db self.cache = {} self.update_counts() @pm.depends(\"role\", watch=True) def update_counts(self): with pm.edit_constant(self): self.periods = int(self.grid(self.role)[\"periods\"].sum()) def grid(self, role: str) -> pd.DataFrame: \"\"\"One row per (era, duration week, stake bucket) with the period count.\"\"\" if role not in self.cache: cases = \" \".join(f\"WHEN regime IN ({', '.join(repr(r) for r in regimes)}) THEN '{era}'\" for era, regimes in ERAS.items()) self.cache[role] = self.db.execute(f\"\"\" SELECT CASE {cases} END AS era, least(greatest(round(duration_days / 7.0), 1), 52)::INTEGER AS duration_weeks, floor(log10(stake_avax) * 10) / 10 AS bucket, count(*) AS periods FROM sp WHERE role = ? AND duration_days > 0 AND stake_avax > 0 GROUP BY era, duration_weeks, bucket \"\"\", [role]).df() return self.cache[role] @pm.depends(\"role\") def view_eras(self): grid = self.grid(self.role) weeks = np.arange(1, 53) buckets = np.round(np.arange(grid[\"bucket\"].min(), grid[\"bucket\"].max() + 0.05, 0.1), 1) ticks = [(b, stake_tick(b)) for b in buckets if stake_tick(b)] top = grid[\"periods\"].max() panels = [] for era in ERAS: part = grid[grid[\"era\"] == era] pivot = part.pivot(index=\"bucket\", columns=\"duration_weeks\", values=\"periods\") pivot.index = np.round(pivot.index, 1) pivot = pivot.reindex(index=buckets, columns=weeks) panels.append(hv.Image((weeks, buckets, pivot.values.astype(float)), kdims=[\"duration (weeks)\", \"log10 stake\"], vdims=[\"periods\"]).opts( cmap=\"viridis\", logz=True, clim=(1, top), width=450, height=300, tools=[\"hover\"], colorbar=True, yticks=ticks, xticks=DURATION_WEEK_TICKS, xlabel=\"duration (weeks)\", ylabel=\"stake (AVAX, log)\", clipping_colors={\"NaN\": (0, 0, 0, 0)}, title=f\"{self.role}s, {era}: {int(part['periods'].sum()):,} periods\", )) return pn.pane.HoloViews(hv.Layout(panels).cols(2), linked_axes=False) @pm.depends(\"periods\") def counters(self): return pn.pane.Markdown(f\"**{self.periods:,}** periods\") def view(self): return pn.Column(pn.Row(pn.Param(self, parameters=[\"role\"]), self.counters), self.view_eras) size_duration = SizeDurationGrid(staking.db) size_duration.view()"
+    - generic [ref=f2e632]:
+      - generic [ref=f2e633]: "Out[7]:"
+      - generic [ref=f2e637]:
+        - generic [ref=f2e638]:
+          - generic [ref=f2e639]:
+            - generic [ref=f2e640]: SizeDurationGrid
+            - generic [ref=f2e643]:
+              - generic [ref=f2e644]: Role
+              - combobox "Role" [ref=f2e645]:
+                - option "validator" [selected]
+                - option "delegator"
+          - paragraph [ref=f2e649]:
+            - strong [ref=f2e650]: 57,560
+            - text: periods
+        - generic [ref=f2e653]:
+          - link "Bokeh 3.9.2" [ref=f2e654] [cursor=pointer]:
+            - /url: https://bokeh.org/
+          - generic "Pan" [ref=f2e655] [cursor=pointer]
+          - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e657] [cursor=pointer]
+          - generic "Wheel Zoom" [ref=f2e660] [cursor=pointer]
+          - generic "Save" [ref=f2e663] [cursor=pointer]
+          - generic "Reset" [ref=f2e665] [cursor=pointer]
+          - generic "Hover" [ref=f2e668] [cursor=pointer]
+  - generic [ref=f2e703]:
+    - heading "What to look for in V2c" [level=3] [ref=f2e704]
+    - list [ref=f2e705]:
+      - listitem [ref=f2e706]:
+        - code [ref=f2e707]: S1
+        - text: "Big stakes do not commit longer, they commit differently. The 52-week column runs through every stake size, and the mass at two weeks does too. What changes with size is the share that takes the year: 0.4% of floor validators against 3 to 8% of validators above 100,000 AVAX, peaking at 12% for the 100,000 to 1,000,000 class in Banff and Durango. Medians barely move: 15 to 31 days for small validators, 16 to 86 days for large."
+      - listitem [ref=f2e708]:
+        - code [ref=f2e709]: S2
+        - text: Durango shortened the floor. Validators at the 2,000 AVAX minimum had a median period of about 30 days before Durango and 15 days after. The vertical stripe at four weeks fades after Durango and the two-week column brightens.
+      - listitem [ref=f2e710]:
+        - code [ref=f2e711]: S3
+        - text: "The delegator triangle: large delegations only ever commit short. Above 100,000 AVAX nothing sits beyond 26 weeks in any era, and medians are three to four weeks. Delegations under 2,000 AVAX are two weeks in every era. Duration and size are unrelated for delegators except that the big ones are never long."
+      - listitem [ref=f2e712]:
+        - code [ref=f2e713]: S4
+        - text: "The tiny delegator vanished at Etna. Delegations under 50 AVAX: 108,314 before Banff, 1,299,822 in Banff and Cortina, 2,250,870 in Durango, 21,659 from Etna onward. Under 100 AVAX the fall is from 2.6 million to 34 thousand. The bright cell at 100 to 200 AVAX and two weeks in the Etna panel is what replaced them. Whether this is a fee change, a product change, or the same money in fewer delegations is an open question."
+      - listitem [ref=f2e714]:
+        - code [ref=f2e715]: S5
+        - text: The eras share one colour scale, so a faint panel is a quiet era. Before Banff has 14,798 validator periods and 313,943 delegations; Banff and Cortina have 2.3 million delegations. The delegator crowd arrived with Banff.
+      - listitem [ref=f2e716]:
+        - code [ref=f2e717]: S6
+        - text: "One group-by per role: 11 ms for validators, 44 ms for delegators."
+  - generic [ref=f2e722]:
+    - heading "V3 Active stock" [level=2] [ref=f2e723]
+    - paragraph [ref=f2e724]: "How many periods are open in each week, stacked by how long they were committed for: 2 to 4 weeks at the bottom, up to 32 to 52 at the top. Count or stake, absolute or as shares of the week. One chart per role. The sweep adds a period in its start week and removes it the week after its end, so a week counts everything open at any point in it."
+  - generic [ref=f2e725]:
+    - generic [ref=f2e727]:
+      - generic [ref=f2e728]: "In [8]:"
+      - generic [ref=f2e729]: "import functools DURATION_CLASSES = [(\"2-4w\", 28), (\"4-8w\", 56), (\"8-16w\", 112), (\"16-32w\", 224), (\"32-52w\", None)] # upper bound in days, exclusive CLASS_COLOURS = dict(zip([name for name, _ in DURATION_CLASSES], [\"#440154\", \"#3b528b\", \"#21918c\", \"#5ec962\", \"#fde725\"])) # viridis, short to long STOCK_WEIGHTS = {\"count\": (\"count\", \"periods active\"), \"stake\": (\"stake\", \"stake active (AVAX)\")} STOCK_CLASS_SQL = \"CASE \" + \" \".join(f\"WHEN duration_days < {bound} THEN '{name}'\" for name, bound in DURATION_CLASSES if bound) + f\" ELSE '{DURATION_CLASSES[-1][0]}' END\" class ActiveStock(pm.Parameterized): \"\"\"V3: periods active per week, stacked by duration class, per role. An interval sweep in DuckDB: +1 at the start week, -1 the week after the end, cumulative sum per class.\"\"\" weight = pm.Selector(default=\"count\", objects=list(STOCK_WEIGHTS), doc=\"What the height means: the number of periods open, or the stake in them\") share = pm.Boolean(False, doc=\"Each week as shares of that week's total, stacked to 100%\") scope = pm.Tuple(default=None, length=2, allow_None=True, precedence=-1, doc=\"(nodes table, tag) that narrows the validator stock, written by a canvas, None for every node\") summary_validator = pm.String(\"\", constant=True, precedence=-1, doc=\"The validator chart's subtitle: periods or stake active in the last week in view\") summary_delegator = pm.String(\"\", constant=True, precedence=-1, doc=\"The delegator chart's subtitle: periods or stake active in the last week in view\") def __init__(self, db, height=260, **params): super().__init__(**params) self.db = db self.cache = {} self.height = height self.maps = {role: hv.DynamicMap(functools.partial(self.areas, role), streams=[hv.streams.Params(self, parameters=[\"weight\", \"share\", \"scope\"])]) for role in (\"validator\", \"delegator\")} self.last_week = {role: None for role in self.maps} for role in self.maps: self.describe(role) self.param.watch(lambda event: [self.describe(role) for role in self.maps], [\"weight\", \"scope\"]) def on_range(self, role: str, x_range=None, y_range=None): \"\"\"The zoom writes the last week in view, then the subtitle.\"\"\" weeks = week_span(x_range) self.last_week[role] = None if weeks is None else weeks[1] self.describe(role) def describe(self, role: str): \"\"\"What is open in the last week in view, as the chart's subtitle, named by its week: periods or stake, whichever the weight shows. Weeks after today hold only periods already committed, so the week named is the last in view that is not after today.\"\"\" frame = self.stock(role, *(self.scope or (None, None))) if role == \"validator\" else self.stock(role) last = self.last_week[role] cutoff = min(pd.Timestamp.utcnow().tz_localize(None), pd.Timestamp(last) if last is not None else pd.Timestamp.max) rows = frame.loc[:cutoff] row = (rows if len(rows) else frame).iloc[-1] when = f\"in the week of {row.name:%Y-%m-%d}\" text = f\"{int(row['count'].sum()):,} periods active {when}\" if self.weight == \"count\" else f\"{row['stake'].sum() / 1e6:,.1f}M AVAX active {when}\" with pm.edit_constant(self): setattr(self, f\"summary_{role}\", text) def stock(self, role: str, nodes_table: str | None = None, tag=None) -> pd.DataFrame: \"\"\"One row per week from the first start to the last end, one column per class, the count and stake of periods active that week. A period is active in the weeks from its start week through its end week. The sweep gives values only at weeks where something starts or ends, so the frame is forward-filled onto the full weekly grid. Weeks without starts or ends keep the stock.\"\"\" key = (role, nodes_table, tag) if key not in self.cache: kept = f\"AND node_id IN (SELECT node_id FROM {nodes_table})\" if nodes_table else \"\" events = self.db.execute(f\"\"\" WITH p AS ( SELECT stake_avax, {STOCK_CLASS_SQL} AS class, date_trunc('week', start_time)::DATE AS week_on, (date_trunc('week', end_time) + INTERVAL 7 DAY)::DATE AS week_off FROM sp WHERE role = ? AND duration_days > 0 {kept}), e AS (SELECT class, week_on AS week, 1 AS count, stake_avax AS stake FROM p UNION ALL SELECT class, week_off, -1, -stake_avax FROM p) SELECT class, week, sum(sum(count)) OVER (PARTITION BY class ORDER BY week) AS count, sum(sum(stake)) OVER (PARTITION BY class ORDER BY week) AS stake FROM e GROUP BY class, week ORDER BY class, week \"\"\", [role]).df() classes = [name for name, _ in DURATION_CLASSES] if events.empty: # No period at all, as when a box keeps no node: one week of zeros, so the chart still draws its five areas. self.cache[key] = pd.DataFrame(0.0, columns=pd.MultiIndex.from_product([[\"count\", \"stake\"], classes]), index=pd.DatetimeIndex([\"2020-09-07\"], name=\"week\")) else: weeks = pd.date_range(events[\"week\"].min(), events[\"week\"].max(), freq=\"7D\", name=\"week\") pivot = events.pivot(index=\"week\", columns=\"class\", values=[\"count\", \"stake\"]) pivot.index = pd.to_datetime(pivot.index) frame = pivot.reindex(index=weeks).ffill().fillna(0.0).reindex(columns=pd.MultiIndex.from_product([[\"count\", \"stake\"], classes]), fill_value=0.0) # Adding and subtracting the same stakes leaves float residue of about 1e-7 AVAX where the count is zero. A week with no period has no stake. frame[\"stake\"] = frame[\"stake\"].where(frame[\"count\"] > 0, 0.0).clip(lower=0.0).values self.cache[key] = frame return self.cache[key] def areas(self, role: str, **_): \"\"\"Five areas, always, stacked short class at the bottom. The value dimension stays \"stock\" whatever the weight. The validator stock follows the scope a canvas wrote.\"\"\" column, label = STOCK_WEIGHTS[self.weight] frame = (self.stock(role, *(self.scope or (None, None))) if role == \"validator\" else self.stock(role))[column] if self.share: total = frame.sum(axis=1) frame = frame.div(total.where(total > 0), axis=0).fillna(0.0) weeks = frame.index.values.astype(\"datetime64[ns]\") # Plot options sit on each element, not on the stacked overlay: an overlay's own options are dropped when the regime bands are overlaid onto it. # The legend is an overlay option, so chart() sets it on the composed overlay. shared = dict(width=920, height=self.height, xlabel=\"week\", ylabel=\"share of the week's stock\" if self.share else label, title=f\"{role}s active by duration class: {'share' if self.share else label}\", tools=[], active_tools=[\"wheel_zoom\"], line_width=0, alpha=0.9) areas = [hv.Area((weeks, frame[name].values.astype(float)), kdims=[\"week\"], vdims=[\"stock\"], label=name).opts(color=CLASS_COLOURS[name], **shared) for name, _ in DURATION_CLASSES] stacked = list(hv.Area.stack(hv.Overlay(areas)).values()) # The top area's values are the week totals. Its hook fits the vertical axis on every update, from zero, because Bokeh keeps the first range otherwise. # Hover lives on an invisible curve along the top of the stack, not on the areas: an area's patch source holds only x and y, # so tooltips naming the dimensions show nothing. The curve carries the week total and every class, one box per week. classes = [name for name, _ in DURATION_CLASSES] columns = {\"week\": weeks, \"total\": frame.sum(axis=1).values.astype(float), **{name: frame[name].values.astype(float) for name in classes}} fmt = \"{0.0%}\" if self.share else (\"{0,0}\" if self.weight == \"count\" else \"{0,0.0}\") hover = hv.Curve(pd.DataFrame(columns), kdims=[\"week\"], vdims=[\"total\", *classes]).opts( line_alpha=0, tools=[\"hover\"], hover_mode=\"vline\", hover_tooltips=[(\"week\", \"@week{%F}\"), (\"total\", f\"@total{fmt}\"), *[(name, f\"@{{{name}}}{fmt}\") for name in classes]], hover_formatters={\"@week\": \"datetime\"}, show_legend=False) return hv.Overlay([*stacked[:-1], stacked[-1].opts(hooks=[self.fit_y]), hover]) @staticmethod def ceiling(values) -> float: top = float(np.nanmax(values)) if len(values) else 1.0 return (top if top > 0 else 1.0) * 1.04 @classmethod def fit_y(cls, plot, element): end = cls.ceiling(element.dimension_values(\"stock\")) # The toolbar reset restores the reset range and pan stays inside the bounds, so both follow the data too. # Bounds go first: the browser clamps a new end against the bounds it already holds, so a wider end sent before wider bounds is lost. plot.handles[\"y_range\"].bounds = (0, end) plot.handles[\"y_range\"].update(start=0, end=end, reset_start=0, reset_end=end) if plot.handles[\"x_range\"].bounds is None: bound_ranges(plot, element) def chart(self, role: str, *marks): # The zoom reaches the subtitle through the caption: the stacked stock is an overlay, and a range stream on an overlay never fires. chart = lifelines.regime_bands() * self.maps[role] * caption(self, f\"summary_{role}\", on_range=functools.partial(self.on_range, role)) for mark in marks: chart = chart * mark # legend_limit: HoloViews hides the legend of an overlay with more than 25 elements. Nine bands and five areas today, the margin is deliberate. return chart.opts(legend_position=\"top_left\", legend_cols=5, legend_limit=100, active_tools=ACTIVE_TOOLS, hooks=[regime_axis]) def view(self): return pn.Column( pn.Param(self, parameters=[\"weight\", \"share\"], default_layout=pn.Row), pn.pane.HoloViews(self.chart(\"validator\"), linked_axes=False), pn.pane.HoloViews(self.chart(\"delegator\"), linked_axes=False), ) stock = ActiveStock(staking.db) stock.view()"
+    - generic [ref=f2e735]:
+      - generic [ref=f2e736]: "Out[8]:"
+      - generic [ref=f2e740]:
+        - generic [ref=f2e742]:
+          - generic [ref=f2e743]: ActiveStock
+          - generic [ref=f2e746]:
+            - generic [ref=f2e747]:
+              - text: Weight
+              - generic [ref=f2e748] [cursor=pointer]
+            - combobox "Weight" [ref=f2e750]:
+              - option "count" [selected]
+              - option "stake"
+          - generic [ref=f2e751]:
+            - checkbox [ref=f2e752]
+            - text: Share
+        - generic [ref=f2e759]:
+          - generic [ref=f2e761]:
+            - generic [ref=f2e762] [cursor=pointer]: 2-4w
+            - generic [ref=f2e765] [cursor=pointer]: 4-8w
+            - generic [ref=f2e768] [cursor=pointer]: 8-16w
+            - generic [ref=f2e771] [cursor=pointer]: 16-32w
+            - generic [ref=f2e774] [cursor=pointer]: 32-52w
+          - generic [ref=f2e777]:
+            - link "Bokeh 3.9.2" [ref=f2e778] [cursor=pointer]:
+              - /url: https://bokeh.org/
+            - generic "Pan" [ref=f2e779] [cursor=pointer]
+            - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e781] [cursor=pointer]
+            - generic "Wheel Zoom" [ref=f2e784] [cursor=pointer]
+            - generic [ref=f2e787]: ⋯
+        - generic [ref=f2e794]:
+          - generic [ref=f2e796]:
+            - generic [ref=f2e797] [cursor=pointer]: 2-4w
+            - generic [ref=f2e800] [cursor=pointer]: 4-8w
+            - generic [ref=f2e803] [cursor=pointer]: 8-16w
+            - generic [ref=f2e806] [cursor=pointer]: 16-32w
+            - generic [ref=f2e809] [cursor=pointer]: 32-52w
+          - generic [ref=f2e812]:
+            - link "Bokeh 3.9.2" [ref=f2e813] [cursor=pointer]:
+              - /url: https://bokeh.org/
+            - generic "Pan" [ref=f2e814] [cursor=pointer]
+            - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e816] [cursor=pointer]
+            - generic "Wheel Zoom" [ref=f2e819] [cursor=pointer]
+            - generic [ref=f2e822]: ⋯
+  - generic [ref=f2e827]:
+    - heading "What to look for in V3" [level=3] [ref=f2e828]
+    - list [ref=f2e829]:
+      - listitem [ref=f2e830]:
+        - code [ref=f2e831]: T1
+        - text: The validator stock peaked at 2,290 open periods in the week of 2024-05-20 and is 699 in the week of 2026-09-14, the lowest since 2021. Stake peaked at 329 million AVAX in November 2020, when genesis stakes were still open.
+      - listitem [ref=f2e832]:
+        - code [ref=f2e833]: T2
+        - text: Short validator commitments grew from 17% of open periods in September 2021 to about 30% from 2024 on. The full-year class fell from a third to 14% of open periods, and its share of open stake fell from 44% in 2023 to 15% now. Set
+        - code [ref=f2e834]: share
+        - text: to see the bands directly.
+      - listitem [ref=f2e835]:
+        - code [ref=f2e836]: T3
+        - text: "The delegator stock is the 2 to 4 week class: 25% of open delegations in 2021, 88% by 2023, and 81% to 93% since. In stake it is 63% today. That is the two-week delegation product behind"
+        - code [ref=f2e837]: S4
+        - text: ", seen as a stock rather than as arrivals."
+      - listitem [ref=f2e838]:
+        - code [ref=f2e839]: T4
+        - text: Open delegations peaked at 263,626 in June 2024 and are 43,807 now. The delegator stake stock peaked in March 2021 at 102 million AVAX, so the count grew while the money did not.
+      - listitem [ref=f2e840]:
+        - code [ref=f2e841]: T5
+        - text: Switch
+        - code [ref=f2e842]: weight
+        - text: "to stake and the picture reverses for validators: the 16 to 32 week class carried 42% to 54% of open validator stake in 2021 and 2022 with under a fifth of the periods, and the two-week class never carries more than 21%."
+    - paragraph [ref=f2e843]:
+      - text: "The sweep counts a period as open in every week it touches, so a two-week period spans two or three weekly bins. A stock is not a flow: compare with"
+      - code [ref=f2e844]: V2b
+      - text: ", which counts the same periods once, in the week they were accepted."
+  - generic [ref=f2e849]:
+    - heading "V2d Linked canvas" [level=2] [ref=f2e850]
+    - paragraph [ref=f2e851]:
+      - text: "Four charts on one week axis: validator staking periods begun by stake, the same by duration, the lifelines, and the validator active stock by duration class ("
+      - code [ref=f2e852]: V3
+      - text: ). The lifelines rows and the tap read
+      - code [ref=f2e853]: derived.node-table
+      - text: .
+    - table [ref=f2e854]:
+      - rowgroup [ref=f2e855]:
+        - row [ref=f2e856]:
+          - columnheader "Do this" [ref=f2e857]
+          - columnheader "And this happens" [ref=f2e858]
+      - rowgroup [ref=f2e859]:
+        - row [ref=f2e860]:
+          - cell "Zoom or pan any chart" [ref=f2e861]
+          - cell "All four move together in weeks. Each keeps its own vertical axis." [ref=f2e862]
+        - row [ref=f2e863]:
+          - cell "Zoom in on the lifelines" [ref=f2e864]
+          - cell [ref=f2e865]:
+            - text: The rows are binned again for what is in view (
+            - code [ref=f2e866]: V2e
+            - text: ). At full view a row blends about fifteen nodes. Each zoom makes the rows finer until a row is one node. The lifelines subtitle says how many nodes a row holds.
+        - row [ref=f2e867]:
+          - cell "Drag a box on either grid (filter)" [ref=f2e868]
+          - cell [ref=f2e869]:
+            - text: The lifelines and the active stock redraw with the validator nodes the box keeps.
+            - code [ref=f2e870]: Box keeps
+            - text: "chooses between every node with a period in the boxed cells and only the nodes whose first period is there, an arrival cohort. The grid you drew on gets a second caption line, \"filter: weeks, range, rule, keeps N nodes\". The box stays drawn in magenta. A box on the other grid replaces it."
+        - row [ref=f2e871]:
+          - cell "Drag a box on the lifelines (highlight)" [ref=f2e872]
+          - 'cell "The nodes drawn inside it get every one of their periods marked in red on both grids. The lifelines get a second caption line, \"highlight: N nodes, M periods\". A new filter clears the highlight." [ref=f2e873]'
+        - row [ref=f2e874]:
+          - cell "Click without dragging, with box select picked" [ref=f2e875]
+          - cell "The box on that chart clears, and nothing else changes." [ref=f2e876]
+        - row [ref=f2e877]:
+          - cell "Tap a lifeline row, with pan picked (probe)" [ref=f2e878]
+          - cell "The table below lists the row's nodes from the node table. The line above it gives the tapped node's span, days staked, and current streak, and the second table its periods." [ref=f2e879]
+        - row [ref=f2e880]:
+          - cell "Reset, or the toolbar's circular arrow" [ref=f2e881]
+          - cell "Zoom, boxes, marks, and the table all clear." [ref=f2e882]
+        - row [ref=f2e883]:
+          - cell "Read the lines under each title" [ref=f2e884]
+          - 'cell "Line 1 is the chart''s own summary of what is in view: nodes of the population, periods, and the row grain on the lifelines, periods accepted in view on the grids, what is open in the last week in view on the stock, named by its week. It follows every zoom, pan, box, and knob. Line 2 appears only on a chart holding a box and says what that box does. Hover the question mark beside a knob for what it does." [ref=f2e885]'
+    - paragraph [ref=f2e886]: "Pan is the drag tool by default, and the wheel zooms. Pick box select in the toolbar to draw a box, box zoom to zoom by dragging. Lasso is not offered because both grids and the lifelines are images, and a lasso selects points. The network upgrades are named above each frame, on the same nine regimes the validator rewards notebook uses: genesis, apricot as one, then each upgrade by name."
+    - paragraph [ref=f2e887]: "The canvas has three verbs and no others: filter, highlight, and probe, one per gesture. The stock takes no box: the shared week axis is its only dimension, and the zoom already narrows that."
+  - generic [ref=f2e888]:
+    - generic [ref=f2e890]:
+      - generic [ref=f2e891]: "In [9]:"
+      - generic [ref=f2e892]: "BOX_RULES = [\"nodes with a period in the box\", \"nodes whose first period is in the box\"] MARK_LIMIT = 5000 SIDE = 260 ACTIVE_MARK = \"box-select-active\" ACTIVE_MARK_JS = f\"\"\" const tags = cb_obj.tags.filter((tag) => tag !== \"{ACTIVE_MARK}\") if (cb_obj.active) tags.push(\"{ACTIVE_MARK}\") cb_obj.tags = tags \"\"\" BOX_COLOUR = \"#ff00ff\" # boxes are magenta, marked cells are red, and neither is a fee class or a viridis colour RESET_JS = \"\"\" const figures = [] const walk = (model) => { if (model == null) return if (model.type === \"Figure\") { figures.push(model); return } for (const child of (model.children ?? [])) walk(Array.isArray(child) ? child[0] : child) } walk(target) for (const figure of figures) figure.reset.emit() \"\"\" def group(owner, title: str) -> pn.Param: \"\"\"The default Param panel for one object: its title and every knob it declares, stretched to the side column. State parameters carry precedence=-1 in their class, so they never show. Select and input widgets are 300 wide unless told otherwise.\"\"\" shown = [name for name, item in owner.param.objects().items() if name != \"name\" and (item.precedence is None or item.precedence >= 0)] return pn.Param(owner, name=title, width=SIDE, margin=0, widgets={name: {\"sizing_mode\": \"stretch_width\", \"width\": None} for name in shown}) class LinkedCanvas(pm.Parameterized): \"\"\"V2d: arrivals grid, duration grid, and lifelines on one week axis. Three verbs. Filter: a box on either grid keeps validator nodes by the rule in \"Box keeps\", and every chart redraws with them. Highlight: a box on the lifelines marks those nodes' periods on both grids. Probe: a tap on the lifelines lists a row's nodes. A box is described on its own chart on a second caption line. A click without a drag in box select clears that chart's box. One reset clears the zoom, the boxes, and the probe.\"\"\" box_keeps = pm.Selector(default=BOX_RULES[0], objects=BOX_RULES, doc=\"Which validator nodes a box on a grid keeps: every node with at least one period in the boxed cells, or only nodes whose first ever period is there, which is an arrival cohort\") grid_box = pm.Tuple(default=None, length=5, allow_None=True, precedence=-1, doc=\"(axis, week0, week1, low, high) of the box on a grid\") grain = pm.String(default=\"\", precedence=-1, doc=\"How many nodes a lifeline row blends, rewritten when the zoom re-bins\") rows_box = pm.Tuple(default=None, length=4, allow_None=True, precedence=-1, doc=\"(week0, week1, top, bottom) of the box on the lifelines, heights as fractions of the sorted nodes\") def __init__(self, db, **params): super().__init__(**params) self.db = db self.arrivals = ArrivalsGrid(db, select=True, height=240) self.durations = DurationGrid(db, select=True, height=240) self.lifelines = ValidatorLifelines(db, select=True, height=460) self.stock = ActiveStock(db, height=220) self.marks = pd.DataFrame(columns=[\"week\", \"bucket\", \"duration_weeks\"]) self.marked = (0, 0) sources = {\"stake\": self.arrivals.maps[\"validator\"], \"duration\": self.durations.maps[\"validator\"], \"rows\": self.lifelines.raster_map} self.boxes = {name: hv.streams.BoundsXY(source=source, bounds=None) for name, source in sources.items()} self.boxes[\"stake\"].add_subscriber(lambda bounds=None: self.on_grid_box(\"stake\", bounds)) self.boxes[\"duration\"].add_subscriber(lambda bounds=None: self.on_grid_box(\"duration\", bounds)) self.boxes[\"rows\"].add_subscriber(self.on_rows_box) for source in sources.values(): hv.streams.PlotReset(source=source).add_subscriber(self.clear) # A click reaches Python on every chart; it clears that chart's box only while that chart's box select is the drag tool. # Which tool is active lives only in the browser, so remember_tools() mirrors it into the tool's tags, which Bokeh syncs back. self.box_tools = {} self.grid_taps = {axis: hv.streams.Tap(source=sources[axis], x=None, y=None) for axis in (\"stake\", \"duration\")} for axis, stream in self.grid_taps.items(): stream.add_subscriber(lambda x=None, y=None, axis=axis: self.on_click(axis)) self.lifelines.consume_tap = lambda: self.on_click(\"rows\") self.lifelines.param.watch(lambda event: self.param.update(grain=self.lifelines.grain()), [\"visible\", \"cohort\", \"sort_by\"]) self.grain = self.lifelines.grain() # ---------------------------------------------------------------- writers: stream subscribers and one watcher @staticmethod def corners(bounds): x0, y0, x1, y1 = bounds week0, week1 = sorted(pd.Timestamp(v).strftime(\"%Y-%m-%d\") for v in (x0, x1)) low, high = sorted((float(y0), float(y1))) return week0, week1, low, high def on_grid_box(self, axis, bounds=None): if bounds is None: if self.grid_box is not None and self.grid_box[0] == axis: self.apply_grid_box(None) else: week0, week1, low, high = self.corners(bounds) self.apply_grid_box((axis, week0, week1, round(low, 3), round(high, 3))) @pm.depends(\"box_keeps\", watch=True) def reapply(self): self.apply_grid_box(self.grid_box) def apply_grid_box(self, box): \"\"\"The lifelines change first, so everything that reads them after the box is set reads fresh rows. The stock and the lifelines subtitle follow.\"\"\" self.lifelines.cohort = None if box is None else (*box, self.box_keeps) self.set_rows_box(None) self.grid_box = box self.arrivals.box_line = self.durations.box_line = \"\" if box is None: self.stock.scope = None else: axis, week0, week1, low, high = box span = f\"{compact(10 ** low)} to {compact(10 ** (high + 0.1))} AVAX\" if axis == \"stake\" else f\"{max(1, int(np.ceil(low)))} to {min(52, int(np.floor(high)))} weeks\" rule = \"any period\" if self.box_keeps == BOX_RULES[0] else \"first period\" self.lifelines.lanes_frame() self.stock.scope = (self.lifelines.lanes_table, self.lifelines.cohort) # The filter is described on the grid it was drawn on. The lifelines show its effect as their population. owner = self.arrivals if axis == \"stake\" else self.durations owner.box_line = f\"filter: {week0} to {week1}, {span}, {rule}, keeps {self.lifelines.population:,} nodes\" def remember_tools(self, name: str): \"\"\"A hook for a chart's outermost overlay: keeps the figure's box select tool and mirrors whether it is the drag tool into its tags. A tool's `active` exists only in the browser (Bokeh 3.9 has no such Python property), and the toolbar's active_drag keeps its initial value when a person picks another tool. Tags are synced, so a browser callback on the tool's `active` writes the marker.\"\"\" def hook(plot, element): from bokeh.models import BoxSelectTool, CustomJS tool = plot.state.select_one({\"type\": BoxSelectTool}) if tool is None: return self.box_tools[name] = tool if \"change:active\" not in tool.js_property_callbacks: tool.js_property_callbacks = {**tool.js_property_callbacks, \"change:active\": [CustomJS(code=ACTIVE_MARK_JS)]} return hook def on_click(self, name: str) -> bool: \"\"\"A click without a drag while box select is active clears that chart's box and nothing else. True when the click was taken.\"\"\" tool = self.box_tools.get(name) if tool is None or ACTIVE_MARK not in tool.tags: return False self.boxes[name].event(bounds=None) return True def on_rows_box(self, bounds=None): self.set_rows_box(None if bounds is None else bounds) def set_rows_box(self, bounds): if bounds is None: self.marks, self.marked = self.marks.iloc[:0], (0, 0) self.rows_box = None self.lifelines.box_line = \"\" return week0, week1, low, high = self.corners(bounds) low, high = max(0.0, low), min(1.0, high) self.marks, self.marked = self.marked_cells(week0, week1, low, high) self.rows_box = (week0, week1, round(low, 4), round(high, 4)) nodes, periods = self.marked crowded = \" (too many cells to mark, make the box smaller)\" if len(self.marks) > MARK_LIMIT else \"\" # The highlight is described on the lifelines, where it was drawn. self.lifelines.box_line = f\"highlight: {nodes:,} nodes, {periods:,} periods{crowded}\" def clear(self, resetting=None, **_): for stream in self.boxes.values(): stream.event(bounds=None) self.apply_grid_box(None) self.lifelines.probe = None # ---------------------------------------------------------------- data def marked_cells(self, week0, week1, low, high): \"\"\"Grid cells holding a period of the nodes drawn inside the lifelines box: between those heights, with a period overlapping those weeks.\"\"\" nodes = self.lifelines.lanes_at(low, high)[\"node_id\"].tolist() if not nodes: return self.marks.iloc[:0], (0, 0) cells = self.db.execute(\"\"\" WITH chosen AS (SELECT DISTINCT node_id FROM sp WHERE role = 'validator' AND node_id IN (SELECT unnest(?)) AND start_time::DATE <= ?::DATE + 6 AND end_time::DATE >= ?::DATE) SELECT date_trunc('week', accepted_at)::DATE AS week, floor(log10(stake_avax) * 10) / 10 AS bucket, least(greatest(round(duration_days / 7.0), 1), 52)::INTEGER AS duration_weeks, count(*) AS periods, count(DISTINCT node_id) AS nodes FROM sp JOIN chosen USING (node_id) WHERE role = 'validator' AND stake_avax > 0 AND duration_days > 0 GROUP BY 1, 2, 3 \"\"\", [nodes, week1, week0]).df() nodes_marked = int(self.db.execute(\"SELECT count(DISTINCT node_id) FROM sp WHERE role = 'validator' AND node_id IN (SELECT unnest(?)) AND start_time::DATE <= ?::DATE + 6 AND end_time::DATE >= ?::DATE\", [nodes, week1, week0]).fetchone()[0]) return cells, (nodes_marked, int(cells[\"periods\"].sum()) if len(cells) else 0) # ---------------------------------------------------------------- views read def grid_mark(self, axis, grid_box): here = grid_box is not None and grid_box[0] == axis boxes = [(np.datetime64(grid_box[1]), grid_box[3], np.datetime64(grid_box[2]), grid_box[4])] if here else [] return hv.Rectangles(boxes).opts(fill_alpha=0, line_color=BOX_COLOUR, line_width=2) def rows_mark(self, rows_box): boxes = [] if rows_box is None else [(np.datetime64(rows_box[0]), rows_box[2], np.datetime64(rows_box[1]), rows_box[3])] return hv.Rectangles(boxes).opts(fill_alpha=0, line_color=BOX_COLOUR, line_width=2) def cell_marks(self, column, label, rows_box): cells = self.marks[[\"week\", column]].drop_duplicates() if len(cells) > MARK_LIMIT: cells = cells.iloc[:0] frame = pd.DataFrame({\"week\": cells[\"week\"].values.astype(\"datetime64[ns]\"), label: cells[column].astype(float).values}) return hv.Points(frame, kdims=[\"week\", label]).opts(color=\"red\", marker=\"square\", size=4, line_color=\"white\", line_width=0.5) def charts(self): \"\"\"The three charts as one layout, so they share one toolbar and one reset and the dimension \"week\" and nothing else.\"\"\" mine = lambda names: [hv.streams.Params(self, parameters=names)] arrivals = self.arrivals.chart(\"validator\", hv.DynamicMap(functools.partial(self.grid_mark, \"stake\"), streams=mine([\"grid_box\"])), hv.DynamicMap(functools.partial(self.cell_marks, \"bucket\", \"log10 stake\"), streams=mine([\"rows_box\"]))) durations = self.durations.chart(\"validator\", hv.DynamicMap(functools.partial(self.grid_mark, \"duration\"), streams=mine([\"grid_box\"])), hv.DynamicMap(functools.partial(self.cell_marks, \"duration_weeks\", \"duration (weeks)\"), streams=mine([\"rows_box\"]))) lifelines = self.lifelines.chart() * hv.DynamicMap(self.rows_mark, streams=mine([\"rows_box\"])) stock = self.stock.chart(\"validator\") arrivals, durations, lifelines = (chart.opts(active_tools=ACTIVE_TOOLS, hooks=[regime_axis, self.remember_tools(name)]) for chart, name in ((arrivals, \"stake\"), (durations, \"duration\"), (lifelines, \"rows\"))) return (arrivals + durations + lifelines + stock).cols(1).opts(shared_axes=True, toolbar=\"right\") def view(self): charts = pn.pane.HoloViews(self.charts()) button = pn.widgets.Button(name=\"Reset\", button_type=\"warning\", width=80) button.js_on_click(args={\"target\": charts}, code=RESET_JS) button.on_click(lambda event: self.clear()) groups = [group(self, \"Canvas\"), group(self.arrivals, \"Stake grid\"), group(self.durations, \"Duration grid\"), group(self.lifelines, \"Lifelines\"), self.lifelines.legend, group(self.stock, \"Active stock\")] side = pn.Column(button, *groups, width=SIDE, margin=(0, 20, 0, 0)) table = pn.bind(self.lifelines.probe_table, probe=self.lifelines.param.probe) return pn.Column(pn.Row(side, charts), table) canvas = LinkedCanvas(staking.db) canvas.view()"
+    - generic [ref=f2e898]:
+      - generic [ref=f2e899]: "Out[9]:"
+      - generic [ref=f2e903]:
+        - generic [ref=f2e904]:
+          - generic [ref=f2e905]:
+            - button "Reset" [ref=f2e908] [cursor=pointer]
+            - generic [ref=f2e909]:
+              - generic [ref=f2e910]: Canvas
+              - generic [ref=f2e913]:
+                - generic [ref=f2e914]:
+                  - text: Box keeps
+                  - generic [ref=f2e915] [cursor=pointer]
+                - combobox "Box keeps" [ref=f2e917]:
+                  - option "nodes with a period in the box" [selected]
+                  - option "nodes whose first period is in the box"
+            - generic [ref=f2e918]:
+              - generic [ref=f2e919]: Stake grid
+              - generic [ref=f2e922]:
+                - generic [ref=f2e923]:
+                  - text: Color by
+                  - generic [ref=f2e924] [cursor=pointer]
+                - combobox "Color by" [ref=f2e926]:
+                  - option "count" [selected]
+                  - option "median duration"
+                  - option "first-time share"
+            - generic [ref=f2e927]:
+              - generic [ref=f2e928]: Duration grid
+              - generic [ref=f2e931]:
+                - generic [ref=f2e932]:
+                  - text: Color by
+                  - generic [ref=f2e933] [cursor=pointer]
+                - combobox "Color by" [ref=f2e935]:
+                  - option "count" [selected]
+                  - option "total stake"
+                  - option "median stake"
+                  - option "mean stake"
+            - generic [ref=f2e936]:
+              - generic [ref=f2e937]: Lifelines
+              - generic [ref=f2e940]:
+                - generic [ref=f2e941]:
+                  - text: Color by
+                  - generic [ref=f2e942] [cursor=pointer]
+                - combobox "Color by" [ref=f2e944]:
+                  - option "fee class" [selected]
+                  - option "failure"
+                  - option "open period"
+              - generic [ref=f2e946]:
+                - generic [ref=f2e947]:
+                  - text: Sort by
+                  - generic [ref=f2e948] [cursor=pointer]
+                - combobox "Sort by" [ref=f2e950]:
+                  - option "first stake" [selected]
+                  - option "last end"
+                  - option "periods"
+                  - option "stake-days"
+              - generic [ref=f2e952]:
+                - generic [ref=f2e953]:
+                  - text: First stake year
+                  - generic [ref=f2e954] [cursor=pointer]
+                - combobox "First stake year" [ref=f2e956]:
+                  - option "all" [selected]
+                  - option "2020"
+                  - option "2021"
+                  - option "2022"
+                  - option "2023"
+                  - option "2024"
+                  - option "2025"
+                  - option "2026"
+              - generic [ref=f2e957]:
+                - checkbox [ref=f2e958]
+                - text: Active only
+            - generic [ref=f2e959]: ■ 2% ■ 5% ■ other ■ 10 to 20% ■ 100%
+            - generic [ref=f2e962]:
+              - generic [ref=f2e963]: Active stock
+              - generic [ref=f2e966]:
+                - generic [ref=f2e967]:
+                  - text: Weight
+                  - generic [ref=f2e968] [cursor=pointer]
+                - combobox "Weight" [ref=f2e970]:
+                  - option "count" [selected]
+                  - option "stake"
+              - generic [ref=f2e971]:
+                - checkbox [ref=f2e972]
+                - text: Share
+          - generic [ref=f2e973]:
+            - generic [ref=f2e974]:
+              - link "Bokeh 3.9.2" [ref=f2e975] [cursor=pointer]:
+                - /url: https://bokeh.org/
+              - generic "Pan" [ref=f2e976] [cursor=pointer]
+              - generic "Box Zoom (either x, y or both dimensions)" [ref=f2e978] [cursor=pointer]
+              - generic "Box Select" [ref=f2e980] [cursor=pointer]
+              - generic "Wheel Zoom" [ref=f2e983] [cursor=pointer]
+              - generic "Tap" [ref=f2e986] [cursor=pointer]
+              - generic "Save" [ref=f2e989] [cursor=pointer]
+              - generic "Reset" [ref=f2e991] [cursor=pointer]
+              - generic "Hover" [ref=f2e994] [cursor=pointer]
+            - generic [ref=f2e1026]:
+              - generic [ref=f2e1027] [cursor=pointer]: 2-4w
+              - generic [ref=f2e1030] [cursor=pointer]: 4-8w
+              - generic [ref=f2e1033] [cursor=pointer]: 8-16w
+              - generic [ref=f2e1036] [cursor=pointer]: 16-32w
+              - generic [ref=f2e1039] [cursor=pointer]: 32-52w
+        - paragraph [ref=f2e1045]: Tap a row to list the nodes drawn in it and the periods of the node at the tapped height.
+  - generic [ref=f2e1050]:
+    - heading "What to look for in V2d" [level=3] [ref=f2e1051]
+    - paragraph [ref=f2e1052]: Checked in a scripted browser on 2026-09-21. The three week ranges stay equal through a zoom on any chart while the vertical ranges stay apart. A box on the stake grid kept 2,725 of 7,641 nodes, a box on the lifelines marked 512 nodes and 6,130 periods, a tap listed a row, a box on the duration grid replaced the stake box and kept 38 nodes, and both the button and the toolbar reset restored the ranges and cleared boxes, marks, and table. No Panel warnings. A grid box redraws the lifelines in about 50 ms and a lifelines box computes its marks in about 35 ms. A re-bin on zoom takes 10 to 20 ms.
+    - table [ref=f2e1053]:
+      - rowgroup [ref=f2e1054]:
+        - row [ref=f2e1055]:
+          - columnheader "ID" [ref=f2e1056]
+          - columnheader "Observation" [ref=f2e1057]
+      - rowgroup [ref=f2e1058]:
+        - row [ref=f2e1059]:
+          - cell [ref=f2e1060]:
+            - code [ref=f2e1061]: C1
+          - cell [ref=f2e1062]:
+            - text: With
+            - code [ref=f2e1063]: first period in the box
+            - text: "and the lifelines sorted by first stake, a cohort draws as a diagonal front whose slope is the arrival rate. Where the front goes vertical, many nodes joined in the same week: the fleets of"
+            - code [ref=f2e1064]: L7
+            - text: ", isolated by cohort."
+        - row [ref=f2e1065]:
+          - cell [ref=f2e1066]:
+            - code [ref=f2e1067]: C2
+          - cell "The solid block through Cortina and the orange block at Durango are rows with the same start and the same end week. A fleet arrives together, leaves together, and one fee choice colours the whole block." [ref=f2e1068]
+        - row [ref=f2e1069]:
+          - cell [ref=f2e1070]:
+            - code [ref=f2e1071]: C3
+          - cell "Of a 2023 cohort, the rows that reach the dashed today line are a small minority. Retention by cohort is one box away, which is the input a survival curve needs." [ref=f2e1072]
+        - row [ref=f2e1073]:
+          - cell [ref=f2e1074]:
+            - code [ref=f2e1075]: C4
+          - 'cell "Boxing stakes above 20,000 AVAX accepted from mid 2024 to early 2025 shows a red block at the bottom of the lifelines: late arrivals with a 100% delegation fee. Checked against the log: the share of nodes whose latest fee is 100% is 0.6% for nodes that first staked in 2020, 0.7% in 2021, 1.1% in 2022, 2.4% in 2023, 4.5% in 2024, 6.9% in 2025, and 41% of the 205 nodes that first staked in 2026. A node at 100% keeps all of its delegators'' rewards, so it is closed to delegation in practice. The newest validators are increasingly not competing for delegators at all, which matters for any model that treats the fee as a price. Who runs them is a question for the Foundation." [ref=f2e1076]'
+        - row [ref=f2e1077]:
+          - cell [ref=f2e1078]:
+            - code [ref=f2e1079]: C5
+          - 'cell "A lifelines box around one fleet marks a horizontal stripe on the stake grid and a single row on the duration grid: one stake size, one duration, repeated. A box around independent nodes marks a cloud. The marks separate programmed staking from chosen staking at a glance." [ref=f2e1080]'
