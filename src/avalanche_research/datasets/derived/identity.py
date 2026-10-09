@@ -12,8 +12,13 @@ or before the instant. An attribution without an evidence date names nothing. Be
 its date, the groups at an instant are the same whether history is cut there or not, which the truncation test checks.
 That holds because ``replaces`` in the attribution registry means a correction of an annotation, never a dated change of
 owner: ``dated_names`` refuses a replaced AS1 reward-address name that differs from its replacement's. A change of owner
-is a new row with its own evidence date. An address takes the name of its latest dated row by the instant, so a later
-row is a change of owner from its date. Two names dated the same day on one address are both kept, as a conflict.
+is a new row with its own evidence date.
+
+An evidence time with a clock reading is an exact UTC instant. A date alone means public at some moment that UTC day, so
+its name applies only from the end of that day, and nothing is named before its evidence was surely public. An address
+takes the name whose evidence time is the latest by the instant, so a later row is a change of owner from its time. Two
+names whose evidence times cannot be ordered, the same instant or a date alone on the day of another time, are both
+kept as a conflict. Two clock times on one day are ordered, and the later name applies from its instant.
 
 ``edges`` refuses a node with two stakes accepted at the same instant, since its latest addresses would be ambiguous. A
 group with two dated names gets no ``name`` and lists both in ``names``. Group sizes count every node with an edge by
@@ -56,16 +61,28 @@ def edges(validators_parquet: str) -> pd.DataFrame:
     return frame.sort_values(["evidence_at", "transaction_hash", "address"], kind="stable").reset_index(drop=True)
 
 
+def evidence_window(value: str) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """When evidence became public, as naive UTC: one instant for a time of day, the whole UTC day for a date alone."""
+    stamp = pd.Timestamp(value)
+    stamp = (stamp.tz_convert("UTC").tz_localize(None) if stamp.tzinfo else stamp).as_unit("us")
+    if len(value.strip()) == 10:
+        return stamp, stamp + pd.to_timedelta(86_400_000_000 - 1, unit="us")
+    return stamp, stamp
+
+
 def dated_names(attributions_path: Path = ATTRIBUTIONS, events_path: Path = EVENTS) -> pd.DataFrame:
     """AS1 evidence attributions of reward addresses not replaced by a later row, each dated by the earliest identity
-    event that names it."""
+    event that names it: ``named_from`` is the end of its evidence window, from which the name applies, and
+    ``evidence_from`` its start."""
     attributions = json.loads(attributions_path.read_text())["attributions"]
     events = json.loads(events_path.read_text())["events"]
-    dated: dict[str, str] = {}
+    dated: dict[str, tuple[pd.Timestamp, pd.Timestamp]] = {}
     for event in events:
         if event["kind"] == "identity" and event["evidence_public_at"]:
+            window = evidence_window(event["evidence_public_at"])
             for code in event["attributions"]:
-                dated[code] = min(dated.get(code, event["evidence_public_at"]), event["evidence_public_at"])
+                if code not in dated or window[1] < dated[code][1]:
+                    dated[code] = window
     replaced = {row["replaces"] for row in attributions if row["replaces"]}
     by_id = {row["attribution_id"]: row for row in attributions}
     for row in attributions:
@@ -73,11 +90,12 @@ def dated_names(attributions_path: Path = ATTRIBUTIONS, events_path: Path = EVEN
         if old and old["subject_kind"] == "reward-address" and old["tier"] == "AS1" and old["class"] == "EVIDENCE" and old["name"] != row["name"]:
             raise DataError(f"{row['attribution_id']} replaces {old['attribution_id']} with another name: a change of owner needs its own row")
     rows = [{"attribution_id": row["attribution_id"], "address": row["subject"], "name": row["name"],
-             "named_from": pd.Timestamp(dated[row["attribution_id"]]).tz_localize(None) if row["attribution_id"] in dated else None}
+             "named_from": dated[row["attribution_id"]][1] if row["attribution_id"] in dated else None,
+             "evidence_from": dated[row["attribution_id"]][0] if row["attribution_id"] in dated else None}
             for row in attributions
             if row["subject_kind"] == "reward-address" and row["tier"] == "AS1" and row["class"] == "EVIDENCE"
             and row["attribution_id"] not in replaced]
-    return pd.DataFrame(rows, columns=["attribution_id", "address", "name", "named_from"])
+    return pd.DataFrame(rows, columns=["attribution_id", "address", "name", "named_from", "evidence_from"])
 
 
 def utc_naive(at: datetime | str) -> pd.Timestamp:
@@ -96,9 +114,12 @@ def groups(edge_table: pd.DataFrame, at: datetime | str, names: pd.DataFrame | N
     dated: dict[str, set[str]] = {}
     if names is not None:
         known_names = names[names["named_from"].notna() & (names["named_from"] <= at)]
-        latest = known_names[known_names["named_from"] == known_names.groupby("address")["named_from"].transform("max")]
-        for address, name in zip(latest["address"], latest["name"], strict=True):
-            dated.setdefault(address, set()).add(name)
+        starts = known_names["evidence_from"] if "evidence_from" in known_names else known_names["named_from"]
+        known_names = known_names.assign(evidence_from=starts.fillna(known_names["named_from"]))
+        for address, rows in known_names.groupby("address"):
+            latest = rows["named_from"].max()
+            start = rows.loc[rows["named_from"] == latest, "evidence_from"].min()
+            dated[address] = set(rows.loc[rows["named_from"] >= start, "name"])
     known = edge_table[edge_table["evidence_at"] <= at]
     latest = known.groupby("node_id")["evidence_at"].transform("max")
     known = known[known["evidence_at"] == latest]

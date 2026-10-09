@@ -132,3 +132,30 @@ def test_an_address_takes_its_latest_dated_name_and_a_same_day_pair_is_a_conflic
     for order in ((("Fleet", "2022-12-01"), ("Other", "2022-12-01")), (("Other", "2022-12-01"), ("Fleet", "2022-12-01"))):
         row = identity.groups(edges, "2023-06-01", table(*order)).set_index("node_id").loc["D"]
         assert pd.isna(row["name"]) and row["names"] == "Fleet; Other"
+
+
+def test_a_date_alone_names_from_the_end_of_its_day_and_cannot_be_ordered_against_a_time_that_day(tmp_path):
+    attributions = {"attributions": [
+        {"attribution_id": f"X{i}", "subject_kind": "reward-address", "subject": "addr4", "name": name, "tier": "AS1",
+         "class": "EVIDENCE", "replaces": None} for i, name in ((1, "Fleet"), (2, "Buyer"))]}
+    events = {"events": [{"kind": "identity", "attributions": ["X1"], "evidence_public_at": "2022-12-01"},
+                         {"kind": "identity", "attributions": ["X2"], "evidence_public_at": "2022-12-01T17:00:00Z"}]}
+    (tmp_path / "a.json").write_text(json.dumps(attributions))
+    (tmp_path / "e.json").write_text(json.dumps(events))
+    named = identity.dated_names(tmp_path / "a.json", tmp_path / "e.json")
+    edges = identity.edges(write(tmp_path))
+    at = {when: identity.groups(edges, when, named).set_index("node_id").loc["C"] for when in
+          ("2022-12-01 16:00", "2022-12-01 18:00", "2022-12-02 00:00")}
+    assert pd.isna(at["2022-12-01 16:00"]["name"]) and pd.isna(at["2022-12-01 16:00"]["names"])
+    assert at["2022-12-01 18:00"]["name"] == "Buyer"
+    assert pd.isna(at["2022-12-02 00:00"]["name"]) and at["2022-12-02 00:00"]["names"] == "Buyer; Fleet"
+
+
+def test_two_times_on_one_day_are_ordered_by_instant_in_any_order(tmp_path):
+    edges = identity.edges(write(tmp_path))
+    rows = [("X", "2022-12-01 09:00"), ("Y", "2022-12-01 17:00")]
+    for order in (rows, rows[::-1]):
+        named = pd.DataFrame([{"attribution_id": name, "address": "addr4", "name": name, "named_from": pd.Timestamp(at),
+                               "evidence_from": pd.Timestamp(at)} for name, at in order])
+        assert identity.groups(edges, "2022-12-01 12:00", named).set_index("node_id").loc["C", "name"] == "X"
+        assert identity.groups(edges, "2022-12-01 18:00", named).set_index("node_id").loc["C", "name"] == "Y"
