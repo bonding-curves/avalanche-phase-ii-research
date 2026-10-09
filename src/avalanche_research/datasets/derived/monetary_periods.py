@@ -3,8 +3,9 @@
 One row per period from genesis to the ledger's last day, each period running from one activation instant to the next.
 The daily active-stake-to-supply ratios, validators alone and validators with delegators, and the daily total supply are
 observations at each UTC day's close, so a day belongs to the period in force at its close. Issuance is split exactly at
-each activation instant from the reward transactions' own times, using the reward run the ledger itself read, so the
-periods sum to the ledger's issuance to the wei. Burns are captured by UTC day only, except in narrow windows, so a
+each activation instant from the reward transactions' own times, using the reward run the ledger itself read, so each
+period's issuance is an exact sum in nAVAX and the periods add up to the ledger's issuance. The table reports amounts in
+AVAX as floats, so a sum of its rows can differ in the last digits. Burns are captured by UTC day only, except in narrow windows, so a
 day's burns also go to the period in force at its close; the burns of each activation day are reported apart, so their
 size is visible.
 """
