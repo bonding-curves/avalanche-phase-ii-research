@@ -1,4 +1,4 @@
-"""The monetary ledger summarized by network upgrade period: the upgrade-period table the validator study reads (M4).
+"""The monetary ledger summarized by network upgrade period: the upgrade-period table the validator study reads.
 
 One row per period from genesis to the ledger's last day, each period running from one activation instant to the next.
 The daily active-stake-to-supply ratios, validators alone and validators with delegators, and the daily total supply are

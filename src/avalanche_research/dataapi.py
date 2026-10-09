@@ -1,4 +1,4 @@
-"""Moved to ``avalanche_research.sources.dataapi`` at restructure step M2. This name is the same module until M8."""
+"""Moved to ``avalanche_research.sources.dataapi``. This older name is the same module, kept so earlier code still imports."""
 
 from avalanche_research.core.aliases import alias
 

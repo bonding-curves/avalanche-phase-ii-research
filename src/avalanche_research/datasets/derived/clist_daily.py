@@ -2,8 +2,7 @@
 
 It sums the blocks of each complete UTC day into the columns of ``snowflake.c-chain-evm-burn-daily``. The Data API lists
 every block, so a day has no absent or short block. It reads every built block list run together, a block once, so a
-daily capture need only page back two days. The capture of the block list is ``sources.clist``. This module moves to
-``datasets.derived`` at restructure step M4.
+daily capture need only page back two days. The capture of the block list is ``sources.clist``.
 """
 
 from __future__ import annotations

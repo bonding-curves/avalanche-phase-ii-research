@@ -1,8 +1,7 @@
 """``derived.gci-monthly``: one row per month of the Gross Chain Income study, from its captured inputs.
 
 The inputs are the token supplies, the bill rate and DefiLlama's fees captured by ``sources.gci``, the C-Chain burn in
-the monetary ledger, and the AVAX price. ``sources.gci`` describes each input and the income rules. This module moves to
-``datasets.derived`` at restructure step M4.
+the monetary ledger, and the AVAX price. ``sources.gci`` describes each input and the income rules.
 """
 
 from __future__ import annotations

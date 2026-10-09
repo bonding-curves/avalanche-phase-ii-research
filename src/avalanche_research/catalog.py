@@ -1,4 +1,4 @@
-"""Moved to ``avalanche_research.core.catalog`` at restructure step M1. This name is the same module until M8."""
+"""Moved to ``avalanche_research.core.catalog``. This older name is the same module, kept so earlier code still imports."""
 
 from avalanche_research.core.aliases import alias
 

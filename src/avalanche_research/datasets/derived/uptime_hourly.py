@@ -2,7 +2,7 @@
 
 Consecutive daily captures overlap by about six days, so the merged table grows without gaps as long as no two captures
 are more than a window apart, which the check against the previous capture verifies. The capture is
-``sources.builderhub``. This module moves to ``datasets.derived`` at restructure step M4.
+``sources.builderhub``.
 """
 
 from __future__ import annotations

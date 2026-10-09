@@ -166,7 +166,7 @@ def test_snapshots_cannot_be_pinned_and_other_datasets_are_rejected(root, tmp_pa
         helicon.build(helicon.DATASET_ID, tmp_path / "c", tmp_path / "d")
 
 
-# Frozen 2026-09-29 (W215): the modeling lead's Helicon forecast and its naive benchmarks are scored on these bins and
+# Frozen 2026-09-29: the modeling lead's Helicon forecast and its naive benchmarks are scored on these bins and
 # this node_status rule. Changing either invalidates the forecast, so the change must be a new, dated rule, not an edit.
 FROZEN_BINS = (
     ("48h to 7d", 2.0, 7),

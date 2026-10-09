@@ -1,4 +1,4 @@
-"""Moved to ``avalanche_research.domain.protocol`` at restructure step M3. This name is the same module until M8."""
+"""Moved to ``avalanche_research.domain.protocol``. This older name is the same module, kept so earlier code still imports."""
 
 from avalanche_research.core.aliases import alias
 

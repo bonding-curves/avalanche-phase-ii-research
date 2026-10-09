@@ -1,4 +1,4 @@
-"""Moved to ``avalanche_research.datasets.derived.monetary_periods`` at restructure step M4. This name is the same module until M8."""
+"""Moved to ``avalanche_research.datasets.derived.monetary_periods``. This older name is the same module, kept so earlier code still imports."""
 
 from avalanche_research.core.aliases import alias
 

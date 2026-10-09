@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-# The units, the error and the UTC reading are in ``core`` since restructure step M1, and are imported here so the
+# The units, the error and the UTC reading are in ``core``, and are imported here so the
 # old names keep working.
 from ...core.clock import as_utc
 from ...core.errors import ModelError
