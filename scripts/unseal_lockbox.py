@@ -184,15 +184,50 @@ def render_report(template: str, results: dict) -> tuple[str, str | None]:
         return "\n".join(lines) + "\n", reason
 
 
+WRITE_ATTEMPTS = 3
+
+
+def recovery(repo: Path) -> str:
+    return (f"The unseal happened and must not run again. Commit {FOLDER}/receipt.json and report.md on branch "
+            f"{RECEIPT_BRANCH} in {repo} and push it by hand: git -C {repo} push origin {RECEIPT_BRANCH}")
+
+
+def persist(folder: Path, receipt: dict) -> str | None:
+    """Write the local receipt, trying up to WRITE_ATTEMPTS times. Returns None once written, or the last error."""
+    error = None
+    for _ in range(WRITE_ATTEMPTS):
+        try:
+            (folder / "receipt.json").write_bytes(canonical_bytes(receipt))
+            return None
+        except OSError as failure:
+            error = f"{type(failure).__name__}: {failure}"
+    return error
+
+
+def remote_receipt(repo: Path) -> bytes | None:
+    """The receipt as the remote receipt branch holds it, fetched fresh, or None when it cannot be read."""
+    try:
+        git(repo, "fetch", "-q", "origin", RECEIPT_BRANCH)
+        return subprocess.run(["git", "-C", str(repo), "show", f"FETCH_HEAD:{FOLDER}/receipt.json"], capture_output=True,
+                              check=True).stdout
+    except subprocess.CalledProcessError:
+        return None
+
+
 def publish(repo: Path, args: argparse.Namespace, receipt: dict, results: dict) -> dict:
-    """Write the receipt with its recovery steps first, then the report, then commit and push both. The receipt never
-    depends on the report: a template that cannot be filled gives a fallback report and records why. Any failure from
-    here is recorded in the local receipt with the recovery steps, the script exits non-zero, and nothing is scored again."""
+    """Write the receipt with its recovery steps first, then the report, then commit and push both, and confirm the
+    remote branch holds the committed receipt. The receipt never depends on the report: a template that cannot be filled
+    gives a fallback report and records why. Any failure from here is recorded in the local receipt with the recovery
+    steps, the script exits non-zero, and nothing is scored again. When the local receipt cannot be written after
+    WRITE_ATTEMPTS tries, the receipt and its recovery are printed instead. A storage or power loss that also stops the
+    output cannot be recorded here; the remote lock still forbids a second run."""
     folder = repo / FOLDER
-    receipt["published"] = False
-    receipt["recovery"] = (f"The unseal happened and must not run again. Commit {FOLDER}/receipt.json and report.md on branch "
-                           f"{RECEIPT_BRANCH} in {repo} and push it by hand: git -C {repo} push origin {RECEIPT_BRANCH}")
-    (folder / "receipt.json").write_bytes(canonical_bytes(receipt))
+    receipt.update(published=False, recovery=recovery(repo))
+    unwritten = persist(folder, receipt)
+    if unwritten:
+        receipt.update(persisted=False, publish_error=f"the local receipt could not be written: {unwritten}")
+        print(json.dumps(receipt, indent=1, default=str), flush=True)
+        return receipt
     written = [str(FOLDER / "receipt.json")]
     try:
         template = folder / "template.md"
@@ -200,20 +235,24 @@ def publish(repo: Path, args: argparse.Namespace, receipt: dict, results: dict) 
             report, receipt["report_error"] = render_report(template.read_text(), results)
             (folder / "report.md").write_text(report)
             written.append(str(FOLDER / "report.md"))
-        receipt["published"] = True
-        receipt.pop("recovery")
-        (folder / "receipt.json").write_bytes(canonical_bytes(receipt))
+        committed = {key: value for key, value in receipt.items() if key != "recovery"} | {"published": True}
+        (folder / "receipt.json").write_bytes(canonical_bytes(committed))
         git(repo, "switch", "-q", "-c", RECEIPT_BRANCH)
         git(repo, "add", *written)
         git(repo, "commit", "-q", "-m", f"lockbox: receipt of the unseal by {args.runner}")
         git(repo, "push", "-q", "origin", RECEIPT_BRANCH)
+        if remote_receipt(repo) != canonical_bytes(committed):
+            raise RuntimeError("the remote receipt branch does not hold the committed receipt")
+        receipt.clear()
+        receipt.update(committed)
     except Exception as error:  # noqa: BLE001  after the lock every failure is recorded with its recovery, never retried
-        receipt["published"] = False
         stderr = getattr(error, "stderr", None)
-        receipt["publish_error"] = (stderr.strip() if isinstance(stderr, str) and stderr.strip() else f"{type(error).__name__}: {error}")[-300:]
-        receipt["recovery"] = (f"The unseal happened and must not run again. Commit {FOLDER}/receipt.json and report.md on branch "
-                               f"{RECEIPT_BRANCH} in {repo} and push it by hand: git -C {repo} push origin {RECEIPT_BRANCH}")
-        (folder / "receipt.json").write_bytes(canonical_bytes(receipt))
+        receipt.update(published=False, recovery=recovery(repo),
+                       publish_error=(stderr.strip() if isinstance(stderr, str) and stderr.strip() else f"{type(error).__name__}: {error}")[-300:])
+        unwritten = persist(folder, receipt)
+        if unwritten:
+            receipt.update(persisted=False)
+            print(json.dumps(receipt, indent=1, default=str), flush=True)
     return receipt
 
 

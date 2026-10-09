@@ -274,3 +274,45 @@ def test_any_failure_while_publishing_keeps_the_receipt_and_its_recovery(setup, 
     stored = json.loads((repo / unseal.FOLDER / "receipt.json").read_text())
     assert not receipt["published"] and "disk full" in stored["publish_error"] and "must not run again" in stored["recovery"]
     assert len([call for call in sys.modules["lockbox_entry"].CALLS if call[0] is not None]) == 1
+
+
+def failing_receipt_writes(monkeypatch, failures):
+    """Make the first ``failures`` writes of receipt.json raise OSError."""
+    original, count = Path.write_bytes, {"n": 0}
+
+    def write_bytes(self, data):
+        if self.name == "receipt.json" and count["n"] < failures:
+            count["n"] += 1
+            raise OSError("storage unavailable")
+        return original(self, data)
+
+    monkeypatch.setattr(Path, "write_bytes", write_bytes)
+    return count
+
+
+def test_a_transient_first_receipt_write_failure_is_retried_and_the_remote_receipt_is_confirmed(setup, monkeypatch):
+    repo, args = setup
+    failing_receipt_writes(monkeypatch, 1)
+    receipt = unseal.unseal(repo, args)
+    remote = unseal.remote_receipt(repo)
+    assert receipt["published"] and json.loads(remote)["published"] and "recovery" not in json.loads(remote)
+    assert len([call for call in sys.modules["lockbox_entry"].CALLS if call[0] is not None]) == 1
+
+
+def test_a_receipt_that_cannot_be_written_is_printed_with_its_recovery_and_exits_three(setup, monkeypatch, capsys):
+    repo, args = setup
+    failing_receipt_writes(monkeypatch, 10**6)
+    argv = ["unseal", "--repo", str(repo), "--commit", args.commit, "--bundle-hash", args.bundle_hash, "--runner", args.runner,
+            "--witness", args.witness, "--rehearsal", args.rehearsal, "--registry-unsealed-at", args.registry_unsealed_at]
+    assert unseal.main(argv) == 3
+    printed = capsys.readouterr().out
+    assert "must not run again" in printed and "could not be written" in printed and '"persisted": false' in printed
+    assert len([call for call in sys.modules["lockbox_entry"].CALLS if call[0] is not None]) == 1
+
+
+def test_publication_counts_only_when_the_remote_holds_the_committed_receipt(setup, monkeypatch):
+    repo, args = setup
+    monkeypatch.setattr(unseal, "remote_receipt", lambda path: b"another receipt")
+    receipt = unseal.unseal(repo, args)
+    stored = json.loads((repo / unseal.FOLDER / "receipt.json").read_text())
+    assert not receipt["published"] and "remote receipt branch" in stored["publish_error"] and "must not run again" in stored["recovery"]
