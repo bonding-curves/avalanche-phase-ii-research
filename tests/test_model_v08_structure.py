@@ -44,3 +44,24 @@ def test_the_trace_reads_the_released_blocks():
 def test_the_diagram_parses():
     result = subprocess.run(["dot", "-Tsvg"], input=fitted_lifecycle_dot(), capture_output=True, text=True, check=True)
     assert result.stdout.lstrip().startswith("<?xml") and not result.stderr
+
+
+def test_the_released_model_has_no_large_holder_renewal_block():
+    model = tiny_stake_lifecycle()
+    assert model.renewal_large is None and model.large_above_avax is None
+    assert "renewal_large" not in fitted_lifecycle_dot(model)
+
+
+def test_a_state_variable_without_a_place_stops_the_drawing():
+    model = tiny_stake_lifecycle()
+    initial, blocks = model.initial_state, model.blocks
+
+    def with_stock():
+        b = blocks()
+        b[0]["variables"]["unplaced_stock"] = lambda p, s, h, state, signal: ("unplaced_stock", state["unplaced_stock"])
+        return b
+
+    model.initial_state = lambda: {**initial(), "unplaced_stock": 1}
+    model.blocks = with_stock
+    with pytest.raises(KeyError, match="unplaced_stock"):
+        fitted_lifecycle_dot(model)

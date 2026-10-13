@@ -388,9 +388,12 @@ def fitted_lifecycle_dot(model: Any | None = None) -> str:
                 node = BLOCK_NODES[name]
                 if node is not None and stage.name not in reads.setdefault(node, []):
                     reads[node].append(stage.name)
-    ungrouped = sorted({k for s in stages for k in s.reads_state if k not in grouped})
+    daily = [*model.state_variables(), *model.float_variables()]
+    # Every state variable, read by a stage or only by a state update, is a drawn group or a column of the daily table.
+    ungrouped = sorted(({k for s in stages for k in s.reads_state} | set(model.initial_state()) | set(updates))
+                       - set(grouped) - set(daily))
     if ungrouped:
-        raise KeyError(f"stages read state that STATE_GROUPS does not place: {ungrouped}")
+        raise KeyError(f"state that STATE_GROUPS does not place and the daily table does not name: {ungrouped}")
     # Which state group each stage reads, and which stage's output updates each group.
     state_reads = {(grouped[k], s.name) for s in stages for k in s.reads_state if k in grouped}
     state_writes = {(grouped[v], produced_by[k]) for v, u in updates.items() if v in grouped for k in u["reads_signal"]}
@@ -452,7 +455,6 @@ def fitted_lifecycle_dot(model: Any | None = None) -> str:
                            + _small("accepted by the origin, start later;<BR/>fixed, add no issuance in the run"), green, shape="cylinder", style="solid", dashed=True))
     lines.append("  }")
 
-    daily = [*model.state_variables(), *model.float_variables()]
     kpis = [kpi.label for kpi in KPIS.values() if kpi.horizon != "chain only"]
     lines.append(f'  subgraph cluster_out {{ label=<<B>Outputs</B>>; {font}; color="{MUTED}"; style=rounded;')
     lines.append(_node("out:daily", "Daily table, a row per run and day" + _small(_wrapped(daily, 2)), INK))
