@@ -126,6 +126,16 @@ def _identified(values, what: str) -> None:
         raise ValueError(f"{what} has no transaction hash, so it cannot be matched")
 
 
+def _closing_days(values) -> np.ndarray:
+    """Each named operator's closing day as a float, infinite when it does not close (a missing value). A day given is
+    read exactly and must be a whole number within int64, checked before any conversion."""
+    raw = np.asarray(values, dtype=object)
+    missing = np.array([value is None or (isinstance(value, float | np.floating) and np.isnan(value)) for value in raw.tolist()], dtype=bool)
+    days = np.full(len(raw), np.inf)
+    days[~missing] = _whole(raw[~missing], "a named operator's closing day").astype(float)
+    return days
+
+
 def _operators(frame: pd.DataFrame, n_named: int) -> np.ndarray:
     """Each delegation's named operator row, -1 for none, from an ``operator`` column or none."""
     rows = _whole(frame["operator"], "a delegation's operator row") if "operator" in frame else np.full(len(frame), -1, dtype=np.int64)
@@ -200,8 +210,7 @@ class DelegatedLifecycle(FittedLifecycle):
         keys = list(frame["key"])
         if len(set(keys)) != len(keys) or len(set(frame["operator"])) != len(frame):
             raise ValueError("each named operator needs its own name and key")
-        closes = np.asarray(frame["closes_day"], dtype=float)
-        _whole(closes[~np.isnan(closes)], "a named operator's closing day")
+        _closing_days(frame["closes_day"])
         return frame
 
     def _tracked(self) -> list[tuple[int, str]]:
@@ -318,13 +327,12 @@ class DelegatedLifecycle(FittedLifecycle):
         on_later = np.asarray(frame["validator_scheduled"], dtype=bool) if "validator_scheduled" in frame else np.zeros(len(rows), bool)
         if len(rows) and (rows.min() < 0 or (rows >= np.where(on_later, n_later, n_open)).any()):
             raise ValueError("a BENQI validator is not a row of the initial or scheduled commitments")
-        closes = np.asarray(self._named()["closes_day"], dtype=float)
         return DelegationSetup(
             flow=self.delegation_flow, choice=self.delegator_choice, allocation=self.benqi_allocation,
             fee_shares=self.delegation_fee_shares, multiplier=self.delegation_multiplier,
             benqi_keys=_validator_keys(frame) if len(frame) else np.zeros(0, dtype=np.int64),
             terms=self._terms(), batch=self.placement_batch,
-            benqi_operator=self._benqi_row(), closes_days=np.where(np.isnan(closes), np.inf, closes),
+            benqi_operator=self._benqi_row(), closes_days=_closing_days(self._named()["closes_day"]),
         )
 
     def blocks(self):
@@ -540,7 +548,9 @@ def historical_flow(flows: pd.DataFrame, origin: date) -> DelegationFlow:
     if (counts < 0).any() or sum(int(count) for count in counts) > np.iinfo(np.int64).max:
         raise ValueError("delegation starts must be non-negative and their total in range")
     days = pd.date_range(end=pd.Timestamp(origin), periods=FLOW_DAYS, freq="D")
-    started = flows.assign(date_utc=pd.to_datetime(flows["date_utc"]), started=counts).pivot_table(
+    # A date with an offset is read as its UTC day, and one without is UTC already.
+    dates = pd.to_datetime(flows["date_utc"], utc=True).dt.tz_localize(None).dt.normalize()
+    started = flows.assign(date_utc=dates, started=counts).pivot_table(
         index="date_utc", columns="benqi", values="started", aggfunc="sum").reindex(days).fillna(0)
     benqi = _whole(started[True], "a day's BENQI delegation starts") if True in started else np.zeros(FLOW_DAYS, dtype=np.int64)
     others = _whole(started[False], "a day's other delegation starts") if False in started else np.zeros(FLOW_DAYS, dtype=np.int64)

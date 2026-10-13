@@ -844,3 +844,23 @@ def test_a_validators_table_stake_that_differs_from_its_commitment_is_refused(tm
     validators.loc[validators.index[0], "stake_navax"] += 1
     with pytest.raises(ValueError, match="stake"):
         delegation_inputs({**tables, "validators": validators}, periods, ORIGIN, state)
+
+
+@pytest.mark.parametrize("value", [Decimal("5.0000000000000001"), "5.0000000000000001", "5", True])
+def test_a_closing_day_held_as_text_a_fractional_decimal_or_a_boolean_is_refused(value):
+    closing = NAMED.assign(closes_day=np.array([value, np.nan], dtype=object))
+    with pytest.raises(ValueError, match="whole numbers"):
+        run(named(delegation_flow=flowing(), named_operators=closing, timesteps=3, runs=1))
+
+
+def test_a_whole_closing_day_held_as_an_object_and_a_missing_one_are_read_exactly():
+    closing = NAMED.assign(closes_day=np.array([Decimal(5), None], dtype=object))
+    assert named(named_operators=closing)._setup().closes_days.tolist() == [5.0, np.inf]
+
+
+def test_the_flow_reads_dates_with_a_utc_offset_as_the_same_utc_days():
+    naive = pd.DataFrame({"date_utc": [pd.Timestamp(ORIGIN)], "benqi": [False], "started": [10]})
+    aware = naive.assign(date_utc=[pd.Timestamp(ORIGIN, tz="UTC")])
+    shifted = naive.assign(date_utc=[pd.Timestamp(ORIGIN, tz="UTC").tz_convert("Etc/GMT+5")])
+    assert historical_flow(naive, ORIGIN).mean_per_day == historical_flow(aware, ORIGIN).mean_per_day == pytest.approx(10 / 365)
+    assert historical_flow(shifted, ORIGIN).mean_per_day == pytest.approx(10 / 365)
