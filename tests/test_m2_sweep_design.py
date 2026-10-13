@@ -271,7 +271,7 @@ def test_every_design_row_pairs_with_the_chain_rule_run_on_its_own_key_responses
                                    "wrong block", "ordinary response at the stress level", "wrong control response",
                                    "impossible Saltelli column", "zero row off its middle setting",
                                    "Saltelli point twice", "wrong yield label", "wrong Sobol coordinate",
-                                   "hybrid row on another key", "baseline on another model"])
+                                   "hybrid row on another key", "baseline on another model", "negative seed"])
 def test_check_refuses_a_row_whose_settings_or_label_are_wrong(design, plant):
     rows, labels, keys = (list(map(dict, design[0])), [dict(label) for label in design[1]], design[2])
     i = next(n for n, label in enumerate(labels) if label["family"] == "ramp" and label["block"] == "A")
@@ -290,6 +290,11 @@ def test_check_refuses_a_row_whose_settings_or_label_are_wrong(design, plant):
     elif plant == "zero row off its middle setting":
         z = next(n for n, label in enumerate(labels) if label["family"] == "ramp" and label["block"] == "zero")
         rows[z]["mechanism"] = {**rows[z]["mechanism"], "target_min_rate": 0.06}
+    elif plant == "negative seed":
+        for n, row in enumerate(rows):
+            if (row["seed"], row["draw"]) == (rows[i]["seed"], rows[i]["draw"]) and n != i:
+                row["seed"] = -1
+        rows[i]["seed"] = -1
     elif plant == "baseline on another model":
         rows[labels[i]["baseline"]]["model"] = "v0.7"
     elif plant == "hybrid row on another key":

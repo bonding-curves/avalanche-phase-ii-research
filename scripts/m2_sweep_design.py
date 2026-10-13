@@ -313,6 +313,8 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
     pairs = {(row["seed"], row["draw"]) for row in rows}
     if len(pairs) != key_count or len({s for s, _ in pairs}) != key_count or sorted(d for _, d in pairs) != list(range(key_count)):
         raise ValueError("every noise key must have its own seed and its own draw, numbered from draw 0")
+    if any(not (type(seed) is int and type(draw) is int and seed == draw + 1) for seed, draw in pairs):
+        raise ValueError("key number n must be draw n and seed n + 1")
     if len(labels) != len(rows):
         raise ValueError("every row needs one label")
     if len({row["model"] for row in rows}) != 1:
