@@ -56,6 +56,42 @@ def test_an_interrupted_and_resumed_sweep_equals_a_clean_one(tmp_path):
     pd.testing.assert_frame_equal(comparable(runner.read_sweep(tmp_path / "clean")), comparable(runner.read_sweep(tmp_path / "resumed")))
 
 
+@pytest.mark.parametrize("damage", ["changed", "missing_checksum", "wrong_identity"])
+def test_resume_refuses_corrupt_completed_rows_before_simulation(tmp_path, monkeypatch, damage):
+    import hashlib
+
+    rows = list(designs.cartesian({"renewal_probability": [0.2, 0.8]}))
+    model = base()
+    runner.run_sweep(model, rows, tmp_path, VARIABLES, workers=1)
+    path = next(tmp_path.glob("*.parquet"))
+    if damage == "changed":
+        path.write_bytes(path.read_bytes() + b"changed")
+    elif damage == "missing_checksum":
+        path.with_suffix(".sha256").unlink()
+    else:
+        frame = __import__("duckdb").execute("SELECT * FROM read_parquet(?)", [str(path)]).df()
+        frame["row_id"] = "wrong"
+        # A valid Parquet and matching checksum still cannot claim another row's filename.
+        connection = __import__("duckdb").connect()
+        connection.register("frame", frame)
+        connection.execute("COPY frame TO ? (FORMAT parquet)", [str(path)])
+        connection.close()
+        path.with_suffix(".sha256").write_text(hashlib.sha256(path.read_bytes()).hexdigest())
+    monkeypatch.setattr(runner, "ProcessPoolExecutor", lambda *a, **k: pytest.fail("corrupt resume reached simulation"))
+    with pytest.raises(ValueError, match="completed row"):
+        runner.run_sweep(model, rows, tmp_path, VARIABLES, workers=1)
+
+
+def test_resume_refuses_a_different_frozen_design(tmp_path):
+    rows = list(designs.cartesian({"origin": ["2025-04-08"], "renewal_probability": [0.2, 0.8]}))
+    runner.run_design(rows, 2, builder, tmp_path, workers=1)
+    changed = [{**r, "seed": 9} for r in rows]
+    before = (tmp_path / "design.json").read_bytes()
+    with pytest.raises(ValueError, match="different frozen design"):
+        runner.run_design(changed, 2, builder, tmp_path, workers=1)
+    assert (tmp_path / "design.json").read_bytes() == before
+
+
 def test_whole_navax_above_two_to_the_53_stay_exact(tmp_path):
     rows = list(designs.cartesian({"renewal_probability": [1.0]}))
     runner.run_sweep(base(entry_rate_per_day=0.0, initial_days_left=np.array([10, 10, 10, 10])), rows, tmp_path, VARIABLES, workers=1)

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import tempfile
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -72,6 +74,106 @@ class SimQueueTest(unittest.TestCase):
         self.assertEqual([row["kind"] for row in first], ["memory", "disk"])
         self.assertEqual(sim_queue.alerts(self.root, 1000.0, 10.0, at + timedelta(minutes=30)), [])
         self.assertEqual(len(sim_queue.alerts(self.root, 1000.0, 100.0, at + timedelta(hours=1))), 1)
+
+    def bundle_job(self):
+        bundle = self.root / "bundle"
+        bundle.mkdir()
+        design = {"workers": 1, "runs": 1}
+        for stem, filename, body in (("rows", "nested/rows.json", b'[{"seed": 1}]'),
+                                     ("draws", "draws.csv", b"x\n0.25\n")):
+            source = bundle / filename
+            source.parent.mkdir(exist_ok=True)
+            source.write_bytes(body)
+            design[f"{stem}_file"] = filename
+            design[f"{stem}_sha256"] = hashlib.sha256(body).hexdigest()
+        return {**job(workers=1), "design": design, "input_root": str(bundle)}
+
+    def test_queued_design_stages_exact_inputs_from_another_directory(self):
+        frozen = self.bundle_job()
+        incoming = sim_queue.submit(frozen, self.root)
+        clone = self.root / "different-clone"
+        clone.mkdir()
+        (clone / "draws.csv").write_bytes(b"wrong working-directory data")
+
+        def consumer(command, **options):
+            copied = Path(command[-2])
+            design = json.loads(copied.read_text())
+            for stem in ("rows", "draws"):
+                data = (copied.parent / design[f"{stem}_file"]).read_bytes()
+                self.assertEqual(hashlib.sha256(data).hexdigest(), design[f"{stem}_sha256"])
+            self.assertEqual(options["cwd"], clone)
+            return __import__("subprocess").CompletedProcess(command, 0)
+
+        with patch.object(sim_queue, "head_commit", return_value="abc"), patch.object(sim_queue.subprocess, "run", side_effect=consumer):
+            self.assertTrue(sim_queue.run_one(incoming, self.root, clone))
+
+    def test_missing_or_changed_bundle_inputs_fail_before_execution(self):
+        for mode in ("missing", "changed", "unbound", "escape", "malformed"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
+                original_root, self.root = self.root, Path(temporary)
+                try:
+                    frozen = self.bundle_job()
+                    source = Path(frozen["input_root"]) / frozen["design"]["draws_file"]
+                    if mode == "missing":
+                        source.unlink()
+                    elif mode == "changed":
+                        source.write_bytes(b"changed")
+                    elif mode == "unbound":
+                        frozen.pop("input_root")
+                    elif mode == "escape":
+                        frozen["design"]["draws_file"] = "../draws.csv"
+                    else:
+                        frozen["design"]["draws_file"] = 123
+                    incoming = sim_queue.submit(frozen, self.root)
+                    with patch.object(sim_queue, "head_commit", return_value="abc"), patch.object(sim_queue.subprocess, "run") as execute:
+                        self.assertFalse(sim_queue.run_one(incoming, self.root, self.root))
+                        execute.assert_not_called()
+                    failed = json.loads(next((self.root / "failed").glob("*.json")).read_text())
+                    self.assertFalse(failed["ok"])
+                    self.assertIn("reason", failed)
+                finally:
+                    self.root = original_root
+
+    def test_retry_keeps_frozen_inputs_and_refuses_staged_corruption(self):
+        frozen = self.bundle_job()
+        out = self.root / "relocated-output"
+        out.mkdir()
+        copied = sim_queue.stage_design(frozen, out)
+        original = copied.read_bytes()
+        before = (out / "draws.csv").stat().st_mtime_ns
+        self.assertEqual(sim_queue.stage_design(frozen, out), copied)
+        self.assertEqual(copied.read_bytes(), original)
+        self.assertEqual((out / "draws.csv").stat().st_mtime_ns, before)
+        (out / "draws.csv").write_bytes(b"corrupt")
+        with self.assertRaisesRegex(ValueError, "staged draws_file changed"):
+            sim_queue.stage_design(frozen, out)
+        (out / "draws.csv").write_bytes((Path(frozen["input_root"]) / "draws.csv").read_bytes())
+        copied.write_text(json.dumps({**frozen["design"], "runs": 2}))
+        with self.assertRaisesRegex(ValueError, "staged design differs"):
+            sim_queue.stage_design(frozen, out)
+
+    def test_staging_never_follows_a_predictable_temporary_symlink(self):
+        frozen = self.bundle_job()
+        out = self.root / "output"
+        out.mkdir()
+        canary = self.root / "canary"
+        canary.write_bytes(b"keep")
+        (out / "draws.csv.tmp").symlink_to(canary)
+        sim_queue.stage_design(frozen, out)
+        self.assertEqual(canary.read_bytes(), b"keep")
+        self.assertFalse((out / "draws.csv").is_symlink())
+        self.assertEqual((out / "draws.csv").read_bytes(), b"x\n0.25\n")
+
+    def test_an_input_named_like_the_old_design_temporary_file_is_preserved(self):
+        frozen = self.bundle_job()
+        source = Path(frozen["input_root"]) / frozen["design"]["rows_file"]
+        frozen["design"]["rows_file"] = "design-file.tmp"
+        (Path(frozen["input_root"]) / "design-file.tmp").write_bytes(source.read_bytes())
+        out = self.root / "output"
+        out.mkdir()
+        copied = sim_queue.stage_design(frozen, out)
+        self.assertEqual(json.loads(copied.read_text()), frozen["design"])
+        self.assertEqual((out / "design-file.tmp").read_bytes(), source.read_bytes())
 
 
 if __name__ == "__main__":

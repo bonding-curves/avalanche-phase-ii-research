@@ -6,7 +6,9 @@
 
 A job is a JSON file: ``lane``, ``priority`` (P0 contract runs, P1 development scoring and regressions, P2 exploration on
 data before Granite), ``design`` (a sweep design for ``avalanche model sweep``, with ``workers`` set), ``per_worker_mib``
-and ``expected_hours`` from a measured pilot, and an optional ``code_commit``. Jobs wait in ``incoming/``, run from
+and ``expected_hours`` from a measured pilot, and an optional ``code_commit``. Designs with relative rows or draws
+set ``input_root`` to their bundle's absolute directory. The queue verifies and stages those files beside its copied
+design, and refuses changed staged inputs on retry. Jobs wait in ``incoming/``, run from
 ``running/`` and end in ``done/`` or ``failed/``, each with its output folder under ``out/``. The runner is single-file:
 P0 before P1 before P2, oldest first within a class. A job starts only when its workers, the parent and the machine's
 reserve fit in available memory. A job that would still be running when the host's nightly data run starts at 19:30 also
@@ -20,12 +22,14 @@ to post to the team's threads.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -146,6 +150,64 @@ def write_status(root: Path, running: dict | None, note: str) -> None:
     os.replace(temporary, root / "status.json")
 
 
+def atomic_bytes(path: Path, body: bytes) -> None:
+    """Write through a fresh temporary file rather than following a predictable temporary symlink."""
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.", delete=False) as stream:
+        temporary = Path(stream.name)
+        stream.write(body)
+    try:
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def stage_design(job: dict, out: Path) -> Path:
+    """Verify hash-bound rows/draws and preserve the copied design's input paths on every attempt."""
+    design = job["design"]
+    design_path = out / "design-file.json"
+    if design_path.exists() and json.loads(design_path.read_text()) != design:
+        raise ValueError("the staged design differs from the frozen job")
+    for stem in ("rows", "draws"):
+        reference = design.get(f"{stem}_file")
+        if reference is None:
+            continue
+        if not isinstance(reference, str) or not reference:
+            raise ValueError(f"{stem}_file must be a nonempty path string")
+        digest = design.get(f"{stem}_sha256")
+        if not digest:
+            raise ValueError(f"{stem}_file requires {stem}_sha256")
+        source = Path(reference)
+        destination = None
+        if not source.is_absolute():
+            root_reference = job.get("input_root", "")
+            if not isinstance(root_reference, str):
+                raise ValueError("input_root must be an absolute path string")
+            bundle = Path(root_reference)
+            if not bundle.is_absolute():
+                raise ValueError("relative inputs require an absolute input_root")
+            if not source.parts or ".." in source.parts or source.parts[0] in ("design-file.json", "log.txt", "rows"):
+                raise ValueError("relative input paths must stay inside the bundle without reserved output names")
+            destination = out / source
+            source = bundle / source
+            if not source.resolve().is_relative_to(bundle.resolve()):
+                raise ValueError("input resolves outside input_root")
+        body = source.read_bytes()
+        if hashlib.sha256(body).hexdigest() != digest:
+            raise ValueError(f"{stem}_file does not match {stem}_sha256")
+        if destination is not None:
+            if not destination.resolve().is_relative_to(out.resolve()):
+                raise ValueError("staged input resolves outside the job output")
+            if destination.exists():
+                if hashlib.sha256(destination.read_bytes()).hexdigest() != digest:
+                    raise ValueError(f"staged {stem}_file changed; retry refuses to overwrite it")
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                atomic_bytes(destination, body)
+    if not design_path.exists():
+        atomic_bytes(design_path, json.dumps(design, indent=1).encode())
+    return design_path
+
+
 def run_one(path: Path, root: Path, clone: Path) -> bool:
     job = json.loads(path.read_text())
     if path.parent.name == "incoming":
@@ -154,17 +216,20 @@ def run_one(path: Path, root: Path, clone: Path) -> bool:
         path = moved
     out = root / "out" / job["job_id"]
     out.mkdir(parents=True, exist_ok=True)
-    design_path = out / "design-file.json"
-    design_path.write_text(json.dumps(job["design"], indent=1))
     commit = head_commit(clone)
     if job.get("code_commit") and not commit.startswith(job["code_commit"]):
         result = {"ok": False, "reason": f"the runner clone is at {commit[:12]}, not the job's {job['code_commit']}"}
     else:
-        write_status(root, {**job, "started_at": now().isoformat(), "code_commit": commit}, "running")
-        with (out / "log.txt").open("a") as log:
-            proc = subprocess.run(["uv", "run", "-q", "avalanche", "model", "sweep", str(design_path), str(out / "rows")],
-                                  cwd=clone, stdout=log, stderr=subprocess.STDOUT, check=False)
-        result = {"ok": proc.returncode == 0, "returncode": proc.returncode}
+        try:
+            design_path = stage_design(job, out)
+        except (ValueError, OSError) as error:
+            result = {"ok": False, "reason": str(error)}
+        else:
+            write_status(root, {**job, "started_at": now().isoformat(), "code_commit": commit}, "running")
+            with (out / "log.txt").open("a") as log:
+                proc = subprocess.run(["uv", "run", "-q", "avalanche", "model", "sweep", str(design_path), str(out / "rows")],
+                                      cwd=clone, stdout=log, stderr=subprocess.STDOUT, check=False)
+            result = {"ok": proc.returncode == 0, "returncode": proc.returncode}
     finished = {**job, "code_commit": commit, "finished_at": now().isoformat(), **result}
     receipt = out / "rows" / "receipt.json"
     if receipt.is_file():

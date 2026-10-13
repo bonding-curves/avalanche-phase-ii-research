@@ -17,6 +17,7 @@ files as an uninterrupted one. At most ``in_flight`` rows are submitted and not 
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import json
 import multiprocessing
@@ -42,8 +43,19 @@ DAILY = ("active_validators", "active_validator_stake_navax", "supply_navax", "i
 
 
 def finished_ids(out: Path) -> set[str]:
-    """Row ids that already have a complete file under ``out``."""
-    return {path.stem for path in out.glob("*.parquet")}
+    """Row ids with complete, authenticated files. Unauthenticated or changed files refuse resume."""
+    done = set()
+    for path in out.glob("*.parquet"):
+        checksum = path.with_suffix(".sha256")
+        with path.open("rb") as stream:
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        if not checksum.is_file() or checksum.read_text().strip() != digest:
+            raise ValueError(f"completed row {path.stem} is missing its checksum or changed")
+        identity = duckdb.execute("SELECT DISTINCT row_id FROM read_parquet(?)", [str(path)]).fetchall()
+        if identity != [(path.stem,)]:
+            raise ValueError(f"completed row {path.stem} has inconsistent row identity")
+        done.add(path.stem)
+    return done
 
 
 def _init(base_path: str, variables: tuple[str, ...], reducer) -> None:
@@ -124,6 +136,13 @@ def _write(frame: pd.DataFrame, out: Path) -> Path:
         connection.execute(f"COPY frame TO '{tmp}' (FORMAT parquet)")
     finally:
         connection.close()
+    with tmp.open("rb") as stream:
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    checksum = final.with_suffix(".sha256")
+    with tempfile.NamedTemporaryFile(dir=out, prefix=f".{final.stem}.checksum.", delete=False, mode="w") as stream:
+        checksum_tmp = Path(stream.name)
+        stream.write(digest + "\n")
+    os.replace(checksum_tmp, checksum)
     os.replace(tmp, final)
     return final
 
@@ -228,7 +247,10 @@ def _run_groups(groups: dict, bases: dict, rows: list[dict], out: Path, variable
         record["row_ids"] += [row_id(row, base_hash) for row in group]
     record["design_hash"] = design_hash([{"identity": r} for r in record["row_ids"]], "design")
     out.mkdir(parents=True, exist_ok=True)
-    (out / "design.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n")
+    design_path = out / "design.json"
+    if design_path.exists() and json.loads(design_path.read_text()) != record:
+        raise ValueError("the output directory belongs to a different frozen design")
+    design_path.write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n")
     totals = {"design_hash": record["design_hash"], "skipped": 0, "written": 0, "groups": len(groups), "seconds": 0.0,
               "base_specifications": [bases[key]["specification"] for key in groups]}
     for key, group in groups.items():

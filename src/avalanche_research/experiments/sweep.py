@@ -121,11 +121,15 @@ def rows(design: dict) -> list[dict]:
 
 class KpiReducer:
     """One row per run, KPI, horizon and cost level, from each run's daily table after the chain's table to its origin.
-    A measure whose inputs the run does not produce is left out."""
+    By default a measure whose inputs the run does not produce is left out. ``missing='raise'`` refuses it."""
 
-    def __init__(self, chains: dict[str, Any], horizons: list[int], competing_yield: float, operating_costs: dict[str, float]):
+    def __init__(self, chains: dict[str, Any], horizons: list[int], competing_yield: float, operating_costs: dict[str, float],
+                 missing: str = "skip"):
+        if missing not in ("raise", "skip"):
+            raise ValueError("missing is 'raise' or 'skip'")
         self.chains, self.horizons = chains, list(horizons)
         self.competing_yield, self.operating_costs = competing_yield, dict(operating_costs)
+        self.missing = missing
 
     def competing_for(self, row) -> float:
         """The row's own outside yield as a fraction when it sets one, otherwise the design's competing yield."""
@@ -150,7 +154,7 @@ class KpiReducer:
             daily = kpis.run_daily_table(one, origin, chain=chain)
             values = kpis.kpi_table(daily, origin, self.horizons, competing_yield=self.competing_for(row),
                                     operating_costs=self.operating_costs, starting_supply_navax=supply, burn_navax_per_day=burn,
-                                    missing="skip")
+                                    missing=self.missing)
             values.insert(0, "run", int(run_number))
             frames.append(values)
         return pd.concat(frames, ignore_index=True)
@@ -172,7 +176,7 @@ def kpi_reducer(design: dict, pin_file: Path, periods: str) -> KpiReducer | None
         raise DataError(f"pin {pin_file} names no derived.avax-monetary-daily run, which the KPI reducer reads")
     ledger = str(parquet_path("derived.avax-monetary-daily", named["derived.avax-monetary-daily"]))
     chains = {str(origin): kpis.chain_daily_table(periods, ledger, date.fromisoformat(str(origin))) for origin in design["origins"]}
-    return KpiReducer(chains, spec["horizons"], spec["competing_yield"], spec["operating_costs"])
+    return KpiReducer(chains, spec["horizons"], spec["competing_yield"], spec["operating_costs"], spec.get("missing", "skip"))
 
 
 def load_draws(design: dict) -> Any:
