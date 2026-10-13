@@ -480,3 +480,32 @@ def test_rows_sharing_a_seed_and_a_draw_share_their_noise_and_another_draw_diffe
     assert (by_index[0] == by_index[1]).all() and not (by_index[0] == by_index[2]).all()
     with pytest.raises(ValueError, match="draw 5"):
         runner.run_design([{**rows[0], "draw": 5}], 1, sweep.builder(periods, run_name, 1, 30, draws), tmp_path / "bad", workers=1)
+
+
+def test_design_provenance_binds_same_count_row_values_base_and_order(tmp_path, monkeypatch):
+    # Exercise the actual design writer without a trajectory or fit.
+    import json
+
+    def skipped(*args, **kwargs):
+        return {"skipped": 2, "written": 0, "seconds": 0, "parent_peak_mib": 0, "stopped": False}
+
+    monkeypatch.setattr(runner, "_run_pickled", skipped)
+    key = ("2024-03-06", "v0.8-a")
+    rows = [{"origin": key[0], "model": key[1], "seed": 0, "draw": draw} for draw in (0, 1)]
+
+    def written(name, values, base_hash):
+        out = tmp_path / name
+        bases = {key: {"path": out / "unused", "specification_hash": base_hash, "specification": {"origin": key[0]}}}
+        totals = runner._run_groups({key: values}, bases, values, out, (), {})
+        record = json.loads((out / "design.json").read_text())
+        assert totals["design_hash"] == record["design_hash"]
+        return record
+
+    first = written("first", rows, "base-a")
+    replay = written("replay", rows, "base-a")
+    changed = written("changed", [{**row, "seed": 1} for row in rows], "base-a")
+    rebased = written("rebased", rows, "base-b")
+    reordered = written("reordered", rows[::-1], "base-a")
+    assert first == replay
+    assert len({record["design_hash"] for record in (first, changed, rebased, reordered)}) == 4
+    assert first["row_ids"] == reordered["row_ids"][::-1]

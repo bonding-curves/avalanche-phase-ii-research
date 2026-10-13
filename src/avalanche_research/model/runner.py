@@ -225,7 +225,7 @@ def _run_groups(groups: dict, bases: dict, rows: list[dict], out: Path, variable
         base_hash = bases[key]["specification_hash"]
         record["groups"].append({"origin": key[0], "model": key[1], "base_specification": base_hash, "rows": len(group)})
         record["row_ids"] += [row_id(row, base_hash) for row in group]
-    record["design_hash"] = design_hash([{"row_id": r} for r in record["row_ids"]], "design")
+    record["design_hash"] = design_hash([{"identity": r} for r in record["row_ids"]], "design")
     out.mkdir(parents=True, exist_ok=True)
     (out / "design.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n")
     totals = {"design_hash": record["design_hash"], "skipped": 0, "written": 0, "groups": len(groups), "seconds": 0.0,
