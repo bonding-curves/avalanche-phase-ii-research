@@ -80,12 +80,10 @@ DAILY_COLUMNS = (
 STARTED_COLUMNS = frozenset({
     "issued_navax", "issued_all_roles_navax", "started_stake_navax", "started_stake_days_navax", "started_validators",
 })
-NOT_IN_MODEL_YET = {
-    "started_stake_navax": "the model computes the stake of the commitments it starts each day but does not write it",
-    "started_stake_days_navax": "the model computes each started commitment's stake and days but does not write their product",
-    "nakamoto_third_nodes": "the model holds each open commitment's stake but does not write the Nakamoto count",
-    "offered_rate_30d": "the model writes the gap to the chain's rate at the origin's counter, not the rate at each day's counter",
-}
+NOT_IN_MODEL_YET: dict[str, str] = {}
+"""Daily-table columns the model does not write yet, each with the reason a missing-column error gives. Empty since
+the fitted lifecycle and every model built on it write started stake, stake-days, the Nakamoto count and the offered
+rate."""
 
 
 class MissingColumn(ValueError):

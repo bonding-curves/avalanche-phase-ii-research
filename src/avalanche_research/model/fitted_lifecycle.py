@@ -167,11 +167,14 @@ class FittedLifecycle(SimulationModel):
         ("assembly", assembly_stage),
     )
 
+    # The last four outputs were added after golden tables were recorded. A test that compares with a recorded table
+    # leaves them out (tests/test_parts_split.py).
     def state_variables(self):
-        return ["active_validators", "active_validator_stake_navax", "returning_nodes", "supply_navax", "issued_navax"]
+        return ["active_validators", "active_validator_stake_navax", "returning_nodes", "supply_navax", "issued_navax",
+                "started_stake_navax", "nakamoto_third_nodes"]
 
     def float_variables(self):
-        return ["yield_gap_pp"]
+        return ["yield_gap_pp", "started_stake_days_navax", "offered_rate_30d"]
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -196,7 +199,12 @@ class FittedLifecycle(SimulationModel):
             "returning_nodes": len(state["out_stakes"]),
             "supply_navax": int(self.supply0_navax),
             "issued_navax": 0,
+            "started_stake_navax": 0,
+            "nakamoto_third_nodes": nakamoto_third_nodes(state["stakes"], state["node_key"]),
             "yield_gap_pp": 0.0,
+            "started_stake_days_navax": 0.0,
+            # The rate at the counter of the day before the origin, which the model does not hold.
+            "offered_rate_30d": float("nan"),
         }
 
     def yield_gap_pp(self, day: date, completed_periods: int) -> float:
@@ -300,7 +308,11 @@ class FittedLifecycle(SimulationModel):
         def s_supply(params, substep, history, state, signal):
             return "supply_navax", state["supply_navax"] + signal["issued_navax"]
 
-        copied = (*COMMITMENT, *OUT, "node_key", "out_node_key", "issued_navax", "yield_gap_pp")
+        def s_nakamoto(params, substep, history, state, signal):
+            return "nakamoto_third_nodes", nakamoto_third_nodes(signal["stakes"], signal["node_key"])
+
+        copied = (*COMMITMENT, *OUT, "node_key", "out_node_key", "issued_navax", "yield_gap_pp",
+                  "started_stake_navax", "started_stake_days_navax", "offered_rate_30d")
         return [{
             "policies": {"lifecycle": p_lifecycle},
             "variables": {
@@ -309,6 +321,7 @@ class FittedLifecycle(SimulationModel):
                 "active_validators": s_count,
                 "active_validator_stake_navax": s_stake,
                 "returning_nodes": s_out,
+                "nakamoto_third_nodes": s_nakamoto,
             },
         }]
 
@@ -320,6 +333,19 @@ class FittedLifecycle(SimulationModel):
             ("supply within the cap", lambda s: s["supply_navax"] <= 720_000_000 * 10**9),
             ("stake within supply", lambda s: s["active_validator_stake_navax"] <= s["supply_navax"]),
         ]
+
+
+def nakamoto_third_nodes(stakes: np.ndarray, keys: np.ndarray) -> int:
+    """The fewest nodes whose open stake together exceeds one third of all open stake, each node's commitments summed
+    by its key. Zero when nothing is open."""
+    stakes, keys = np.asarray(stakes, dtype=np.int64), np.asarray(keys)
+    if not len(stakes):
+        return 0
+    nodes, inverse = np.unique(keys, return_inverse=True)
+    held = np.zeros(len(nodes), dtype=np.int64)
+    np.add.at(held, inverse, stakes)
+    running = np.cumsum(np.sort(held)[::-1])
+    return int(np.argmax(3 * running > running[-1])) + 1
 
 
 def _continuation_tables(moves: pd.DataFrame, first: pd.DataFrame, stake_edges: tuple[float, ...],

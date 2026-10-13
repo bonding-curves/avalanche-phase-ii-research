@@ -87,21 +87,33 @@ def run_stages(stages: tuple[tuple[str, Stage], ...], state: Mapping[str, Any], 
     return outputs[stages[-1][0]]
 
 
+OFFERED_RATE_DAYS = 30
+"""The duration whose annual rate the run writes each day as ``offered_rate_30d``."""
+
+
 def rewards_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> dict:
-    """The rewards minted for every commitment started today, priced by the reward rule at the day's supply."""
+    """The rewards minted for every commitment started today, priced by the reward rule at the day's supply, with the
+    started commitments' stake and stake-days and the annual rate the rule offers a 30-day stake with no tenure at that
+    supply. The scheduled commitments due today are not started here, so none of these counts them."""
     started = earlier["continuation"]["started"]
     mechanism = day.settings.mechanism
     issued = sum(
         mechanism.potential_reward_navax(int(stake), int(d) * 86_400, state["supply_navax"], day.start, int(periods))
         for stake, d, periods in zip(started["stakes"], started["days"], started["done"])
     )
-    return {"issued_navax": int(issued)}
+    return {
+        "issued_navax": int(issued),
+        "started_stake_navax": int(sum(int(stake) for stake in started["stakes"])),
+        "started_stake_days_navax": float(sum(int(stake) * int(d) for stake, d in zip(started["stakes"], started["days"]))),
+        "offered_rate_30d": float(mechanism.annual_rate(OFFERED_RATE_DAYS, int(state["supply_navax"]), day.start)),
+    }
 
 
 def assembly_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> dict:
     """The next state's commitments and nodes out of the set. Open commitments that do not end today stay, followed by
     those started today and the scheduled ones due today. A node out of the set stays out until it returns or its 365
-    days pass, followed by the nodes whose commitment ended today without renewal."""
+    days pass, followed by the nodes whose commitment ended today without renewal. The rewards stage's outputs pass
+    through."""
     renewal, returns, started = earlier["renewal"], earlier["returns"], earlier["continuation"]["started"]
     days_left, ending, ended, renews = renewal["days_left"], renewal["ending"], renewal["ended"], renewal["renews"]
     out_days, comes_back = returns["out_days"], returns["comes_back"]
@@ -125,6 +137,6 @@ def assembly_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dic
         "out_last_days": np.concatenate([state["out_last_days"][stay_out], ended["days"][left]]),
         "out_returns": np.concatenate([state["out_returns"][stay_out], ended["returns"][left]]),
         "out_node_key": np.concatenate([state["out_node_key"][stay_out], ended["node_key"][left]]),
-        "issued_navax": earlier["rewards"]["issued_navax"],
+        **earlier["rewards"],
         "yield_gap_pp": float(day.renewal_gap),
     }

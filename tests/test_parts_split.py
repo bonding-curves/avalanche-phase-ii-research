@@ -9,6 +9,7 @@ Three settings were added after the recording: the fitted menu and the outside y
 the behaviour responses count from. They change the specification hash, so its expected value is the one the recorded
 code gives with those settings added at their defaults. The table carries every setting as a column and the
 specification hash, so the table is compared with those three columns dropped and the hash it was recorded with.
+Four daily outputs for the KPIs were added after the recording as well, so the comparison leaves them out too.
 """
 
 import hashlib
@@ -110,10 +111,17 @@ ADDED_SETTINGS = ["fitted_menu", "outside_yield_pp", "fitted_outside_yield_pp"]
 RECORDED_MODEL_VERSION = "0.7.0"
 
 
+# Daily outputs added after the tables were recorded, for the KPIs: two state variables, which are rows of the table,
+# and two float variables, which are columns. They add to the table and change none of the recorded values.
+ADDED_VARIABLES = ["started_stake_navax", "nakamoto_third_nodes"]
+ADDED_FLOAT_VARIABLES = ["started_stake_days_navax", "offered_rate_30d"]
+
+
 def as_recorded(table: pd.DataFrame, specification_hash: str) -> pd.DataFrame:
-    """The table as the recorded code wrote it: without the settings added since, with its specification hash and the
-    model version it was recorded under."""
-    return table.drop(columns=ADDED_SETTINGS).assign(specification=specification_hash, model_version=RECORDED_MODEL_VERSION)
+    """The table as the recorded code wrote it: without the settings and outputs added since, with its specification
+    hash and the model version it was recorded under."""
+    kept = table[~table["variable"].isin(ADDED_VARIABLES)].drop(columns=ADDED_SETTINGS + ADDED_FLOAT_VARIABLES)
+    return kept.assign(specification=specification_hash, model_version=RECORDED_MODEL_VERSION)
 
 
 def table_sha256(table: pd.DataFrame) -> str:
