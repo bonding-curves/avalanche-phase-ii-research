@@ -2,7 +2,7 @@
 
 This folder holds the staking model of the Primary Network. A **model** here is a subclass of `SimulationModel` that declares every setting as a Param parameter with bounds and steps one UTC day at a time on the cadCAD engine. Its inputs are measured from the staking-period log before a forecast **origin**, the last observed day, so the days after the origin test it.
 
-Two model versions live here. **v0.7** is the released model, `ValidatorLifecycle` in `lifecycle.py`, tagged `model-v0.7.0` at commit `087484b`. **v0.8** is a candidate, not yet released, `FittedLifecycle` in `fitted_lifecycle.py`, whose behaviour is fitted to the chain. `MODEL_VERSION` in `__init__.py` names the released version, `0.7.0`.
+Two model versions live here. **v0.7**, `ValidatorLifecycle` in `lifecycle.py`, is tagged `model-v0.7.0` at commit `087484b`. **v0.8.0** is the released model, tagged `model-v0.8.0`: `FittedLifecycle` in `fitted_lifecycle.py` with its behaviour fitted to the chain, through `StakeLifecycle` in `stake_lifecycle.py`. It is the variant `v0.8.0` in `variants.py`: candidate a, the stake hurdle in `parts/stake_choice.py`, and the return hazard on each node's own history in `parts/return_hazard.py`, with every other fitted parameter drawn once per run and the stake hurdle at its point estimate. `MODEL_VERSION` in `__init__.py` names the released version, `0.8.0`.
 
 ## Main files
 

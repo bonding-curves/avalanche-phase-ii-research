@@ -54,6 +54,9 @@ It builds one candidate on v0.8-a by the stake lifecycle's switch, with and with
   redraws per run and the hurdle stays at its fitted point estimate, labelled "stake hurdle not resampled".
 * ``v0.8-a stake return``: v0.8-a stake with the logit return hazard on the node's own history as well.
 
+``v0.8.0`` is the released model, the same build as ``v0.8-a stake return u``: candidate a with the stake hurdle and
+the return hazard on the node's own history, every other fitted parameter drawn once per run.
+
 And it builds one model with delegations, outside the development scores:
 
 * ``v0.8.1 stub``: :class:`~avalanche_research.model.delegated_lifecycle.DelegatedLifecycle` on v0.8's inputs, with
@@ -285,6 +288,9 @@ VARIANTS: dict[str, Variant] = {
                 _stake_on(RETURN_HISTORY, with_draws=False)),
         Variant("v0.8-a stake return u", StakeLifecycle,
                 "v0.8-a stake return with one draw of every other fitted parameter per run; the stake hurdle is not resampled",
+                _stake_on(RETURN_HISTORY, with_draws=True)),
+        Variant("v0.8.0", StakeLifecycle,
+                "the released v0.8.0: v0.8-a stake return with one draw of every other fitted parameter per run",
                 _stake_on(RETURN_HISTORY, with_draws=True)),
         Variant("v0.8.1 stub", DelegatedLifecycle,
                 "v0.8 with delegations: the open and scheduled ones at the origin, a flow at the year's rate, and placeholder choices",

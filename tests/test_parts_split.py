@@ -106,9 +106,14 @@ def small_lifecycle():
 ADDED_SETTINGS = ["fitted_menu", "outside_yield_pp", "fitted_outside_yield_pp"]
 
 
+# The golden tables were recorded while MODEL_VERSION read 0.7.0. The version names a release, not behaviour.
+RECORDED_MODEL_VERSION = "0.7.0"
+
+
 def as_recorded(table: pd.DataFrame, specification_hash: str) -> pd.DataFrame:
-    """The table as the recorded code wrote it: without the settings added since, and with its specification hash."""
-    return table.drop(columns=ADDED_SETTINGS).assign(specification=specification_hash)
+    """The table as the recorded code wrote it: without the settings added since, with its specification hash and the
+    model version it was recorded under."""
+    return table.drop(columns=ADDED_SETTINGS).assign(specification=specification_hash, model_version=RECORDED_MODEL_VERSION)
 
 
 def table_sha256(table: pd.DataFrame) -> str:

@@ -79,4 +79,4 @@ def test_long_table_names_the_model_version():
     events = pd.DataFrame({"date_utc": [date(2021, 1, 1)], "d_validator_stake": [5], "d_delegated_stake": [0],
                            "d_validators": [1], "d_delegations": [0], "rewards_paid": [0]})
     table = run(Replay(events=events))
-    assert set(table["model_version"]) == {MODEL_VERSION} == {"0.7.0"}
+    assert set(table["model_version"]) == {MODEL_VERSION} == {"0.8.0"}
