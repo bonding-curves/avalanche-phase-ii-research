@@ -1,9 +1,12 @@
 """A sweep from a design file: rows, base models built from pinned data, the row runner, and the sweep's receipt.
 
-v0, unreviewed. Two commands run it:
+Two commands run it:
 
     avalanche model sweep DESIGN OUT [--pin PIN]
-    avalanche model run PIN OUT --origin 2025-04-08 [--model v0.8] [--runs 20] [--timesteps 180] [--seed 0]
+    avalanche model run PIN OUT --origin 2025-04-08 [--model v0.8.0] [--runs 20] [--timesteps 180] [--seed 0]
+
+``model run`` runs the released model, ``RELEASED_MODEL`` in ``avalanche_research.model``, unless ``--model`` names
+another variant.
 
 The design file is JSON:
 
@@ -14,7 +17,9 @@ The design file is JSON:
 - ``generator``: ``cartesian``, crossing every ``levels`` list, or ``sobol`` with ``bounds`` (name to low and high),
   ``m`` (2^m points) and ``design_seed``. A level named ``seed`` sets each row's random seed. Other levels are model
   settings.
-- ``origins``: model origin days, each before the validation lockbox. ``models``: names from ``MODELS``.
+- ``origins``: model origin days, each before the validation lockbox. ``models``: variant names from
+  ``VARIANTS`` in ``avalanche_research.model.variants``, such as ``v0.8.0``, ``v0.8`` or ``v0.7``. The builder refuses
+  any other name, and ``v0.8.1 stub``.
 - ``rows``: the generator's rows times origins times models, stated so a wrong design stops before anything runs.
 - ``pin``: a pin file (below). ``--pin`` on the command replaces it.
 - ``runs`` per row, ``timesteps`` in days, and ``workers``: a number, or ``auto`` to size the pool from free memory at
@@ -65,7 +70,6 @@ from . import receipt
 # 1,222 MiB at 5 runs and 2,092 MiB at 20, fitted as a base plus a per-run cost. RG1-V10 had 409 MiB at 5 runs without
 # the fitted inputs, so this base is the safer default until a sweep's own pilot replaces it.
 PILOT_BASE_MIB, PILOT_PER_RUN_MIB = 931.9, 58.0
-MODELS = ("v0.7", "v0.8", "v0.8 separate")
 
 
 def builder(periods: str, run_name: str, runs: int, timesteps: int, draws: Any = None) -> Callable[[Any, str], SimulationModel]:

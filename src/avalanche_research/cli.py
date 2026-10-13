@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -53,8 +54,8 @@ from . import validators_api
 from . import weeks
 from . import yields
 from .catalog import DataError, canonical_bytes, load_catalog, now
+from .model import MODEL_VERSION, RELEASED_MODEL, protocol
 from .model import backtest as model_backtest
-from .model import protocol
 from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 
 
@@ -148,8 +149,35 @@ def finish(result: dict[str, Any], as_json: bool) -> None:
         raise click.exceptions.Exit(1)
 
 
+def code_commit() -> str:
+    """The commit of the git checkout this package's source is tracked in, marked when tracked files under src differ
+    from it, or "unknown" outside a checkout."""
+    package = Path(__file__).resolve().parent
+
+    def git(*arguments: str) -> str:
+        return subprocess.run(["git", *arguments], cwd=package, check=True, capture_output=True, text=True,
+                              timeout=5).stdout.strip()
+    try:
+        git("ls-files", "--error-unmatch", "--", Path(__file__).name)
+        commit = git("rev-parse", "HEAD")
+        modified = git("status", "--porcelain", "--untracked-files=no", "--", ":/src")
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+    return f"{commit} (modified)" if modified else commit
+
+
+def show_version(context: click.Context, parameter: click.Parameter, value: bool) -> None:
+    if not value or context.resilient_parsing:
+        return
+    click.echo(f"avalanche-phase-ii-research {__version__}")
+    click.echo(f"released model {RELEASED_MODEL} (model version {MODEL_VERSION})")
+    click.echo(f"code commit {code_commit()}")
+    context.exit()
+
+
 @click.group()
-@click.version_option(__version__)
+@click.option("--version", is_flag=True, expose_value=False, is_eager=True, callback=show_version,
+              help="Show the package version, the released model and the code commit, then exit.")
 def cli() -> None:
     """Inspect and reproduce Avalanche Phase II research."""
 
@@ -347,7 +375,7 @@ def manifest(as_json: bool) -> None:
 
 @cli.group()
 def model() -> None:
-    """Inspect and check the source-linked protocol staking model."""
+    """Run, inspect and check the staking model and its source-linked protocol rules."""
 
 
 @model.command("describe")
@@ -397,7 +425,9 @@ def model_reward(stake_avax: float, duration_days: float, start: Any, supply_ava
 @click.option("pin", "--pin", type=click.Path(exists=True, dir_okay=False, path_type=Path), help="Pin file replacing the design's.")
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
 def model_sweep(design: Path, out: Path, pin: Path | None, as_json: bool) -> None:
-    """Run a sweep design file: one Parquet file per row under OUT, and the sweep's receipt beside them. v0."""
+    """Run a sweep design file: one Parquet file per row under OUT, and the sweep's receipt beside them.
+
+    Each name in the design's models must be a registered model variant, such as v0.8.0, the released model."""
     from .experiments import sweep
 
     made = sweep.run(design, out, pin=pin)
@@ -409,14 +439,15 @@ def model_sweep(design: Path, out: Path, pin: Path | None, as_json: bool) -> Non
 @click.argument("pin", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.argument("out", type=click.Path(file_okay=False, path_type=Path))
 @click.option("--origin", required=True, help="Model origin day, before the validation lockbox.")
-@click.option("model_name", "--model", default="v0.8", show_default=True, help="Model name, as in a design's models.")
-@click.option("--runs", type=click.IntRange(min=1), default=20, show_default=True)
+@click.option("model_name", "--model", default=RELEASED_MODEL, show_default=True,
+              help="Model variant name, as in a design's models. The default is the released model; v0.7, v0.8 and the other registered variants also run.")
+@click.option("--runs", type=click.IntRange(min=1), default=20, show_default=True, help="Monte Carlo runs of the scenario.")
 @click.option("--timesteps", type=click.IntRange(min=1), default=180, show_default=True, help="Days simulated.")
-@click.option("--seed", type=click.IntRange(min=0), default=0, show_default=True)
+@click.option("--seed", type=click.IntRange(min=0), default=0, show_default=True, help="Base random seed of the runs.")
 @click.option("--workers", default="auto", show_default=True, help="A number, or auto to size from free memory.")
 @click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
 def model_run(pin: Path, out: Path, origin: str, model_name: str, runs: int, timesteps: int, seed: int, workers: str, as_json: bool) -> None:
-    """Run one scenario from a pin file: one origin, model and seed, written as a one-row sweep under OUT. v0."""
+    """Run one scenario from a pin file: one origin, model and seed, written as a one-row sweep under OUT."""
     from .experiments import sweep
 
     count = workers if workers == "auto" else int(workers)
