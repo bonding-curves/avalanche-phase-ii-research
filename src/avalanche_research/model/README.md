@@ -27,7 +27,7 @@ Each validator on the Primary Network stakes AVAX for a period it chooses, betwe
 
 The model starts from the chain as it stood on an **origin** day: every open commitment, every node that left in the past year, and every commitment accepted but not yet started. It then steps forward one UTC day at a time. Each day it decides which ending commitments renew, which absent nodes return and how many new nodes arrive, and draws each new commitment's duration and stake. It prices each new commitment with the reward design under study, and records the day.
 
-Every decision is a **behaviour block** fitted by likelihood to the decisions validators made in the year before the origin. Nothing after the origin is used to fit the model, so the days after it test the forecast. Every fitted parameter except the stake hurdle is drawn once per run from its uncertainty, so many runs give a distribution, not a single path.
+Every decision is a **behaviour block** fitted by likelihood to the decisions validators made before the origin, mostly in the year before it. The return hazard reads the endings of the two years before it, so that nodes out for up to a year have a full year to come back. Nothing after the origin is used to fit the model, so the days after it test the forecast. Every fitted parameter except the stake hurdle is drawn once per run from its uncertainty, so many runs give a distribution, not a single path.
 
 ## Questions it answers
 
@@ -62,7 +62,7 @@ Every random draw is keyed by its purpose, node and decision count ([`streams.py
 
 | Kind | What | Where it comes from |
 | --- | --- | --- |
-| Fitted before each origin | The renewal logit, the return hazard, the arrival count, the duration moves and the stake hurdle | The staking-period log in the year before the origin, in [`fitted_lifecycle.py`](fitted_lifecycle.py) and [`stake_lifecycle.py`](stake_lifecycle.py) |
+| Fitted before each origin | The renewal logit, the return hazard, the arrival count, the duration moves and the stake hurdle | The staking-period log before the origin: the year before it for every block except the return hazard, which reads the endings of the two years before it. In [`fitted_lifecycle.py`](fitted_lifecycle.py) and [`stake_lifecycle.py`](stake_lifecycle.py) |
 | Drawn once per run | Every fitted parameter except the stake hurdle, from a bootstrap over nodes, plus a renewal shift for drift between windows | `parameter_draws` in [`fitted_lifecycle.py`](fitted_lifecycle.py) |
 | Swept | The renewal and entry responses to the reward rate, and the outside yield a validator could earn instead | History before Helicon does not identify the responses, so each is a setting with its source in its metadata |
 | Fixed by the protocol | The reward formula, the supply counter, ACP-285 from Helicon, the admission rules | [`../domain/protocol/`](../domain/protocol/) and [`../mechanisms/`](../mechanisms/) |
@@ -75,7 +75,7 @@ Each candidate was scored at 19 development origins, 200 runs per origin, agains
 
 | Question | Answer | Uncertainty | Evidence | Model revision | Reproduce |
 | --- | --- | --- | --- | --- | --- |
-| Does v0.8.0 forecast validator stake at 90 days better than candidate a? | Yes, by 0.81 in scaled CRPS | One-sided p that it is worse 0.83, over 19 origins | [verdict](../../../results/model-v0.8.0-selection/verdict.json) | `v0.8-a stake return u` against `v0.8-a u` | `uv run --group model python scripts/model_v080_selection.py verdict` |
+| Does v0.8.0 forecast validator stake at 90 days better than candidate a? | Yes, by 0.81 in scaled CRPS | One-sided p that it is worse 0.83, over the 18 origins whose 90-day horizon ends before the held-back period | [verdict](../../../results/model-v0.8.0-selection/verdict.json) | `v0.8-a stake return u` against `v0.8-a u` | `uv run --group model python scripts/model_v080_selection.py verdict` |
 | Is any forecast clearly worse? | No. The largest worsening is active validators at 90 days, +0.04 | p 0.43 against a threshold of 0.05/6 | [cells](../../../results/model-v0.8.0-selection/README.md#the-result) | same | same |
 
 Six other changes were tested by the same rule. The ten stake bands were adopted and then superseded by the stake hurdle. The node's renewal record, a duration transition, uptime, GoGoPool as its own group and large operators were rejected. The [selection evidence](../../../results/model-v0.8.0-selection/README.md#how-it-was-tested) gives each reason. Their runs are not in this repository, so only the final comparison has a reproduce command.

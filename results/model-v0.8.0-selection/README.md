@@ -29,7 +29,9 @@ The rule was fixed on 6 October, before any of these scores existed, and was not
 1. **Event test.** A change must forecast its own decisions better on held-out data before it enters a system test: a lower pooled score, a paired bootstrap p below 0.05 (2,000 replicates), lower at 14 or more of the 19 origins, and a calibration error of at most 0.02.
 2. **System test.** 200 runs per origin at 19 development origins, the five upgrades from Banff to Fortuna and the quarter starts from July 2022 to October 2025. Every input is measured or fitted before each origin, and nothing is fitted after 19 November 2025, when the held-back test period begins. The change is adopted if the mean worsening of the 90-day validator stake score is below 2.2 and no cell is clearly worse.
 
-The adoption order was declared before the scores: each change was tested alone on candidate a, then the adopted changes together.
+The adoption order was declared before the scores: each change was tested alone on candidate a, then the adopted changes together. A horizon that would reach the held-back period is not scored, so the 90-day comparison covers 18 origins and the 180-day one fewer.
+
+This folder holds the system test of the final comparison. The event tests of the stake hurdle and the return hazard, and the scores of the rejected changes, are not in this repository. `verdict` takes the two event tests as passed, as they were, and recomputes only the system test.
 
 | Change | Outcome |
 | --- | --- |
