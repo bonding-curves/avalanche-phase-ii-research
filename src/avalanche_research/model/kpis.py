@@ -229,18 +229,28 @@ def _nonzero(value: float, what: str, origin, horizon: int) -> float:
 # The KPIs.
 
 def issued_navax(daily: pd.DataFrame, origin, horizon: int):
-    """The run's issuance from the day after the origin to the horizon, in nAVAX: the sum ``issuance_saved`` divides,
-    in the column's own type, so one minus a run's over its baseline's is that measure exactly."""
+    """The run's issuance from the day after the origin to the horizon, in nAVAX, in the column's own type: the sum
+    ``issuance_saved`` reads."""
     return _run(daily, origin, horizon, ["issued_navax"])["issued_navax"].sum()
 
 
+def _issued_as_divided(daily: pd.DataFrame, origin, horizon: int) -> float:
+    """``issued_navax`` as the 64-bit float ``issuance_saved`` divides, the value ``kpi_table`` gives."""
+    return float(issued_navax(daily, origin, horizon))
+
+
 def issuance_saved(daily: pd.DataFrame, baseline: pd.DataFrame, origin, horizon: int) -> float:
-    """One minus the run's issuance over the baseline's, from the day after the origin to the horizon."""
-    ours = issued_navax(daily, origin, horizon)
-    theirs = issued_navax(baseline, origin, horizon)
+    """One minus the run's issuance over the baseline's, from the day after the origin to the horizon.
+
+    Both sums are divided as 64-bit floats, the values ``kpi_table`` gives them, so one minus a row's ``issued_navax``
+    over its baseline row's is this measure exactly, whatever the column's type. For an int64 or float column this is how
+    the division already ran. A sum above 2**53 nAVAX rounds by at most one part in 2**53.
+    """
+    ours = _issued_as_divided(daily, origin, horizon)
+    theirs = _issued_as_divided(baseline, origin, horizon)
     if theirs <= 0:
         raise ValueError("the baseline issues nothing over the horizon")
-    return float(1 - ours / theirs)
+    return 1 - ours / theirs
 
 
 def validator_stake_retained(daily: pd.DataFrame, baseline: pd.DataFrame, origin, horizon: int) -> float:
@@ -443,7 +453,8 @@ def kpi_table(daily: pd.DataFrame, origin, horizons: Iterable[int] = HORIZONS, *
     """Every KPI at each horizon, one row per measure, horizon and cost level.
 
     The measures relative to a baseline need ``baseline``, the same run under the chain's rule. Issuance in nAVAX is
-    given with or without one, so issuance saved can be rebuilt from two rows' values. The return margin has
+    given with or without one, as the 64-bit float issuance saved divides, so one minus a row's value over its
+    baseline row's is issuance saved exactly. The return margin has
     one row per entry of ``operating_costs``. The chain's rewards paid, when the table has them, add net inflation on
     rewards paid and the burn-to-issuance ratio. Delegated stake, when present, adds the staking ratio with
     delegations. ``missing="skip"`` leaves out a measure whose column the table lacks instead of raising.
@@ -464,7 +475,7 @@ def kpi_table(daily: pd.DataFrame, origin, horizons: Iterable[int] = HORIZONS, *
 
     paid = "rewards_paid_navax" in daily.columns
     for h in horizons:
-        add("issued_navax", h, issued_navax, daily, origin, h)
+        add("issued_navax", h, _issued_as_divided, daily, origin, h)
         if baseline is not None:
             add("issuance_saved", h, issuance_saved, daily, baseline, origin, h)
             add("validator_stake_retained", h, validator_stake_retained, daily, baseline, origin, h)

@@ -304,7 +304,7 @@ def test_issued_navax_rebuilds_issuance_saved_exactly_with_or_without_a_baseline
     for horizon in kpis.HORIZONS:
         ours, theirs = kpis.issued_navax(daily, ORIGIN, horizon), kpis.issued_navax(baseline, ORIGIN, horizon)
         assert int(ours) == int(daily["issued_navax"].iloc[401:401 + horizon].sum())
-        assert 1 - ours / theirs == kpis.issuance_saved(daily, baseline, ORIGIN, horizon)
+        assert 1 - float(ours) / float(theirs) == kpis.issuance_saved(daily, baseline, ORIGIN, horizon)
     paired = scored(daily, baseline).set_index(["measure", "horizon_days", "cost_level"])["value"]
     alone = kpis.kpi_table(daily, ORIGIN, competing_yield=0.04, operating_costs=COSTS).set_index(
         ["measure", "horizon_days", "cost_level"])["value"]
@@ -315,6 +315,21 @@ def test_issued_navax_rebuilds_issuance_saved_exactly_with_or_without_a_baseline
         key = ("issued_navax", horizon, "")
         assert alone[key] == paired[key]
         assert 1 - alone[key] / chain[key] == paired[("issuance_saved", horizon, "")]
+
+
+def test_issued_navax_rebuilds_issuance_saved_exactly_on_a_column_of_python_integers():
+    # One day of 2**53 + 1 nAVAX, which a 64-bit float cannot hold. The table gives the float the measure divides.
+    days = pd.date_range(pd.Timestamp(ORIGIN), periods=31, freq="D")
+    daily = pd.DataFrame({"issued_navax": pd.Series([0, 2**53 + 1] + [0] * 29, index=days, dtype=object)})
+    baseline = pd.DataFrame({"issued_navax": pd.Series([0, 2**53 + 2] + [0] * 29, index=days, dtype=object)})
+    assert kpis.issued_navax(daily, ORIGIN, 30) == 2**53 + 1
+    score = lambda table, **extra: kpis.kpi_table(table, ORIGIN, [30], competing_yield=0.04, operating_costs=COSTS,
+                                                 missing="skip", **extra)
+    ours, theirs, paired = score(daily), score(baseline), score(daily, baseline=baseline)
+    value = lambda table, measure: table.loc[table["measure"] == measure, "value"].item()
+    assert 1 - value(ours, "issued_navax") / value(theirs, "issued_navax") == value(paired, "issuance_saved")
+    assert value(paired, "issuance_saved") == kpis.issuance_saved(daily, baseline, ORIGIN, 30)
+    assert value(ours, "issued_navax") == float(2**53 + 1)
 
 
 def test_kpi_table_leaves_out_missing_outputs_only_when_asked():
