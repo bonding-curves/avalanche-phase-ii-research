@@ -23,6 +23,9 @@ def test_categorical_calibration_retains_bad_atom_even_with_many_empty_cells():
     assert receipt["atom_ece"] == pytest.approx(.3)
     assert receipt["maximum_cell_ece"] == pytest.approx(.3)
     assert receipt["mean_cell_ece"] == pytest.approx(.6 / 103)
+    assert receipt["atom_predicted_share"] == .8
+    assert receipt["atom_observed_share"] == .5
+    assert receipt["atom_signed_error"] == pytest.approx(.3)
 
 
 def test_paired_bootstrap_keeps_nodes_grouped_and_direction_explicit():

@@ -2,8 +2,9 @@
 
 This point-estimate candidate changes only stakes of new validator commitments.
 The existing continuation supplies duration first. Scheduled commitments retain
-accepted stakes. Parameter draws for other blocks are allowed, but node-resample
-bootstrap draws are refused until stake choices are refitted on the same nodes.
+accepted stakes. The explicit stake_point_estimate setting permits other-block
+and duration bootstrap draws while labelling the stake hurdle as not resampled.
+Without that setting, node-resample draws require a per-run stake refit and refuse.
 """
 from __future__ import annotations
 
@@ -92,6 +93,10 @@ class StakeLifecycle(FittedLifecycle):
     source encodings participate in the specification digest.
     """
     fitted_stake = param.Boolean(default=False, constant=True, metadata={"omit_at_default": True})
+    stake_point_estimate = param.Boolean(
+        default=False, constant=True, metadata={"omit_at_default": True},
+        doc="Allow other-block and duration bootstrap draws while the stake hurdle stays fixed, labelled stake hurdle not resampled",
+    )
     stake_choice = param.ClassSelector(class_=StakeChoice, default=None, allow_None=True, constant=True)
     stake_fit_receipt = param.Dict(default=None, allow_None=True, constant=True)
     stake_fit_sha256 = param.String(default="", constant=True)
@@ -102,7 +107,8 @@ class StakeLifecycle(FittedLifecycle):
             self._check_stake_binding()
             self.stages = tuple((name, self._stake_continuation if name == "continuation" else stage)
                                 for name, stage in FittedLifecycle.stages)
-        elif any(value is not None for value in (self.stake_choice, self.stake_fit_receipt)) or self.stake_fit_sha256:
+        elif (self.stake_point_estimate or any(value is not None for value in (self.stake_choice, self.stake_fit_receipt))
+              or self.stake_fit_sha256):
             raise ValueError("give stake fit inputs only with fitted_stake=True")
 
     def _check_stake_binding(self):
@@ -115,7 +121,7 @@ class StakeLifecycle(FittedLifecycle):
         current = _sha256({"law": stake_law_record(self.stake_choice), "receipt": self.stake_fit_receipt})
         if current != self.stake_fit_sha256:
             raise ValueError("stake law or source receipt changed after its fit: SHA-256 mismatch")
-        if self.draws is not None and "resample_seed" in self.draws.columns:
+        if self.draws is not None and "resample_seed" in self.draws.columns and not self.stake_point_estimate:
             raise ValueError("fitted stake does not yet support resample_seed: refit the stake law on each run's same node resample")
 
     def settings(self):
@@ -139,6 +145,8 @@ class StakeLifecycle(FittedLifecycle):
         else:
             self._check_stake_binding()
             specification["stake_choice"] = stake_law_record(self.stake_choice)
+            if self.stake_point_estimate:
+                specification["stake_uncertainty"] = "stake hurdle not resampled"
         return specification
 
     def blocks(self):
@@ -182,14 +190,21 @@ class StakeLifecycle(FittedLifecycle):
 def build_stake_candidate(periods: str, origin: date, run: str, draws: int = 0, draw_seed: int = 0) -> Prepared:
     """Variant build callable: candidate-a inputs plus the checked stake law.
 
-    This callable supports point-estimate runs only. Other-block draw tables can
-    be supplied to simulation later, but draws requesting the usual node-resample
-    bootstrap are refused explicitly. Registry ownership remains with the caller.
+    With requested draws, every other block and the continuation duration tables
+    follow the standard bootstrap. The stake hurdle stays at its fitted point
+    estimate under an explicit specification setting. Registry ownership remains
+    with the caller.
     """
     from avalanche_research.model.variants import CANDIDATES, Prepared, switched_inputs
 
-    if draws:
-        raise ValueError("stake candidate builder supports point estimates only; node-resampled stake bootstrap is not implemented")
     events = training_events(periods, origin, run)
     inputs = switched_inputs(events, CANDIDATES["v0.8-a"])
-    return Prepared({**inputs, **fitted_stake_settings(stake_decisions(periods, origin, run), origin, run)})
+    stake = fitted_stake_settings(stake_decisions(periods, origin, run), origin, run)
+    if not draws:
+        return Prepared({**inputs, **stake})
+    from avalanche_research.model.fitted_lifecycle import parameter_draws, window_sd
+
+    inputs |= {"moves": events.moves, "first_commitments": events.first_commitments}
+    tau, source = window_sd(periods, origin, inputs["renewal"])
+    return Prepared({**inputs, **stake, "stake_point_estimate": True},
+                    parameter_draws(events, draws, draw_seed, tau, node_record=False), tau, source)

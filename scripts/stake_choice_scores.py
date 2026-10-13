@@ -164,6 +164,9 @@ def calibration(laws, outcome):
     """Report each observable cell and the atom separately, retaining the full vector."""
     values = [expected_calibration_error(laws[:, k], outcome == k) for k in range(103)]
     return {"mean_cell_ece": float(np.mean(values)), "atom_ece": values[0],
+            "atom_predicted_share": float(laws[:, 0].mean()),
+            "atom_observed_share": float(np.mean(outcome == 0)),
+            "atom_signed_error": float(laws[:, 0].mean() - np.mean(outcome == 0)),
             "maximum_cell_ece": max(values), "cell_ece": values}
 
 

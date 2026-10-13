@@ -136,6 +136,42 @@ def test_on_refuses_node_resample_bootstrap_instead_of_freezing_stake_uncertaint
         model_on(draws=pd.DataFrame({"resample_seed": [7, 8]}))
 
 
+def test_explicit_point_estimate_keeps_duration_bootstrap_and_binds_limit(monkeypatch):
+    import avalanche_research.model.fitted_lifecycle as lifecycle
+
+    shared = inputs()
+    shared["moves"] = shared["moves"].assign(node_code=0)
+    shared["first_commitments"] = shared["first_commitments"].assign(node_code=0)
+    draws = pd.DataFrame({"resample_seed": [7, 8], "renewal.intercept": [19., 18.]})
+    seen = []
+
+    def own_tables(moves, first, seed, run_number):
+        seen.append((seed, run_number))
+        return moves.assign(next_days=80), first.assign(days=80)
+
+    monkeypatch.setattr(lifecycle, "resampled_tables", own_tables)
+    model = StakeLifecycle(**shared, **fitted_stake_settings(source_tables(), ORIGIN, "synthetic"),
+                           draws=draws, stake_point_estimate=True)
+    blocks_for = model._blocks_by_run()
+    first, second = blocks_for(1), blocks_for(2)
+    assert seen == [(7, 1), (8, 2)]
+    assert first.renewal.intercept == 19.
+    assert second.renewal.intercept == 18.
+    np.testing.assert_equal(first.continuation.next_days, [80])
+    np.testing.assert_equal(first.first_days, [80])
+    assert model.specification()["stake_point_estimate"] is True
+    assert model.specification()["stake_uncertainty"] == "stake hurdle not resampled"
+    assert step(model)["days"].max() == 80
+
+
+def test_point_estimate_setting_is_explicit_in_digest_and_refuses_disabled_stake():
+    enabled = model_on(stake_point_estimate=True)
+    default = model_on()
+    assert enabled.specification_hash() != default.specification_hash()
+    with pytest.raises(ValueError, match="only with"):
+        StakeLifecycle(**inputs(), stake_point_estimate=True)
+
+
 def test_wrong_fit_origin_and_run_are_refused():
     settings = fitted_stake_settings(source_tables(), ORIGIN, "synthetic")
     changed = inputs()
