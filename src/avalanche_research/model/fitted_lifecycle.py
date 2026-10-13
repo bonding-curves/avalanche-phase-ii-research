@@ -14,6 +14,7 @@ delegations. The yield-gap responses shift renewal and arrivals as in v0.7. Retu
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 
@@ -23,6 +24,7 @@ import pandas as pd
 import param
 from scipy import special
 
+from avalanche_research.core.clock import LOCKBOX_START
 from avalanche_research.mechanisms import ChainReward, RewardMechanism
 from avalanche_research.model.engine import SimulationModel
 from avalanche_research.model.fitted_blocks import (
@@ -545,6 +547,32 @@ def renewal_inputs(endings: pd.DataFrame, node_record: bool = True) -> dict[str,
     return inputs | ({"returns": endings["returns"].to_numpy()} if node_record else {})
 
 
+def _moved(rows: pd.DataFrame, cutoff: int) -> pd.DataFrame:
+    """The rows of :func:`validator_periods` whose node's next commitment, not overlapping them, started after
+    ``cutoff`` less 365 days and by ``cutoff``: the renewals and returns of the year to the cutoff."""
+    overlapped = rows["next_s"].notna() & (rows["next_s"] < rows["e"])
+    return rows[rows["next_s"].notna() & ~overlapped & (rows["next_s"] > cutoff - 365 * US_PER_DAY) & (rows["next_s"] <= cutoff)]
+
+
+def _move_table(moved: pd.DataFrame) -> pd.DataFrame:
+    """The duration and stake before and after each move in rows of :func:`_moved`, with the node."""
+    return pd.DataFrame({
+        "node_id": moved["node_id"].to_numpy(),
+        "previous_days": moved["days"].to_numpy(),
+        "next_days": ((moved["next_e"] - moved["next_s"]) / US_PER_DAY).round().clip(lower=1).astype(np.int64).to_numpy(),
+        "previous_stake_navax": moved["stake_navax"].to_numpy(dtype=np.int64),
+        "next_stake_navax": moved["next_stake"].to_numpy(dtype=np.int64),
+    })
+
+
+def _first_ever(rows: pd.DataFrame, day: int) -> pd.DataFrame:
+    """The rows of :func:`validator_periods` that are a node's first commitment and started in the 365 UTC days to
+    ``day``, that is after the end of ``day`` less 365 days and by the end of ``day``."""
+    enter_day = _whole_days(rows["s"])
+    year = rows[(enter_day > day - 365) & (enter_day <= day)]
+    return year[year["done"] == 0]
+
+
 @dataclass(frozen=True)
 class TrainingEvents:
     """Everything a v0.8 fit reads from the staking periods at one origin, with each node as an integer ``node_code``
@@ -586,19 +614,11 @@ def training_events(periods_parquet: str, origin: date, run: str = "") -> Traini
     came_back = lapsed["next_s"].notna()
     days_out = np.where(came_back, np.ceil((lapsed["next_s"] - lapsed["e"]) / US_PER_DAY), np.floor((cutoff - lapsed["e"]) / US_PER_DAY))
 
-    enter_day = _whole_days(rows["s"])
-    year = rows[(enter_day > day - 365) & (enter_day <= day)]
-    first = year[year["done"] == 0]
+    first = _first_ever(rows, day)
     counts = np.bincount((_whole_days(first["s"]) - (day - 364)).to_numpy(dtype=np.int64), minlength=365)
 
-    moved = rows[rows["next_s"].notna() & ~overlapped & (rows["next_s"] > cutoff - 365 * US_PER_DAY) & (rows["next_s"] <= cutoff)]
-    moves = pd.DataFrame({
-        "node_id": moved["node_id"].to_numpy(),
-        "previous_days": moved["days"].to_numpy(),
-        "next_days": ((moved["next_e"] - moved["next_s"]) / US_PER_DAY).round().clip(lower=1).astype(np.int64).to_numpy(),
-        "previous_stake_navax": moved["stake_navax"].to_numpy(dtype=np.int64),
-        "next_stake_navax": moved["next_stake"].to_numpy(dtype=np.int64),
-    })
+    moved = _moved(rows, cutoff)
+    moves = _move_table(moved)
 
     open_now = rows[rows["e"] > cutoff]
     pending_nodes = set(pending["node_id"])
@@ -655,6 +675,103 @@ def training_events(periods_parquet: str, origin: date, run: str = "") -> Traini
                                         "node_code": code_of(first["node_id"])}),
         state={"initial": initial, "out_of_set": out_of_set, "scheduled": scheduled, "supply0_navax": int(supply)},
     )
+
+
+STAKE_CONTEXTS = ("renewal", "return", "entry")
+STAKE_DECISION_COLUMNS = ("previous_stake_navax", "next_days", "next_stake_navax", "decided_us")
+LOCKBOX_START_US = int(LOCKBOX_START.timestamp()) * 1_000_000
+
+
+def checked_stake_decisions(context: str, table: pd.DataFrame) -> pd.DataFrame:
+    """``table`` if every row lies in the stake model's fit domain and was decided before the lockbox. Otherwise
+    ValueError.
+
+    Stakes are 2,000 to 3,000,000 AVAX in nAVAX, except the previous stake at entry, which is 0. The next duration is
+    a whole number of days from 1 to 365, after the rounding to whole days that ``training_events`` applies. Every
+    decision is before 2025-11-19 16:00 UTC. A row outside these is refused, never dropped. This is the fit's domain,
+    not the protocol's admission rule: a one-day commitment is in the domain although the protocol has refused
+    validator commitments that short. When the table carries a ``sha256`` in its attrs, it must still be the hash of
+    the table's rows, so a table changed after it was built is refused rather than passed with stale provenance.
+    """
+    if context not in STAKE_CONTEXTS:
+        raise ValueError(f"unknown stake decision context {context!r}, expected one of {', '.join(STAKE_CONTEXTS)}")
+    if list(table.columns) != list(STAKE_DECISION_COLUMNS) or not (table.dtypes == np.int64).all():
+        raise ValueError(f"the {context} stake decisions must have the int64 columns {', '.join(STAKE_DECISION_COLUMNS)}, "
+                         f"not {dict(table.dtypes.astype(str))}")
+    low, high = Continuation.MIN_STAKE_NAVAX, Continuation.MAX_STAKE_NAVAX
+
+    def refuse(bad: pd.Series, what: str) -> None:
+        if bad.any():
+            row = table[bad].iloc[0]
+            raise ValueError(f"{int(bad.sum())} {context} stake decisions have {what}, the first {row.to_dict()}")
+
+    previous, days, after = table["previous_stake_navax"], table["next_days"], table["next_stake_navax"]
+    refuse(table["decided_us"] >= LOCKBOX_START_US, "a decision inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
+    if context == "entry":
+        refuse(previous != 0, "a previous stake other than 0, which an entry has")
+    else:
+        refuse((previous < low) | (previous > high), "a previous stake outside 2,000 to 3,000,000 AVAX")
+    refuse((after < low) | (after > high), "a next stake outside 2,000 to 3,000,000 AVAX")
+    refuse((days < 1) | (days > 365), "next days outside 1 to 365")
+    recorded = table.attrs.get("sha256")
+    if recorded is not None and recorded != _stake_digest(table):
+        raise ValueError(f"the {context} stake decisions changed after they were built: their sha256 is no longer {recorded}")
+    return table
+
+
+def _stake_digest(table: pd.DataFrame) -> str:
+    return hashlib.sha256(table.to_csv(index=False).encode()).hexdigest()
+
+
+def _stake_table(context: str, previous, days, after, decided, index, run: str, origin: date, window: str) -> pd.DataFrame:
+    table = pd.DataFrame({
+        "previous_stake_navax": np.asarray(previous, dtype=np.int64), "next_days": np.asarray(days, dtype=np.int64),
+        "next_stake_navax": np.asarray(after, dtype=np.int64), "decided_us": np.asarray(decided, dtype=np.int64),
+    }, index=pd.Index(np.asarray(index, dtype=np.int64)))
+    checked_stake_decisions(context, table)
+    digest = _stake_digest(table)
+    table.attrs = {"context": context, "run": run, "origin": origin.isoformat(), "window": window, "sha256": digest,
+                   "source": f"{run}; origin {origin.isoformat()}; 365 days; sha256 {digest}"}
+    return table
+
+
+def stake_decisions(periods_parquet: str, origin: date, run: str = "") -> dict[str, pd.DataFrame]:
+    """The stake decisions of the 365 days to the origin's end, one table per context: ``"renewal"``, ``"return"`` and
+    ``"entry"``.
+
+    They are the decisions :func:`training_events` reads, from the same staking periods and selection. Renewal and
+    return are its moves, a renewal when the next commitment started within seven days of the last one's end and a
+    return when later. Entry is its first-ever commitments. Each table has the int64 columns ``previous_stake_navax``
+    (0 at entry), ``next_days``, ``next_stake_navax`` and ``decided_us``, the next commitment's start in microseconds
+    UTC. Its index is the row's position in the training events' moves or first-commitments table, so the tables can be
+    checked against it row for row. Its ``attrs`` hold the context, the run, the origin, the window, the SHA-256 of the
+    table as CSV without its index, and a source label naming the three.
+
+    The window is after the origin's end less 365 days, up to and including the origin's end. An origin whose window
+    reaches 2025-11-19 16:00 UTC, and any row that :func:`checked_stake_decisions` refuses, raises ValueError.
+    """
+    cutoff = decided_by_us(origin)
+    if origin >= LOCKBOX_FIRST_DAY or cutoff >= LOCKBOX_START_US:
+        raise ValueError(f"origin {origin} has a window inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
+    rows = validator_periods(periods_parquet, cutoff)
+    moved = _moved(rows, cutoff)
+    moves = _move_table(moved)
+    first = _first_ever(rows, _day(origin))
+    stamp = "%Y-%m-%d %H:%M:%S"
+    opens = pd.Timestamp(cutoff - 365 * US_PER_DAY, unit="us").strftime(stamp)
+    window = f"after {opens} UTC up to and including {pd.Timestamp(cutoff, unit='us').strftime(stamp)} UTC"
+    run = run or "staking periods"
+    renewed = moved["renewed"].to_numpy(dtype=bool)
+    position = np.arange(len(moves), dtype=np.int64)
+    tables = {
+        context: _stake_table(context, moves["previous_stake_navax"][keep], moves["next_days"][keep],
+                              moves["next_stake_navax"][keep], moved["next_s"].to_numpy()[keep], position[keep],
+                              run, origin, window)
+        for context, keep in (("renewal", renewed), ("return", ~renewed))
+    }
+    tables["entry"] = _stake_table("entry", np.zeros(len(first), dtype=np.int64), first["days"], first["stake_navax"],
+                                   first["s"], np.arange(len(first)), run, origin, window)
+    return tables
 
 
 def split_at_line(endings: pd.DataFrame, large_above_avax: float, window: str) -> tuple[pd.DataFrame, pd.DataFrame]:
