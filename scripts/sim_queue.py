@@ -14,7 +14,8 @@ P0 before P1 before P2, oldest first within a class. A job starts only when its 
 reserve fit in available memory. A job that would still be running when the host's nightly data run starts at 19:30 also
 needs that run's measured 6 GB. Nothing is pre-empted mid-run. A job left in ``running/`` by a stop or reboot is run
 again first, and the sweep runner skips its finished rows, so it resumes exactly. ``status.json`` holds the queue, the
-running job and the last finished ones. When available memory falls under the reserve, or free disk under the queue
+running job and the last finished ones. Completed retries verify and reuse the immutable receipt and row files.
+When available memory falls under the reserve, or free disk under the queue
 root under 50 GB, a line goes to ``alerts.jsonl``, at most once an hour for each kind, for the data engineer's wakes
 to post to the team's threads.
 """
@@ -22,8 +23,10 @@ to post to the team's threads.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
+import logging
 import math
 import os
 import shutil
@@ -34,6 +37,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+LOG = logging.getLogger(__name__)
 PRIORITIES = ("P0", "P1", "P2")
 PARENT_MIB = 1024.0
 RESERVE_MIB = 4096.0
@@ -208,7 +212,34 @@ def stage_design(job: dict, out: Path) -> Path:
     return design_path
 
 
+def verify_completed(job: dict, out: Path, commit: str) -> None:
+    """Accept an immutable completed receipt only for this job, source and authenticated row files."""
+    from avalanche_research.experiments import receipt
+    from avalanche_research.model import runner
+
+    rows = out / "rows"
+    made = json.loads((rows / "receipt.json").read_text())
+    if not isinstance(made, dict) or any(not isinstance(made.get(key), dict) for key in ("code", "model", "inputs", "output", "sweep")):
+        raise ValueError("completed receipt must be an object with its required metadata objects")
+    if not isinstance(made.get("conservation"), list) or any(not isinstance(item, dict) for item in made["conservation"]):
+        raise ValueError("completed receipt conservation checks must be a list of objects")
+    findings = receipt.check(made)
+    if findings:
+        raise ValueError("completed receipt refuses: " + "; ".join(findings))
+    if made["code"]["commit"] != commit or made["sweep"].get("design_file") != job["design"]:
+        raise ValueError("completed receipt belongs to a different source or frozen design")
+    if Path(made["output"]["path"]).resolve() != rows.resolve():
+        raise ValueError("completed receipt belongs to a different output directory")
+    record = json.loads((rows / "design.json").read_text())
+    actual = runner.finished_ids(rows)
+    if (len(actual) != job["design"]["rows"] or len(record["row_ids"]) != len(actual)
+            or made["sweep"]["rows_planned"] != len(actual) or actual != set(record["row_ids"])
+            or actual != set(made["sweep"]["files"]) or record["design_hash"] != made["sweep"]["design_hash"]):
+        raise ValueError("completed row identities differ from the frozen design")
+
+
 def run_one(path: Path, root: Path, clone: Path) -> bool:
+    path, root, clone = path.absolute(), root.absolute(), clone.absolute()
     job = json.loads(path.read_text())
     if path.parent.name == "incoming":
         moved = root / "running" / path.name
@@ -225,15 +256,34 @@ def run_one(path: Path, root: Path, clone: Path) -> bool:
         except (ValueError, OSError) as error:
             result = {"ok": False, "reason": str(error)}
         else:
-            write_status(root, {**job, "started_at": now().isoformat(), "code_commit": commit}, "running")
-            with (out / "log.txt").open("a") as log:
-                proc = subprocess.run(["uv", "run", "-q", "avalanche", "model", "sweep", str(design_path), str(out / "rows")],
-                                      cwd=clone, stdout=log, stderr=subprocess.STDOUT, check=False)
-            result = {"ok": proc.returncode == 0, "returncode": proc.returncode}
-    finished = {**job, "code_commit": commit, "finished_at": now().isoformat(), **result}
+            if (out / "rows" / "receipt.json").is_file():
+                try:
+                    with contextlib.chdir(clone):
+                        verify_completed(job, out, commit)
+                except Exception as error:  # A per-job verification failure must not wedge the queue.
+                    LOG.exception("completed job %s failed verification", job["job_id"])
+                    result = {"ok": False, "reason": str(error), "verification_error_type": type(error).__name__}
+                else:
+                    result = {"ok": True, "already_complete": True}
+            else:
+                write_status(root, {**job, "started_at": now().isoformat(), "code_commit": commit}, "running")
+                with (out / "log.txt").open("a") as log:
+                    proc = subprocess.run(["uv", "run", "-q", "avalanche", "model", "sweep", str(design_path), str(out / "rows")],
+                                          cwd=clone, stdout=log, stderr=subprocess.STDOUT, check=False)
+                result = {"ok": proc.returncode == 0, "returncode": proc.returncode}
     receipt = out / "rows" / "receipt.json"
+    receipt_id = None
     if receipt.is_file():
-        finished["receipt_id"] = json.loads(receipt.read_text()).get("receipt_id")
+        try:
+            saved = json.loads(receipt.read_text())
+            if not isinstance(saved, dict):
+                raise TypeError("receipt must be an object")
+            receipt_id = saved.get("receipt_id")
+        except (ValueError, OSError, TypeError) as error:
+            result.update(ok=False, receipt_error=str(error))
+    finished = {**job, "code_commit": commit, "finished_at": now().isoformat(), **result}
+    if receipt_id is not None:
+        finished["receipt_id"] = receipt_id
     (root / ("done" if result["ok"] else "failed") / path.name).write_text(json.dumps(finished, indent=1))
     path.unlink()
     return result["ok"]

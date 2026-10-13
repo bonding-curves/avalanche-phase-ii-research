@@ -175,6 +175,77 @@ class SimQueueTest(unittest.TestCase):
         self.assertEqual(json.loads(copied.read_text()), frozen["design"])
         self.assertEqual((out / "design-file.tmp").read_bytes(), source.read_bytes())
 
+    def test_completed_retry_uses_real_receipt_and_raw_row_checks_without_execution(self):
+        try:
+            import pandas as pd
+
+            from avalanche_research.experiments import receipt
+            from avalanche_research.model import runner
+        except ImportError:
+            self.skipTest("completed-row checks require the model environment")
+
+        for damage in (None, "row", "receipt", "source", "design", "truncated", "null", "bad-code", "no-row-id"):
+            with self.subTest(damage=damage), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                frozen = {**job(workers=1), "job_id": "completed", "design": {"workers": 1, "runs": 1, "rows": 1}}
+                incoming = sim_queue.submit(frozen, root)
+                clone = root / "clone"
+                clone.mkdir()
+                out = root / "out/completed"
+                rows = out / "rows"
+                rows.mkdir(parents=True)
+                spec = {"model": "synthetic"}
+                spec_hash = receipt.specification_hash(spec)
+                frame = pd.DataFrame({"row_id": ["one"], "base_specification": [spec_hash], "value": [2**53 + 1]})
+                parquet = runner._write(frame, rows)
+                pin = clone / "pin.json"
+                pin.write_text('{"schema_version": "avalanche-pins/v1", "name": "empty", "runs": []}')
+                made = receipt.build_sweep(rows, [spec], "design-hash", 1, {"written": 1}, pin, [1], "start", "end",
+                                           code={"commit": "abc", "dirty": False})
+                made["sweep"]["design_file"] = frozen["design"]
+                if damage == "source":
+                    made["code"]["commit"] = "other"
+                elif damage == "design":
+                    made["sweep"]["design_file"] = {**frozen["design"], "runs": 2}
+                made["receipt_id"] = receipt.sha256(receipt.canonical_bytes({k: v for k, v in made.items() if k != "receipt_id"}))[:16]
+                receipt.write(made, rows / "receipt.json")
+                (rows / "design.json").write_text(json.dumps({"row_ids": ["one"], "design_hash": "design-hash"}))
+                if damage == "row":
+                    parquet.write_bytes(parquet.read_bytes() + b"changed")
+                elif damage == "receipt":
+                    made["seeds"] = [2]
+                    (rows / "receipt.json").write_text(json.dumps(made))
+                elif damage == "truncated":
+                    (rows / "receipt.json").write_text('{"receipt_id":')
+                elif damage == "null":
+                    (rows / "receipt.json").write_text('null')
+                elif damage == "bad-code":
+                    made["code"] = None
+                    (rows / "receipt.json").write_text(json.dumps(made))
+                elif damage == "no-row-id":
+                    connection = __import__("duckdb").connect()
+                    connection.register("frame", frame.drop(columns="row_id"))
+                    connection.execute("COPY frame TO ? (FORMAT parquet)", [str(parquet)])
+                    connection.close()
+                    parquet.with_suffix(".sha256").write_text(hashlib.sha256(parquet.read_bytes()).hexdigest())
+                    made["sweep"]["files"]["one"] = receipt.row_file_sha256(parquet)
+                    made["output"]["sha256"] = receipt.sha256(receipt.canonical_bytes(made["sweep"]["files"]))
+                    made["receipt_id"] = receipt.sha256(receipt.canonical_bytes({k: v for k, v in made.items() if k != "receipt_id"}))[:16]
+                    self.assertEqual(receipt.check(made), [])
+                    (rows / "receipt.json").write_text(json.dumps(made))
+                before = (rows / "receipt.json").read_bytes()
+                stamp = parquet.stat().st_mtime_ns
+                with patch.object(sim_queue, "head_commit", return_value="abc"), patch.object(sim_queue.subprocess, "run") as execute:
+                    self.assertEqual(sim_queue.run_one(incoming, root, clone), damage is None)
+                    execute.assert_not_called()
+                self.assertEqual((rows / "receipt.json").read_bytes(), before)
+                self.assertEqual(parquet.stat().st_mtime_ns, stamp)
+                archive = root / ("done" if damage is None else "failed") / incoming.name
+                result = json.loads(archive.read_text())
+                self.assertEqual(result.get("already_complete"), True if damage is None else None)
+                if damage == "no-row-id":
+                    self.assertEqual(result["verification_error_type"], "BinderException")
+
 
 if __name__ == "__main__":
     unittest.main()
