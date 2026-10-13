@@ -29,6 +29,7 @@ from avalanche_research.model.delegation_blocks import (
 from avalanche_research.model.engine import _execute, run
 from avalanche_research.model.fitted_blocks import AVAX, Arrivals, RenewalLogit
 from avalanche_research.model.fitted_lifecycle import FittedLifecycle, training_events
+from avalanche_research.model.operator_events import load, named_operators, owners
 from avalanche_research.model.parts.delegations import limits, on_validators, stake_on
 from avalanche_research.model.variants import DEVELOPMENT_MODELS, VARIANTS, Prepared
 
@@ -339,3 +340,201 @@ def test_the_stub_variant_is_built_from_the_origins_delegation_tables_and_kept_o
     assert inputs["delegation_flow"].mean_per_day == pytest.approx(2 / 365) and inputs["delegation_flow"].benqi_share == 0.5
     assert len(inputs["open_delegations"]) == 2 and len(inputs["scheduled_delegations"]) == 2
     assert wide(run(variant.simulation(Prepared(inputs), seed=0, timesteps=10, runs=1)))["active_delegations"].iloc[-1] >= 3
+
+
+# Named operators from the operator events known at the origin.
+
+EVENTS, ATTRIBUTIONS = load()
+BENQI_KEY = "avax1tnuesf6cqwnjw7fxjyk7lhch0vhf0v95wj5jvy"
+HOLDER = "avax1dwkwval9epuwxpy0g2m6xg2l00fx4yxtzah80t"
+HOLDER_NAME = "mainnet genesis allocation holder"
+
+
+def named_at(origin, events=EVENTS, attributions=ATTRIBUTIONS):
+    return named_operators(origin, events, attributions)
+
+
+def closes_at(origin, events=EVENTS):
+    operators = named_at(origin, events).operators
+    return {name: day for name, day in zip(operators["operator"], operators["closes_on"]) if day is not None}
+
+
+def test_an_operator_is_named_only_from_the_end_of_the_instant_or_day_its_evidence_was_public():
+    # The genesis allocation's evidence is a date alone, so it is surely public only from the end of 10 September 2020.
+    assert named_at(date(2020, 9, 10)).operators.empty
+    assert named_at(date(2020, 9, 11)).operators["operator"].tolist() == [HOLDER_NAME]
+    # BENQI's key is named at 12:22:21 on 26 January 2022, inside that origin day, and its reward owner the next day.
+    before, on, after = named_at(date(2022, 1, 25)), named_at(date(2022, 1, 26)), named_at(date(2022, 1, 27))
+    assert before.row("BENQI") == -1 and on.row("BENQI") >= 0
+    assert on.addresses.set_index("address").loc[BENQI_KEY, "named_from"] == pd.Timestamp("2022-01-26 12:22:21")
+    assert len(on.addresses[on.addresses["operator"] == "BENQI"]) == 1
+    assert len(after.addresses[after.addresses["operator"] == "BENQI"]) == 2
+    latest = named_at(date(2025, 10, 1))
+    assert latest.operators[["operator", "key"]].values.tolist() == [
+        ["BENQI", "benqi"], ["GoGoPool (Hypha)", "gogopool_hypha"], [HOLDER_NAME, "mainnet_genesis_allocation_holder"]]
+
+
+def test_a_closure_is_scheduled_only_once_its_evidence_was_public_and_record_only_events_never():
+    # GoGoPool's end of support, 15 August 2026, can be shown only from 29 September 2026, a date alone.
+    assert closes_at(date(2025, 10, 1)) == closes_at(date(2026, 9, 29)) == {}
+    assert closes_at(date(2026, 9, 30)) == {"GoGoPool (Hypha)": date(2026, 8, 15)}
+    table = named_at(date(2026, 9, 30)).model_table().set_index("operator")["closes_day"]
+    assert table["GoGoPool (Hypha)"] == -46 and np.isnan(table["BENQI"])
+    # The 2025 fleet ends had no public evidence before they happened, so no origin reads them, even as shutdowns.
+    record_only = [event for event in EVENTS if event["forecast_use"] == "record-only"]
+    assert record_only and all(event["evidence_public_at"] is None for event in record_only)
+    shut = [dict(event, kind="shutdown", happened_at="2025-08-01") for event in record_only]
+    assert closes_at(date(2030, 1, 1), EVENTS + shut) == closes_at(date(2030, 1, 1))
+
+
+def test_events_of_an_unknown_kind_a_shutdown_without_its_day_and_a_mismatched_name_are_refused():
+    with pytest.raises(ValueError, match="unknown kind"):
+        named_at(date(2024, 1, 1), EVENTS + [dict(EVENTS[0], kind="merger")])
+    undated = dict(EVENTS[3], happened_at="2026-08", evidence_public_at="2023-01-01")
+    with pytest.raises(ValueError, match="day it happened"):
+        named_at(date(2024, 1, 1), EVENTS + [undated])
+    with pytest.raises(ValueError, match="names"):
+        named_at(date(2024, 1, 1), EVENTS + [dict(EVENTS[5], operator="GoGoPool (Hypha)")])
+
+
+def test_a_delegation_is_its_operators_when_a_named_address_funds_it_on_or_after_the_naming_instant():
+    named = named_at(date(2025, 10, 1))
+    funding = pd.Series([BENQI_KEY, BENQI_KEY, HOLDER, "avax1other", None])
+    accepted = pd.Series(pd.to_datetime(["2022-01-26 12:22:21", "2022-01-26 12:22:20", "2025-08-29 14:22:52", "2025-01-01 00:00:00", "2025-01-01 00:00:00"]))
+    assert owners(funding, accepted, named).tolist() == [named.row("BENQI"), -1, named.row(HOLDER_NAME), -1, -1]
+
+
+NAMED = pd.DataFrame({"operator": ["BENQI", HOLDER_NAME], "key": ["benqi", "holder"], "closes_day": [np.nan, np.nan]})
+OWNED = DELEGATIONS.assign(operator=[-1, 0, 1, 0])
+
+
+def named(**overrides):
+    return delegated(**{"open_delegations": OWNED, "named_operators": NAMED, **overrides})
+
+
+def test_each_named_operator_is_tracked_through_its_delegations_and_benqis_new_ones_are_benqis():
+    model = named(delegation_flow=flowing(mean=8.0, share=0.5))
+    assert "holder_delegated_stake_navax" in model.state_variables()
+    states = final_states(model)
+    for _, state in states.iterrows():
+        owner = state["delegation_operator"]
+        assert ((owner == 0) == state["delegation_benqi"]).all()
+        assert state["holder_delegated_stake_navax"] == int(state["delegation_stakes"][owner == 1].sum())
+        assert state["benqi_delegated_stake_navax"] == int(state["delegation_stakes"][owner == 0].sum())
+    # The holder's one delegation, 25 AVAX with 14 days left, runs off and is not replaced: its new delegations are
+    # part of the other delegators' flow.
+    holder = states.set_index(["run", "timestep"])["holder_delegated_stake_navax"]
+    assert holder.loc[(1, 0)] == holder.loc[(1, 13)] == 25 * AVAX and holder.loc[(1, 14)] == 0
+    assert states.iloc[-1]["benqi_delegated_stake_navax"] > 0
+
+
+def test_named_operators_keep_the_golden_properties():
+    # With no new delegations the validator tables are the fitted lifecycle's.
+    columns = ["run", "timestep", "time", "variable", "value", "yield_gap_pp", "model_version"]
+
+    def pick(table):
+        return table[table["variable"].isin(VALIDATOR_VARIABLES)][columns].sort_values(columns[:5]).reset_index(drop=True)
+
+    pd.testing.assert_frame_equal(pick(run(named(delegation_flow=DelegationFlow()))), pick(run(FittedLifecycle(**validators()))))
+    # With a flow that binds the cap and a BENQI that closes, issuance is validator plus delegator rewards and no
+    # validator passes its limit. The engine checks both every day, and the table shows the first.
+    large = TERMS.assign(stake_navax=np.array([3_000, 6_000, 8_000, 25, 5_000, 25]) * AVAX)
+    closing = NAMED.assign(closes_day=[6.0, np.nan])
+    table = wide(run(named(delegation_flow=flowing(mean=25.0, share=0.3), delegation_terms=large, named_operators=closing, timesteps=15)))
+    assert table["unplaced_delegations"].sum() > 0
+    assert (table["issued_navax"] == table["validator_issued_navax"] + table["delegator_issued_navax"]).all()
+
+
+def new_benqi(state) -> bool:
+    return bool(((state["delegation_days_left"] == state["delegation_days"]) & state["delegation_benqi"]).any())
+
+
+def test_from_its_closing_day_benqi_makes_no_new_delegation_and_before_it_nothing_changes():
+    flow = flowing(mean=10.0, share=0.5)
+    open_ = final_states(named(delegation_flow=flow))
+    closed = final_states(named(delegation_flow=flow, named_operators=NAMED.assign(closes_day=[5.0, np.nan])))
+    for (_, a), (_, b) in zip(open_.iterrows(), closed.iterrows()):
+        if b["timestep"] < 5:
+            for name in ("delegation_stakes", "delegation_validator", "delegation_benqi", "delegation_operator", "supply_navax"):
+                assert np.array_equal(a[name], b[name])
+        else:
+            assert not new_benqi(b)
+    assert any(new_benqi(s) for _, s in open_[open_["timestep"] >= 5].iterrows())
+    # BENQI's open delegations stay to their end.
+    assert closed.set_index(["run", "timestep"]).loc[(1, 10), "benqi_delegated_stake_navax"] >= 50_000 * AVAX
+
+
+def test_delegations_naming_an_operator_that_is_not_named_or_benqi_rows_that_disagree_are_refused():
+    with pytest.raises(ValueError, match="not a row of named_operators"):
+        named(open_delegations=DELEGATIONS.assign(operator=[-1, 0, 2, 0])).initial_state()
+    with pytest.raises(ValueError, match="exactly those flagged"):
+        named(open_delegations=DELEGATIONS.assign(operator=[0, 0, 1, 0])).initial_state()
+
+
+def events_inputs(tmp_path, monkeypatch, events=EVENTS, attributions=ATTRIBUTIONS):
+    synthetic = {key: validators()[key] for key in ("moves", "first_commitments")}
+    monkeypatch.setattr(variants, "switched_inputs", lambda events, switches: {"origin": events.origin, **events.state, **synthetic})
+    periods, delegators = write_periods(tmp_path)
+    tables = {**di.build(periods, delegators, ORIGIN), "terms": delegation_terms(periods, delegators, ORIGIN, di.BENQI_FUNDING, di.BENQI_EVIDENCE)}
+    return VARIANTS["v0.8.1 events"].prepare(periods, ORIGIN, "synthetic", delegations=tables, operator_events=events,
+                                             operator_attributions=attributions).inputs
+
+
+def other_operator(evidence_at: str) -> tuple[list[dict], list[dict]]:
+    """An identity event naming avax1other, which funds D1 to D3, and a BENQI shutdown on 5 March 2024, both with
+    evidence at ``evidence_at``."""
+    attribution = dict(ATTRIBUTIONS[0], attribution_id="OA99", subject="avax1other", subject_kind="funding-address",
+                       name="Operator X", replaces=None)
+    identity = dict(EVENTS[6], event_id="NE99", operator="Operator X", attributions=["OA99"], subject="avax1other",
+                    happened_at="2023-01-01", evidence_public_at=evidence_at)
+    shutdown = dict(EVENTS[5], event_id="NE98", kind="shutdown", happened_at="2024-03-05", evidence_public_at=evidence_at)
+    return [identity, shutdown], [attribution]
+
+
+def same_inputs(a: dict, b: dict) -> bool:
+    """Every input table equal, and every other input with the same settings."""
+    if a.keys() != b.keys():
+        return False
+    for name, value in a.items():
+        if isinstance(value, pd.DataFrame):
+            if not value.equals(b[name]):
+                return False
+        elif DelegatedLifecycle(**{name: value}).specification() != DelegatedLifecycle(**{name: b[name]}).specification():
+            return False
+    return True
+
+
+def events_run(inputs, runs=2):
+    return wide(run(VARIANTS["v0.8.1 events"].simulation(Prepared(inputs), seed=3, timesteps=10, runs=runs)))
+
+
+def test_an_event_dated_after_the_origin_changes_nothing(tmp_path, monkeypatch):
+    base = events_inputs(tmp_path, monkeypatch)
+    # The synthetic origin, 1 March 2024, sees three named operators, and BENQI's key funds D4.
+    assert base["named_operators"]["operator"].tolist() == ["BENQI", "GoGoPool (Hypha)", HOLDER_NAME]
+    assert base["open_delegations"]["operator"].tolist() == [-1, 0] and base["scheduled_delegations"]["operator"].tolist() == [-1, -1]
+    # Public just after the origin's last instant, on the origin day as a date alone, or a year later.
+    for evidence in ("2024-03-02T00:00:00Z", "2024-03-01", "2025-06-01"):
+        events, attributions = other_operator(evidence)
+        later = events_inputs(tmp_path, monkeypatch, EVENTS + events, ATTRIBUTIONS + attributions)
+        assert same_inputs(base, later), evidence
+        pd.testing.assert_frame_equal(events_run(base), events_run(later))
+    # The same events public before D1 to D3 were accepted name their funder's delegations and close BENQI from day 4.
+    events, attributions = other_operator("2024-01-15T00:00:00Z")
+    sooner = events_inputs(tmp_path, monkeypatch, EVENTS + events, ATTRIBUTIONS + attributions)
+    table = sooner["named_operators"].set_index("operator")
+    assert table.loc["BENQI", "closes_day"] == 4 and "Operator X" in table.index
+    x = list(table.index).index("Operator X")
+    assert sooner["open_delegations"]["operator"].tolist() == [x, 0] and sooner["scheduled_delegations"]["operator"].tolist() == [x, x]
+    simulated = events_run(sooner, runs=1)
+    assert simulated.loc[(1, 0), "operator_x_delegated_stake_navax"] == 1_000 * AVAX
+    assert simulated.loc[(1, 7), "operator_x_delegated_stake_navax"] == 11_000 * AVAX
+
+
+def test_the_events_variant_refuses_tables_that_set_benqi_apart_by_another_rule(tmp_path, monkeypatch):
+    # BENQI named only from 20 February 2024 would not own D4, accepted on 15 February, which the tables flag as BENQI's.
+    moved = [dict(event, evidence_public_at="2024-02-20T00:00:00Z") if event["event_id"] == "NE6" else event for event in EVENTS]
+    with pytest.raises(ValueError, match="different delegations apart as BENQI's"):
+        events_inputs(tmp_path, monkeypatch, moved)
+    with pytest.raises(ValueError, match="with starts"):
+        VARIANTS["v0.8.1 events"].prepare("periods", ORIGIN, "synthetic", delegations={"open": pd.DataFrame()})

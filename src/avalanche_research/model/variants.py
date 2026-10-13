@@ -57,13 +57,18 @@ It builds one candidate on v0.8-a by the stake lifecycle's switch, with and with
 ``v0.8.0`` is the released model, the same build as ``v0.8-a stake return u``: candidate a with the stake hurdle and
 the return hazard on the node's own history, every other fitted parameter drawn once per run.
 
-And it builds one model with delegations, outside the development scores:
+And it builds two models with delegations, outside the development scores:
 
 * ``v0.8.1 stub``: :class:`~avalanche_research.model.delegated_lifecycle.DelegatedLifecycle` on v0.8's inputs, with
   the delegations open and scheduled at the origin, a Poisson flow of new delegations at the mean daily rate of the
   year before it and BENQI's share of that year, and the placeholder choice and BENQI allocation blocks. Its
   ``prepare`` needs ``delegations``: the origin's delegation tables, ``open``, ``validators`` and ``scheduled``, with
   ``flows``, and ``terms`` from :func:`~avalanche_research.model.delegated_lifecycle.delegation_terms`.
+* ``v0.8.1 events``: v0.8.1 stub with the named operators known at the origin from the operator events
+  (:mod:`~avalanche_research.model.operator_events`): each delegation's owner, each named operator's delegated stake as a
+  state variable, and the closing day of any operator whose shutdown was public by the origin. Its ``prepare`` needs
+  ``delegations`` as the stub's does, with ``starts``. ``operator_events`` and ``operator_attributions`` replace the
+  files' rows when given.
 
 A variant is built in two steps. :meth:`Variant.prepare` reads the staking periods once per origin and returns the
 inputs every batch shares, with the draw table for a variant that reads draws. :meth:`Variant.simulation` builds one
@@ -96,6 +101,7 @@ from avalanche_research.model.fitted_lifecycle import (
     window_sd,
 )
 from avalanche_research.model.lifecycle import ValidatorLifecycle, origin_inputs
+from avalanche_research.model.operator_events import named_operators
 from avalanche_research.model.stake_lifecycle import (
     StakeLifecycle,
     build_stake_candidate,
@@ -244,6 +250,19 @@ def _delegated_stub(periods: str, origin: date, run: str, draws: int, draw_seed:
     })
 
 
+def _delegated_events(periods: str, origin: date, run: str, draws: int, draw_seed: int,
+                      delegations: dict[str, pd.DataFrame] | None = None, operator_events: list[dict] | None = None,
+                      operator_attributions: list[dict] | None = None) -> Prepared:
+    if delegations is None or "starts" not in delegations:
+        raise ValueError("v0.8.1 events needs the origin's delegation tables, with starts, and terms as delegations")
+    named = named_operators(origin, operator_events, operator_attributions)
+    events = training_events(periods, origin, run)
+    return Prepared({
+        **switched_inputs(events, V08), **delegation_inputs(delegations, periods, origin, events.state, named),
+        "delegation_terms": delegations["terms"], "delegation_flow": historical_flow(delegations["flows"], origin),
+    })
+
+
 _CANDIDATE_DESCRIPTIONS = {
     "v0.8-a": "v0.8 without the node's own renewal record, with the stake ratio drawn unweighted within three stake bands",
     "v0.8-c": "v0.8-a with the node's own renewal record and the stake ratio weighted by previous stake",
@@ -295,6 +314,9 @@ VARIANTS: dict[str, Variant] = {
         Variant("v0.8.1 stub", DelegatedLifecycle,
                 "v0.8 with delegations: the open and scheduled ones at the origin, a flow at the year's rate, and placeholder choices",
                 _delegated_stub),
+        Variant("v0.8.1 events", DelegatedLifecycle,
+                "v0.8.1 stub with the named operators known at the origin, their delegations tracked and their closures scheduled",
+                _delegated_events),
     )
 }
 

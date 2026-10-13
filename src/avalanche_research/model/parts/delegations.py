@@ -19,6 +19,10 @@ their choice probabilities, renormalised. Then each validator accepts its choose
 fit its room, and the rest choose again in the next batch on the room left. With a batch of one, every placement reads
 the room left by the one before. Each new delegation mints its potential reward on the supply left by the one before
 it, in the order they were accepted, after the day's validator rewards.
+
+Each delegation carries the row of the named operator that owns it, or -1. A new delegation drawn as BENQI's is owned by
+BENQI's row. From BENQI's closing day, the delegations drawn as BENQI's are not made: they are not placed, not counted
+as unplaced, and move no other draw, since every draw is keyed by its own index.
 """
 
 from __future__ import annotations
@@ -47,15 +51,17 @@ if TYPE_CHECKING:
 
 MIN_DELEGATION_DAYS = MAINNET.min_stake_duration_seconds // SECONDS_PER_DAY
 MIN_DELEGATOR_STAKE = MAINNET.min_delegator_stake_navax
-DELEGATION = ("delegation_stakes", "delegation_days_left", "delegation_days", "delegation_validator", "delegation_benqi", "delegation_rewards")
-SCHEDULED = ("scheduled_stakes", "scheduled_start_day", "scheduled_days", "scheduled_validator", "scheduled_benqi")
+DELEGATION = ("delegation_stakes", "delegation_days_left", "delegation_days", "delegation_validator", "delegation_benqi", "delegation_rewards",
+              "delegation_operator")
+SCHEDULED = ("scheduled_stakes", "scheduled_start_day", "scheduled_days", "scheduled_validator", "scheduled_benqi", "scheduled_operator")
 
 
 @dataclass(frozen=True, eq=False)
 class DelegationSetup:
     """What the delegations stage reads besides the state and the day: the three blocks, every validator's fee in
     millionths, the delegation multiplier, the node keys of BENQI's validators, the terms new delegations draw from,
-    BENQI's and the others', and the placement batch size."""
+    BENQI's and the others', the placement batch size, BENQI's row among the named operators, -1 when it is not named,
+    and the day counted from the origin from which BENQI makes no new delegation, None when it does not close."""
 
     flow: DelegationFlow
     choice: DelegatorChoice
@@ -65,6 +71,8 @@ class DelegationSetup:
     benqi_keys: np.ndarray
     terms: Mapping[bool, tuple[np.ndarray, np.ndarray]]
     batch: int
+    benqi_operator: int = -1
+    benqi_closes_day: int | None = None
 
 
 def limits(stakes: np.ndarray, chain_time: datetime, multiplier: int) -> np.ndarray:
@@ -167,6 +175,7 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
         "delegation_stakes": state["scheduled_stakes"][due], "delegation_days_left": state["scheduled_days"][due],
         "delegation_days": state["scheduled_days"][due], "delegation_validator": state["scheduled_validator"][due],
         "delegation_benqi": state["scheduled_benqi"][due], "delegation_rewards": np.zeros(int(due.sum()), dtype=np.int64),
+        "delegation_operator": state["scheduled_operator"][due],
     }
     waiting = {name: state[name][~due] for name in SCHEDULED}
 
@@ -180,6 +189,9 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
     n = flow.count_from_uniform(float(draw.uniforms("delegations", t)[0]))
     index = np.arange(n)
     is_benqi = flow.benqi_from_uniforms(draw.uniforms("delegation_benqi", t, index))
+    if setup.benqi_closes_day is not None and t + 1 >= setup.benqi_closes_day:
+        index, is_benqi = index[~is_benqi], is_benqi[~is_benqi]
+        n = len(index)
     u_terms = draw.uniforms("delegation_terms", t, index)
     new_stakes = np.zeros(n, dtype=np.int64)
     new_days = np.zeros(n, dtype=np.int64)
@@ -207,6 +219,7 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
     new = {
         "delegation_stakes": placed_stakes, "delegation_days_left": placed_days, "delegation_days": placed_days,
         "delegation_validator": keys[rows], "delegation_benqi": is_benqi[order], "delegation_rewards": rewards,
+        "delegation_operator": np.where(is_benqi[order], setup.benqi_operator, -1).astype(np.int64),
     }
     out = {name: np.concatenate([kept[name], starting[name], new[name]]) for name in DELEGATION}
     return {
