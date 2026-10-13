@@ -295,6 +295,28 @@ def test_kpi_table_gives_every_kpi_at_each_horizon():
     assert one[("return_margin", 365, "high")] == kpis.return_margin(daily, ORIGIN, 365, 0.04, 0.01)
 
 
+def test_issued_navax_rebuilds_issuance_saved_exactly_with_or_without_a_baseline():
+    # The year's sums are above 2**53 nAVAX, where a sum in another type could round differently.
+    daily = full_table()
+    rng = np.random.default_rng(5)
+    baseline = daily.assign(issued_navax=daily["issued_navax"] + rng.integers(0, 7_919 * AVAX, len(daily)))
+    assert kpis.issued_navax(baseline, ORIGIN, 365) > 2**53
+    for horizon in kpis.HORIZONS:
+        ours, theirs = kpis.issued_navax(daily, ORIGIN, horizon), kpis.issued_navax(baseline, ORIGIN, horizon)
+        assert int(ours) == int(daily["issued_navax"].iloc[401:401 + horizon].sum())
+        assert 1 - ours / theirs == kpis.issuance_saved(daily, baseline, ORIGIN, horizon)
+    paired = scored(daily, baseline).set_index(["measure", "horizon_days", "cost_level"])["value"]
+    alone = kpis.kpi_table(daily, ORIGIN, competing_yield=0.04, operating_costs=COSTS).set_index(
+        ["measure", "horizon_days", "cost_level"])["value"]
+    chain = kpis.kpi_table(baseline, ORIGIN, competing_yield=0.04, operating_costs=COSTS).set_index(
+        ["measure", "horizon_days", "cost_level"])["value"]
+    assert "issuance_saved" not in set(alone.index.get_level_values("measure"))
+    for horizon in kpis.HORIZONS:
+        key = ("issued_navax", horizon, "")
+        assert alone[key] == paired[key]
+        assert 1 - alone[key] / chain[key] == paired[("issuance_saved", horizon, "")]
+
+
 def test_kpi_table_leaves_out_missing_outputs_only_when_asked():
     daily = full_table().drop(columns=["nakamoto_third_nodes", "offered_rate_30d", "started_stake_navax", "started_stake_days_navax"])
     with pytest.raises(kpis.MissingColumn):
