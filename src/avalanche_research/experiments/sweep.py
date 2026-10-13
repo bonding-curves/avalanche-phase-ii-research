@@ -45,9 +45,9 @@ This module reads pin files, so it lives outside ``model``: contracts K4 and K5 
 
 from __future__ import annotations
 
+import io
 import json
 import math
-import io
 import tempfile
 from collections.abc import Callable
 from datetime import date

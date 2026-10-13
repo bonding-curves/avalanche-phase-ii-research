@@ -362,6 +362,7 @@ def test_a_row_reads_the_competing_yield_from_its_own_outside_yield():
 @pytest.mark.parametrize("row", [{"seed": True}, {"seed": -1}, {"seed": 1, "draw": 0.5}, {"seed": 1, "draw": True}])
 def test_explicit_rows_refuse_ambiguous_noise_keys(tmp_path, row):
     import json
+
     from avalanche_research.experiments import sweep
 
     path = tmp_path / "rows.json"
@@ -374,6 +375,7 @@ def test_explicit_rows_refuse_ambiguous_noise_keys(tmp_path, row):
 
 def test_external_parquet_draws_use_the_installed_duckdb_reader(tmp_path):
     import duckdb
+
     from avalanche_research.experiments import receipt, sweep
     frame = pd.DataFrame({"renewal_shift": [0.0, 3.0]})
     path = tmp_path / "draws.parquet"
@@ -388,6 +390,7 @@ def test_external_parquet_draws_use_the_installed_duckdb_reader(tmp_path):
 
 def test_explicit_sweep_records_external_file_hash_and_refuses_changed_input(tmp_path, monkeypatch):
     import json
+
     from avalanche_research.experiments import receipt, sweep
 
     pin = pinned_sweep(tmp_path, monkeypatch)
@@ -421,7 +424,6 @@ def test_sweep_requires_external_hashes_and_one_draw_origin(tmp_path):
 
 
 def test_external_rows_and_draws_parse_the_exact_hashed_snapshot(tmp_path, monkeypatch):
-    import json
     from avalanche_research.experiments import receipt, sweep
     rows_path = tmp_path / "rows.json"
     draws_path = tmp_path / "draws.csv"

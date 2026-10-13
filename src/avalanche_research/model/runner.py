@@ -17,7 +17,6 @@ files as an uninterrupted one. At most ``in_flight`` rows are submitted and not 
 from __future__ import annotations
 
 import contextlib
-from datetime import date, datetime
 import io
 import json
 import multiprocessing
@@ -27,6 +26,7 @@ import tempfile
 import time
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from datetime import date, datetime
 from pathlib import Path
 
 import duckdb
@@ -56,8 +56,9 @@ def _init(base_path: str, variables: tuple[str, ...], reducer) -> None:
 def model_settings(row: Mapping) -> dict:
     """A row's settings as the model takes them: a ``mechanism`` given by class name, or by a mapping with ``name`` and
     keyword settings, becomes that reward mechanism from ``avalanche_research.mechanisms``."""
-    from .. import mechanisms
     import param
+
+    from .. import mechanisms
 
     values = settings(row)
     spec = values.get("mechanism")
