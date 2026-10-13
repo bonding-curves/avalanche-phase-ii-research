@@ -35,6 +35,7 @@ periods, into this model's inputs, with each validator named by its row of the f
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 from functools import partial
 
 import duckdb
@@ -82,6 +83,18 @@ DELEGATION_VARIABLES = ("active_delegations", "active_delegated_stake_navax", "b
 ENGINE_KEYS = ("simulation", "subset", "run", "substep", "timestep")
 
 
+def _integral(value) -> bool:
+    """Whether one value is exactly a whole number: an integer, or a finite float or Decimal with no fraction. A boolean,
+    text or a missing value is not."""
+    if isinstance(value, bool | np.bool_):
+        return False
+    if isinstance(value, int | np.integer):
+        return True
+    if isinstance(value, float | np.floating):
+        return bool(np.isfinite(value)) and float(value).is_integer()
+    return isinstance(value, Decimal) and value.is_finite() and value == value.to_integral_value()
+
+
 def _whole(values, what: str) -> np.ndarray:
     """``values`` as int64, refusing any that is not a whole number in int64's range, checked before the cast, rather
     than truncating or wrapping it."""
@@ -89,10 +102,12 @@ def _whole(values, what: str) -> np.ndarray:
     if raw.size == 0:
         return np.zeros(0, dtype=np.int64)
     if raw.dtype.kind == "O":
-        try:
-            raw = pd.to_numeric(pd.Series(raw)).to_numpy()
-        except (TypeError, ValueError) as error:
-            raise ValueError(f"{what} must be whole numbers in the model's range") from error
+        # Each value is read exactly, never through a float: an integer, an integral float or an integral Decimal.
+        # Text, booleans and missing values are refused.
+        exact = [int(value) if _integral(value) else None for value in raw.tolist()]
+        if any(value is None or not -(2**63) <= value < 2**63 for value in exact):
+            raise ValueError(f"{what} must be whole numbers in the model's range")
+        return np.array(exact, dtype=np.int64)
     if raw.dtype.kind == "i":
         return raw.astype(np.int64)
     if raw.dtype.kind == "u":
@@ -426,6 +441,9 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
     missing = set(tables["validators"]["transaction_hash"]) - set(open_row)
     if missing:
         raise ValueError(f"{len(missing)} validator periods open at the origin are not initial commitments")
+    matched = tables["validators"]["transaction_hash"].map(open_row).to_numpy(dtype=np.int64)
+    if (np.asarray(state["initial"]["stakes"])[matched] != _whole(tables["validators"]["stake_navax"], "a validator period's stake")).any():
+        raise ValueError("a validator period's stake in the delegation tables differs from its commitment matched by transaction")
 
     def where(hashes: pd.Series) -> tuple[np.ndarray, np.ndarray]:
         unknown = set(hashes) - set(open_row) - set(later_row)

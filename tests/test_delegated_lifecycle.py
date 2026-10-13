@@ -4,6 +4,7 @@ its inputs from the delegation tables of an origin."""
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 
 import duckdb
 import numpy as np
@@ -818,3 +819,28 @@ def test_the_events_variant_refuses_a_lockbox_origin_before_reading_any_staking_
     with pytest.raises(ValueError, match="lockbox"):
         VARIANTS["v0.8.1 events"].prepare(unread, date(2025, 11, 19), "synthetic", delegations=delegations)
     assert not (tmp_path / "unused.parquet").exists()
+
+
+@pytest.mark.parametrize("value", ["30.0000000000000001", Decimal("30.0000000000000001"), "30", True, None])
+def test_an_integer_input_held_as_text_a_fractional_decimal_a_boolean_or_missing_is_refused_not_rounded(value):
+    days = np.array([value, 60, 14, 200], dtype=object)
+    with pytest.raises(ValueError, match="whole numbers"):
+        delegated(open_delegations=DELEGATIONS.assign(days_left=days)).initial_state()
+    flows = pd.DataFrame({"date_utc": [pd.Timestamp(ORIGIN)] * 2, "benqi": [False, False],
+                          "started": np.array([value, 1], dtype=object)})
+    with pytest.raises(ValueError, match="whole numbers"):
+        historical_flow(flows, ORIGIN)
+
+
+def test_whole_values_held_as_objects_are_read_exactly():
+    days = np.array([Decimal(30), np.int64(60), 14.0, 200], dtype=object)
+    assert delegated(open_delegations=DELEGATIONS.assign(days_left=days)).initial_state()["delegation_days_left"].tolist() == [30, 60, 14, 200]
+
+
+def test_a_validators_table_stake_that_differs_from_its_commitment_is_refused(tmp_path):
+    periods, delegators = write_periods(tmp_path)
+    tables, state = di.build(periods, delegators, ORIGIN), training_events(periods, ORIGIN, "synthetic").state
+    validators = tables["validators"].copy()
+    validators.loc[validators.index[0], "stake_navax"] += 1
+    with pytest.raises(ValueError, match="stake"):
+        delegation_inputs({**tables, "validators": validators}, periods, ORIGIN, state)
