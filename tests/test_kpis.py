@@ -323,10 +323,13 @@ def test_issued_navax_rebuilds_issuance_saved_exactly_on_a_column_of_python_inte
     daily = pd.DataFrame({"issued_navax": pd.Series([0, 2**53 + 1] + [0] * 29, index=days, dtype=object)})
     baseline = pd.DataFrame({"issued_navax": pd.Series([0, 2**53 + 2] + [0] * 29, index=days, dtype=object)})
     assert kpis.issued_navax(daily, ORIGIN, 30) == 2**53 + 1
-    score = lambda table, **extra: kpis.kpi_table(table, ORIGIN, [30], competing_yield=0.04, operating_costs=COSTS,
-                                                 missing="skip", **extra)
+    def score(table, **extra):
+        return kpis.kpi_table(table, ORIGIN, [30], competing_yield=0.04, operating_costs=COSTS, missing="skip", **extra)
+
+    def value(table, measure):
+        return table.loc[table["measure"] == measure, "value"].item()
+
     ours, theirs, paired = score(daily), score(baseline), score(daily, baseline=baseline)
-    value = lambda table, measure: table.loc[table["measure"] == measure, "value"].item()
     assert 1 - value(ours, "issued_navax") / value(theirs, "issued_navax") == value(paired, "issuance_saved")
     assert value(paired, "issuance_saved") == kpis.issuance_saved(daily, baseline, ORIGIN, 30)
     assert value(ours, "issued_navax") == float(2**53 + 1)
