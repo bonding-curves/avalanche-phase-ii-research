@@ -269,7 +269,9 @@ def test_every_design_row_pairs_with_the_chain_rule_run_on_its_own_key_responses
 @pytest.mark.parametrize("plant", ["negative entry response", "negative ramp target", "earlier origin", "wrong family label",
                                    "baseline on another key", "baseline under another rule", "wrong index",
                                    "wrong block", "ordinary response at the stress level", "wrong control response",
-                                   "impossible Saltelli column", "zero row off its middle setting"])
+                                   "impossible Saltelli column", "zero row off its middle setting",
+                                   "Saltelli point twice", "wrong yield label", "wrong Sobol coordinate",
+                                   "hybrid row on another key"])
 def test_check_refuses_a_row_whose_settings_or_label_are_wrong(design, plant):
     rows, labels, keys = (list(map(dict, design[0])), [dict(label) for label in design[1]], design[2])
     i = next(n for n, label in enumerate(labels) if label["family"] == "ramp" and label["block"] == "A")
@@ -288,6 +290,15 @@ def test_check_refuses_a_row_whose_settings_or_label_are_wrong(design, plant):
     elif plant == "zero row off its middle setting":
         z = next(n for n, label in enumerate(labels) if label["family"] == "ramp" and label["block"] == "zero")
         rows[z]["mechanism"] = {**rows[z]["mechanism"], "target_min_rate": 0.06}
+    elif plant == "hybrid row on another key":
+        ab = next(n for n, label in enumerate(labels) if label["family"] == "ramp" and label["block"] == "AB" and label["i"] == 0)
+        rows[ab]["seed"], rows[ab]["draw"] = rows[i + 1]["seed"], rows[i + 1]["draw"]
+    elif plant == "Saltelli point twice":
+        labels[i]["i"] = labels[i + 1]["i"]
+    elif plant == "wrong yield label":
+        labels[i]["yield_pp"] = 7.0 if labels[i]["yield_pp"] != 7.0 else 5.0
+    elif plant == "wrong Sobol coordinate":
+        labels[i]["u1"] = labels[i]["u1"] / 2
     elif plant == "wrong index":
         labels[i]["index"] = 100
     elif plant == "wrong block":

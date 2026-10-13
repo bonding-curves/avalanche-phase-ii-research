@@ -329,6 +329,7 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
     if counts(labels) != expected_blocks:
         raise ValueError(f"the design's blocks hold {counts(labels)}, not {expected_blocks}")
     stress = {setting: (renewal, entry) for setting, renewal, entry in STRESS}
+    check_points(rows, labels)
     for position, (row, label) in enumerate(zip(rows, labels)):
         if label["index"] != position:
             raise ValueError(f"label {position} names index {label['index']}")
@@ -383,6 +384,84 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
             raise ValueError(f"{family.code} {family.input_name} must lie in {family.bounds}, not {value!r}")
         if row["mechanism"] != family.mechanism(value):
             raise ValueError(f"row mechanism {row['mechanism']} is not the {family.code} family's")
+
+
+def expected_points(family: Family, block: str) -> set[tuple]:
+    """The (i, j) pairs a block holds for one family and yield."""
+    if block in ("A", "B"):
+        return {(i, None) for i in range(N)}
+    if block in ("AB", "BA"):
+        return {(i, j) for i in range(N) for j in range(1, family.k + 1)}
+    if block == "noise":
+        return {(i, r) for i in range(NOISE_POINTS) for r in range(NOISE_KEYS)}
+    if block == "zero":
+        return {(c, None) for c in range(CONTROL_KEYS)}
+    return {(c, setting) for c in range(CONTROL_KEYS) for setting, _, _ in STRESS}
+
+
+def check_points(rows: list[dict], labels: list[dict]) -> None:
+    """Refuse a design in which a block repeats or omits a point, a label's yield is not its row's, or a Saltelli or
+    noise row's unit coordinates and inputs are not those of its point in the family's scrambled Sobol matrices."""
+    groups: dict[tuple, list[tuple]] = {}
+    for row, label in zip(rows, labels):
+        if label["yield_pp"] != row["outside_yield_pp"]:
+            raise ValueError(f"row {label['index']} is labelled yield {label['yield_pp']}, not {row['outside_yield_pp']}")
+        place = (label["family"], label["yield_pp"], label["block"]) if label["block"] not in ("control", "baseline") else (label["block"],)
+        groups.setdefault(place, []).append((label["i"], label["j"]))
+    for place, points in groups.items():
+        if place == ("control",):
+            expected = {(c, number) for c in range(CONTROL_KEYS) for number in range(1, 8)}
+        elif place == ("baseline",):
+            expected = {(i, None) for i in range(BASELINE_ROWS)}
+        else:
+            expected = expected_points(BY_CODE[place[0]], place[2]) if place[0] in BY_CODE and place[1] in YIELDS else set()
+        if len(points) != len(set(points)) or set(points) != expected:
+            raise ValueError(f"block {' '.join(map(str, place))} repeats or omits a point")
+    if len(groups) != len(FAMILIES) * len(YIELDS) * 7 + 2:
+        raise ValueError("the design does not hold every block for every family and yield")
+    # Keys: AB_i^(j) has A_i's and BA_i^(j) B_i's; the response-zero and stress rows share one key per yield and c,
+    # the controls one per c; no key is shared across these groups.
+    owner: dict[tuple, tuple] = {}
+    for row, label in zip(rows, labels):
+        block = label["block"]
+        if block == "baseline":
+            continue
+        if block in ("A", "AB"):
+            group = ("A", label["family"], label["yield_pp"], label["i"])
+        elif block in ("B", "BA"):
+            group = ("B", label["family"], label["yield_pp"], label["i"])
+        elif block == "noise":
+            group = ("noise", label["family"], label["yield_pp"], label["i"], label["j"])
+        elif block in ("zero", "stress"):
+            group = ("shared", label["yield_pp"], label["i"])
+        else:
+            group = ("control", label["i"])
+        if owner.setdefault((row["seed"], row["draw"]), group) != group:
+            raise ValueError(f"row {label['index']} shares its key with another group of rows")
+    if len(set(owner.values())) != len(owner):
+        raise ValueError("a group of rows that must share one key holds more than one")
+    matrices = {(f.code, y): sobol_matrices(f, y) for f in FAMILIES for y in YIELDS}
+    for row, label in zip(rows, labels):
+        block = label["block"]
+        if block not in ("A", "B", "AB", "BA", "noise"):
+            if any(label[f"u{c}"] is not None for c in (1, 2, 3)):
+                raise ValueError(f"{block} row {label['index']} carries unit coordinates")
+            continue
+        family = BY_CODE[label["family"]]
+        a, b = matrices[family.code, label["yield_pp"]]
+        i, j = label["i"], label["j"]
+        unit = (b if block in ("B", "BA") else a)[i].copy()
+        if block in ("AB", "BA"):
+            unit[j - 1] = (a if block == "BA" else b)[i, j - 1]
+        expected = [float(u) for u in unit] + [None] * (3 - family.k)
+        if [label[f"u{c}"] for c in (1, 2, 3)] != expected:
+            raise ValueError(f"row {label['index']} has unit coordinates other than its Sobol point's")
+        scaled = {name: family.bounds_of(name)[0] + float(u) * (family.bounds_of(name)[1] - family.bounds_of(name)[0])
+                  for name, u in zip(family.inputs, unit)}
+        held = {"renewal_response": row["renewal_response"], "entry_response": row["entry_response"],
+                **({family.input_name: row["mechanism"].get(family.input_name)} if family.input_name else {})}
+        if held != scaled:
+            raise ValueError(f"row {label['index']} holds inputs other than its Sobol point's")
 
 
 def bill_mean(pin: Path) -> tuple[float, int, str]:
@@ -532,8 +611,9 @@ Distinct noise keys: {key_count:,}. Key number n is draw n and seed n + 1, so ea
 - Every design row has a baseline: the same key, responses and yields under `ChainReward`, the chain's rule as it
   runs, with ACP-285 from Helicon on 2026-09-22. The baselines follow the design rows in `rows.json`, and `labels.csv`
   column `baseline` gives each design row's baseline index. Rows that differ only in their mechanism, such as A_i and
-  AB_i^(j) for the mechanism column, share one baseline. The KPIs relative to the chain's rule (issuance saved,
-  validator stake and active validators retained) divide a row's absolute KPI by its baseline's.
+  AB_i^(j) for the mechanism column, share one baseline. Against the chain's rule, issuance saved is one minus the
+  row's `issued_navax` over its baseline's, and validator stake and active validators retained are the row's
+  `validator_stake_navax` and `active_validators` over its baseline's.
 - Middle settings, for the response-zero and stress rows: `ramp` target 0.075 (ACP-285's), `tenure` boost 0.1, `quadratic` exponent 2.
 
 ## Controls
