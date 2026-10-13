@@ -202,6 +202,21 @@ def test_the_before_family_holds_the_rule_before_acp285_at_every_start(start):
     assert before.annual_rate(30, supply, start) == menu.annual_rate(30, supply, start)
 
 
+@pytest.mark.parametrize("start", [datetime(2025, 11, 19, 12, tzinfo=UTC), datetime(2026, 9, 23, 12, tzinfo=UTC),
+                                   datetime(2026, 11, 18, 12, tzinfo=UTC)])
+def test_the_tenure_and_quadratic_rows_price_every_stake_on_the_rule_before_acp285(design, start):
+    rows, labels = design[0], design[1]
+    menu = FittedMenu(fitted_at=datetime(2025, 11, 19, tzinfo=UTC))
+    seen = set()
+    for row, label in zip(rows, labels):
+        if label["family"] in ("tenure", "quadratic") and label["family"] not in seen:
+            seen.add(label["family"])
+            assert row["mechanism"]["acp285"] is False
+            built = getattr(mechanisms, row["mechanism"]["name"])(**{k: v for k, v in row["mechanism"].items() if k != "name"})
+            assert built.config(start) == menu.config(start)
+    assert seen == {"tenure", "quadratic"}
+
+
 def test_the_design_repeats_byte_for_byte(design, tmp_path):
     rows, labels, keys = design
     again = m2.build(VARIANT, FITTED)

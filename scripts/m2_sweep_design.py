@@ -113,11 +113,12 @@ def _before(_: float | None) -> dict:
 
 
 def _tenure(boost: float | None) -> dict:
-    return {"name": "TenureBoost", "boost_max": boost}
+    # The boost sits on the rule before ACP-285 for the whole run, as every family's reward design does.
+    return {"name": "TenureBoost", "boost_max": boost, "acp285": False}
 
 
 def _quadratic(exponent: float | None) -> dict:
-    return {"name": "QuadraticReward", "exponent": exponent}
+    return {"name": "QuadraticReward", "exponent": exponent, "acp285": False}
 
 
 FAMILIES = (
@@ -447,12 +448,10 @@ control index c. `j` is the 1-based column for AB and BA, the replicate 0 to 7 f
 (1 renewal 0.3, 2 entry 0.3, 3 both) or the control number. `u1` to `u3` are the row's unit-cube Sobol coordinates in
 the family's input order: the mechanism input first, then the renewal and entry responses.
 
-## Known limit
+## The rule under each design
 
-`TenureBoost` and `QuadraticReward` price each stake from the chain's rule at its start, which applies ACP-285's ramp
-from Helicon, 2026-09-22 15:00 UTC, the last 57 days of the run. Neither class can yet hold the rule before ACP-285, so
-the `tenure` and `quadratic` rows mix two rules in those days. When a mechanism can hold that rule, only their
-`mechanism` entries change. The keys, the draws and every count stay the same.
+`TenureBoost` and `QuadraticReward` rows set `acp285` false, so every stake in the run, including those started after
+Helicon on 2026-09-22, is priced on the rule before ACP-285. No row mixes two rules.
 """
 
 
