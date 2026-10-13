@@ -11,7 +11,7 @@ from avalanche_research.mechanisms import (
     QuadraticReward,
     TenureBoost,
 )
-from avalanche_research.model.protocol import primary_network_reward
+from avalanche_research.model.protocol import MAINNET_REWARD, primary_network_reward
 from avalanche_research.model.types import SECONDS_PER_DAY
 
 AVAX = 10**9
@@ -125,3 +125,14 @@ def test_acp285_activation_accepts_a_plain_date():
 
     ramp = ACP285Ramp(activation=date(2025, 4, 8))
     assert ramp.config(datetime(2025, 5, 23, tzinfo=UTC)).min_consumption_rate == 87_500
+
+
+@pytest.mark.parametrize("cls", [TenureBoost, QuadraticReward])
+def test_a_design_can_hold_the_rule_before_acp285_after_helicon(cls):
+    """With acp285 off, a stake started after Helicon is priced on the rule before ACP-285; on, as the chain prices it."""
+    after = datetime(2026, 12, 1, tzinfo=UTC)
+    before = datetime(2025, 12, 1, tzinfo=UTC)
+    held, chain = cls(acp285=False), cls()
+    assert held.config(after) == MAINNET_REWARD
+    assert chain.config(after) == ChainReward().config(after) != MAINNET_REWARD
+    assert held.config(before) == chain.config(before) == MAINNET_REWARD

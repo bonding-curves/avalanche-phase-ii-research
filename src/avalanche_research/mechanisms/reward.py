@@ -183,6 +183,14 @@ class TenureBoost(RewardMechanism):
     boost_max = param.Number(default=0.10, bounds=(0.0, 1.0), step=0.01, doc="Extra reward at full tenure, as a fraction of the chain's reward")
     full_boost_periods = param.Integer(default=8, bounds=(1, 100), doc="Completed periods at which the boost is full")
 
+    acp285 = param.Boolean(
+        default=True,
+        doc="Price stakes from Helicon with ACP-285's ramp, as the chain does. False holds the rule before ACP-285 for every stake",
+    )
+
+    def config(self, start: datetime) -> RewardConfig:
+        return super().config(start) if self.acp285 else MAINNET_REWARD
+
     def multiplier(self, completed_periods: int) -> float:
         return 1.0 + self.boost_max * min(max(completed_periods, 0), self.full_boost_periods) / self.full_boost_periods
 
@@ -198,6 +206,14 @@ class QuadraticReward(RewardMechanism):
     label = param.String(default="Quadratic curve")
     exponent = param.Number(default=2.0, bounds=(1.0, 4.0), step=0.25, doc="Curvature of the rate in duration. 1 is the chain")
     scale = param.Number(default=1.0, bounds=(0.0, 10.0), doc="Multiplier on the reward. 1 as designed")
+
+    acp285 = param.Boolean(
+        default=True,
+        doc="Price stakes from Helicon with ACP-285's ramp, as the chain does. False holds the rule before ACP-285 for every stake",
+    )
+
+    def config(self, start: datetime) -> RewardConfig:
+        return super().config(start) if self.acp285 else MAINNET_REWARD
 
     def numerator(self, config: RewardConfig, duration_ns: int) -> int:
         if self.exponent == 1.0:
