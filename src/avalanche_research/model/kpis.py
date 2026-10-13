@@ -306,17 +306,22 @@ def mean_daily_burn(daily: pd.DataFrame, origin) -> float:
 
 def with_realized_supply(daily: pd.DataFrame, origin, starting_supply_navax: float, burn_navax_per_day: float) -> pd.DataFrame:
     """The table with burn and realized supply filled after the origin: the burn held fixed, and supply equal to the
-    starting supply plus the run's issuance less that burn, day by day. Days up to the origin are unchanged."""
-    _require(daily, ["issued_navax"])
+    starting supply plus the run's issuance less that burn, day by day. Days up to the origin are unchanged.
+
+    The issuance is every role's: ``issued_all_roles_navax`` when the table has it, as a run with delegations does,
+    and otherwise ``issued_navax``, which for a run without delegations is every role's issuance.
+    """
+    column = "issued_all_roles_navax" if "issued_all_roles_navax" in daily.columns else "issued_navax"
+    _require(daily, [column])
     _one_row_a_day(daily)
     if not (math.isfinite(starting_supply_navax) and math.isfinite(burn_navax_per_day)):
         raise ValueError("the starting supply or the burn a day is not finite")
     filled = daily.sort_index().copy()
     after = filled.index > _day(origin)
-    issued = filled.loc[after, "issued_navax"]
+    issued = filled.loc[after, column]
     if issued.isna().any():
-        raise ValueError(f"the daily table has no issued_navax on {issued.index[issued.isna()][0].date()}")
-    _finite(filled.loc[after, ["issued_navax"]])
+        raise ValueError(f"the daily table has no {column} on {issued.index[issued.isna()][0].date()}")
+    _finite(filled.loc[after, [column]])
     filled.loc[after, "burned_navax"] = float(burn_navax_per_day)
     filled.loc[after, "total_supply_navax"] = float(starting_supply_navax) + (issued - float(burn_navax_per_day)).cumsum()
     return filled

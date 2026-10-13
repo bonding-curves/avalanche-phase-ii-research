@@ -165,6 +165,10 @@ def test_a_delegated_runs_daily_issuance_counts_validators_only_as_its_stake_day
     horizon = model.timesteps
     assert kpis.earned_rate(daily, model.origin, horizon) == pytest.approx(
         365 * wide["validator_issued_navax"].iloc[1:].sum() / expected["started_stake_days_navax"].sum(), rel=1e-12)
+    # Realized supply grows by every role's issuance, delegators' included.
+    filled = kpis.with_realized_supply(daily, model.origin, 10**17, 0.0)
+    assert filled["total_supply_navax"].iloc[-1] == 10**17 + wide["issued_navax"].iloc[1:].sum()
+    assert filled["total_supply_navax"].iloc[-1] > 10**17 + wide["validator_issued_navax"].iloc[1:].sum()
 
 
 def test_the_nakamoto_count_sums_each_nodes_stake_and_needs_more_than_a_third():
