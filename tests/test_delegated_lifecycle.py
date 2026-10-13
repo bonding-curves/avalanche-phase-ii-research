@@ -322,7 +322,7 @@ def test_delegation_terms_are_the_years_new_delegations_with_whole_days_and_benq
     periods, delegators = write_periods(tmp_path)
     terms = delegation_terms(periods, delegators, ORIGIN, di.BENQI_FUNDING, di.BENQI_EVIDENCE)
     # Started in the year to the origin: D1 and D4. D2 and D3 start after it.
-    assert terms.values.tolist() == [[1_000 * AVAX, 74, False], [8_000 * AVAX, 90, True]]
+    assert terms.values.tolist() == [[1_000 * AVAX, 74, False, "D1"], [8_000 * AVAX, 90, True, "D4"]]
 
 
 def test_the_stub_variant_is_built_from_the_origins_delegation_tables_and_kept_out_of_the_development_scores(tmp_path, monkeypatch):
@@ -618,7 +618,7 @@ def test_the_events_variant_gives_each_delegation_term_its_owner(tmp_path, monke
     # The year's starts are D1, funded by avax1other, and D4, funded by BENQI's key.
     assert inputs["delegation_terms"]["operator"].tolist() == [x, 0]
     misaligned = {"terms": lambda tables: tables["terms"].iloc[:1]}
-    with pytest.raises(ValueError, match="row for row"):
+    with pytest.raises(ValueError, match="same delegations"):
         events_inputs_with(tmp_path, monkeypatch, misaligned)
 
 
@@ -629,3 +629,49 @@ def events_inputs_with(tmp_path, monkeypatch, changes):
     tables = {**di.build(periods, delegators, ORIGIN), "terms": delegation_terms(periods, delegators, ORIGIN, di.BENQI_FUNDING, di.BENQI_EVIDENCE)}
     tables |= {name: change(tables) for name, change in changes.items()}
     return VARIANTS["v0.8.1 events"].prepare(periods, ORIGIN, "synthetic", delegations=tables).inputs
+
+
+def holder_funds_d4(tables):
+    """D4 funded by the genesis holder with D1's stake, so the year's two starts differ only in who funds them and how
+    long they run: D1 74 days, D4 90 days."""
+    starts = tables["starts"].copy()
+    d4 = (starts["transaction_hash"] == "D4").to_numpy()
+    starts.loc[d4, "delegator_address"] = HOLDER
+    starts.loc[d4, "benqi"] = False
+    starts.loc[d4, "stake_navax"] = 1_000 * AVAX
+    return starts
+
+
+def test_delegation_terms_are_matched_to_their_delegations_by_transaction_not_by_position(tmp_path, monkeypatch):
+    events, attributions = other_operator("2024-01-15T00:00:00Z")
+    monkeypatch.setattr(variants, "named_operators", lambda origin, *_: named_operators(origin, EVENTS + events, ATTRIBUTIONS + attributions))
+
+    def terms(tables):
+        out = tables["terms"].copy()
+        d4 = out["benqi"].to_numpy()
+        out.loc[d4, "stake_navax"] = 1_000 * AVAX
+        out.loc[d4, "benqi"] = False
+        return out
+
+    def swapped(tables):
+        return terms(tables).iloc[::-1].reset_index(drop=True)
+
+    for change in (terms, swapped):
+        inputs = events_inputs_with(tmp_path, monkeypatch, {"starts": holder_funds_d4, "terms": change})
+        names = list(inputs["named_operators"]["operator"])
+        owner = dict(zip(inputs["delegation_terms"]["days"], inputs["delegation_terms"]["operator"]))
+        assert owner == {74: names.index("Operator X"), 90: names.index(HOLDER_NAME)}, change.__name__
+    with pytest.raises(ValueError, match="same delegations"):
+        events_inputs_with(tmp_path, monkeypatch, {"starts": holder_funds_d4, "terms": lambda tables: terms(tables).iloc[:1]})
+    with pytest.raises(ValueError, match="transaction_hash"):
+        events_inputs_with(tmp_path, monkeypatch, {"terms": lambda tables: tables["terms"].drop(columns="transaction_hash")})
+
+
+def test_an_operator_row_too_large_for_the_model_is_refused_not_wrapped():
+    holder_only = pd.DataFrame({"operator": [HOLDER_NAME], "key": ["holder"], "closes_day": [np.nan]})
+    # As int64, 2**64 - 1 would wrap to -1, no operator.
+    for wrapped in (np.array([0, 0, 2**64 - 1, 0], dtype=np.uint64), np.array([0.0, 0.0, 2.0**64, 0.0])):
+        with pytest.raises(ValueError, match="whole numbers"):
+            named(open_delegations=DELEGATIONS.assign(operator=wrapped), named_operators=holder_only).initial_state()
+    state = named(open_delegations=DELEGATIONS.assign(operator=np.zeros(4, dtype=np.uint64)), named_operators=holder_only).initial_state()
+    assert state["holder_delegated_stake_navax"] == int(DELEGATIONS["stakes"].sum())

@@ -83,12 +83,17 @@ ENGINE_KEYS = ("simulation", "subset", "run", "substep", "timestep")
 
 
 def _whole(values, what: str) -> np.ndarray:
-    """``values`` as int64, refusing any that is not a whole number rather than truncating it."""
+    """``values`` as int64, refusing any that is not a whole number in int64's range, checked before the cast, rather
+    than truncating or wrapping it."""
     raw = np.asarray(values)
-    if raw.dtype.kind in "iu":
+    if raw.dtype.kind == "i":
         return raw.astype(np.int64)
-    if raw.dtype.kind != "f" or not (np.isfinite(raw) & (raw == np.floor(raw))).all():
-        raise ValueError(f"{what} must be whole numbers")
+    if raw.dtype.kind == "u":
+        if (raw > np.iinfo(np.int64).max).any():
+            raise ValueError(f"{what} must be whole numbers in the model's range")
+        return raw.astype(np.int64)
+    if raw.dtype.kind != "f" or not (np.isfinite(raw) & (raw == np.floor(raw)) & (raw >= -(2.0**63)) & (raw < 2.0**63)).all():
+        raise ValueError(f"{what} must be whole numbers in the model's range")
     return raw.astype(np.int64)
 
 
@@ -368,8 +373,9 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
     address and acceptance time, and ``named_operators`` is returned. The tables flag BENQI's delegations by their own
     rule, which the flow and terms also read, so the delegations a BENQI named by the events owns must be exactly those
     the tables flag, in ``open``, ``scheduled`` and ``starts``, and none is flagged when BENQI is not named, or the
-    inputs are refused. When the tables hold ``terms`` and ``starts``, which list the same delegations, the terms are
-    returned as ``delegation_terms`` with each one's owner, so a new delegation that takes them is that owner's."""
+    inputs are refused. When the tables hold ``terms`` and ``starts``, which list the same delegations, each term is
+    matched to its delegation by transaction hash, and the terms are returned as ``delegation_terms`` with each one's
+    owner, so a new delegation that takes them is that owner's."""
     opened, later = _validator_order(periods_parquet, origin)
     if (opened["stake_navax"].to_numpy() != np.asarray(state["initial"]["stakes"])).any() or len(opened) != len(state["initial"]):
         raise ValueError("the open validator periods do not match the initial commitments row for row")
@@ -427,21 +433,29 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
     inputs["named_operators"] = named.model_table()
     terms = tables.get("terms")
     if terms is not None and starts is not None:
-        # The terms and the starts list the same delegations in the same order, start time then hash.
-        if len(terms) != len(starts) or (terms["stake_navax"].to_numpy() != starts["stake_navax"].to_numpy()).any() \
-                or (terms["benqi"].to_numpy(dtype=bool) != starts["benqi"].to_numpy(dtype=bool)).any():
-            raise ValueError("the delegation terms and starts do not list the same delegations row for row")
-        inputs["delegation_terms"] = terms.assign(operator=owners(starts["delegator_address"], starts["accepted_at"], named))
+        # Each term is matched to its delegation in the starts by transaction, never by position or by its values.
+        if "transaction_hash" not in terms:
+            raise ValueError("the delegation terms need each delegation's transaction_hash to be given their owners")
+        hashes, known = terms["transaction_hash"], starts["transaction_hash"]
+        if hashes.duplicated().any() or known.duplicated().any() or set(hashes) != set(known):
+            raise ValueError("the delegation terms and starts do not list the same delegations")
+        match = starts.set_index("transaction_hash").loc[hashes]
+        if (match["stake_navax"].to_numpy() != terms["stake_navax"].to_numpy()).any() \
+                or (match["benqi"].to_numpy(dtype=bool) != terms["benqi"].to_numpy(dtype=bool)).any():
+            raise ValueError("a delegation term's stake or BENQI flag differs from its delegation in the starts")
+        inputs["delegation_terms"] = terms.drop(columns="transaction_hash").assign(
+            operator=owners(match["delegator_address"], match["accepted_at"], named))
     return inputs
 
 
 def delegation_terms(periods_parquet: str, delegators_parquet: str, origin: date, benqi_funding: str, benqi_from: str) -> pd.DataFrame:
     """The delegations that started in the 365 days to the origin's last instant, in start order, each with its stake,
     its whole days from the day it starts to the day it ends, and whether it is BENQI's: funded by ``benqi_funding`` and
-    accepted at or after ``benqi_from``. Its end counts its last cycle."""
+    accepted at or after ``benqi_from``. Its end counts its last cycle. Each row keeps its ``transaction_hash``, by which
+    a consumer matches it to the same delegation in another table. The model reads only the other columns."""
     cutoff = decided_by_us(origin)
     rows = duckdb.execute(
-        f"""SELECT p.stake_navax, p.start_time, greatest(p.end_time, coalesce(p.last_cycle_end_time, p.end_time)) AS end_time,
+        f"""SELECT p.transaction_hash, p.stake_navax, p.start_time, greatest(p.end_time, coalesce(p.last_cycle_end_time, p.end_time)) AS end_time,
                    coalesce(f.delegator_address = ? AND p.accepted_at >= ?::TIMESTAMP, false) AS benqi
             FROM read_parquet(?) p LEFT JOIN read_parquet(?) f USING (transaction_hash)
             WHERE p.role = 'delegator' AND p.stake_navax IS NOT NULL AND p.end_time IS NOT NULL
@@ -451,7 +465,8 @@ def delegation_terms(periods_parquet: str, delegators_parquet: str, origin: date
     ).df()
     start_day = _days_after(rows["start_time"], cutoff)
     return pd.DataFrame({"stake_navax": rows["stake_navax"].to_numpy(dtype=np.int64),
-                         "days": _days_after(rows["end_time"], cutoff) - start_day, "benqi": rows["benqi"].to_numpy(dtype=bool)})
+                         "days": _days_after(rows["end_time"], cutoff) - start_day, "benqi": rows["benqi"].to_numpy(dtype=bool),
+                         "transaction_hash": rows["transaction_hash"].to_numpy(dtype=object)})
 
 
 def historical_flow(flows: pd.DataFrame, origin: date) -> DelegationFlow:

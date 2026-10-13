@@ -247,7 +247,8 @@ def _delegated_stub(periods: str, origin: date, run: str, draws: int, draw_seed:
     events = training_events(periods, origin, run)
     return Prepared({
         **switched_inputs(events, V08), **delegation_inputs(delegations, periods, origin, events.state),
-        "delegation_terms": delegations["terms"], "delegation_flow": historical_flow(delegations["flows"], origin),
+        "delegation_terms": delegations["terms"].drop(columns="transaction_hash", errors="ignore"),
+        "delegation_flow": historical_flow(delegations["flows"], origin),
     })
 
 
