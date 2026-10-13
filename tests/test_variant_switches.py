@@ -97,7 +97,8 @@ def test_the_candidates_are_registered_and_the_development_scores_run_the_four_v
     assert list(VARIANTS) == [*DEVELOPMENT_MODELS, "v0.8-a", "v0.8-a u", "v0.8-c", "v0.8-c u", "v0.8-e", "v0.8-e u",
                               "v0.8-a record", "v0.8-a record u", "v0.8-a bands", "v0.8-a bands u",
                               "v0.8-a duration", "v0.8-a duration u", "v0.8-a bands return", "v0.8-a bands return u",
-                              "v0.8 duration", "v0.8 duration u", "v0.8-a return", "v0.8-a return u", "v0.8.1 stub"]
+                              "v0.8 duration", "v0.8 duration u", "v0.8-a return", "v0.8-a return u", "v0.8-a stake",
+                              "v0.8-a stake u", "v0.8-a stake return", "v0.8-a stake return u", "v0.8.1 stub"]
     spec = importlib.util.spec_from_file_location("model_development_scores", SCRIPT)
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)

@@ -46,6 +46,14 @@ draws:
   logit return hazard on the node's own history.
 
 
+It builds one candidate on v0.8-a by the stake lifecycle's switch, with and without parameter draws:
+
+* ``v0.8-a stake``: v0.8-a in which each renewing, returning or entering node takes its next stake from the fitted
+  stake hurdle, :class:`~avalanche_research.model.parts.stake_choice.StakeChoice`, given the duration it has drawn,
+  through :class:`~avalanche_research.model.stake_lifecycle.StakeLifecycle`. With parameter draws, every other block
+  redraws per run and the hurdle stays at its fitted point estimate, labelled "stake hurdle not resampled".
+* ``v0.8-a stake return``: v0.8-a stake with the logit return hazard on the node's own history as well.
+
 And it builds one model with delegations, outside the development scores:
 
 * ``v0.8.1 stub``: :class:`~avalanche_research.model.delegated_lifecycle.DelegatedLifecycle` on v0.8's inputs, with
@@ -80,10 +88,16 @@ from avalanche_research.model.fitted_lifecycle import (
     fit_durations,
     fit_return_history,
     parameter_draws,
+    stake_decisions,
     training_events,
     window_sd,
 )
 from avalanche_research.model.lifecycle import ValidatorLifecycle, origin_inputs
+from avalanche_research.model.stake_lifecycle import (
+    StakeLifecycle,
+    build_stake_candidate,
+    fitted_stake_settings,
+)
 
 LARGE_ABOVE_AVAX = 1_000_000
 
@@ -195,6 +209,27 @@ def _fitted_with_draws(switches: Switches = V08) -> Callable[..., Prepared]:
     return build
 
 
+def _stake_point(periods: str, origin: date, run: str, draws: int, draw_seed: int) -> Prepared:
+    return build_stake_candidate(periods, origin, run, 0, draw_seed)
+
+
+def _stake_on(switches: Switches, with_draws: bool) -> Callable[..., Prepared]:
+    """The stake hurdle on the blocks ``switches`` fit. With draws, every other block redraws per run under the same
+    switches and the hurdle stays at its point estimate, as ``v0.8-a stake u`` does."""
+    def build(periods: str, origin: date, run: str, draws: int, draw_seed: int) -> Prepared:
+        events = training_events(periods, origin, run)
+        inputs = switched_inputs(events, switches)
+        stake = fitted_stake_settings(stake_decisions(periods, origin, run), origin, run)
+        if not with_draws:
+            return Prepared({**inputs, **stake})
+        inputs |= {"moves": events.moves, "first_commitments": events.first_commitments}
+        tau, source = window_sd(periods, origin, inputs["renewal"])
+        table = parameter_draws(events, draws, draw_seed, tau, node_record=switches.node_record,
+                                return_history=switches.return_history)
+        return Prepared({**inputs, **stake, "stake_point_estimate": True}, table, tau, source)
+    return build
+
+
 def _delegated_stub(periods: str, origin: date, run: str, draws: int, draw_seed: int,
                     delegations: dict[str, pd.DataFrame] | None = None) -> Prepared:
     if delegations is None:
@@ -239,6 +274,18 @@ VARIANTS: dict[str, Variant] = {
                 _fitted(RETURN_HISTORY)),
         Variant("v0.8-a return u", FittedLifecycle, "v0.8-a return with one draw of every fitted parameter per run",
                 _fitted_with_draws(RETURN_HISTORY)),
+        Variant("v0.8-a stake", StakeLifecycle,
+                "v0.8-a with each new commitment's stake from the fitted stake hurdle, given its duration",
+                _stake_point),
+        Variant("v0.8-a stake u", StakeLifecycle,
+                "v0.8-a stake with one draw of every other fitted parameter per run; the stake hurdle is not resampled",
+                build_stake_candidate),
+        Variant("v0.8-a stake return", StakeLifecycle,
+                "v0.8-a with the stake hurdle and the logit return hazard on the node's own history",
+                _stake_on(RETURN_HISTORY, with_draws=False)),
+        Variant("v0.8-a stake return u", StakeLifecycle,
+                "v0.8-a stake return with one draw of every other fitted parameter per run; the stake hurdle is not resampled",
+                _stake_on(RETURN_HISTORY, with_draws=True)),
         Variant("v0.8.1 stub", DelegatedLifecycle,
                 "v0.8 with delegations: the open and scheduled ones at the origin, a flow at the year's rate, and placeholder choices",
                 _delegated_stub),
