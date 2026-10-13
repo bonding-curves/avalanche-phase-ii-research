@@ -24,7 +24,7 @@ Quoted from the [Signed Grant Agreement](/Phase-II/Milestones/Milestone-0/Signed
 
 ## Status
 
-Delivered for the Foundation's review and approval on 8 October 2026. Not yet approved. The held-back test is scored on 27 October 2026, and its result will be added to this page when it lands.
+The Foundation accepted Milestone 1 in August 2026. This rebuilt report was published on 8 October 2026. The held-back test is scored on 27 October 2026, and its result will be added to this page when it lands.
 
 ## Result
 
@@ -294,7 +294,6 @@ These questions are for the Foundation. The first decides how the final model is
 
 1. **The validation standard.** The question in Table 2 needs a written answer by 20 October 2026, before the held-back period is scored. Without it, the contract's test stands as written, with its series and window still undefined.
 2. **The horizon that matters.** v0.7's mean errors on the count are close to holding today's value, and worse on stake at every horizon. Which horizon do decisions on reward designs need: 30, 90 or 180 days, or longer?
-3. **Approval of this report.** Milestone 1 is complete when the Foundation approves this report. Is approval given by a written note after the call of 23 October? A written answer is needed by 6 November.
 
 ## References
 

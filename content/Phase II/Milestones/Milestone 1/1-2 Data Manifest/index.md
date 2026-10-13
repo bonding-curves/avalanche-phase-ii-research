@@ -18,7 +18,7 @@ Quoted from the [Signed Grant Agreement](/Phase-II/Milestones/Milestone-0/Signed
 
 ## Status
 
-Delivered for the Foundation's review. Not yet accepted. The catalog declares 69 datasets from 16 sources, and 69 have a built run. The tables below are generated from the newest run of each dataset built on or before 8 October 2026 at 18:32:40 UTC.
+The Foundation accepted Milestone 1 in August 2026. This page is the rebuild of 8 October 2026. The catalog declares 69 datasets from 16 sources, and 69 have a built run. The tables below are generated from the newest run of each dataset built on or before 8 October 2026 at 18:32:40 UTC.
 
 ## How a dataset is made
 

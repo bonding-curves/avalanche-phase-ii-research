@@ -20,7 +20,7 @@ Quoted from the [Signed Grant Agreement](/Phase-II/Milestones/Milestone-0/Signed
 
 ## Status
 
-Delivered for the Foundation's review. Not yet accepted. Every number in the text, the tables, and Figure 2 is generated from the receipts of the newest checked run of each dataset built on or before 8 October 2026 at 18:32:40 UTC. Figure 1 is dated separately: it shows the runs of 30 September 2026.
+The Foundation accepted Milestone 1 in August 2026. This page is the rebuild of 8 October 2026. Every number in the text, the tables, and Figure 2 is generated from the receipts of the newest checked run of each dataset built on or before 8 October 2026 at 18:32:40 UTC. Figure 1 is dated separately: it shows the runs of 30 September 2026.
 
 ## What is ingested
 

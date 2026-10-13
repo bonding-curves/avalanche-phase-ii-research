@@ -386,10 +386,10 @@ def render_ingestion(catalog: dict[str, Any], runs: dict[str, dict[str, Any]], a
         "## Contract requirement", "", "> Ingest Avalanche-provided historical data (validator/delegator flows, rewards, durations)", "",
         f"Quoted from the {AGREEMENT}.", "",
         "## Status", "",
-        f"Delivered for the Foundation's review. Not yet accepted. Every number in the text, the tables, and Figure 2 is "
+        f"The Foundation accepted Milestone 1 in August 2026. This page is the rebuild of 8 October 2026. Every number in the text, the tables, and Figure 2 is "
         f"generated from the receipts of the newest checked run of each dataset built on or before {as_of_label(as_of)}. "
         "Figure 1 is dated separately: it shows the runs of 30 September 2026." if as_of else
-        "Delivered for the Foundation's review. Not yet accepted.", "",
+        "The Foundation accepted Milestone 1 in August 2026. This page is the rebuild of 8 October 2026.", "",
         "## What is ingested", "",
         ("The agreement names four quantities. Table 1 gives the dataset that answers each one, with its dates, its size, and the "
         "result of its checks. A **dataset** is one table with a declared source, fields, and units, and each of its builds is a "
@@ -517,9 +517,9 @@ def render_manifest(catalog: dict[str, Any], runs: dict[str, dict[str, Any]], pi
         "bytes it came from."), "",
         "## Contract requirement", "", "> Documentation of sources, transformations, quality metrics", "", f"Quoted from the {AGREEMENT}.", "",
         "## Status", "",
-        f"Delivered for the Foundation's review. Not yet accepted. The catalog declares {len(datasets)} datasets from "
+        f"The Foundation accepted Milestone 1 in August 2026. This page is the rebuild of 8 October 2026. The catalog declares {len(datasets)} datasets from "
         f"{len(sources)} sources, and {built} have a built run. The tables below are generated from the newest run of each "
-        f"dataset built on or before {as_of_label(as_of)}." if as_of else "Delivered for the Foundation's review. Not yet accepted.", "",
+        f"dataset built on or before {as_of_label(as_of)}." if as_of else "The Foundation accepted Milestone 1 in August 2026. This page is the rebuild of 8 October 2026.", "",
         "## How a dataset is made", "",
         ("Every dataset passes through the same four steps, and every step leaves a **receipt**, a JSON file that records what "
         "the step read, what it wrote, and the SHA-256 hash of each file. A hash is a fixed-length fingerprint of a file's bytes: "

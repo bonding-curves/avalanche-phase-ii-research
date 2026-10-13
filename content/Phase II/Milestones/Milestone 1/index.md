@@ -1,11 +1,11 @@
 ---
 title: Milestone 1
-description: "Data ingestion, the model's specification, its behavioral calibration, and the Preliminary Validation Report: all five deliverables of Milestone 1, rebuilt on the staking model v0.7 and delivered for the Foundation's approval."
+description: "Data ingestion, the model's specification, its behavioral calibration, and the Preliminary Validation Report: all five deliverables of Milestone 1, accepted by the Foundation in August 2026 and rebuilt on the staking model v0.7."
 ---
 
 Milestone 1 builds the foundation that the parameter sweeps of Milestone 2 run on. It has four deliverables and one success criterion. The deliverables are the staking data, a documented manifest of that data, a specification of the staking model, and the model's behavior calibrated to the record. The success criterion is a Preliminary Validation Report that tests the model against history, delivered and approved by the Avalanche team.
 
-All five are delivered as of 8 October 2026. They were rebuilt from the chain up after the research restarted in September 2026, and they rest on the staking model v0.7, tagged `model-v0.7.0` on 1 October and presented on 2 October.
+The Foundation accepted Milestone 1 in August 2026. After the research restarted in September 2026, all five deliverables were rebuilt from the chain up, and the rebuilt versions were published on 8 October 2026. They rest on the staking model v0.7, tagged `model-v0.7.0` on 1 October and presented on 2 October.
 
 ## How the deliverables depend on each other
 
@@ -43,6 +43,5 @@ Three findings run through the five deliverables.
 
 ## For the Foundation
 
-1. **Approval of the Preliminary Validation Report.** This is Milestone 1's success criterion. A written approval, or a list of what is missing, completes the milestone.
-2. **The standard for goodness of fit.** The contract asks for ">90% correlation" without naming the series or the window. The report proposes a standard and asks for a written answer by 20 October, before the held-back period is scored.
-3. **The Snowflake share.** It has loaded nothing since 22 September 2026. The record since then comes from our own capture of the P-Chain, which matches the share on every row both hold.
+1. **The standard for goodness of fit.** The contract asks for ">90% correlation" without naming the series or the window. The report proposes a standard and asks for a written answer by 20 October, before the held-back period is scored.
+2. **The Snowflake share.** It has loaded nothing since 22 September 2026. The record since then comes from our own capture of the P-Chain, which matches the share on every row both hold.
