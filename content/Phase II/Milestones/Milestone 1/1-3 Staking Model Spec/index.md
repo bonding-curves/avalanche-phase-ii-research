@@ -248,7 +248,7 @@ Model v0.7 is the first released version built on a tested library. The first pa
 
 ![Avalanche staking model versions, from the first package to version 1.0](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/lineage.png)
 
-*Figure 6. The model's versions. Filled circles are built, the blue circle is v0.7, and open circles are planned, with the call at which each is shown. Source: the v0.7 research report, sent to the Foundation on 8 October 2026.*
+*Figure 6. The model's versions. Filled circles are built, the blue circle is v0.7, and open circles are planned, with the call at which each is shown. Source: the v0.7 research report of 8 October 2026, which the Foundation holds.*
 
 ### What v0.8 changes
 
@@ -288,7 +288,7 @@ Forecasts are scored by **scaled error**: a forecast's absolute error divided by
 | Extending the 180-day trend | 7.49 | 9.71 | 14.91 |
 | Weekly time-series fit | 7.14 | 8.40 | 12.29 |
 
-*Table 8. Validator stake mean scaled error, using 19, 18 and 17 eligible development origins at 30, 90 and 180 days, respectively. The v0.8 row uses 20 runs with base seed 0. The 200-run forecast uses ten 20-run batches with base seeds 0 to 9, and its mean scaled errors are 5.87, 8.47 and 7.91. Every batch is below all three simple forecasts at 30 and 180 days and above holding today's value at 90 days. At 90 days, 2 of the 10 batches are below the weekly fit's 8.40 and 8 are above it, with batch means from 8.11 to 8.92. Source: the v0.7 research report, sent to the Foundation on 8 October 2026, Table 8.*
+*Table 8. Validator stake mean scaled error, using 19, 18 and 17 eligible development origins at 30, 90 and 180 days, respectively. The v0.8 row uses 20 runs with base seed 0. The 200-run forecast uses ten 20-run batches with base seeds 0 to 9, and its mean scaled errors are 5.87, 8.47 and 7.91. Every batch is below all three simple forecasts at 30 and 180 days and above holding today's value at 90 days. At 90 days, 2 of the 10 batches are below the weekly fit's 8.40 and 8 are above it, with batch means from 8.11 to 8.92. Source: the v0.7 research report of 8 October 2026, which the Foundation holds, Table 8.*
 
 On mean scaled error, the v0.8 candidate halves v0.7's error at 90 days and is lower than every simple forecast at 30 and 180 days. At 90 days it is near the weekly fit in the 20-run batch shown, its 200-run error is slightly higher than the weekly fit, and both remain behind holding today's value. These are descriptive comparisons, without a claim of statistical equivalence. The candidate does not improve the validator count. Checks of its predictions of renewal within seven days miss their tolerance of three percentage points, both month by month and for first and seventh commitments. Its response to reward is still assumed, as in v0.7, and returns do not respond at all. It becomes a release only by passing a test written before its results are seen.
 
@@ -315,7 +315,7 @@ The project's full glossary is in [Glossary and Notation](/Phase-II/Wiki/Referen
 
 ## How it was built
 
-The model is tag `model-v0.7.0` of the research library, at commit `087484b`. The Foundation's repository holds the same model code and its tests on its `phase-ii` branch at commit `4597b8a`. The protocol rules follow the ACP texts at commit `b80ea34` of the ACPs repository and AvalancheGo at commit `70bd6d0`, and calculations use whole-number arithmetic in the same order as the node software. The inputs at every origin are measured from the staking periods run `staking-periods-2026-09-30`, and the replay compares with the daily ledger run `avax-monetary-daily-2026-09-30`. [Data](/Phase-II/Wiki/Reference/Data) explains the datasets and how each number traces to a checked run. The values in this page are those of the v0.7 research report, sent to the Foundation on 8 October 2026, and the diagrams are drawn from the model's code at the tag.
+The model is tag `model-v0.7.0` of the research library, at commit `087484b`. The Foundation's repository holds the same model code and its tests on its `phase-ii` branch at commit `4597b8a`. The protocol rules follow the ACP texts at commit `b80ea34` of the ACPs repository and AvalancheGo at commit `70bd6d0`, and calculations use whole-number arithmetic in the same order as the node software. The inputs at every origin are measured from the staking periods run `staking-periods-2026-09-30`, and the replay compares with the daily ledger run `avax-monetary-daily-2026-09-30`. [Data](/Phase-II/Wiki/Reference/Data) explains the datasets and how each number traces to a checked run. The values in this page are those of the v0.7 research report of 8 October 2026, which the Foundation holds, and the diagrams are drawn from the model's code at the tag.
 
 ## Open questions
 

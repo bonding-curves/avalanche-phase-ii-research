@@ -166,12 +166,12 @@ def load_pins(pins_root: Path, as_of: str | None = None) -> dict[str, list[tuple
 
 
 def raw_hash(capture: dict[str, Any]) -> str:
-    items = capture.get("responses") or capture.get("queries") or capture.get("inputs") or []
+    items = capture.get("responses") or capture.get("queries") or capture.get("inputs") or capture.get("files") or []
     return ", ".join(item["sha256"][:12] for item in items[:2]) + (" ..." if len(items) > 2 else "")
 
 
 def hash_cell(capture: dict[str, Any]) -> str:
-    """The raw data hash as code, or "none recorded" when the capture lists no responses, queries or inputs."""
+    """The raw data hash as code, or "none recorded" when the capture lists no responses, queries, inputs or files."""
     hashed = raw_hash(capture)
     return f"`{hashed}`" if hashed else "none recorded"
 

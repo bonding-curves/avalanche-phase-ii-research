@@ -107,7 +107,7 @@ The fitted function describes the year before one origin. Figure 2 shows the sam
 
 ![Renewal within seven days by commitment number on the node](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.png)
 
-*Figure 2. Share of ending validator commitments whose node started another within seven days, by the commitment's number on its node, for 40,506 endings from July 2022 to the held-back period. The band is the range of model v0.7's single renewal probability across its 19 forecast dates, and the dashed line its mean. Source: the v0.7 research report, sent to the Foundation on 8 October 2026, Figure 21. Data: [renewal-by-tenure.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.csv). An [interactive version](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.html) is available.*
+*Figure 2. Share of ending validator commitments whose node started another within seven days, by the commitment's number on its node, for 40,506 endings from July 2022 to the held-back period. The band is the range of model v0.7's single renewal probability across its 19 forecast dates, and the dashed line its mean. Source: the v0.7 research report of 8 October 2026, which the Foundation holds, Figure 21. Data: [renewal-by-tenure.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.csv). An [interactive version](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.html) is available.*
 
 Over that span, 62% of first commitments renewed and 91% of the 25th or later. Model v0.7 used one probability per forecast date, between 75% and 83%, for every node, and the fitted function replaces it.
 
@@ -205,7 +205,7 @@ The renewal function was tested on decisions outside its fit. At each of 19 **de
 
 | Check, on held-out endings | Renewal function | Model v0.7's single probability | Tolerance set before scoring | Result |
 | --- | --- | --- | --- | --- |
-| Pooled log loss | 0.4505 | 0.4916 | Below v0.7 by a paired bootstrap at p < 0.05, and lower at 14 or more of the 19 origins | Met: p 0.0000, lower at 19 of 19 origins |
+| Pooled log loss | 0.4505 | 0.4916 | Below v0.7 by a paired bootstrap at p < 0.05, and lower at 14 or more of the 19 origins | Met: p < 0.0005 from 2,000 resamples, lower at 19 of 19 origins |
 | Expected calibration error, 10 bins | 0.0194 | | At most 0.02 | Met |
 | Monthly renewal, mean absolute error over 41 months | 0.0449 | 0.0489 | At most 0.03 | Missed |
 | Predicted minus observed, first commitments | +0.054 | +0.201 | Within 0.03 | Missed |
@@ -242,7 +242,7 @@ The fitted values come from the model's v0.8 candidate at commit `1c891a4` of th
 
 1. **Fit and intervals.** [calibrate.py](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/calibrate.py) runs the model's own fitting function at origin 18 November 2025, asserts that its values equal the model's, and computes every interval with fixed random seeds. To rerun it, export commit `1c891a4`, make the staking periods run available to its data catalog, and run `uv run --group model python calibrate.py <output folder>` from the export. Its five output files are delivered unchanged in this page's `results` folder. A rerun on 8 October 2026 reproduced all five byte for byte. Table 6's April values come from the same fitting function at origin 8 April 2025.
 2. **Held-out checks.** Table 7 comes from `scripts/renewal_block_scores.py` at commit `1c891a4`.
-3. **Figures.** `scripts/figures/m1_calibration.py` draws Figures 1 and 3 from the files in `results`. For each figure it writes a PNG, an interactive HTML, a CSV of the drawn data under readable column names, and a JSON receipt. The receipt records the sha256 of calibrate.py, of the input in `results`, and of each file the figure wrote. Running the script with `--check` recomputes every recorded sha256, rebuilds each figure's CSV from its input, and exits with an error on any difference. Figure 2 is reproduced from the v0.7 research report, sent to the Foundation on 8 October 2026.
+3. **Figures.** `scripts/figures/m1_calibration.py` draws Figures 1 and 3 from the files in `results`. For each figure it writes a PNG, an interactive HTML, a CSV of the drawn data under readable column names, and a JSON receipt. The receipt records the sha256 of calibrate.py, of the input in `results`, and of each file the figure wrote. Running the script with `--check` recomputes every recorded sha256, rebuilds each figure's CSV from its input, and exits with an error on any difference. Figure 2 is reproduced from the v0.7 research report of 8 October 2026, which the Foundation holds.
 
 | File | What it holds |
 | --- | --- |

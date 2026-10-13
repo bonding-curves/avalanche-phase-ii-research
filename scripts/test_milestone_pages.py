@@ -2,10 +2,10 @@ import contextlib
 import io
 import json
 import sys
-from unittest.mock import patch
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import milestone_pages
@@ -211,6 +211,7 @@ class MilestonePagesTest(unittest.TestCase):
     def test_hash_cell_says_none_recorded_without_raw_responses(self):
         self.assertEqual(milestone_pages.hash_cell({}), "none recorded")
         self.assertEqual(milestone_pages.hash_cell({"responses": [{"sha256": "a" * 64}]}), "`" + "a" * 12 + "`")
+        self.assertEqual(milestone_pages.hash_cell({"files": [{"sha256": "b" * 64}]}), "`" + "b" * 12 + "`")
 
     def test_seamed_span_starts_at_the_share_first_row(self):
         runs = {"derived.seamed-delegator-stakes": {"build": {"summary": {}}, "capture": {"window": {"start": "2020-09-10", "end": "2026-10-08"}}},

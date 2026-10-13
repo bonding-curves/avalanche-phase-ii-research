@@ -170,7 +170,7 @@ The error is not noise around the right answer. It is a **bias**, an error with 
 
 *Figure 5. Forecast minus actual, as a percentage of actual, for v0.7's 90-day forecast of validator stake at each origin. Diamonds are network upgrades. The dashed lines are the mean before 2024 and from 2024. Source: model v0.7 forecasts, 20 runs per origin. Data: [forecast-bias-by-era.csv](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/forecast-bias-by-era.csv).*
 
-Before 2024 v0.7 under-forecast stake by 5.6% on average at 90 days, and from 2024 it over-forecast by 14.8%. The largest miss is the origin of 1 October 2024, which over-forecast by about 48%.
+Before 2024 v0.7 under-forecast stake by 5.6% on average at 90 days, and from 2024 it over-forecast by 14.8%. The largest miss is the origin of 1 October 2024, which over-forecast by 48.46%, which the v0.7 research report rounds to 49%.
 
 Differences between the model's fixed inputs and the renewal and entry that followed are possible contributors, since the model holds each origin's measured rates for the whole forecast. Over the 18 origins with a full 90-day window, renewal in the next 90 days differed from the input by up to 10 points, and entry ran from 44% below the input to 69% above. Before 2024, renewal in the next 90 days exceeded the input at six of eight origins, while v0.7 under-forecast stake. Over the ten complete windows from 2024, renewal was above the input at five and below at five, while v0.7 over-forecast stake. The sign of the stake error does not follow renewal alone.
 
@@ -238,7 +238,7 @@ The verification, the scores and the bias together say what v0.7 can and cannot 
 | Validator stake over 90 days or more | Low | Worse than holding today's value, with a bias that changes sign |
 | Effect of a design on validators | Conditional | It depends entirely on the assumed response |
 
-*Table 3. What v0.7 can be used for. Source: the v0.7 research report, sent to the Foundation on 8 October 2026. Its Part 7 holds the design comparison behind the ranking row: the order of the designs on issuance is the same at every response swept.*
+*Table 3. What v0.7 can be used for. Source: the v0.7 research report of 8 October 2026, which the Foundation holds. Its Part 7 holds the design comparison behind the ranking row: the order of the designs on issuance is the same at every response swept.*
 
 The last row is conditional because the chain's history before Helicon does not identify the response (Section 1.2). Every statement about a design's effect on validators holds only for the response assumed.
 
@@ -266,7 +266,7 @@ Each later version adds one structure the record shows v0.7 lacks, and each must
 
 ## How it was built
 
-Every number on this page comes from the v0.7 research report, sent to the Foundation on 8 October 2026, and the runs behind it. The model is the class `ValidatorLifecycle` in the library `avalanche_research`, released as tag `model-v0.7.0` at commit `087484b`. It runs on cadCAD 0.5.3, with every setting declared in Param 2.4 with its bounds. The inputs are pinned in `data/pins/p6-v0.7-report.json`, which names each data run with its sha256, among them the staking periods and the daily ledger of 30 September 2026.
+Every number on this page comes from the v0.7 research report of 8 October 2026, which the Foundation holds, and the runs behind it. The model is the class `ValidatorLifecycle` in the library `avalanche_research`, released as tag `model-v0.7.0` at commit `087484b`. It runs on cadCAD 0.5.3, with every setting declared in Param 2.4 with its bounds. The inputs are pinned in `data/pins/p6-v0.7-report.json`, which names each data run with its sha256, among them the staking periods and the daily ledger of 30 September 2026.
 
 | What | How it is rebuilt |
 | --- | --- |
