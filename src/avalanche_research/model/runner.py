@@ -17,6 +17,7 @@ files as an uninterrupted one. At most ``in_flight`` rows are submitted and not 
 from __future__ import annotations
 
 import contextlib
+from datetime import date, datetime
 import io
 import json
 import multiprocessing
@@ -56,6 +57,7 @@ def model_settings(row: Mapping) -> dict:
     """A row's settings as the model takes them: a ``mechanism`` given by class name, or by a mapping with ``name`` and
     keyword settings, becomes that reward mechanism from ``avalanche_research.mechanisms``."""
     from .. import mechanisms
+    import param
 
     values = settings(row)
     spec = values.get("mechanism")
@@ -64,6 +66,12 @@ def model_settings(row: Mapping) -> dict:
         cls = getattr(mechanisms, name, None)
         if not (isinstance(cls, type) and issubclass(cls, mechanisms.RewardMechanism)):
             raise ValueError(f"unknown reward mechanism {name!r}")
+        for key, value in options.items():
+            if key in cls.param and isinstance(cls.param[key], (param.Date, param.CalendarDate)) and isinstance(value, str):
+                try:
+                    options[key] = date.fromisoformat(value) if isinstance(cls.param[key], param.CalendarDate) or len(value) == 10 else datetime.fromisoformat(value)
+                except ValueError as error:
+                    raise ValueError(f"mechanism {name} {key} must be an ISO date or timestamp") from error
         values["mechanism"] = cls(**options)
     return values
 
@@ -71,7 +79,17 @@ def model_settings(row: Mapping) -> dict:
 def _simulate(row: dict) -> pd.DataFrame:
     import resource
 
-    model = _BASE.with_settings(**model_settings(row))
+    values = model_settings(row)
+    if "draw" in values:
+        draw = values.pop("draw")
+        if type(draw) is not int or draw < 0:
+            raise ValueError("row draw must be a nonnegative integer")
+        if values.get("runs", _BASE.runs) != 1:
+            raise ValueError("a per-row draw requires one trajectory per row")
+        if getattr(_BASE, "draws", None) is None or not 0 <= draw < len(_BASE.draws):
+            raise ValueError(f"row {row.get('row_id')} asks for draw {draw}, which the base model's draws table does not have")
+        values["draws"] = _BASE.draws.iloc[[draw]].reset_index(drop=True)
+    model = _BASE.with_settings(**values)
     with contextlib.redirect_stdout(io.StringIO()):  # cadCAD prints a banner per execution
         table = run(model)
     if _REDUCER is not None:

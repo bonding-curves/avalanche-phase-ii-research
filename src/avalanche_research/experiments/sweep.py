@@ -22,6 +22,12 @@ The design file is JSON:
 
 ``model run`` is a one-row design: one origin, one model and one seed.
 
+``"generator": "explicit"`` with ``rows_file``, a JSON list of rows, takes every row as written, such as a Saltelli
+design made elsewhere; each row sets its ``seed``, and the required ``rows_sha256`` must match the file. ``draws_file``
+(CSV, gzipped CSV or Parquet, with a required ``draws_sha256``) attaches a table of parameter draws to each fitted base
+model, and a row's ``draw: k`` runs with row k of it alone, so rows that share a ``seed`` and a ``draw`` share their
+noise key. A row's ``outside_yield_pp`` is also the competing yield the KPI reducer uses for that row.
+
 With ``"reducer": {"kind": "kpis", "horizons": [365, 180], "competing_yield": 0.04, "operating_costs": {"mid": 0.01}}``
 each row keeps one value per run, KPI, horizon and cost level instead of its daily paths: the KPI module's
 ``kpi_table`` on the run's daily table, which follows the chain's daily table up to the origin. The chain table, the
@@ -40,6 +46,9 @@ This module reads pin files, so it lives outside ``model``: contracts K4 and K5 
 from __future__ import annotations
 
 import json
+import math
+import io
+import tempfile
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -58,18 +67,19 @@ PILOT_BASE_MIB, PILOT_PER_RUN_MIB = 931.9, 58.0
 MODELS = ("v0.7", "v0.8", "v0.8 separate")
 
 
-def builder(periods: str, run_name: str, runs: int, timesteps: int) -> Callable[[Any, str], SimulationModel]:
-    """The base model for an origin and model name, from the pinned staking periods."""
+def builder(periods: str, run_name: str, runs: int, timesteps: int, draws: Any = None) -> Callable[[Any, str], SimulationModel]:
+    """The base model for an origin and model name, from the pinned staking periods, with ``draws`` attached to a v0.8
+    base when given."""
     def build(origin: Any, model: str) -> SimulationModel:
+        from ..model.variants import VARIANTS
+
         day = date.fromisoformat(str(origin))
-        if model == "v0.7":
-            from ..model.lifecycle import ValidatorLifecycle, origin_inputs
-            return ValidatorLifecycle(origin=day, inputs_source=run_name, runs=runs, timesteps=timesteps, **origin_inputs(periods, day))
-        if model in ("v0.8", "v0.8 separate"):
-            from ..model.fitted_lifecycle import FittedLifecycle, fitted_inputs
-            large = 1_000_000 if model == "v0.8 separate" else None
-            return FittedLifecycle(runs=runs, timesteps=timesteps, **fitted_inputs(periods, day, run_name, large_above_avax=large))
-        raise ValueError(f"unknown model {model!r}; known: {', '.join(MODELS)}")
+        if model in VARIANTS and model != "v0.8.1 stub":
+            variant = VARIANTS[model]
+            prepared = variant.prepare(periods, day, run_name, draws=0 if draws is not None else runs)
+            return variant.simulation(prepared, seed=0, timesteps=timesteps, runs=runs,
+                                      draws=draws if draws is not None else prepared.draws)
+        raise ValueError(f"unknown sweep model {model!r}; known: {', '.join(name for name in VARIANTS if name != 'v0.8.1 stub')}")
     return build
 
 
@@ -79,6 +89,25 @@ def rows(design: dict) -> list[dict]:
         inner = list(designs.cartesian(design["levels"], seed=design.get("seed", 0), name=design.get("name", "cartesian")))
     elif design["generator"] == "sobol":
         inner = list(designs.sobol(design["bounds"], design["m"], design["design_seed"], seed=design.get("seed", 0)))
+    elif design["generator"] == "explicit":
+        path = Path(design["rows_file"])
+        if not design.get("rows_sha256"):
+            raise ValueError("rows_file requires rows_sha256")
+        body = path.read_bytes()
+        if receipt.sha256(body) != design["rows_sha256"]:
+            raise ValueError(f"{path} does not match the design's rows_sha256")
+        listed = json.loads(body)
+        if not isinstance(listed, list) or not listed or any(not isinstance(row, dict) for row in listed):
+            raise ValueError("explicit rows must be a nonempty JSON list of objects")
+        missing = [i for i, row in enumerate(listed) if "seed" not in row]
+        if missing:
+            raise ValueError(f"explicit rows must each set a seed; rows {missing[:5]} do not")
+        for row in listed:
+            if type(row["seed"]) is not int or row["seed"] < 0:
+                raise ValueError("explicit row seed must be a nonnegative integer")
+            if "draw" in row and (type(row["draw"]) is not int or row["draw"] < 0):
+                raise ValueError("explicit row draw must be a nonnegative integer")
+        inner = [{"design": design.get("name", "explicit"), **row} for row in listed]
     else:
         raise ValueError(f"unknown generator {design['generator']!r}")
     crossed = []
@@ -97,6 +126,15 @@ class KpiReducer:
         self.chains, self.horizons = chains, list(horizons)
         self.competing_yield, self.operating_costs = competing_yield, dict(operating_costs)
 
+    def competing_for(self, row) -> float:
+        """The row's own outside yield as a fraction when it sets one, otherwise the design's competing yield."""
+        value = row.get("outside_yield_pp")
+        if value is None:
+            return self.competing_yield
+        if isinstance(value, bool) or not math.isfinite(float(value)):
+            raise ValueError("outside_yield_pp must be a finite number")
+        return float(value) / 100
+
     def __call__(self, table, row):
         import pandas as pd
 
@@ -109,7 +147,7 @@ class KpiReducer:
         frames = []
         for run_number, one in table.groupby("run"):
             daily = kpis.run_daily_table(one, origin, chain=chain)
-            values = kpis.kpi_table(daily, origin, self.horizons, competing_yield=self.competing_yield,
+            values = kpis.kpi_table(daily, origin, self.horizons, competing_yield=self.competing_for(row),
                                     operating_costs=self.operating_costs, starting_supply_navax=supply, burn_navax_per_day=burn,
                                     missing="skip")
             values.insert(0, "run", int(run_number))
@@ -134,6 +172,27 @@ def kpi_reducer(design: dict, pin_file: Path, periods: str) -> KpiReducer | None
     ledger = str(parquet_path("derived.avax-monetary-daily", named["derived.avax-monetary-daily"]))
     chains = {str(origin): kpis.chain_daily_table(periods, ledger, date.fromisoformat(str(origin))) for origin in design["origins"]}
     return KpiReducer(chains, spec["horizons"], spec["competing_yield"], spec["operating_costs"])
+
+
+def load_draws(design: dict) -> Any:
+    """The design's table of parameter draws, or None. Its required ``draws_sha256`` must match the file."""
+    if not design.get("draws_file"):
+        return None
+    import pandas as pd
+
+    path = Path(design["draws_file"])
+    if not design.get("draws_sha256"):
+        raise ValueError("draws_file requires draws_sha256")
+    body = path.read_bytes()
+    if receipt.sha256(body) != design["draws_sha256"]:
+        raise ValueError(f"{path} does not match the design's draws_sha256")
+    if path.suffix == ".parquet":
+        import duckdb
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "draws.parquet"
+            snapshot.write_bytes(body)
+            return duckdb.execute("SELECT * FROM read_parquet(?)", [str(snapshot)]).df()
+    return pd.read_csv(io.BytesIO(body), compression="gzip" if path.suffix == ".gz" else None)
 
 
 def pinned_periods(pin_file: Path) -> tuple[str, str]:
@@ -161,13 +220,30 @@ def run(design_path: Path | dict, out: Path, build: Callable[[Any, str], Simulat
     from ..core.clock import now
 
     design = dict(json.loads(design_path.read_text()) if isinstance(design_path, Path) else design_path)
+    for stem in ("rows", "draws"):
+        if design.get(f"{stem}_file"):
+            path = Path(design[f"{stem}_file"])
+            if not design.get(f"{stem}_sha256"):
+                raise ValueError(f"{stem}_file requires {stem}_sha256")
+            digest = receipt.sha256(path.read_bytes())
+            if design.get(f"{stem}_sha256") and design[f"{stem}_sha256"] != digest:
+                raise ValueError(f"{path} does not match the design's {stem}_sha256")
+    if design.get("draws_file") and design["runs"] != 1:
+        raise ValueError("an external per-row draw table requires one trajectory per row")
+    if design.get("draws_file") and len(design["origins"]) != 1:
+        raise ValueError("an external draw table requires exactly one fitting origin")
+    if design.get("draws_file") and len(design["models"]) != 1:
+        raise ValueError("an external draw table requires exactly one fitted model")
     if pin is not None:
         design["pin"] = str(pin)
     pin_file = Path(design["pin"])
     periods, periods_run = pinned_periods(pin_file)
-    build = build or builder(periods, periods_run, design["runs"], design["timesteps"])
-    reducer = reducer or kpi_reducer(design, pin_file, periods)
+    draws = load_draws(design)
     planned = rows(design)
+    if draws is not None and any(type(row.get("draw")) is not int or not 0 <= row["draw"] < len(draws) for row in planned):
+        raise ValueError("every row must select a draw present in the external draw table")
+    build = build or builder(periods, periods_run, design["runs"], design["timesteps"], draws)
+    reducer = reducer or kpi_reducer(design, pin_file, periods)
     workers = design.get("workers", "auto")
     if workers == "auto":
         workers = runner.size_pool(runner.available_mib(), PILOT_BASE_MIB, PILOT_PER_RUN_MIB, design["runs"])["workers"]

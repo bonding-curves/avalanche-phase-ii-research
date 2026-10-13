@@ -186,7 +186,7 @@ def test_the_sweep_command_runs_a_design_file_and_writes_its_receipt(tmp_path, m
     pin_file = tmp_path / "pin.json"
     pin_file.write_text('{"schema_version": "avalanche-pins/v1", "name": "p", "runs": [{"dataset_id": "derived.staking-periods", '
                         '"run": "synthetic", "sha256": "x", "parquet": "x.parquet", "bytes": 0, "check": "pass"}]}')
-    monkeypatch.setattr(sweep, "builder", lambda periods, run, runs, timesteps: builder)
+    monkeypatch.setattr(sweep, "builder", lambda periods, run, runs, timesteps, draws=None: builder)
     monkeypatch.setattr(sweep, "parquet_path", lambda dataset, run: "unused")
     monkeypatch.setattr(receipt, "code_commit", lambda directory=None: {"commit": "abc", "dirty": False, "package_version": "test"})
     monkeypatch.setattr(receipt.pins, "verify", lambda path, root=None: [])
@@ -231,7 +231,7 @@ def pinned_sweep(tmp_path, monkeypatch, findings=()):
     pin_file = tmp_path / "pin.json"
     pin_file.write_text('{"schema_version": "avalanche-pins/v1", "name": "p", "runs": [{"dataset_id": "derived.staking-periods", '
                         '"run": "synthetic", "sha256": "x", "parquet": "x.parquet", "bytes": 0, "check": "pass"}]}')
-    monkeypatch.setattr(sweep, "builder", lambda periods, run, runs, timesteps: builder)
+    monkeypatch.setattr(sweep, "builder", lambda periods, run, runs, timesteps, draws=None: builder)
     monkeypatch.setattr(sweep, "parquet_path", lambda dataset, run: "unused")
     monkeypatch.setattr(receipt, "code_commit", lambda directory=None: {"commit": "abc", "dirty": False, "package_version": "test"})
     monkeypatch.setattr(receipt.pins, "verify", lambda path, root=None: list(findings))
@@ -331,3 +331,152 @@ def test_a_receipt_lists_every_base_and_refuses_a_row_whose_base_it_does_not_lis
     assert len(made["model"]["specifications"]) == 2 and receipt.check(made) == []
     one = receipt.build_sweep(out, specifications[:1], stats["design_hash"], 2, stats, pin_file, [0], "s", "e", code={"commit": "abc", "dirty": False})
     assert any("which the receipt does not list" in finding for finding in receipt.check(one))
+
+
+def test_explicit_rows_are_taken_as_written_and_must_each_set_a_seed(tmp_path):
+    import json
+
+    from avalanche_research.experiments import receipt, sweep
+
+    listed = [{"seed": 3, "renewal_probability": 0.3}, {"seed": 3, "renewal_probability": 0.7}, {"seed": 4, "renewal_probability": 0.3}]
+    path = tmp_path / "rows.json"
+    path.write_text(json.dumps(listed))
+    design = {"generator": "explicit", "rows_file": str(path), "rows_sha256": receipt.sha256(path.read_bytes()), "origins": ["2025-04-08"],
+              "models": ["v0.7"]}
+    made = sweep.rows(design)
+    assert [(row["seed"], row["renewal_probability"], row["index"]) for row in made] == [(3, 0.3, 0), (3, 0.7, 1), (4, 0.3, 2)]
+    with pytest.raises(ValueError, match="rows_sha256"):
+        sweep.rows({**design, "rows_sha256": "0" * 64})
+    path.write_text(json.dumps([{"renewal_probability": 0.3}]))
+    with pytest.raises(ValueError, match="must each set a seed"):
+        sweep.rows({**design, "rows_sha256": receipt.sha256(path.read_bytes())})
+
+
+def test_a_row_reads_the_competing_yield_from_its_own_outside_yield():
+    from avalanche_research.experiments import sweep
+
+    reducer = sweep.KpiReducer({}, [90], 0.04, {})
+    assert reducer.competing_for({"outside_yield_pp": 7.0}) == pytest.approx(0.07) and reducer.competing_for({}) == 0.04
+
+
+@pytest.mark.parametrize("row", [{"seed": True}, {"seed": -1}, {"seed": 1, "draw": 0.5}, {"seed": 1, "draw": True}])
+def test_explicit_rows_refuse_ambiguous_noise_keys(tmp_path, row):
+    import json
+    from avalanche_research.experiments import sweep
+
+    path = tmp_path / "rows.json"
+    path.write_text(json.dumps([row]))
+    from avalanche_research.experiments.receipt import sha256
+    with pytest.raises(ValueError, match="nonnegative integer"):
+        sweep.rows({"generator": "explicit", "rows_file": str(path), "rows_sha256": sha256(path.read_bytes()),
+                    "origins": ["2025-04-08"], "models": ["v0.7"]})
+
+
+def test_external_parquet_draws_use_the_installed_duckdb_reader(tmp_path):
+    import duckdb
+    from avalanche_research.experiments import receipt, sweep
+    frame = pd.DataFrame({"renewal_shift": [0.0, 3.0]})
+    path = tmp_path / "draws.parquet"
+    with duckdb.connect() as con:
+        con.register("draws", frame)
+        con.execute("COPY draws TO ? (FORMAT PARQUET)", [str(path)])
+    got = sweep.load_draws({"draws_file": str(path), "draws_sha256": receipt.sha256(path.read_bytes())})
+    pd.testing.assert_frame_equal(got, frame)
+    with pytest.raises(ValueError, match="draws_sha256"):
+        sweep.load_draws({"draws_file": str(path), "draws_sha256": "0" * 64})
+
+
+def test_explicit_sweep_records_external_file_hash_and_refuses_changed_input(tmp_path, monkeypatch):
+    import json
+    from avalanche_research.experiments import receipt, sweep
+
+    pin = pinned_sweep(tmp_path, monkeypatch)
+    path = tmp_path / "rows.json"
+    path.write_text(json.dumps([{"seed": 4, "renewal_probability": 0.3}]))
+    design = {**sweep.scenario(pin, "2025-04-08", "v0.7", 1, 6, workers=1),
+              "generator": "explicit", "rows_file": str(path), "rows_sha256": receipt.sha256(path.read_bytes())}
+    made = sweep.run(design, tmp_path / "out")
+    frozen = made["sweep"]["design_file"]
+    assert frozen["rows_sha256"] == receipt.sha256(path.read_bytes())
+    assert receipt.check(made) == []
+    path.write_text(json.dumps([{"seed": 5, "renewal_probability": 0.3}]))
+    with pytest.raises(ValueError, match="rows_sha256"):
+        sweep.run(frozen, tmp_path / "refused")
+    assert not (tmp_path / "refused").exists()
+
+
+def test_sweep_requires_external_hashes_and_one_draw_origin(tmp_path):
+    from avalanche_research.experiments import sweep
+    path = tmp_path / "rows.json"
+    path.write_text('[{"seed": 1}]')
+    with pytest.raises(ValueError, match="rows_file requires rows_sha256"):
+        sweep.run({"rows_file": str(path)}, tmp_path / "out")
+    from avalanche_research.experiments.receipt import sha256
+    design = {"draws_file": str(path), "draws_sha256": sha256(path.read_bytes()), "runs": 1,
+              "origins": ["2025-04-08", "2025-07-01"]}
+    with pytest.raises(ValueError, match="one fitting origin"):
+        sweep.run(design, tmp_path / "out")
+    with pytest.raises(ValueError, match="one fitted model"):
+        sweep.run({**design, "origins": ["2025-04-08"], "models": ["v0.8-a u", "v0.8-e u"]}, tmp_path / "out")
+
+
+def test_external_rows_and_draws_parse_the_exact_hashed_snapshot(tmp_path, monkeypatch):
+    import json
+    from avalanche_research.experiments import receipt, sweep
+    rows_path = tmp_path / "rows.json"
+    draws_path = tmp_path / "draws.csv"
+    rows_body = b'[{"seed": 1}]'
+    draws_body = b'renewal_shift\n3.0\n'
+    rows_path.write_bytes(rows_body)
+    draws_path.write_bytes(draws_body)
+    original = type(rows_path).read_bytes
+    def read_then_replace(path):
+        body = original(path)
+        if path == rows_path:
+            path.write_text('[{"seed": 9}]')
+        elif path == draws_path:
+            path.write_text('renewal_shift\n9.0\n')
+        return body
+    monkeypatch.setattr(type(rows_path), "read_bytes", read_then_replace)
+    rows = sweep.rows({"generator": "explicit", "rows_file": str(rows_path), "rows_sha256": receipt.sha256(rows_body),
+                       "origins": ["2025-04-08"], "models": ["v0.8-a u"]})
+    draws = sweep.load_draws({"draws_file": str(draws_path), "draws_sha256": receipt.sha256(draws_body)})
+    assert rows[0]["seed"] == 1 and draws.iloc[0]["renewal_shift"] == 3.0
+
+
+def test_a_mechanism_iso_activation_date_reaches_its_typed_constructor():
+    from datetime import date
+    settings = runner.model_settings({"mechanism": {"name": "ACP285Ramp", "activation": "2025-11-18", "target_min_rate": 0.075}})
+    assert settings["mechanism"].activation == date(2025, 11, 18)
+    with pytest.raises(ValueError, match="ISO date"):
+        runner.model_settings({"mechanism": {"name": "ACP285Ramp", "activation": "not-a-date"}})
+
+
+@pytest.mark.parametrize("value", [True, float("nan"), float("inf")])
+def test_reducer_refuses_nonfinite_or_boolean_outside_yield(value):
+    from avalanche_research.experiments import sweep
+    with pytest.raises(ValueError, match="finite"):
+        sweep.KpiReducer({}, [90], 0.04, {}).competing_for({"outside_yield_pp": value})
+
+
+def test_rows_sharing_a_seed_and_a_draw_share_their_noise_and_another_draw_differs(tmp_path):
+    from pathlib import Path
+
+    from avalanche_research.catalog import DataError
+    from avalanche_research.experiments import sweep
+
+    pin = Path("data/pins/p5-v0.7-report.json")
+    try:
+        periods, run_name = sweep.pinned_periods(pin)
+    except (DataError, FileNotFoundError, StopIteration):
+        pytest.skip("the pinned runs are not built in this checkout")
+    draws = pd.DataFrame({"renewal_shift": [0.0, 3.0]})
+    # With both responses at zero the renewal tenure changes nothing, so rows 0 and 1 differ only in a setting without effect.
+    rows = [{"design": "noise", "index": i, "seed": 1, "draw": draw, "renewal_tenure": tenure, "origin": "2025-04-08", "model": "v0.8"}
+            for i, (draw, tenure) in enumerate(((0, 4), (0, 5), (1, 4)))]
+    runner.run_design(rows, 3, sweep.builder(periods, run_name, 1, 30, draws), tmp_path, workers=1)
+    paths = runner.read_sweep(tmp_path)
+    by_index = {i: frame.sort_values(["timestep", "variable"])["value"].to_numpy() for i, frame in paths.groupby("index")}
+    assert (by_index[0] == by_index[1]).all() and not (by_index[0] == by_index[2]).all()
+    with pytest.raises(ValueError, match="draw 5"):
+        runner.run_design([{**rows[0], "draw": 5}], 1, sweep.builder(periods, run_name, 1, 30, draws), tmp_path / "bad", workers=1)
