@@ -65,8 +65,9 @@ And it builds two models with delegations, outside the development scores:
   ``prepare`` needs ``delegations``: the origin's delegation tables, ``open``, ``validators`` and ``scheduled``, with
   ``flows``, and ``terms`` from :func:`~avalanche_research.model.delegated_lifecycle.delegation_terms`.
 * ``v0.8.1 events``: v0.8.1 stub with the named operators known at the origin from the operator events
-  (:mod:`~avalanche_research.model.operator_events`): each delegation's owner, each named operator's delegated stake as a
-  state variable, and the closing day of any operator whose shutdown was public by the origin. Its ``prepare`` needs
+  (:mod:`~avalanche_research.model.operator_events`): each delegation's owner, new ones included, each named operator's
+  delegated stake as a state variable, and the closing day of any operator whose shutdown was public by the origin,
+  from which it makes no new delegation. Its ``prepare`` needs
   ``delegations`` as the stub's does, with ``starts``. ``operator_events`` and ``operator_attributions`` replace the
   files' rows when given.
 
@@ -253,13 +254,14 @@ def _delegated_stub(periods: str, origin: date, run: str, draws: int, draw_seed:
 def _delegated_events(periods: str, origin: date, run: str, draws: int, draw_seed: int,
                       delegations: dict[str, pd.DataFrame] | None = None, operator_events: list[dict] | None = None,
                       operator_attributions: list[dict] | None = None) -> Prepared:
-    if delegations is None or "starts" not in delegations:
+    if delegations is None or "starts" not in delegations or "terms" not in delegations:
         raise ValueError("v0.8.1 events needs the origin's delegation tables, with starts, and terms as delegations")
     named = named_operators(origin, operator_events, operator_attributions)
     events = training_events(periods, origin, run)
+    # delegation_inputs returns the terms with each one's owner.
     return Prepared({
         **switched_inputs(events, V08), **delegation_inputs(delegations, periods, origin, events.state, named),
-        "delegation_terms": delegations["terms"], "delegation_flow": historical_flow(delegations["flows"], origin),
+        "delegation_flow": historical_flow(delegations["flows"], origin),
     })
 
 

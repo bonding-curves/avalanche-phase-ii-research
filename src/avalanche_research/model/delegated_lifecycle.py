@@ -19,10 +19,11 @@ and add none.
 Named operators, from the operator events known at the origin (:mod:`~avalanche_research.model.operator_events`), are
 tracked through their delegations. Each delegation carries the row of the named operator that owns it, and each named
 operator has its delegated stake as a state variable, ``<key>_delegated_stake_navax``. BENQI's is
-``benqi_delegated_stake_navax``, and when BENQI is named its delegations are exactly those flagged as BENQI's. A named
-operator's new delegations are BENQI's flow for BENQI, and part of the other delegators' flow for the rest. An operator
-that closes makes no new delegation from its closing day, so a closed BENQI's flow stops. Without named operators every
-delegation's row is -1 and the model is unchanged.
+``benqi_delegated_stake_navax``, and when BENQI is named its delegations are exactly those flagged as BENQI's. Each new
+delegation takes its terms from one delegation of the year before the origin. BENQI owns those drawn as BENQI's, and a
+named operator other than BENQI owns those that take the terms of a delegation it owned, so its share of the other
+delegators' flow is its own. From an operator's closing day, the new delegations it would own are not made. Without
+named operators every delegation's row is -1 and the model is unchanged.
 
 :func:`delegation_inputs` turns the delegation tables of an origin, open delegations, validators and scheduled
 periods, into this model's inputs, with each validator named by its row of the fitted lifecycle's ``initial`` or
@@ -138,7 +139,8 @@ class DelegatedLifecycle(FittedLifecycle):
     )
     delegation_terms = param.DataFrame(
         default=None, allow_None=True, precedence=-1,
-        doc="New delegations of the year before the origin, from which each new one draws its terms: stake_navax, days, benqi",
+        doc="New delegations of the year before the origin, from which each new one draws its terms: stake_navax, days, "
+            "benqi, and optionally operator, the row of named_operators that owned it",
     )
     named_operators = param.DataFrame(
         default=None, allow_None=True, precedence=-1,
@@ -242,9 +244,9 @@ class DelegatedLifecycle(FittedLifecycle):
     def _chain_time(self, timestep: int) -> datetime:
         return datetime.combine(self.origin + timedelta(days=timestep), time(12), tzinfo=UTC)
 
-    def _terms(self) -> dict[bool, tuple[np.ndarray, np.ndarray]]:
-        """Stake and requested days for BENQI's new delegations and for the others. A kind with no rows of its own
-        draws from every row."""
+    def _terms(self) -> dict[bool, tuple[np.ndarray, np.ndarray, np.ndarray]]:
+        """Stake, requested days and owning named operator row for BENQI's new delegations and for the others. A kind
+        with no rows of its own draws from every row."""
         terms = self.delegation_terms
         if terms is None or not len(terms):
             if self.delegation_flow.mean_per_day > 0:
@@ -254,7 +256,15 @@ class DelegatedLifecycle(FittedLifecycle):
         if (stakes < MIN_DELEGATOR_STAKE).any() or (days < MIN_DELEGATION_DAYS).any():
             raise ValueError(f"delegation terms need at least the minimum delegator stake and {MIN_DELEGATION_DAYS} days")
         benqi = np.asarray(terms["benqi"], dtype=bool) if "benqi" in terms else np.zeros(len(stakes), bool)
-        return {kind: (stakes[rows], days[rows]) for kind in (True, False)
+        benqi_row = self._benqi_row()
+        if "operator" not in terms:
+            # Without owners, the rows flagged as BENQI's are BENQI's and the rest have no named owner.
+            owners = np.where(benqi, benqi_row, -1).astype(np.int64)
+        else:
+            owners = _operators(terms, len(self._named()))
+        if benqi_row >= 0 and ((owners == benqi_row) != benqi).any():
+            raise ValueError("BENQI is named, so the delegation terms it owns must be exactly those flagged as BENQI's")
+        return {kind: (stakes[rows], days[rows], owners[rows]) for kind in (True, False)
                 for rows in [(benqi == kind) if (benqi == kind).any() else np.ones(len(stakes), bool)]}
 
     def _setup(self) -> DelegationSetup:
@@ -265,14 +275,13 @@ class DelegatedLifecycle(FittedLifecycle):
         on_later = np.asarray(frame["validator_scheduled"], dtype=bool) if "validator_scheduled" in frame else np.zeros(len(rows), bool)
         if len(rows) and (rows.min() < 0 or (rows >= np.where(on_later, n_later, n_open)).any()):
             raise ValueError("a BENQI validator is not a row of the initial or scheduled commitments")
-        benqi_row = self._benqi_row()
-        closes = float(self._named()["closes_day"].iloc[benqi_row]) if benqi_row >= 0 else np.nan
+        closes = np.asarray(self._named()["closes_day"], dtype=float)
         return DelegationSetup(
             flow=self.delegation_flow, choice=self.delegator_choice, allocation=self.benqi_allocation,
             fee_shares=self.delegation_fee_shares, multiplier=self.delegation_multiplier,
             benqi_keys=_validator_keys(frame) if len(frame) else np.zeros(0, dtype=np.int64),
             terms=self._terms(), batch=self.placement_batch,
-            benqi_operator=benqi_row, benqi_closes_day=None if np.isnan(closes) else int(closes),
+            benqi_operator=self._benqi_row(), closes_days=np.where(np.isnan(closes), np.inf, closes),
         )
 
     def blocks(self):
@@ -359,7 +368,8 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
     address and acceptance time, and ``named_operators`` is returned. The tables flag BENQI's delegations by their own
     rule, which the flow and terms also read, so the delegations a BENQI named by the events owns must be exactly those
     the tables flag, in ``open``, ``scheduled`` and ``starts``, and none is flagged when BENQI is not named, or the
-    inputs are refused."""
+    inputs are refused. When the tables hold ``terms`` and ``starts``, which list the same delegations, the terms are
+    returned as ``delegation_terms`` with each one's owner, so a new delegation that takes them is that owner's."""
     opened, later = _validator_order(periods_parquet, origin)
     if (opened["stake_navax"].to_numpy() != np.asarray(state["initial"]["stakes"])).any() or len(opened) != len(state["initial"]):
         raise ValueError("the open validator periods do not match the initial commitments row for row")
@@ -404,7 +414,8 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
     if named.origin != origin:
         raise ValueError(f"the named operators are those known at {named.origin}, not at the origin {origin}")
     benqi_row = named.row(BENQI)
-    for frame, source in ((open_delegations, current), (scheduled_delegations, pending), (None, tables.get("starts"))):
+    starts = tables.get("starts")
+    for frame, source in ((open_delegations, current), (scheduled_delegations, pending), (None, starts)):
         if source is None:
             continue
         mine = owners(source["delegator_address"], source["accepted_at"], named)
@@ -413,7 +424,15 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
             raise ValueError("the operator events and the delegation tables set different delegations apart as BENQI's")
         if frame is not None:
             frame["operator"] = mine
-    return {**inputs, "named_operators": named.model_table()}
+    inputs["named_operators"] = named.model_table()
+    terms = tables.get("terms")
+    if terms is not None and starts is not None:
+        # The terms and the starts list the same delegations in the same order, start time then hash.
+        if len(terms) != len(starts) or (terms["stake_navax"].to_numpy() != starts["stake_navax"].to_numpy()).any() \
+                or (terms["benqi"].to_numpy(dtype=bool) != starts["benqi"].to_numpy(dtype=bool)).any():
+            raise ValueError("the delegation terms and starts do not list the same delegations row for row")
+        inputs["delegation_terms"] = terms.assign(operator=owners(starts["delegator_address"], starts["accepted_at"], named))
+    return inputs
 
 
 def delegation_terms(periods_parquet: str, delegators_parquet: str, origin: date, benqi_funding: str, benqi_from: str) -> pd.DataFrame:

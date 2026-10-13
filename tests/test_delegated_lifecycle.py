@@ -586,3 +586,46 @@ def test_a_fractional_operator_row_or_closing_day_is_refused():
         named(open_delegations=OWNED.assign(operator=[-1, 0, 1.5, 0])).initial_state()
     with pytest.raises(ValueError, match="whole"):
         run(named(delegation_flow=flowing(), named_operators=NAMED.assign(closes_day=[5.5, np.nan]), timesteps=3, runs=1))
+
+
+def new_owned(state, row) -> bool:
+    return bool(((state["delegation_days_left"] == state["delegation_days"]) & (state["delegation_operator"] == row)).any())
+
+
+def test_a_named_operator_other_than_benqi_owns_the_new_delegations_that_take_its_terms_and_makes_none_from_its_closing_day():
+    # The holder, row 1, owned two of the year's other delegations, so it owns the new ones that take their terms.
+    owned_terms = TERMS.assign(operator=[1, 1, -1, -1, 0, 0])
+    flow = flowing(mean=10.0, share=0.3)
+    open_ = final_states(named(delegation_flow=flow, delegation_terms=owned_terms))
+    closed = final_states(named(delegation_flow=flow, delegation_terms=owned_terms, named_operators=NAMED.assign(closes_day=[np.nan, 6.0])))
+    assert any(new_owned(s, 1) for _, s in open_[open_["timestep"] >= 6].iterrows())
+    for (_, a), (_, b) in zip(open_.iterrows(), closed.iterrows()):
+        assert b["holder_delegated_stake_navax"] == int(b["delegation_stakes"][b["delegation_operator"] == 1].sum())
+        if b["timestep"] < 6:
+            for name in ("delegation_stakes", "delegation_validator", "delegation_operator", "supply_navax"):
+                assert np.array_equal(a[name], b[name])
+        else:
+            assert not new_owned(b, 1)
+    assert any(new_owned(s, 1) for _, s in closed[(closed["timestep"] >= 1) & (closed["timestep"] < 6)].iterrows())
+    # BENQI does not close, so its new delegations go on.
+    assert any(new_owned(s, 0) for _, s in closed[closed["timestep"] >= 6].iterrows())
+
+
+def test_the_events_variant_gives_each_delegation_term_its_owner(tmp_path, monkeypatch):
+    events, attributions = other_operator("2024-01-15T00:00:00Z")
+    inputs = events_inputs(tmp_path, monkeypatch, EVENTS + events, ATTRIBUTIONS + attributions)
+    x = list(inputs["named_operators"]["operator"]).index("Operator X")
+    # The year's starts are D1, funded by avax1other, and D4, funded by BENQI's key.
+    assert inputs["delegation_terms"]["operator"].tolist() == [x, 0]
+    misaligned = {"terms": lambda tables: tables["terms"].iloc[:1]}
+    with pytest.raises(ValueError, match="row for row"):
+        events_inputs_with(tmp_path, monkeypatch, misaligned)
+
+
+def events_inputs_with(tmp_path, monkeypatch, changes):
+    synthetic = {key: validators()[key] for key in ("moves", "first_commitments")}
+    monkeypatch.setattr(variants, "switched_inputs", lambda events, switches: {"origin": events.origin, **events.state, **synthetic})
+    periods, delegators = write_periods(tmp_path)
+    tables = {**di.build(periods, delegators, ORIGIN), "terms": delegation_terms(periods, delegators, ORIGIN, di.BENQI_FUNDING, di.BENQI_EVIDENCE)}
+    tables |= {name: change(tables) for name, change in changes.items()}
+    return VARIANTS["v0.8.1 events"].prepare(periods, ORIGIN, "synthetic", delegations=tables).inputs

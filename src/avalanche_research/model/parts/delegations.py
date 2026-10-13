@@ -21,14 +21,16 @@ the room left by the one before. Each new delegation mints its potential reward 
 it, in the order they were accepted, after the day's validator rewards.
 
 Each delegation carries the row of the named operator that owns it, or -1. A new delegation drawn as BENQI's is owned by
-BENQI's row. From BENQI's closing day, the delegations drawn as BENQI's are not made: they are not placed, not counted
-as unplaced, and move no other draw, since every draw is keyed by its own index.
+BENQI's row. One drawn as another delegator's is owned by the named operator, other than BENQI, that owned the
+delegation of the year before whose terms it takes, or by none. From a named operator's closing day, the new
+delegations it would own are not made: they are not placed, not counted as unplaced, and move no other draw, since
+every draw is keyed by its own index.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -60,8 +62,9 @@ SCHEDULED = ("scheduled_stakes", "scheduled_start_day", "scheduled_days", "sched
 class DelegationSetup:
     """What the delegations stage reads besides the state and the day: the three blocks, every validator's fee in
     millionths, the delegation multiplier, the node keys of BENQI's validators, the terms new delegations draw from,
-    BENQI's and the others', the placement batch size, BENQI's row among the named operators, -1 when it is not named,
-    and the day counted from the origin from which BENQI makes no new delegation, None when it does not close."""
+    BENQI's and the others', each as stakes, days and the named operator row that owns the delegation, the placement
+    batch size, BENQI's row among the named operators, -1 when it is not named, and for each named operator row the day
+    counted from the origin from which it makes no new delegation, infinite when it does not close."""
 
     flow: DelegationFlow
     choice: DelegatorChoice
@@ -72,7 +75,7 @@ class DelegationSetup:
     terms: Mapping[bool, tuple[np.ndarray, np.ndarray]]
     batch: int
     benqi_operator: int = -1
-    benqi_closes_day: int | None = None
+    closes_days: np.ndarray = field(default_factory=lambda: np.zeros(0))
 
 
 def limits(stakes: np.ndarray, chain_time: datetime, multiplier: int) -> np.ndarray:
@@ -189,18 +192,22 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
     n = flow.count_from_uniform(float(draw.uniforms("delegations", t)[0]))
     index = np.arange(n)
     is_benqi = flow.benqi_from_uniforms(draw.uniforms("delegation_benqi", t, index))
-    if setup.benqi_closes_day is not None and t + 1 >= setup.benqi_closes_day:
-        index, is_benqi = index[~is_benqi], is_benqi[~is_benqi]
-        n = len(index)
     u_terms = draw.uniforms("delegation_terms", t, index)
     new_stakes = np.zeros(n, dtype=np.int64)
     new_days = np.zeros(n, dtype=np.int64)
+    owner = np.full(n, -1, dtype=np.int64)
     for kind in (False, True):
         mine = is_benqi == kind
         if mine.any():
-            term_stakes, term_days = setup.terms[kind]
+            term_stakes, term_days, term_owners = setup.terms[kind]
             pick = np.minimum((u_terms[mine] * len(term_stakes)).astype(np.int64), len(term_stakes) - 1)
             new_stakes[mine], new_days[mine] = term_stakes[pick], term_days[pick]
+            drawn = term_owners[pick]
+            owner[mine] = setup.benqi_operator if kind else np.where(drawn == setup.benqi_operator, -1, drawn)
+    # From its closing day, a named operator makes none of the new delegations it would own.
+    if len(setup.closes_days) and (owner >= 0).any():
+        made = ~((owner >= 0) & (setup.closes_days[np.maximum(owner, 0)] <= t + 1))
+        index, is_benqi, new_stakes, new_days, owner = index[made], is_benqi[made], new_stakes[made], new_days[made], owner[made]
     order, chosen = place(new_stakes, is_benqi, draw.uniforms("delegator_choice", t, index), draw.uniforms("benqi_allocation", t, index),
                           room, validator_days >= MIN_DELEGATION_DAYS, np.isin(keys, setup.benqi_keys), setup)
     rows = chosen[order]
@@ -219,7 +226,7 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
     new = {
         "delegation_stakes": placed_stakes, "delegation_days_left": placed_days, "delegation_days": placed_days,
         "delegation_validator": keys[rows], "delegation_benqi": is_benqi[order], "delegation_rewards": rewards,
-        "delegation_operator": np.where(is_benqi[order], setup.benqi_operator, -1).astype(np.int64),
+        "delegation_operator": owner[order],
     }
     out = {name: np.concatenate([kept[name], starting[name], new[name]]) for name in DELEGATION}
     return {
