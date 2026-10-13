@@ -25,6 +25,12 @@ RANDOM_MODULES = ("numpy.random", "random")
 ALLOWED = {
     (Path("src/avalanche_research/model/lifecycle.py"), "numpy.random.default_rng", "seed_list"):
         "v0.7 keeps its daily stream so the tagged v0.7 results reproduce",
+    (Path("src/avalanche_research/analysis/rank_associations.py"), "numpy.random.default_rng", "seed_other"):
+        "explicitly seeded statistical bootstrap, never a simulator or design draw",
+    (Path("src/avalanche_research/analysis/sobol.py"), "numpy.random.Generator", "seed_other"):
+        "explicitly seeded statistical bootstrap, never a simulator or design draw",
+    (Path("src/avalanche_research/analysis/sobol.py"), "numpy.random.PCG64", "seed_other"):
+        "explicitly seeded statistical bootstrap, never a simulator or design draw",
 }
 # The one form a script may use: a generator seeded from one integer literal.
 SCRIPT_SEEDED = {"numpy.random.default_rng", "numpy.random.SeedSequence"}
@@ -144,6 +150,17 @@ def test_the_listed_exception_admits_only_its_own_form():
 def test_the_checker_accepts_a_script_seeded_from_one_literal_and_the_streams_module():
     assert violations(Path("scripts/example.py"), "import numpy as np\nrng = np.random.default_rng(20261005)\nrng.normal()\n") == []
     assert violations(STREAMS, "\n".join(PLANTED.values())) == []
+
+
+def test_analysis_bootstrap_exceptions_keep_unseeded_and_global_draws_forbidden():
+    rank = Path("src/avalanche_research/analysis/rank_associations.py")
+    sobol = Path("src/avalanche_research/analysis/sobol.py")
+    assert violations(rank, "import numpy as np\nnp.random.default_rng(spec.seed)\n") == []
+    assert violations(sobol, "import numpy as np\nnp.random.Generator(np.random.PCG64(seed))\n") == []
+    for path in (rank, sobol):
+        assert violations(path, "import numpy as np\nnp.random.default_rng()\n")
+        assert violations(path, "import numpy as np\nnp.random.PCG64()\n")
+        assert violations(path, "import numpy as np\nnp.random.normal()\n")
 
 
 def test_every_draw_in_the_library_and_scripts_is_keyed_or_listed():
