@@ -538,3 +538,51 @@ def test_the_events_variant_refuses_tables_that_set_benqi_apart_by_another_rule(
         events_inputs(tmp_path, monkeypatch, moved)
     with pytest.raises(ValueError, match="with starts"):
         VARIANTS["v0.8.1 events"].prepare("periods", ORIGIN, "synthetic", delegations={"open": pd.DataFrame()})
+
+
+def holder_replacement(evidence_at: str | None, captured_on: str) -> tuple[list[dict], list[dict]]:
+    """A row that replaces the genesis holder's attribution, captured on ``captured_on``, and an identity event citing it
+    with evidence at ``evidence_at``, or none."""
+    old = next(row for row in ATTRIBUTIONS if row["attribution_id"] == "OA5")
+    new = dict(old, attribution_id="OA99", captured_on=captured_on, replaces="OA5")
+    if evidence_at is None:
+        return EVENTS, ATTRIBUTIONS + [new]
+    event = dict(next(e for e in EVENTS if e["event_id"] == "NE8"), event_id="NE99", attributions=["OA99"],
+                 happened_at=evidence_at[:10], evidence_public_at=evidence_at)
+    return EVENTS + [event], ATTRIBUTIONS + [new]
+
+
+def test_a_replacement_applies_only_from_when_the_replacing_row_was_public():
+    events, attributions = holder_replacement("2026-10-01T00:00:00Z", "2026-10-01")
+    past = date(2024, 3, 1)
+    assert named_at(past, events, attributions).operators.equals(named_at(past).operators)
+    assert named_at(past, events, attributions).addresses.equals(named_at(past).addresses)
+    # From the replacing row's evidence, the replaced row names nothing, and the holder is named from that instant.
+    later = named_at(date(2026, 10, 1), events, attributions).addresses.set_index("address")
+    assert later.loc[HOLDER, "named_from"] == pd.Timestamp("2026-10-01 00:00:00")
+    # A replacing row that no event cites is public from the end of the day it was captured.
+    events, attributions = holder_replacement(None, "2026-10-01")
+    assert named_at(date(2026, 10, 1), events, attributions).row(HOLDER_NAME) >= 0
+    assert named_at(date(2026, 10, 2), events, attributions).row(HOLDER_NAME) == -1
+
+
+def test_acceptance_times_with_an_offset_are_compared_in_utc():
+    named = named_at(date(2025, 10, 1))
+    funding = pd.Series([BENQI_KEY])
+    # 13:22:21 at UTC+2 is 11:22:21 UTC, before BENQI's naming at 12:22:21 UTC. 10:22:21 at UTC-2 is that instant.
+    assert owners(funding, pd.Series(pd.to_datetime(["2022-01-26 13:22:21+02:00"])), named).tolist() == [-1]
+    assert owners(funding, pd.Series(pd.to_datetime(["2022-01-26 10:22:21-02:00"])), named).tolist() == [named.row("BENQI")]
+
+
+def test_an_operator_key_whose_state_variable_already_exists_is_refused():
+    with pytest.raises(ValueError, match="state variable"):
+        named(named_operators=NAMED.assign(key=["benqi", "active"])).initial_state()
+    with pytest.raises(ValueError, match="state variable"):
+        named(named_operators=NAMED.assign(key=["benqi_main", "benqi"])).state_variables()
+
+
+def test_a_fractional_operator_row_or_closing_day_is_refused():
+    with pytest.raises(ValueError, match="whole"):
+        named(open_delegations=OWNED.assign(operator=[-1, 0, 1.5, 0])).initial_state()
+    with pytest.raises(ValueError, match="whole"):
+        run(named(delegation_flow=flowing(), named_operators=NAMED.assign(closes_day=[5.5, np.nan]), timesteps=3, runs=1))

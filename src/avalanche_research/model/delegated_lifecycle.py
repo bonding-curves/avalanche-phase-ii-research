@@ -50,7 +50,12 @@ from avalanche_research.model.delegation_blocks import (
     DelegationFlow,
     DelegatorChoice,
 )
-from avalanche_research.model.fitted_lifecycle import FittedLifecycle, decided_by_us
+from avalanche_research.model.fitted_lifecycle import (
+    COMMITMENT,
+    OUT,
+    FittedLifecycle,
+    decided_by_us,
+)
 from avalanche_research.model.operator_events import BENQI, NamedOperators, owners
 from avalanche_research.model.parts.delegations import (
     DELEGATION,
@@ -70,11 +75,25 @@ FLOW_DAYS = 365
 OPEN_COLUMNS = ["validator", "stakes", "days_left", "benqi"]
 SCHEDULED_COLUMNS = ["validator", "validator_scheduled", "start_day", "stakes", "days", "benqi"]
 NAMED_COLUMNS = ["operator", "key", "closes_day"]
+DELEGATION_VARIABLES = ("active_delegations", "active_delegated_stake_navax", "benqi_delegated_stake_navax",
+                        "validator_issued_navax", "delegator_issued_navax", "unplaced_delegations")
+# The keys cadCAD adds to every state.
+ENGINE_KEYS = ("simulation", "subset", "run", "substep", "timestep")
+
+
+def _whole(values, what: str) -> np.ndarray:
+    """``values`` as int64, refusing any that is not a whole number rather than truncating it."""
+    raw = np.asarray(values)
+    if raw.dtype.kind in "iu":
+        return raw.astype(np.int64)
+    if raw.dtype.kind != "f" or not (np.isfinite(raw) & (raw == np.floor(raw))).all():
+        raise ValueError(f"{what} must be whole numbers")
+    return raw.astype(np.int64)
 
 
 def _operators(frame: pd.DataFrame, n_named: int) -> np.ndarray:
     """Each delegation's named operator row, -1 for none, from an ``operator`` column or none."""
-    rows = np.asarray(frame["operator"], dtype=np.int64) if "operator" in frame else np.full(len(frame), -1, dtype=np.int64)
+    rows = _whole(frame["operator"], "a delegation's operator row") if "operator" in frame else np.full(len(frame), -1, dtype=np.int64)
     if len(rows) and (rows.min() < -1 or rows.max() >= n_named):
         raise ValueError("a delegation names an operator that is not a row of named_operators")
     return rows
@@ -137,20 +156,28 @@ class DelegatedLifecycle(FittedLifecycle):
         keys = list(frame["key"])
         if len(set(keys)) != len(keys) or len(set(frame["operator"])) != len(frame):
             raise ValueError("each named operator needs its own name and key")
+        closes = np.asarray(frame["closes_day"], dtype=float)
+        _whole(closes[~np.isnan(closes)], "a named operator's closing day")
         return frame
 
     def _tracked(self) -> list[tuple[int, str]]:
-        """(row, state variable) of each named operator other than BENQI, whose stake is benqi_delegated_stake_navax."""
+        """(row, state variable) of each named operator other than BENQI, whose stake is benqi_delegated_stake_navax.
+        A name the state already has is refused, so no operator overwrites another variable."""
         frame = self._named()
-        return [(row, f"{key}_delegated_stake_navax") for row, (name, key) in enumerate(zip(frame["operator"], frame["key"])) if name != BENQI]
+        tracked = [(row, f"{key}_delegated_stake_navax") for row, (name, key) in enumerate(zip(frame["operator"], frame["key"])) if name != BENQI]
+        taken = {*super().state_variables(), *self.float_variables(), *DELEGATION_VARIABLES, *DELEGATION, *SCHEDULED, *COMMITMENT, *OUT,
+                 "node_key", "out_node_key", *ENGINE_KEYS}
+        clashes = [name for _, name in tracked if name in taken]
+        if clashes:
+            raise ValueError(f"a named operator's key gives a state variable the model already has: {', '.join(clashes)}")
+        return tracked
 
     def _benqi_row(self) -> int:
         found = np.flatnonzero(self._named()["operator"].to_numpy() == BENQI)
         return int(found[0]) if len(found) else -1
 
     def state_variables(self):
-        return [*super().state_variables(), "active_delegations", "active_delegated_stake_navax", "benqi_delegated_stake_navax",
-                *(name for _, name in self._tracked()), "validator_issued_navax", "delegator_issued_navax", "unplaced_delegations"]
+        return [*super().state_variables(), *DELEGATION_VARIABLES[:3], *(name for _, name in self._tracked()), *DELEGATION_VARIABLES[3:]]
 
     def initial_state(self):
         state = super().initial_state()

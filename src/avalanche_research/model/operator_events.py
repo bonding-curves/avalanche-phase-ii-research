@@ -10,16 +10,21 @@ public evidence before it happened is record-only, and no forecast reads it.
 Two kinds of event act on the model:
 
 * ``identity`` names addresses of its operator: the subjects of the attributions it cites that are tier AS1 evidence
-  and not replaced by a later row. An address is named from the earliest instant at which an identity event citing it
+  and not replaced at the origin. An address is named from the earliest instant at which an identity event citing it
   was surely public. A delegation is the operator's when one of its named addresses funds it and it was accepted at or
-  after that instant, so no delegation is set apart before public evidence existed, as the delegation inputs do for
-  BENQI.
+  after that instant, compared in UTC, so no delegation is set apart before public evidence existed, as the delegation
+  inputs do for BENQI.
 * ``shutdown`` closes its operator from the UTC day it happened. From that day the operator makes no new delegation.
   The delegations it made before stay to their end, because the chain already holds them.
 
 The other kinds, ``announcement``, ``fleet-start``, ``fleet-end`` and ``redemption-end``, describe validator fleets or a
 protocol's notices, and move nothing in the delegated lifecycle. A kind not listed here is refused, so a new kind is
 never ignored silently.
+
+A row of the attribution registry that replaces another is a correction, and it too applies only once public. It is
+public from the earliest instant at which an identity event citing it, or the end of the day it was captured, was
+surely public, whichever comes first. Before then the replaced row names as it did, so a correction published after an
+origin changes nothing there.
 """
 
 from __future__ import annotations
@@ -74,9 +79,14 @@ def load(events_path: Path = EVENTS, attributions_path: Path = ATTRIBUTIONS) -> 
 
 def surely_public(value: str) -> pd.Timestamp:
     """The naive UTC instant from which evidence was surely public: the instant itself, or the end of a date's UTC day."""
-    stamp = pd.Timestamp(value)
-    stamp = (stamp.tz_convert("UTC").tz_localize(None) if stamp.tzinfo else stamp).as_unit("us")
+    stamp = utc_naive(value).as_unit("us")
     return stamp + pd.Timedelta(days=1) - pd.Timedelta(microseconds=1) if len(value.strip()) == 10 else stamp
+
+
+def utc_naive(at) -> pd.Timestamp:
+    """An instant as naive UTC: one with an offset is converted to UTC first, and one without is taken as UTC."""
+    stamp = pd.Timestamp(at)
+    return stamp.tz_convert("UTC").tz_localize(None) if stamp.tzinfo else stamp
 
 
 def origin_instant(origin: date) -> pd.Timestamp:
@@ -99,6 +109,24 @@ def key(operator: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", operator.lower()).strip("_")
 
 
+def replaced_at(origin: date, events: list[dict], attributions: list[dict]) -> set[str]:
+    """The attributions replaced by a row public by the origin's last instant: public from the earliest of its citing
+    identity events' evidence and the end of the day it was captured."""
+    public: dict[str, list[pd.Timestamp]] = {}
+    for event in events:
+        if event["kind"] == "identity" and event["forecast_use"] == "schedulable" and event["evidence_public_at"]:
+            for code in event["attributions"]:
+                public.setdefault(code, []).append(surely_public(event["evidence_public_at"]))
+    instant = origin_instant(origin)
+    replaced = set()
+    for row in attributions:
+        if row["replaces"]:
+            times = public.get(row["attribution_id"], []) + ([surely_public(row["captured_on"])] if row.get("captured_on") else [])
+            if times and min(times) <= instant:
+                replaced.add(row["replaces"])
+    return replaced
+
+
 def named_operators(origin: date, events: list[dict] | None = None, attributions: list[dict] | None = None) -> NamedOperators:
     """The operators named at ``origin`` by the identity events known then, with the day each closes by the shutdown
     events known then. The files are read when ``events`` or ``attributions`` is not given."""
@@ -107,7 +135,7 @@ def named_operators(origin: date, events: list[dict] | None = None, attributions
         events = loaded[0] if events is None else events
         attributions = loaded[1] if attributions is None else attributions
     by_id = {row["attribution_id"]: row for row in attributions}
-    replaced = {row["replaces"] for row in attributions if row["replaces"]}
+    replaced = replaced_at(origin, events, attributions)
     named: dict[str, tuple[str, pd.Timestamp]] = {}
     closes: dict[str, date] = {}
     for event in known_events(events, origin):
@@ -142,12 +170,12 @@ def named_operators(origin: date, events: list[dict] | None = None, attributions
 
 def owners(funding: pd.Series, accepted_at: pd.Series, named: NamedOperators) -> np.ndarray:
     """Each delegation's row of ``named.operators``: the operator whose named address funds it, when it was accepted at
-    or after that address's naming instant, else -1."""
+    or after that address's naming instant, else -1. An acceptance time with an offset is converted to UTC, and one
+    without is UTC already."""
     rows = dict(zip(named.operators["operator"], range(len(named.operators))))
     found = dict(zip(named.addresses["address"], zip(named.addresses["operator"], named.addresses["named_from"])))
-    accepted = pd.to_datetime(accepted_at).dt.tz_localize(None) if getattr(accepted_at.dtype, "tz", None) else pd.to_datetime(accepted_at)
     out = np.full(len(funding), -1, dtype=np.int64)
-    for i, (address, at) in enumerate(zip(funding.tolist(), accepted.tolist())):
+    for i, (address, at) in enumerate(zip(funding.tolist(), (utc_naive(at) for at in accepted_at), strict=True)):
         if isinstance(address, str) and address in found and at >= found[address][1]:
             out[i] = rows[found[address][0]]
     return out
