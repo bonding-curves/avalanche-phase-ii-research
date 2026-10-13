@@ -1,0 +1,33 @@
+{
+ "challenger": "v0.8-a stake return u",
+ "incumbent": "v0.8-a u",
+ "origins": 19,
+ "verdict": "adopt",
+ "stake_90_day_difference": -0.8125,
+ "cells": {
+  "active_validator_stake_navax 30": {
+   "mean_difference": -0.047,
+   "p_worse": 0.5638
+  },
+  "active_validator_stake_navax 90": {
+   "mean_difference": -0.813,
+   "p_worse": 0.8339
+  },
+  "active_validator_stake_navax 180": {
+   "mean_difference": -0.237,
+   "p_worse": 0.6664
+  },
+  "active_validators 30": {
+   "mean_difference": -0.023,
+   "p_worse": 0.5822
+  },
+  "active_validators 90": {
+   "mean_difference": 0.039,
+   "p_worse": 0.4345
+  },
+  "active_validators 180": {
+   "mean_difference": -0.193,
+   "p_worse": 0.688
+  }
+ }
+}

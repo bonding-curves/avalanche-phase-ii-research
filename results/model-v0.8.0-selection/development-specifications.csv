@@ -1,0 +1,381 @@
+origin,model,batch_seed,specification
+Banff,v0.8-a u,0,a66e9cf14cbbc8d8
+Banff,v0.8-a u,1,d22cbf9f25b0fc97
+Banff,v0.8-a u,2,0b2cb176eb9d1a0f
+Banff,v0.8-a u,3,57a70ded4ec7e070
+Banff,v0.8-a u,4,19d859d861c5d020
+Banff,v0.8-a u,5,c7f0b2411c0eb716
+Banff,v0.8-a u,6,0c6b82c18dac4cfe
+Banff,v0.8-a u,7,87383fde465ba451
+Banff,v0.8-a u,8,88aecec3de4f57e3
+Banff,v0.8-a u,9,0d9af734d8cfc294
+Banff,v0.8-a stake return u,0,81103aa200703459
+Banff,v0.8-a stake return u,1,e3d93a6e442ec272
+Banff,v0.8-a stake return u,2,f590f38684bac15c
+Banff,v0.8-a stake return u,3,547071905bf7607c
+Banff,v0.8-a stake return u,4,53e730e84ef8c2c7
+Banff,v0.8-a stake return u,5,696af1ce5f83fc60
+Banff,v0.8-a stake return u,6,946ac4386b4d0e4b
+Banff,v0.8-a stake return u,7,b062b91af0232cab
+Banff,v0.8-a stake return u,8,4bc2514be70c71e8
+Banff,v0.8-a stake return u,9,8646b039943b4e67
+Cortina,v0.8-a u,0,eb039a6a30f40a95
+Cortina,v0.8-a u,1,eaff0b9d3b3d67a8
+Cortina,v0.8-a u,2,fae2e3cd32a95744
+Cortina,v0.8-a u,3,40b4e9f928de93c6
+Cortina,v0.8-a u,4,88c7d01e4ec43f83
+Cortina,v0.8-a u,5,866768119624083a
+Cortina,v0.8-a u,6,b56b322ffefba51b
+Cortina,v0.8-a u,7,46bb2a81da16d49c
+Cortina,v0.8-a u,8,f022e951c06422d0
+Cortina,v0.8-a u,9,da48da44580244f5
+Cortina,v0.8-a stake return u,0,61a7cd153d8de78e
+Cortina,v0.8-a stake return u,1,94bfce0ada57259b
+Cortina,v0.8-a stake return u,2,ea90c671a16fbe96
+Cortina,v0.8-a stake return u,3,9bb0f09579d6dddf
+Cortina,v0.8-a stake return u,4,63c77a4e0a0b7965
+Cortina,v0.8-a stake return u,5,eb336709dcc3449e
+Cortina,v0.8-a stake return u,6,94394b4e2854b075
+Cortina,v0.8-a stake return u,7,02be426753d146d6
+Cortina,v0.8-a stake return u,8,5ce8c01fd94dc877
+Cortina,v0.8-a stake return u,9,52e4ef594dee2172
+Durango,v0.8-a u,0,d2cf6319ccca58fb
+Durango,v0.8-a u,1,97f9d0a4bc03d2fe
+Durango,v0.8-a u,2,15e89cebf2f45d90
+Durango,v0.8-a u,3,2dd1cf4b048f3302
+Durango,v0.8-a u,4,f0bc8dffee9a7bf0
+Durango,v0.8-a u,5,3273377c065e61ab
+Durango,v0.8-a u,6,c7bbbbe93c0c55ee
+Durango,v0.8-a u,7,a8ff7c3d4f909060
+Durango,v0.8-a u,8,8e0788b45028a0a2
+Durango,v0.8-a u,9,43fe4994b844da36
+Durango,v0.8-a stake return u,0,9324e3506eaaabd4
+Durango,v0.8-a stake return u,1,c2691913916771a9
+Durango,v0.8-a stake return u,2,3136506a94c9375c
+Durango,v0.8-a stake return u,3,d1f13e43f1987816
+Durango,v0.8-a stake return u,4,b1f87e62959e6eb9
+Durango,v0.8-a stake return u,5,f808cc8e9752ff48
+Durango,v0.8-a stake return u,6,7bc15fab665c2a91
+Durango,v0.8-a stake return u,7,2a0948f3f2303952
+Durango,v0.8-a stake return u,8,f7556e8e90bfdde8
+Durango,v0.8-a stake return u,9,36e0c6bc9ad0c3eb
+Etna,v0.8-a u,0,39f6337d5c7115a3
+Etna,v0.8-a u,1,cc2fe8d7a00637e6
+Etna,v0.8-a u,2,70dbea9714529d00
+Etna,v0.8-a u,3,169ba6b1c7b10dd2
+Etna,v0.8-a u,4,ae1e6885ed5ee088
+Etna,v0.8-a u,5,6d0e887484bbc46c
+Etna,v0.8-a u,6,07f30592a2af7683
+Etna,v0.8-a u,7,2b3df274d67eb625
+Etna,v0.8-a u,8,6bbcfc83b5e374cb
+Etna,v0.8-a u,9,ef787b4eac636c7c
+Etna,v0.8-a stake return u,0,37342a2d2646e972
+Etna,v0.8-a stake return u,1,78cbacb01474d6d0
+Etna,v0.8-a stake return u,2,141493ece9913011
+Etna,v0.8-a stake return u,3,00d3f04cbfe94b68
+Etna,v0.8-a stake return u,4,caaa29b3757ef811
+Etna,v0.8-a stake return u,5,e58d851f47eadf22
+Etna,v0.8-a stake return u,6,e6c1d5ba309645de
+Etna,v0.8-a stake return u,7,8920eb70954ea25f
+Etna,v0.8-a stake return u,8,adeed824147ec87e
+Etna,v0.8-a stake return u,9,41d48f127a7d19c6
+Fortuna,v0.8-a u,0,ae4c321cf2342d66
+Fortuna,v0.8-a u,1,a820053503f17cc9
+Fortuna,v0.8-a u,2,53a9c90b7f0c351c
+Fortuna,v0.8-a u,3,382c7aede19b957f
+Fortuna,v0.8-a u,4,5a8b5a5b54a0ab3f
+Fortuna,v0.8-a u,5,8ff2d11ac21d3089
+Fortuna,v0.8-a u,6,2003ce50f5470a87
+Fortuna,v0.8-a u,7,1e5f4db12512af0f
+Fortuna,v0.8-a u,8,81a51e12d2743812
+Fortuna,v0.8-a u,9,8184fc3713071b58
+Fortuna,v0.8-a stake return u,0,44fc40cb51a40336
+Fortuna,v0.8-a stake return u,1,13f14b3b76b5b654
+Fortuna,v0.8-a stake return u,2,f8f3275a306f4470
+Fortuna,v0.8-a stake return u,3,2d0309c0a985e04f
+Fortuna,v0.8-a stake return u,4,0a980f471da866b9
+Fortuna,v0.8-a stake return u,5,b8a87e192a3b0864
+Fortuna,v0.8-a stake return u,6,37b53744b6912434
+Fortuna,v0.8-a stake return u,7,9b78d5ace550eef8
+Fortuna,v0.8-a stake return u,8,7c1be116eb3a6dd3
+Fortuna,v0.8-a stake return u,9,8eeff9ef3b09d7bf
+2022-07-01,v0.8-a u,0,94b801047ddfd3b9
+2022-07-01,v0.8-a u,1,cfda33a944a08b6c
+2022-07-01,v0.8-a u,2,78b1a77ba89b8dff
+2022-07-01,v0.8-a u,3,2378bcb4fa53fef3
+2022-07-01,v0.8-a u,4,a21a9918b5cf2a2c
+2022-07-01,v0.8-a u,5,30e50f0d9c58780c
+2022-07-01,v0.8-a u,6,92fb3122600b7cc6
+2022-07-01,v0.8-a u,7,f61903bcdfb122f2
+2022-07-01,v0.8-a u,8,8f5fe48498c0af26
+2022-07-01,v0.8-a u,9,78a8bf6ca1276ecc
+2022-07-01,v0.8-a stake return u,0,73457ffc3ce1ee69
+2022-07-01,v0.8-a stake return u,1,2a866e845bd8893b
+2022-07-01,v0.8-a stake return u,2,ea9a19558c30ac63
+2022-07-01,v0.8-a stake return u,3,f495b2414a1256fc
+2022-07-01,v0.8-a stake return u,4,2c2e01e737e710e3
+2022-07-01,v0.8-a stake return u,5,67c178dcbf56cc08
+2022-07-01,v0.8-a stake return u,6,a6e235f96cc2bab5
+2022-07-01,v0.8-a stake return u,7,85962924dcafc376
+2022-07-01,v0.8-a stake return u,8,7d047e5fad0b3162
+2022-07-01,v0.8-a stake return u,9,6e9c8afebfcacf30
+2022-10-01,v0.8-a u,0,ccb8907f85385c58
+2022-10-01,v0.8-a u,1,4fc13bf79ada0bc2
+2022-10-01,v0.8-a u,2,95e6b1e0ebcb703b
+2022-10-01,v0.8-a u,3,7b5e76d8c19a30a0
+2022-10-01,v0.8-a u,4,5ca2b619bf35f99a
+2022-10-01,v0.8-a u,5,b4e00d6468a8f67a
+2022-10-01,v0.8-a u,6,dd05df0fdd1f90b3
+2022-10-01,v0.8-a u,7,e4acbaf5daa5839c
+2022-10-01,v0.8-a u,8,b6b22c89cc04d04e
+2022-10-01,v0.8-a u,9,7b54d818e41eec74
+2022-10-01,v0.8-a stake return u,0,ed4929ff3a085127
+2022-10-01,v0.8-a stake return u,1,759008184c02d4df
+2022-10-01,v0.8-a stake return u,2,21b617d514d113fd
+2022-10-01,v0.8-a stake return u,3,8da19d5680e60d93
+2022-10-01,v0.8-a stake return u,4,e97ca985dc594e3a
+2022-10-01,v0.8-a stake return u,5,ee1b0db02a497e3b
+2022-10-01,v0.8-a stake return u,6,964f9a691718bd0b
+2022-10-01,v0.8-a stake return u,7,2ede884f3cc181ec
+2022-10-01,v0.8-a stake return u,8,fefe3eb9ade605c8
+2022-10-01,v0.8-a stake return u,9,6d97827899993a4b
+2023-01-01,v0.8-a u,0,ad17df6b37a5c924
+2023-01-01,v0.8-a u,1,a5f9e6755db44775
+2023-01-01,v0.8-a u,2,0530ced38357a9c4
+2023-01-01,v0.8-a u,3,6792428f9863d2ba
+2023-01-01,v0.8-a u,4,c3e445017202e4e0
+2023-01-01,v0.8-a u,5,966f331cf64c4094
+2023-01-01,v0.8-a u,6,1b9c6abcd9c3a598
+2023-01-01,v0.8-a u,7,de98333047f766b3
+2023-01-01,v0.8-a u,8,e9e754a4569718b8
+2023-01-01,v0.8-a u,9,9afc8f43b2c69cac
+2023-01-01,v0.8-a stake return u,0,8ac72d2a3107f9e7
+2023-01-01,v0.8-a stake return u,1,9c30b95048510090
+2023-01-01,v0.8-a stake return u,2,886dd01774a75b69
+2023-01-01,v0.8-a stake return u,3,be102a0997750dfc
+2023-01-01,v0.8-a stake return u,4,3098b63d3fdb85bd
+2023-01-01,v0.8-a stake return u,5,3535029c21e7f6e5
+2023-01-01,v0.8-a stake return u,6,b366dd9abae9fe06
+2023-01-01,v0.8-a stake return u,7,add162bc718327c7
+2023-01-01,v0.8-a stake return u,8,2721ffff923e17ba
+2023-01-01,v0.8-a stake return u,9,dd2c07661c2baad0
+2023-04-01,v0.8-a u,0,7e14ec0f903032a2
+2023-04-01,v0.8-a u,1,d839d975af448b88
+2023-04-01,v0.8-a u,2,6ada577cdcc95741
+2023-04-01,v0.8-a u,3,1daba5f8b6673319
+2023-04-01,v0.8-a u,4,99025114ed1b6dcc
+2023-04-01,v0.8-a u,5,b580070b8f23ffd0
+2023-04-01,v0.8-a u,6,c48617f3cdcd95b8
+2023-04-01,v0.8-a u,7,4fffcb0a95e6b403
+2023-04-01,v0.8-a u,8,e91475180c5fc5f7
+2023-04-01,v0.8-a u,9,2ef3d0517929075e
+2023-04-01,v0.8-a stake return u,0,e93dd3fc5417befa
+2023-04-01,v0.8-a stake return u,1,0a087750c91467bc
+2023-04-01,v0.8-a stake return u,2,cf77b777d3c9ee57
+2023-04-01,v0.8-a stake return u,3,5b388cbc34db6bd3
+2023-04-01,v0.8-a stake return u,4,675a8e3ce9616de4
+2023-04-01,v0.8-a stake return u,5,b9f930fd257b0fdd
+2023-04-01,v0.8-a stake return u,6,6fade2ae85c1249b
+2023-04-01,v0.8-a stake return u,7,7f1b6ca5d9cde725
+2023-04-01,v0.8-a stake return u,8,691871b2575aecf2
+2023-04-01,v0.8-a stake return u,9,9459dbc5918e4060
+2023-07-01,v0.8-a u,0,c614e8dcc949c511
+2023-07-01,v0.8-a u,1,b03d00b364bfb195
+2023-07-01,v0.8-a u,2,15b65a920c521163
+2023-07-01,v0.8-a u,3,8e602bce65157436
+2023-07-01,v0.8-a u,4,d44744704644264c
+2023-07-01,v0.8-a u,5,253fea022fecbdad
+2023-07-01,v0.8-a u,6,1dc9b08080d4faad
+2023-07-01,v0.8-a u,7,5ebb9259f14ef2ce
+2023-07-01,v0.8-a u,8,94c6c584a3deddd1
+2023-07-01,v0.8-a u,9,8e65dd18b6685a10
+2023-07-01,v0.8-a stake return u,0,4fb24808767092c5
+2023-07-01,v0.8-a stake return u,1,08aa8cb3e0996665
+2023-07-01,v0.8-a stake return u,2,955d2064fe8724a6
+2023-07-01,v0.8-a stake return u,3,6390e42d0235e7a8
+2023-07-01,v0.8-a stake return u,4,09cfe44b422499f0
+2023-07-01,v0.8-a stake return u,5,5e0c3763b97c9064
+2023-07-01,v0.8-a stake return u,6,b348be691c3324fd
+2023-07-01,v0.8-a stake return u,7,734479716e505cbc
+2023-07-01,v0.8-a stake return u,8,250d2160c8cd7a82
+2023-07-01,v0.8-a stake return u,9,ad11727c0da83227
+2023-10-01,v0.8-a u,0,bfd09e085e532bce
+2023-10-01,v0.8-a u,1,1366cfede59a843a
+2023-10-01,v0.8-a u,2,84ee8a55a47444b4
+2023-10-01,v0.8-a u,3,a5cf4fb102b6c4d2
+2023-10-01,v0.8-a u,4,6acb98626be98884
+2023-10-01,v0.8-a u,5,864ae8faec2b69ed
+2023-10-01,v0.8-a u,6,0dffd405237611ff
+2023-10-01,v0.8-a u,7,9aafa7274bfc709a
+2023-10-01,v0.8-a u,8,72297047fde97311
+2023-10-01,v0.8-a u,9,9865b33752d1b32e
+2023-10-01,v0.8-a stake return u,0,4f0c8d59258f6528
+2023-10-01,v0.8-a stake return u,1,a2b73cb042ac738c
+2023-10-01,v0.8-a stake return u,2,49e20edc6b59b330
+2023-10-01,v0.8-a stake return u,3,abba1b33455b5ae1
+2023-10-01,v0.8-a stake return u,4,bc3b59d5283e3f77
+2023-10-01,v0.8-a stake return u,5,3c2ff7323c9ba080
+2023-10-01,v0.8-a stake return u,6,7d0fbe9e381cc215
+2023-10-01,v0.8-a stake return u,7,9f54a883d9d66b55
+2023-10-01,v0.8-a stake return u,8,3c5082d8cbe7090c
+2023-10-01,v0.8-a stake return u,9,27d38344212b5feb
+2024-01-01,v0.8-a u,0,d4f229c8807de4eb
+2024-01-01,v0.8-a u,1,1901e836ac53f739
+2024-01-01,v0.8-a u,2,4299f5229c01f0f7
+2024-01-01,v0.8-a u,3,44f2916785b7db41
+2024-01-01,v0.8-a u,4,2b5fe988f9c465e3
+2024-01-01,v0.8-a u,5,5478ddfe9642c3c4
+2024-01-01,v0.8-a u,6,c35a8a255dcbb78d
+2024-01-01,v0.8-a u,7,dd69d7fb54b40dd7
+2024-01-01,v0.8-a u,8,f2f5be7d2c1ee53f
+2024-01-01,v0.8-a u,9,6ad87b43af728fc8
+2024-01-01,v0.8-a stake return u,0,c8c6f2bd6406402f
+2024-01-01,v0.8-a stake return u,1,3c650d25280d7faa
+2024-01-01,v0.8-a stake return u,2,0e40869c37ae8795
+2024-01-01,v0.8-a stake return u,3,8e6f4a7ab2b70c6b
+2024-01-01,v0.8-a stake return u,4,4535d3b1bb886021
+2024-01-01,v0.8-a stake return u,5,10adfdf9cc485b3b
+2024-01-01,v0.8-a stake return u,6,a7b6026cc3a9bef1
+2024-01-01,v0.8-a stake return u,7,ee417521922f54b7
+2024-01-01,v0.8-a stake return u,8,005a9356d2712ac4
+2024-01-01,v0.8-a stake return u,9,c769ecf1c5a462f9
+2024-04-01,v0.8-a u,0,df9a2aac07d60ed6
+2024-04-01,v0.8-a u,1,28321f6bf1144714
+2024-04-01,v0.8-a u,2,833cee06a7a969eb
+2024-04-01,v0.8-a u,3,8cd88673f6fcfe49
+2024-04-01,v0.8-a u,4,783e30ea7a178116
+2024-04-01,v0.8-a u,5,b14209609d7b621c
+2024-04-01,v0.8-a u,6,0f4d2ee661140344
+2024-04-01,v0.8-a u,7,5109c325bcb80efd
+2024-04-01,v0.8-a u,8,7cd2ec83687c72be
+2024-04-01,v0.8-a u,9,ecbc7f7a26fbb65e
+2024-04-01,v0.8-a stake return u,0,a147d5e0d7dd3012
+2024-04-01,v0.8-a stake return u,1,e023155123e3ef35
+2024-04-01,v0.8-a stake return u,2,d645548c00ce96d7
+2024-04-01,v0.8-a stake return u,3,5527f04fc5ac939b
+2024-04-01,v0.8-a stake return u,4,15315142a01b367b
+2024-04-01,v0.8-a stake return u,5,f9e3d61cfd4971e6
+2024-04-01,v0.8-a stake return u,6,f3edab45489de1f1
+2024-04-01,v0.8-a stake return u,7,9637981ba621ce2e
+2024-04-01,v0.8-a stake return u,8,87d1d148ffe1aa0d
+2024-04-01,v0.8-a stake return u,9,48f095e4235cb198
+2024-07-01,v0.8-a u,0,3c5dbe7b423e4c6d
+2024-07-01,v0.8-a u,1,418a9191fe3044e8
+2024-07-01,v0.8-a u,2,1fe6f6ebabcecadc
+2024-07-01,v0.8-a u,3,d1eb7958de890e2f
+2024-07-01,v0.8-a u,4,cecbadd0bc2d36b6
+2024-07-01,v0.8-a u,5,2aa3ad03937e323c
+2024-07-01,v0.8-a u,6,f96ae936a1898313
+2024-07-01,v0.8-a u,7,1688a79d64b0eeaa
+2024-07-01,v0.8-a u,8,1430ad72cdb510aa
+2024-07-01,v0.8-a u,9,9f489bff513dd63e
+2024-07-01,v0.8-a stake return u,0,978d01b0171b6f6d
+2024-07-01,v0.8-a stake return u,1,d981ad72c6641d23
+2024-07-01,v0.8-a stake return u,2,de8ec39afd17e939
+2024-07-01,v0.8-a stake return u,3,9422a2772efeff87
+2024-07-01,v0.8-a stake return u,4,fa3376895f4de19c
+2024-07-01,v0.8-a stake return u,5,94e6016eb9d79b80
+2024-07-01,v0.8-a stake return u,6,dc091f4ae5b7b6e6
+2024-07-01,v0.8-a stake return u,7,9c23ad895916521f
+2024-07-01,v0.8-a stake return u,8,6209704143ca56e0
+2024-07-01,v0.8-a stake return u,9,7e7285cd05bff39a
+2024-10-01,v0.8-a u,0,3a285a9a546c2901
+2024-10-01,v0.8-a u,1,9a42307ec5fc32a1
+2024-10-01,v0.8-a u,2,5f2c76b4f8610ccc
+2024-10-01,v0.8-a u,3,3f3810e80bfc0bcf
+2024-10-01,v0.8-a u,4,0af4e81fe428e4c3
+2024-10-01,v0.8-a u,5,5796d1e0fc778257
+2024-10-01,v0.8-a u,6,482322efbc19cf58
+2024-10-01,v0.8-a u,7,c29312a3ce613d8b
+2024-10-01,v0.8-a u,8,4eaf2b7f84be01d1
+2024-10-01,v0.8-a u,9,41cb8f103a6b734f
+2024-10-01,v0.8-a stake return u,0,54f9736353a15ff3
+2024-10-01,v0.8-a stake return u,1,ac9383ea3adf398a
+2024-10-01,v0.8-a stake return u,2,fde615da8c59939e
+2024-10-01,v0.8-a stake return u,3,3d5f16c985b03a3a
+2024-10-01,v0.8-a stake return u,4,a1689a751b38f34f
+2024-10-01,v0.8-a stake return u,5,1f5da0d8c4e6033d
+2024-10-01,v0.8-a stake return u,6,6cc3cf4b475e840f
+2024-10-01,v0.8-a stake return u,7,b55bd94bf2ac9f38
+2024-10-01,v0.8-a stake return u,8,860fb19becbe4bd2
+2024-10-01,v0.8-a stake return u,9,2c2f2e8ea671b60d
+2025-01-01,v0.8-a u,0,8656169f7d7ff8b7
+2025-01-01,v0.8-a u,1,f5cbff399cc19bfd
+2025-01-01,v0.8-a u,2,49c0ef6f4c9c16dd
+2025-01-01,v0.8-a u,3,9412698780de0f26
+2025-01-01,v0.8-a u,4,0d999a7a137667cf
+2025-01-01,v0.8-a u,5,7bb7e06c6cc565a0
+2025-01-01,v0.8-a u,6,3710c9eed2d5b248
+2025-01-01,v0.8-a u,7,03b87599333b12a6
+2025-01-01,v0.8-a u,8,599ec81478333d01
+2025-01-01,v0.8-a u,9,f126191938f34a80
+2025-01-01,v0.8-a stake return u,0,e74639ecce22e781
+2025-01-01,v0.8-a stake return u,1,b463ea777f8b85b3
+2025-01-01,v0.8-a stake return u,2,b09fafc191dbecf1
+2025-01-01,v0.8-a stake return u,3,0de8dba7eef0da0f
+2025-01-01,v0.8-a stake return u,4,10c69289e19a18bf
+2025-01-01,v0.8-a stake return u,5,238c0356fcf1cf3f
+2025-01-01,v0.8-a stake return u,6,bc3fb90400e3cddc
+2025-01-01,v0.8-a stake return u,7,069e8b9b8ad08b2b
+2025-01-01,v0.8-a stake return u,8,ba4baa568f71b25d
+2025-01-01,v0.8-a stake return u,9,cc597d03f787e616
+2025-04-01,v0.8-a u,0,7c01f3c8e8e31092
+2025-04-01,v0.8-a u,1,63d2701c81f84d27
+2025-04-01,v0.8-a u,2,29e4b9490102c65e
+2025-04-01,v0.8-a u,3,5cf63c8f4abfc019
+2025-04-01,v0.8-a u,4,2371af97d363861b
+2025-04-01,v0.8-a u,5,bea18f8ec2e89320
+2025-04-01,v0.8-a u,6,932f62a3082ddb72
+2025-04-01,v0.8-a u,7,d6f1bc443615f2fa
+2025-04-01,v0.8-a u,8,94d2dc479a043926
+2025-04-01,v0.8-a u,9,1bb614a4a44be70c
+2025-04-01,v0.8-a stake return u,0,835e2a6865ab21bc
+2025-04-01,v0.8-a stake return u,1,d0a23e51668dd436
+2025-04-01,v0.8-a stake return u,2,9cf16fb4a875550a
+2025-04-01,v0.8-a stake return u,3,a2b5cabb22336c91
+2025-04-01,v0.8-a stake return u,4,9a969832459bc806
+2025-04-01,v0.8-a stake return u,5,62b4369953492c98
+2025-04-01,v0.8-a stake return u,6,a14101873aa579d7
+2025-04-01,v0.8-a stake return u,7,2b41074622d95596
+2025-04-01,v0.8-a stake return u,8,0289c15709a22519
+2025-04-01,v0.8-a stake return u,9,a6ca1093f037c792
+2025-07-01,v0.8-a u,0,5e8a9ed2e7688787
+2025-07-01,v0.8-a u,1,22e9169bcde6ea6a
+2025-07-01,v0.8-a u,2,1258c7c9a0906366
+2025-07-01,v0.8-a u,3,44c77a2ad829dcb5
+2025-07-01,v0.8-a u,4,46c0a12d6642d189
+2025-07-01,v0.8-a u,5,ec62168bb3b553a7
+2025-07-01,v0.8-a u,6,c8efda34ec4d89a8
+2025-07-01,v0.8-a u,7,fc8e0f3f41ae6b2c
+2025-07-01,v0.8-a u,8,53da3071a87753da
+2025-07-01,v0.8-a u,9,76a1586fb6b10e07
+2025-07-01,v0.8-a stake return u,0,4824bf42c063b3f9
+2025-07-01,v0.8-a stake return u,1,58c0c4c91f83ab76
+2025-07-01,v0.8-a stake return u,2,cff599d99c8d0194
+2025-07-01,v0.8-a stake return u,3,e77ea57d6a4ad289
+2025-07-01,v0.8-a stake return u,4,4953a0f49f270f83
+2025-07-01,v0.8-a stake return u,5,1783c3492d897424
+2025-07-01,v0.8-a stake return u,6,da2ed749a07f1f08
+2025-07-01,v0.8-a stake return u,7,41c950029cf03d57
+2025-07-01,v0.8-a stake return u,8,3d9ce75c56556ea7
+2025-07-01,v0.8-a stake return u,9,c6cd005ea513d9fd
+2025-10-01,v0.8-a u,0,d15dfc7e7eaa6ba9
+2025-10-01,v0.8-a u,1,0a4a925227f58f56
+2025-10-01,v0.8-a u,2,0e3840b1d4901b10
+2025-10-01,v0.8-a u,3,e05630a139ff5a26
+2025-10-01,v0.8-a u,4,3f5e6b8d803d7599
+2025-10-01,v0.8-a u,5,538ae1d940bd6043
+2025-10-01,v0.8-a u,6,b337ba8ffa5ebfa5
+2025-10-01,v0.8-a u,7,dfd1d069c533d540
+2025-10-01,v0.8-a u,8,b02a52c1b1dae8e7
+2025-10-01,v0.8-a u,9,41c40e452b40273b
+2025-10-01,v0.8-a stake return u,0,d139c896b8347018
+2025-10-01,v0.8-a stake return u,1,19123a47557609b0
+2025-10-01,v0.8-a stake return u,2,4d60c58e87a297a2
+2025-10-01,v0.8-a stake return u,3,121f7fa47dc5e9b5
+2025-10-01,v0.8-a stake return u,4,87ac2f3d239dd29f
+2025-10-01,v0.8-a stake return u,5,91ac47ca4e1c8818
+2025-10-01,v0.8-a stake return u,6,30dfb4959767fe3a
+2025-10-01,v0.8-a stake return u,7,9e5c06ed94408f49
+2025-10-01,v0.8-a stake return u,8,49c1d4740acf1c35
+2025-10-01,v0.8-a stake return u,9,f84e01771af53a78
