@@ -758,3 +758,32 @@ def test_a_missing_transaction_in_the_terms_or_starts_is_refused_before_matching
         events_inputs_with(tmp_path, monkeypatch, {"terms": blank("terms"), "starts": blank("starts")})
     with pytest.raises(ValueError, match="transaction"):
         events_inputs_with(tmp_path, monkeypatch, {"terms": blank("terms")})
+
+
+@pytest.mark.parametrize("column", ["stake_navax", "days_left"])
+def test_delegation_inputs_refuse_a_fractional_open_delegation_value_before_the_cast(tmp_path, column):
+    periods, delegators = write_periods(tmp_path)
+    tables = di.build(periods, delegators, ORIGIN)
+    state = training_events(periods, ORIGIN, "synthetic").state
+    bad = tables["open"].copy()
+    bad[column] = bad[column].astype(float)
+    bad.loc[bad.index[0], column] += 0.5
+    with pytest.raises(ValueError, match="whole numbers"):
+        delegation_inputs({**tables, "open": bad}, periods, ORIGIN, state)
+
+
+def test_a_validator_period_without_a_transaction_hash_is_refused(tmp_path):
+    periods, delegators = write_periods(tmp_path)
+    frame = duckdb.execute("SELECT * FROM read_parquet(?)", [periods]).df()
+    frame.loc[frame["transaction_hash"] == "V1", "transaction_hash"] = ""
+    frame.loc[frame["validator_transaction_hash"] == "V1", "validator_transaction_hash"] = ""
+    altered = str(tmp_path / "blank-validator.parquet")
+    duckdb.from_df(frame).write_parquet(altered)
+    with pytest.raises(ValueError, match="transaction hash"):
+        delegation_inputs(di.build(altered, delegators, ORIGIN), altered, ORIGIN, training_events(altered, ORIGIN, "synthetic").state)
+    # The state's own record of a commitment's transaction can be missing or blank too.
+    tables, state = di.build(periods, delegators, ORIGIN), training_events(periods, ORIGIN, "synthetic").state
+    for blank in ("", None):
+        blanked = {**state, "transactions": {**state["transactions"], "initial": np.array([blank, "V2"], dtype=object)}}
+        with pytest.raises(ValueError, match="transaction hash"):
+            delegation_inputs(tables, periods, ORIGIN, blanked)

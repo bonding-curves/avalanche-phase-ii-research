@@ -104,6 +104,13 @@ def _whole(values, what: str) -> np.ndarray:
     return raw.astype(np.int64)
 
 
+def _identified(values, what: str) -> None:
+    """Refuse a missing or blank transaction hash in ``values``, before anything is matched by it."""
+    hashes = pd.Series(np.asarray(values, dtype=object))
+    if hashes.isna().any() or (hashes.astype(str).str.strip() == "").any():
+        raise ValueError(f"{what} has no transaction hash, so it cannot be matched")
+
+
 def _operators(frame: pd.DataFrame, n_named: int) -> np.ndarray:
     """Each delegation's named operator row, -1 for none, from an ``operator`` column or none."""
     rows = _whole(frame["operator"], "a delegation's operator row") if "operator" in frame else np.full(len(frame), -1, dtype=np.int64)
@@ -401,6 +408,8 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
     def rows_by_transaction(periods: pd.DataFrame, kind: str) -> dict[str, int]:
         """Each validator period's row of the state's ``kind`` table, matched by transaction hash, never by position."""
         hashes, stakes = np.asarray(state["transactions"][kind], dtype=object), np.asarray(state[kind]["stakes"])
+        _identified(hashes, f"a {kind} commitment of the fitted lifecycle")
+        _identified(periods["transaction_hash"], f"a {kind} validator period")
         if len(hashes) != len(stakes) or len(set(hashes)) != len(hashes) or set(hashes) != set(periods["transaction_hash"]):
             raise ValueError(f"the {kind} validator periods do not match the {kind} commitments by transaction")
         row = dict(zip(hashes, range(len(hashes))))
@@ -422,19 +431,22 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
         return hashes.map(lambda h: open_row.get(h, later_row.get(h))).to_numpy(dtype=np.int64), on_later
 
     current = tables["open"]
+    _identified(current["validator_transaction_hash"], "an open delegation's validator period")
     rows, on_later = where(current["validator_transaction_hash"])
     if on_later.any():
         raise ValueError("an open delegation names a validator period that has not started")
-    open_delegations = pd.DataFrame({"validator": rows, "stakes": current["stake_navax"].to_numpy(dtype=np.int64),
-                                     "days_left": current["days_left"].to_numpy(dtype=np.int64), "benqi": current["benqi"].to_numpy(dtype=bool)})
+    open_delegations = pd.DataFrame({"validator": rows, "stakes": _whole(current["stake_navax"], "an open delegation's stake"),
+                                     "days_left": _whole(current["days_left"], "an open delegation's days left"),
+                                     "benqi": current["benqi"].to_numpy(dtype=bool)})
 
     cutoff = decided_by_us(origin)
     pending = tables["scheduled"][tables["scheduled"]["role"] == "delegator"]
+    _identified(pending["validator_transaction_hash"], "a scheduled delegation's validator period")
     later_rows, later_on = where(pending["validator_transaction_hash"])
     start_day = _days_after(pending["start_time"], cutoff)
     scheduled_delegations = pd.DataFrame({
         "validator": later_rows, "validator_scheduled": later_on, "start_day": start_day,
-        "stakes": pending["stake_navax"].to_numpy(dtype=np.int64), "days": _days_after(pending["end_time"], cutoff) - start_day,
+        "stakes": _whole(pending["stake_navax"], "a scheduled delegation's stake"), "days": _days_after(pending["end_time"], cutoff) - start_day,
         "benqi": pending["benqi"].to_numpy(dtype=bool),
     })
 
@@ -465,8 +477,7 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
             raise ValueError("the delegation terms need each delegation's transaction_hash to be given their owners")
         hashes, known = terms["transaction_hash"], starts["transaction_hash"]
         for name, column in (("terms", hashes), ("starts", known)):
-            if column.isna().any() or (column.astype(str).str.strip() == "").any():
-                raise ValueError(f"a delegation in the {name} has no transaction_hash, so it cannot be matched")
+            _identified(column, f"a delegation in the {name}")
         if hashes.duplicated().any() or known.duplicated().any() or set(hashes) != set(known):
             raise ValueError("the delegation terms and starts do not list the same delegations")
         match = starts.set_index("transaction_hash").loc[hashes]
@@ -494,7 +505,7 @@ def delegation_terms(periods_parquet: str, delegators_parquet: str, origin: date
         [benqi_funding, benqi_from, periods_parquet, delegators_parquet],
     ).df()
     start_day = _days_after(rows["start_time"], cutoff)
-    return pd.DataFrame({"stake_navax": rows["stake_navax"].to_numpy(dtype=np.int64),
+    return pd.DataFrame({"stake_navax": _whole(rows["stake_navax"], "a delegation's stake"),
                          "days": _days_after(rows["end_time"], cutoff) - start_day, "benqi": rows["benqi"].to_numpy(dtype=bool),
                          "transaction_hash": rows["transaction_hash"].to_numpy(dtype=object)})
 
@@ -505,6 +516,6 @@ def historical_flow(flows: pd.DataFrame, origin: date) -> DelegationFlow:
     days = pd.date_range(end=pd.Timestamp(origin), periods=FLOW_DAYS, freq="D")
     started = flows.assign(date_utc=pd.to_datetime(flows["date_utc"])).pivot_table(
         index="date_utc", columns="benqi", values="started", aggfunc="sum").reindex(days).fillna(0)
-    benqi = started[True].to_numpy(dtype=np.int64) if True in started else np.zeros(FLOW_DAYS, dtype=np.int64)
-    others = started[False].to_numpy(dtype=np.int64) if False in started else np.zeros(FLOW_DAYS, dtype=np.int64)
+    benqi = _whole(started[True], "a day's BENQI delegation starts") if True in started else np.zeros(FLOW_DAYS, dtype=np.int64)
+    others = _whole(started[False], "a day's other delegation starts") if False in started else np.zeros(FLOW_DAYS, dtype=np.int64)
     return DelegationFlow.fit(benqi + others, benqi, f"delegation starts in the {FLOW_DAYS} days to {origin}")
