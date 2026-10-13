@@ -242,3 +242,26 @@ def test_the_design_names_its_files_relative_to_its_folder_so_it_is_the_same_any
     one, two = m2.file_fields(tmp_path / "one"), m2.file_fields(tmp_path / "two")
     assert one == two
     assert one["rows_file"] == "rows.json" and one["draws_file"] == "draws.parquet"
+
+
+@pytest.mark.parametrize("plant", ["negative entry response", "negative ramp target", "earlier origin", "wrong family label"])
+def test_check_refuses_a_row_whose_settings_or_label_are_wrong(design, plant):
+    rows, labels, keys = (list(map(dict, design[0])), [dict(label) for label in design[1]], design[2])
+    i = next(n for n, label in enumerate(labels) if label["family"] == "ramp" and label["block"] == "A")
+    if plant == "negative entry response":
+        rows[i]["entry_response"] = -0.01
+    elif plant == "negative ramp target":
+        rows[i]["mechanism"] = {**rows[i]["mechanism"], "target_min_rate": -0.05}
+    elif plant == "earlier origin":
+        rows[i]["origin"] = "2025-10-01"
+    else:
+        labels[i]["family"] = "tenure"
+    with pytest.raises(ValueError):
+        m2.check(rows, labels, m2.SALTELLI_ROWS, keys)
+
+
+def test_parquet_is_written_into_a_folder_whose_name_holds_a_quote(tmp_path):
+    folder = tmp_path / "output's"
+    folder.mkdir()
+    m2.write_parquet(pd.DataFrame({"a": [1, 2]}), folder / "draws.parquet")
+    assert (folder / "draws.parquet").stat().st_size > 0

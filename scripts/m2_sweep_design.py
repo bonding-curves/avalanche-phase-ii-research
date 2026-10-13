@@ -282,14 +282,30 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
     pairs = {(row["seed"], row["draw"]) for row in rows}
     if len(pairs) != key_count or len({s for s, _ in pairs}) != key_count or sorted(d for _, d in pairs) != list(range(key_count)):
         raise ValueError("every noise key must have its own seed and its own draw, numbered from draw 0")
-    for row in rows:
-        if tuple(row) != ROW_KEYS:
-            raise ValueError(f"a row holds {sorted(row)}, not exactly {list(ROW_KEYS)}")
-        for name in ("renewal_response", "entry_response", "outside_yield_pp", "fitted_outside_yield_pp"):
-            if not math.isfinite(row[name]):
-                raise ValueError(f"{name} must be finite")
     if len(labels) != len(rows):
         raise ValueError("every row needs one label")
+    fitted = {row["fitted_outside_yield_pp"] for row in rows}
+    if len(fitted) != 1 or not all(math.isfinite(value) for value in fitted):
+        raise ValueError("every row must carry the same finite fitted outside yield")
+    allowed_yields = {*YIELDS, *fitted}
+    for row, label in zip(rows, labels):
+        if tuple(row) != ROW_KEYS:
+            raise ValueError(f"a row holds {sorted(row)}, not exactly {list(ROW_KEYS)}")
+        if row["origin"] != ORIGIN.isoformat():
+            raise ValueError(f"every row starts at {ORIGIN.isoformat()}, not {row['origin']}")
+        for name in ("renewal_response", "entry_response"):
+            if not (math.isfinite(row[name]) and 0.0 <= row[name] <= STRESS_RESPONSE):
+                raise ValueError(f"{name} must lie in [0, {STRESS_RESPONSE}], not {row[name]}")
+        if row["outside_yield_pp"] not in allowed_yields:
+            raise ValueError(f"outside yield {row['outside_yield_pp']} is neither a scenario nor the fitted level")
+        family = BY_CODE.get(label["family"])
+        if family is None:
+            raise ValueError(f"unknown family label {label['family']!r}")
+        value = row["mechanism"].get(family.input_name) if family.input_name else None
+        if family.input_name and not (isinstance(value, float) and family.bounds[0] <= value <= family.bounds[1]):
+            raise ValueError(f"{family.code} {family.input_name} must lie in {family.bounds}, not {value!r}")
+        if row["mechanism"] != family.mechanism(value):
+            raise ValueError(f"row mechanism {row['mechanism']} is not the {family.code} family's")
 
 
 def bill_mean(pin: Path) -> tuple[float, int, str]:
@@ -341,7 +357,8 @@ def write_parquet(frame, path: Path) -> None:
     try:
         connection.execute("SET threads TO 1")
         connection.register("frame", frame)
-        connection.execute(f"COPY (SELECT * FROM frame) TO '{path}' (FORMAT parquet)")
+        quoted = str(path).replace("'", "''")  # a quote in the folder name stays inside the SQL string
+        connection.execute(f"COPY (SELECT * FROM frame) TO '{quoted}' (FORMAT parquet)")
     finally:
         connection.close()
 
