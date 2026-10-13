@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from avalanche_research.model.parts.continuation import Continuation
     from avalanche_research.model.parts.duration_transition import DurationTransition
     from avalanche_research.model.parts.renewal import RenewalLogit
+    from avalanche_research.model.parts.return_hazard import ReturnLogitHazard
     from avalanche_research.model.parts.returns import ReturnHazard
     from avalanche_research.model.streams import Streams
 
@@ -44,7 +45,7 @@ class RunBlocks(NamedTuple):
     renewal: RenewalLogit
     renewal_large: RenewalLogit | None
     arrivals: Arrivals
-    returns: ReturnHazard
+    returns: ReturnHazard | ReturnLogitHazard
     renewal_shift: float
     continuation: Continuation
     first_days: np.ndarray

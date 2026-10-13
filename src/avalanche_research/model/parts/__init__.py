@@ -4,6 +4,8 @@
 * :mod:`~avalanche_research.model.parts.renewal`: :class:`RenewalLogit`, renewal within seven days.
 * :mod:`~avalanche_research.model.parts.arrivals`: :class:`Arrivals`, first-ever nodes each day.
 * :mod:`~avalanche_research.model.parts.returns`: :class:`ReturnHazard`, returns after more than seven days out.
+* :mod:`~avalanche_research.model.parts.return_hazard`: :class:`ReturnLogitHazard`, returns after more than seven days
+  out by a logit hazard on the node's own history, which a model variant reads in place of the return block.
 * :mod:`~avalanche_research.model.parts.continuation`: :class:`Continuation`, the next duration and stake of a node
   that renews or returns.
 * :mod:`~avalanche_research.model.parts.duration_transition`: :class:`DurationTransition`, a fitted transition between

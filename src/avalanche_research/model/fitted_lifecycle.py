@@ -1,7 +1,8 @@
 """v0.8: the validator lifecycle with behaviour fitted to the chain before an origin.
 
 Each day, commitments that end either renew on the same node, by :class:`RenewalLogit`, or leave the active set.
-A node that left can return after more than seven days, by :class:`ReturnHazard`, until 365 days out. Nodes that
+A node that left can return after more than seven days, by :class:`ReturnHazard`, or by the logit hazard on its
+own history, :class:`ReturnLogitHazard`, until 365 days out. Nodes that
 never validated before arrive by :class:`Arrivals`. A node that renews or returns draws its next duration and stake
 from :class:`Continuation`, so it keeps its habit and can lower or raise its stake. A first-ever node draws both from
 the first-ever commitments of the year before the origin. With the ``durations`` setting, a node that renews or returns
@@ -42,6 +43,7 @@ from avalanche_research.model.parts.duration_transition import (
     fit_moves,
 )
 from avalanche_research.model.parts.renewal import renewal_stage
+from avalanche_research.model.parts.return_hazard import ReturnLogitHazard
 from avalanche_research.model.parts.returns import returns_stage
 from avalanche_research.model.parts.stages import (
     Day,
@@ -85,7 +87,10 @@ class FittedLifecycle(SimulationModel):
     renewal_large = param.ClassSelector(class_=RenewalLogit, default=None, allow_None=True, doc="The renewal block for commitments above large_above_avax. None uses the one renewal block for every commitment")
     large_above_avax = param.Number(default=None, allow_None=True, bounds=(0, None), doc="The stake line above which renewal_large decides")
     arrivals = param.ClassSelector(class_=Arrivals, default=Arrivals(), doc="The first-ever arrival block")
-    returns = param.ClassSelector(class_=ReturnHazard, default=ReturnHazard(), doc="The return block")
+    returns = param.ClassSelector(
+        class_=(ReturnHazard, ReturnLogitHazard), default=ReturnHazard(),
+        doc="The return block: the hazard by stake band and days out, or the logit hazard on the node's own history",
+    )
     seed = param.Integer(default=0, bounds=(0, None), doc="Base seed. Draws are keyed by seed, run, purpose and node (model.streams)")
     random_streams = param.String(default="keyed-v1", constant=True, doc="The random-number scheme. Keyed streams from 2026-10, so no run made before shares a specification hash with one made after")
     dt = param.Number(default=1.0, bounds=(0, None), inclusive_bounds=(False, True), doc="Days per timestep. Only 1 is allowed")
@@ -426,7 +431,7 @@ def _prefixed(prefix: str, block) -> dict[str, float]:
 
 
 def parameter_draws(events: TrainingEvents, n: int, seed: int, tau: float, large_above_avax: float | None = None,
-                    node_record: bool = True) -> pd.DataFrame:
+                    node_record: bool = True, return_history: bool = False) -> pd.DataFrame:
     """``n`` draws of every fitted block parameter, one row per run, for the ``draws`` input of :class:`FittedLifecycle`.
 
     Draw i refits each block on a resample of its training events: renewal endings and return spells by node, so a
@@ -434,7 +439,9 @@ def parameter_draws(events: TrainingEvents, n: int, seed: int, tau: float, large
     once and then split at the line, so the two renewal blocks share their nodes. Each draw adds a renewal shift from
     Normal(0, ``tau``), the drift of the renewal log-odds between quarters, and the seed of the run's continuation
     resample. Draws come from the ``parameter_draw`` stream, so a seed reproduces its table. ``node_record`` is as in
-    :func:`fit_blocks`. It changes only the renewal fits, not the resamples or the draws.
+    :func:`fit_blocks`. It changes only the renewal fits, not the resamples or the draws. ``return_history`` refits
+    the return block as the logit hazard on the node's own history, as :func:`fit_return_history` fits it, on the same
+    resample of return spells, and changes nothing else.
     """
     if events.origin >= LOCKBOX_FIRST_DAY:
         raise ValueError(f"origin {events.origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
@@ -452,8 +459,11 @@ def parameter_draws(events: TrainingEvents, n: int, seed: int, tau: float, large
             row |= _prefixed("renewal", RenewalLogit.fit(renewal_inputs(small, node_record), small["renewed"].to_numpy(), evidence))
             row |= _prefixed("renewal_large", RenewalLogit.fit(renewal_inputs(large, node_record), large["renewed"].to_numpy(), evidence))
         back = lapsed.iloc[node_resample(lapsed["node_code"].to_numpy(), rng)]
-        row |= _prefixed("returns", ReturnHazard.fit(back["stake_navax"].to_numpy(), back["days_out"].to_numpy(),
-                                                    back["came_back"].to_numpy(), evidence))
+        if return_history:
+            row |= _prefixed("returns", _fit_return_history(back, evidence))
+        else:
+            row |= _prefixed("returns", ReturnHazard.fit(back["stake_navax"].to_numpy(), back["days_out"].to_numpy(),
+                                                        back["came_back"].to_numpy(), evidence))
         row |= _prefixed("arrivals", Arrivals.fit(arrival_block_sample(events.first_counts, rng), evidence))
         row["renewal_shift"] = float(rng.normal(0.0, tau))
         row["resample_seed"] = int(rng.integers(0, 2**31 - 1))
@@ -486,6 +496,19 @@ def fit_durations(events: TrainingEvents) -> DurationTransition:
     moves = events.moves
     return fit_moves(moves, decided_by_us(events.origin),
                      f"{events.run or 'staking periods'}, {len(moves)} renewals and returns in the 365 days to {events.origin}")
+
+
+def _fit_return_history(lapsed: pd.DataFrame, evidence: str) -> ReturnLogitHazard:
+    return ReturnLogitHazard.fit(lapsed["stake_navax"].to_numpy(), lapsed["days_out"].to_numpy(), lapsed["came_back"].to_numpy(),
+                                 lapsed["done"].to_numpy(), lapsed["returns"].to_numpy(), evidence)
+
+
+def fit_return_history(events: TrainingEvents) -> ReturnLogitHazard:
+    """The logit return hazard on the node's own history, fitted on the return block's own spells: the endings
+    without renewal in the 730 days before the origin, each followed until it returned or the origin came. See
+    :class:`~avalanche_research.model.parts.return_hazard.ReturnLogitHazard`."""
+    lapsed = events.lapsed
+    return _fit_return_history(lapsed, f"{events.run or 'staking periods'}, {len(lapsed)} endings without renewal in the 730 days before {events.origin}")
 
 
 def _whole_days(us: pd.Series) -> pd.Series:
@@ -668,7 +691,9 @@ def training_events(periods_parquet: str, origin: date, run: str = "") -> Traini
         origin=origin, run=run, window=window,
         endings=ended.assign(node_code=code_of(ended["node_id"])),
         lapsed=pd.DataFrame({"stake_navax": lapsed["stake_navax"].to_numpy(), "days_out": days_out,
-                             "came_back": came_back.to_numpy(), "node_code": code_of(lapsed["node_id"])}),
+                             "came_back": came_back.to_numpy(), "node_code": code_of(lapsed["node_id"]),
+                             "done": (lapsed["done"] + 1).to_numpy(dtype=np.int64),
+                             "returns": lapsed["returns"].to_numpy(dtype=np.int64)}),
         first_counts=counts, first_total=len(first),
         moves=moves.assign(node_code=code_of(moves.pop("node_id"))),
         first_commitments=pd.DataFrame({"days": first["days"].to_numpy(), "stake_navax": first["stake_navax"].to_numpy(dtype=np.int64),

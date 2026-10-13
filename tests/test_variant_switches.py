@@ -57,7 +57,9 @@ from avalanche_research.model.fitted_lifecycle import (
 )
 from avalanche_research.model.variants import (
     CANDIDATES,
+    COMBINED_ON_A,
     DEVELOPMENT_MODELS,
+    ON_A,
     VARIANTS,
     Switches,
     switched_inputs,
@@ -93,7 +95,9 @@ def synthetic_periods(monkeypatch):
 def test_the_candidates_are_registered_and_the_development_scores_run_the_four_variants_as_before():
     assert DEVELOPMENT_MODELS == ("v0.7", "v0.8", "v0.8 separate", "v0.8 u")
     assert list(VARIANTS) == [*DEVELOPMENT_MODELS, "v0.8-a", "v0.8-a u", "v0.8-c", "v0.8-c u", "v0.8-e", "v0.8-e u",
-                              "v0.8 duration", "v0.8 duration u", "v0.8.1 stub"]
+                              "v0.8-a record", "v0.8-a record u", "v0.8-a bands", "v0.8-a bands u",
+                              "v0.8-a duration", "v0.8-a duration u", "v0.8-a bands return", "v0.8-a bands return u",
+                              "v0.8 duration", "v0.8 duration u", "v0.8-a return", "v0.8-a return u", "v0.8.1 stub"]
     spec = importlib.util.spec_from_file_location("model_development_scores", SCRIPT)
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)
@@ -107,6 +111,18 @@ def test_the_candidates_set_their_three_switches():
         "v0.8-e": Switches(node_record=True, move_stake_bands="ten log-spaced", move_stake_weighted=True),
     }
     assert CANDIDATES["v0.8-e"] == Switches()
+
+
+def test_the_candidates_on_a_each_change_one_switch():
+    a = CANDIDATES["v0.8-a"]
+    assert ON_A == {
+        "v0.8-a record": Switches(node_record=True, move_stake_bands="three", move_stake_weighted=False),
+        "v0.8-a bands": Switches(node_record=False, move_stake_bands="ten log-spaced", move_stake_weighted=False),
+        "v0.8-a duration": Switches(node_record=False, move_stake_bands="three", move_stake_weighted=False,
+                                    duration_transition=True),
+    }
+    for switches in ON_A.values():
+        assert sum(getattr(switches, field) != getattr(a, field) for field in vars(a)) == 1
 
 
 def test_v08e_switches_give_the_recorded_specification_hash_and_table():
@@ -217,4 +233,12 @@ def test_an_unknown_stake_band_set_is_refused():
     with pytest.raises(ValueError):
         small_lifecycle().with_settings(move_stake_bands="nine")
     assert set(FittedLifecycle.param["move_stake_bands"].objects) == {"ten log-spaced", "three"}
-    assert [f.name for f in fields(Switches)] == ["node_record", "move_stake_bands", "move_stake_weighted", "duration_transition"]
+    assert [f.name for f in fields(Switches)] == ["node_record", "move_stake_bands", "move_stake_weighted", "duration_transition",
+                                              "return_history"]
+
+
+def test_the_combined_candidate_on_a_holds_the_ten_bands_and_the_return_hazard_and_nothing_else():
+    assert COMBINED_ON_A == {
+        "v0.8-a bands return": Switches(node_record=False, move_stake_bands="ten log-spaced", move_stake_weighted=False,
+                                        return_history=True),
+    }

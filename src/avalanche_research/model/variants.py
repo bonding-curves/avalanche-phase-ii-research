@@ -25,6 +25,27 @@ It also builds one candidate on v0.8 by a fourth switch, with and without parame
   on the moves of the 365 days before the origin. Its stake still comes from the continuation table. With parameter
   draws, each run refits the transition on its own node resample of the moves, the one its continuation table reads.
 
+It builds three candidates on v0.8-a, each with one of the changes that v0.8-c, v0.8-e and v0.8 duration make, with
+and without parameter draws:
+
+* ``v0.8-a record``: v0.8-a with the node's own renewal record in the renewal logit.
+* ``v0.8-a bands``: v0.8-a with the stake ratio drawn, still unweighted, within ten log-spaced stake bands.
+* ``v0.8-a duration``: v0.8-a with the next duration drawn from the fitted duration band transition.
+
+It builds one candidate on v0.8-a by a fifth switch, with and without parameter draws:
+
+* ``v0.8-a return``: v0.8-a in which a node out of the set returns by the logit hazard on its own history,
+  :class:`~avalanche_research.model.parts.return_hazard.ReturnLogitHazard`: six bins of days out, its stake band,
+  whether it has returned before and whether the commitment that ended was its first, fitted on the same return spells
+  as the return block. With parameter draws, each run refits it on its own node resample of those spells.
+
+It builds one candidate on v0.8-a with two changes, the ten bands and the return hazard, with and without parameter
+draws:
+
+* ``v0.8-a bands return``: v0.8-a with the stake ratio drawn unweighted within ten log-spaced stake bands and the
+  logit return hazard on the node's own history.
+
+
 And it builds one model with delegations, outside the development scores:
 
 * ``v0.8.1 stub``: :class:`~avalanche_research.model.delegated_lifecycle.DelegatedLifecycle` on v0.8's inputs, with
@@ -41,7 +62,7 @@ batch from them.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 import pandas as pd
@@ -57,6 +78,7 @@ from avalanche_research.model.fitted_lifecycle import (
     TrainingEvents,
     fit_blocks,
     fit_durations,
+    fit_return_history,
     parameter_draws,
     training_events,
     window_sd,
@@ -106,12 +128,15 @@ class Switches:
     and ``move_stake_weighted`` set the settings of the same names on :class:`FittedLifecycle`: the stake bands within
     which a moving node draws its stake ratio, and whether each move is weighted by its previous stake.
     ``duration_transition`` sets its ``durations`` to the duration band transition fitted before the origin.
+    ``return_history`` sets its ``returns`` to the logit return hazard on the node's own history fitted before the
+    origin, in place of the hazard by stake band and days out.
     """
 
     node_record: bool = True
     move_stake_bands: str = "ten log-spaced"
     move_stake_weighted: bool = True
     duration_transition: bool = False
+    return_history: bool = False
 
     def settings(self) -> dict:
         """The model settings these switches set."""
@@ -128,11 +153,25 @@ CANDIDATES: dict[str, Switches] = {
 
 DURATION = Switches(duration_transition=True)
 
+_A = CANDIDATES["v0.8-a"]
+ON_A: dict[str, Switches] = {
+    "v0.8-a record": replace(_A, node_record=True),
+    "v0.8-a bands": replace(_A, move_stake_bands="ten log-spaced"),
+    "v0.8-a duration": replace(_A, duration_transition=True),
+}
+
+RETURN_HISTORY = replace(_A, return_history=True)
+
+COMBINED_ON_A: dict[str, Switches] = {
+    "v0.8-a bands return": replace(_A, move_stake_bands="ten log-spaced", return_history=True),
+}
+
 
 def switched_inputs(events: TrainingEvents, switches: Switches, large_above_avax: float | None = None) -> dict:
     """Every input of a v0.8 run fitted on ``events`` under ``switches``."""
     durations = {"durations": fit_durations(events)} if switches.duration_transition else {}
-    return {**fit_blocks(events, large_above_avax, switches.node_record), **switches.settings(), **durations}
+    returns = {"returns": fit_return_history(events)} if switches.return_history else {}
+    return {**fit_blocks(events, large_above_avax, switches.node_record), **switches.settings(), **durations, **returns}
 
 
 def _chain_inputs(periods: str, origin: date, run: str, draws: int, draw_seed: int) -> Prepared:
@@ -150,7 +189,9 @@ def _fitted_with_draws(switches: Switches = V08) -> Callable[..., Prepared]:
         events = training_events(periods, origin, run)
         inputs = {**switched_inputs(events, switches), "moves": events.moves, "first_commitments": events.first_commitments}
         tau, source = window_sd(periods, origin, inputs["renewal"])
-        return Prepared(inputs, parameter_draws(events, draws, draw_seed, tau, node_record=switches.node_record), tau, source)
+        table = parameter_draws(events, draws, draw_seed, tau, node_record=switches.node_record,
+                                return_history=switches.return_history)
+        return Prepared(inputs, table, tau, source)
     return build
 
 
@@ -169,6 +210,10 @@ _CANDIDATE_DESCRIPTIONS = {
     "v0.8-a": "v0.8 without the node's own renewal record, with the stake ratio drawn unweighted within three stake bands",
     "v0.8-c": "v0.8-a with the node's own renewal record and the stake ratio weighted by previous stake",
     "v0.8-e": "v0.8-c with the stake ratio drawn within ten log-spaced stake bands, the same model as v0.8",
+    "v0.8-a record": "v0.8-a with the node's own renewal record in the renewal logit",
+    "v0.8-a bands": "v0.8-a with the stake ratio drawn unweighted within ten log-spaced stake bands",
+    "v0.8-a duration": "v0.8-a with the next duration of a renewing or returning node drawn from a fitted transition between duration bands",
+    "v0.8-a bands return": "v0.8-a with the stake ratio drawn unweighted within ten log-spaced stake bands and the return hazard on the node's own history",
 }
 
 VARIANTS: dict[str, Variant] = {
@@ -180,7 +225,7 @@ VARIANTS: dict[str, Variant] = {
                 f"v0.8 with renewal fitted separately above and at or below {LARGE_ABOVE_AVAX:,} AVAX",
                 _fitted(large_above_avax=LARGE_ABOVE_AVAX)),
         Variant("v0.8 u", FittedLifecycle, "v0.8 with one draw of every fitted parameter per run", _fitted_with_draws()),
-        *(variant for name, switches in CANDIDATES.items() for variant in (
+        *(variant for name, switches in {**CANDIDATES, **ON_A, **COMBINED_ON_A}.items() for variant in (
             Variant(name, FittedLifecycle, _CANDIDATE_DESCRIPTIONS[name], _fitted(switches)),
             Variant(f"{name} u", FittedLifecycle, f"{name} with one draw of every fitted parameter per run", _fitted_with_draws(switches)),
         )),
@@ -189,6 +234,11 @@ VARIANTS: dict[str, Variant] = {
                 _fitted(DURATION)),
         Variant("v0.8 duration u", FittedLifecycle, "v0.8 duration with one draw of every fitted parameter per run",
                 _fitted_with_draws(DURATION)),
+        Variant("v0.8-a return", FittedLifecycle,
+                "v0.8-a with returns by a logit hazard on the node's own history: days out, stake band, returned before, first commitment only",
+                _fitted(RETURN_HISTORY)),
+        Variant("v0.8-a return u", FittedLifecycle, "v0.8-a return with one draw of every fitted parameter per run",
+                _fitted_with_draws(RETURN_HISTORY)),
         Variant("v0.8.1 stub", DelegatedLifecycle,
                 "v0.8 with delegations: the open and scheduled ones at the origin, a flow at the year's rate, and placeholder choices",
                 _delegated_stub),
