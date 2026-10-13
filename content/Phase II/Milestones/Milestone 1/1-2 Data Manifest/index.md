@@ -217,8 +217,8 @@ Table 3 gives the quality metrics of each dataset's newest run: its rows, the da
 | `derived.c-chain-evm-burn-daily` | 23 | 2026-09-15 to 2026-10-07 | all 2 passed | none | none |
 | `derived.primary-burn-daily` | 46 | 2026-09-15 to 2026-10-07 | all 2 passed | none | none |
 | `derived.seamed-validator-stakes` | 57,803 | 2020-09-10 to 2026-10-08 | all 3 passed | none | none |
-| `derived.seamed-delegator-stakes` | 7,093,130 | 2020-09-10 to 2026-10-08 | all 3 passed | none | none |
-| `derived.seamed-staking-rewards` | 7,107,752 | 2020-09-10 to 2026-10-08 | all 3 passed | none | none |
+| `derived.seamed-delegator-stakes` | 7,093,130 | 2020-09-22 to 2026-10-08 | all 3 passed | none | none |
+| `derived.seamed-staking-rewards` | 7,107,752 | 2020-10-06 to 2026-10-08 | all 3 passed | none | none |
 | `derived.seamed-staking-supply` | 7,150,888 | 2020-09-10 to 2026-10-08 | all 3 passed | none | none |
 | `derived.seamed-burn-daily` | 4,438 | 2020-09-10 to 2026-10-08 | all 3 passed | none | none |
 | `derived.seamed-c-chain-evm-burn-daily` | 160 | 2026-05-01 to 2026-10-08 | all 3 passed | none | none |
@@ -243,7 +243,7 @@ Table 4 identifies each run behind Table 3: when it was captured, its capture ID
 | `snowflake.c-chain-block-gaps` | c-block-gaps-2026 | 2026-09-23 19:11 | `capture:avalanche-snowflake:2026-09-23T19:11:21Z:df476c5856ee` | `550643755fdb` | not pinned |
 | `snowflake.subnet-validator-transactions` | subnet-validator-transactions-2026-09-29 | 2026-09-29 10:09 | `capture:avalanche-snowflake:2026-09-29T10:09:40Z:71f3255c6a75` | `62a9898197c6` | not pinned |
 | `coingecko.avax-market-daily` | avax-market-helicon-plus-7d | 2026-09-29 11:07 | `capture:coingecko:2026-09-29T11:07:26Z:a16cddddc815` | `20bc4c5c40be` | not pinned |
-| `binance.avax-usdt-daily` | binance-avax-daily-2026-09-26 | 2026-09-26 23:16 | `capture:binance-public-data:2026-09-26T23:16:18Z:cb65b6215e13` | `` | not pinned |
+| `binance.avax-usdt-daily` | binance-avax-daily-2026-09-26 | 2026-09-26 23:16 | `capture:binance-public-data:2026-09-26T23:16:18Z:cb65b6215e13` | none recorded | not pinned |
 | `defillama.avax-price-daily` | avax-price-2026-10-05 | 2026-10-05 20:53 | `capture:defillama:2026-10-05T20:53:21Z:6316ac2eca63` | `152843f0c690, cdda7c86a7c4 ...` | `p4-opportunity-costs` (avax-price-2026-10-05, this run) |
 | `c-chain-rpc.receipt-gap-repairs` | c-rpc-gap-95492477 | 2026-09-21 23:11 | `capture:avalanche-c-chain-rpc:2026-09-21T23:11:27Z:539af6d13fa7` | `e1897ce73ba2, b3da2328b942 ...` | not pinned |
 | `p-chain-rpc.current-validators` | current-validators-2026-10-08 | 2026-10-08 00:15 | `capture:avalanche-p-chain-rpc:2026-10-08T00:15:01Z:a01129e739b4` | `398956acccb8` | `p3-helicon-etf` (current-validators-2026-09-22) |

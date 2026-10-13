@@ -47,7 +47,7 @@ The contract names three behaviors. The model has no single "stake" or "unstake"
 
 A **renewal** is a new commitment by the same node starting within seven days of the previous one ending. This is the model's restake. A commitment that is not renewed is an exit, the model's unstake. The node then enters the **out-of-set pool**, the set of nodes that recently left the active set, for up to 365 days, and can **return** from it by starting a new commitment after more than seven days away. A **first-ever arrival** is a node that has never validated before. Together, arrivals and returns are the model's stake. The [staking model specification](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) gives the full model these parts sit in.
 
-The proposal's response function was an illustrative tanh of the spread between the staking rate and an outside yield, with a fixed restake rate of 67% ([Proposal](/Phase-II/Milestones/Milestone-0/Proposal/)). The proposal states that the form would be calibrated against the data, and names logistic and piecewise linear forms as examples. The calibration uses a logistic form for restaking, a piecewise constant hazard for returns, and a negative binomial count for arrivals. The reasons are given with each part below. The restake share in the year before the last origin was 78.6%, not a fixed 67%, and it varies by node in the ways Figure 1 shows.
+The proposal's response function was an illustrative tanh of the spread between the staking rate and an outside yield ([Proposal](/Phase-II/Milestones/Milestone-0/Proposal/)). Separately, the proposal listed Phase I's fixed restake rate of 67% and proposed to turn it into a state variable that depends on the compounding incentive. The proposal states that the form would be calibrated against the data, and names logistic and piecewise linear forms as examples. The calibration uses a logistic form for restaking, a piecewise constant hazard for returns, and a negative binomial count for arrivals. The reasons are given with each part below. The restake share in the year before the last origin was 78.6%, not a fixed 67%, and it varies by node in the ways Figure 1 shows.
 
 ### Restaking and unstaking: the renewal function
 
@@ -205,7 +205,7 @@ The renewal function was tested on decisions outside its fit. At each of 19 **de
 
 | Check, on held-out endings | Renewal function | Model v0.7's single probability | Tolerance set before scoring | Result |
 | --- | --- | --- | --- | --- |
-| Pooled log loss | 0.4505 | 0.4916 | Below v0.7 | Lower at 19 of 19 origins |
+| Pooled log loss | 0.4505 | 0.4916 | Below v0.7 by a paired bootstrap at p < 0.05, and lower at 14 or more of the 19 origins | Met: p 0.0000, lower at 19 of 19 origins |
 | Expected calibration error, 10 bins | 0.0194 | | At most 0.02 | Met |
 | Monthly renewal, mean absolute error over 41 months | 0.0449 | 0.0489 | At most 0.03 | Missed |
 | Predicted minus observed, first commitments | +0.054 | +0.201 | Within 0.03 | Missed |

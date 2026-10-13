@@ -38,7 +38,7 @@ Each page opens with the contract's exact wording, then gives its result, how it
 Three findings run through the five deliverables.
 
 1. **The protocol side is exact.** The model's reward formula and its daily ledger match the chain's own records, so the cost of any reward design on given stakes is computed exactly.
-2. **The behavior side is too simple in v0.7.** v0.7 forecasts validator stake worse than holding today's value. The candidate v0.8 fits renewal, entry and returns to the record and halves v0.7's error at 90 days. It is under test and ships as `model-v0.8.0` on 16 October.
+2. **The behavior side is too simple in v0.7.** v0.7 forecasts validator stake worse than holding today's value. The candidate v0.8 fits renewal, entry and returns to the record and halves v0.7's error at 90 days. It is under test. It becomes `model-v0.8.0` only by passing a test written before its results are seen, which is scheduled for mid-October.
 3. **The response to reward is not in the record.** Before Helicon the reward curve never changed shape, so history cannot show how validators respond to a change in it. Every design is therefore reported across a range of responses until the Helicon ramp provides the first evidence.
 
 ## For the Foundation

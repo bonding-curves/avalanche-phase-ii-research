@@ -208,6 +208,15 @@ class MilestonePagesTest(unittest.TestCase):
         self.assertEqual(milestone_pages.coverage({"observed_at": "2026-10-08T00:15:01Z"}), "snapshot 2026-10-08 00:15")
         self.assertEqual(milestone_pages.coverage({}), "not dated")
 
+    def test_hash_cell_says_none_recorded_without_raw_responses(self):
+        self.assertEqual(milestone_pages.hash_cell({}), "none recorded")
+        self.assertEqual(milestone_pages.hash_cell({"responses": [{"sha256": "a" * 64}]}), "`" + "a" * 12 + "`")
+
+    def test_seamed_span_starts_at_the_share_first_row(self):
+        runs = {"derived.seamed-delegator-stakes": {"build": {"summary": {}}, "capture": {"window": {"start": "2020-09-10", "end": "2026-10-08"}}},
+                "snowflake.primary-delegator-stakes": {"build": {"summary": {"first_date": "2020-09-22", "last_date": "2026-09-21"}}, "capture": {}}}
+        self.assertEqual(milestone_pages.span("derived.seamed-delegator-stakes", runs), "2020-09-22 to 2026-10-08")
+
 
 if __name__ == "__main__":
     unittest.main()

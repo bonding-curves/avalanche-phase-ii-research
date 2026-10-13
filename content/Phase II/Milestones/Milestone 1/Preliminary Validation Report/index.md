@@ -170,7 +170,7 @@ The error is not noise around the right answer. It is a **bias**, an error with 
 
 *Figure 5. Forecast minus actual, as a percentage of actual, for v0.7's 90-day forecast of validator stake at each origin. Diamonds are network upgrades. The dashed lines are the mean before 2024 and from 2024. Source: model v0.7 forecasts, 20 runs per origin. Data: [forecast-bias-by-era.csv](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/forecast-bias-by-era.csv).*
 
-Before 2024 v0.7 under-forecast stake by 5.6% on average at 90 days, and from 2024 it over-forecast by 14.8%. The largest miss is the origin of 1 October 2024, which over-forecast by about 49%.
+Before 2024 v0.7 under-forecast stake by 5.6% on average at 90 days, and from 2024 it over-forecast by 14.8%. The largest miss is the origin of 1 October 2024, which over-forecast by about 48%.
 
 Differences between the model's fixed inputs and the renewal and entry that followed are possible contributors, since the model holds each origin's measured rates for the whole forecast. Over the 18 origins with a full 90-day window, renewal in the next 90 days differed from the input by up to 10 points, and entry ran from 44% below the input to 69% above. Before 2024, renewal in the next 90 days exceeded the input at six of eight origins, while v0.7 under-forecast stake. Over the ten complete windows from 2024, renewal was above the input at five and below at five, while v0.7 over-forecast stake. The sign of the stake error does not follow renewal alone.
 
@@ -246,7 +246,7 @@ The last row is conditional because the chain's history before Helicon does not 
 
 The scores above set the bar every later version must clear. This part shows the first candidate that clears part of it, with its caveats.
 
-The candidate reported here is v0.8-a, using its original random streams. It keeps v0.7's unit, the commitment, and its exact protocol layer, and replaces the two observed rates with fitted behavior. Renewal depends on a node's tenure, whether it returned after a gap, its committed duration and its stake. A node's first commitment renews about three times in five, and its seventh or later about 86% of the time, for commitments ending 2021 to 2024. Entry splits nodes that have never validated from nodes returning after more than a week away, each with its own rate. A renewing or returning node draws its next duration from nodes with a similar habit.
+The candidate reported here is the v0.8 candidate at commit `1c891a4`, scored with the random draws it had at that commit: one stream for each run and day. Since 7 October the library gives each decision its own stream, so that a decision that differs between two designs moves no other draw. A rerun with today's library therefore gives slightly different values. It keeps v0.7's unit, the commitment, and its exact protocol layer, and replaces the two observed rates with fitted behavior. Renewal depends on a node's tenure, whether it returned after a gap, its committed duration and its stake. A node's first commitment renews about three times in five, and its seventh or later about 86% of the time, for commitments ending 2021 to 2024. Entry splits nodes that have never validated from nodes returning after more than a week away, each with its own rate. A renewing or returning node draws its next duration from nodes with a similar habit.
 
 | Validator stake, mean scaled error | 30 days | 90 days | 180 days |
 | --- | --- | --- | --- |
@@ -258,7 +258,7 @@ The candidate reported here is v0.8-a, using its original random streams. It kee
 
 *Table 4. Validator stake mean scaled error, using 19, 18 and 17 eligible development origins at 30, 90 and 180 days, respectively. The v0.8 row uses 20 runs with base seed 0. The 200-run forecast uses ten 20-run batches with base seeds 0 to 9; its mean scaled errors are 5.87, 8.47 and 7.91. Every batch is below all three simple forecasts at 30 and 180 days and above holding today's value at 90 days. At 90 days, 2 of the 10 batches are below the weekly fit's 8.40 and 8 are above it, with batch means from 8.11 to 8.92.*
 
-On mean scaled error, v0.8-a halves v0.7's error at 90 days and is lower than every simple forecast at 30 and 180 days. At 90 days it is numerically near the weekly fit in the displayed 20-run batch. Its 200-run error is slightly higher than the weekly fit, and both remain behind holding today's value. These are descriptive comparisons, without a claim of statistical equivalence. It remains a candidate and does not improve the validator count.
+On mean scaled error, the v0.8 candidate halves v0.7's error at 90 days and is lower than every simple forecast at 30 and 180 days. At 90 days it is numerically near the weekly fit in the displayed 20-run batch. Its 200-run error is slightly higher than the weekly fit, and both remain behind holding today's value. These are descriptive comparisons, without a claim of statistical equivalence. It remains a candidate and does not improve the validator count.
 
 Separately, checks of its conditional predictions of renewal within seven days miss their calibration tolerance. The mean absolute monthly calibration error and the absolute gaps for first and seventh commitments exceed the checks' three-percentage-point tolerance. Independent verification of training-data timing, including the label-maturity cutoff convention, remains open, as does uncertainty that accounts for repeated nodes and overlapping windows. These conditional-prediction checks do not establish whether the full lifecycle trajectories are valid.
 
@@ -284,7 +284,7 @@ uv run --group notebook python scripts/model_v07_report_runs.py results/
 uv run --group notebook python scripts/figures/model_v07_experiments.py results/ figures/
 ```
 
-Every chart writes a receipt beside it, naming each input with its sha256. Day $t$ of run $r$ draws from NumPy's `default_rng([seed, r, t])` with base seed 0, so a rerun at the tag gives the same draws. The library now scores 200 runs per origin instead of 20, which gives slightly different values, for example 7.86 against 7.94 for stake at 30 days.
+When rebuilt, each chart script writes a receipt beside its chart, naming each input with its sha256. This page ships each chart with the CSV of its drawn data, not the receipt. Day $t$ of run $r$ draws from NumPy's `default_rng([seed, r, t])` with base seed 0, so a rerun at the tag gives the same draws. The library now scores 200 runs per origin instead of 20, which gives slightly different values, for example 7.86 against 7.94 for stake at 30 days.
 
 The Foundation's repository holds this model on its `phase-ii` branch at commit `4597b8a`, with the same model code as the tag and its tests. The pin file and the scoring scripts reach that branch with the next delivery.
 

@@ -170,6 +170,12 @@ def raw_hash(capture: dict[str, Any]) -> str:
     return ", ".join(item["sha256"][:12] for item in items[:2]) + (" ..." if len(items) > 2 else "")
 
 
+def hash_cell(capture: dict[str, Any]) -> str:
+    """The raw data hash as code, or "none recorded" when the capture lists no responses, queries or inputs."""
+    hashed = raw_hash(capture)
+    return f"`{hashed}`" if hashed else "none recorded"
+
+
 def request_text(source: dict[str, Any], definition: dict[str, Any], record: dict[str, Any] | None = None) -> str:
     """What a dataset is made from. A derived dataset names the inputs its run read, else the catalog's declared inputs."""
     if "inputs" in source:
@@ -584,7 +590,7 @@ def render_manifest(catalog: dict[str, Any], runs: dict[str, dict[str, Any]], pi
             continue
         findings = "<br>".join((record["check"] or {}).get("findings", [])) or "none"
         notes = "<br>".join(build_counts(record)) or "none"
-        lines.append(f"| `{definition['id']}` | {rows_of(record)} | {cell(coverage(record['build'].get('summary', {}), record['capture']))} | "
+        lines.append(f"| `{definition['id']}` | {rows_of(record)} | {cell(span(definition['id'], runs))} | "
                      f"{cell(checks(record))} | {cell(findings)} | {cell(notes)} |")
     lines += ["", "*Table 3. Quality metrics of the newest run of each dataset. Source: the build and check receipts of each run.*", "",
               "## Latest runs", "",
@@ -599,7 +605,7 @@ def render_manifest(catalog: dict[str, Any], runs: dict[str, dict[str, Any]], pi
             continue
         capture = record["capture"]
         lines.append(f"| `{definition['id']}` | {record['run']} | {str(capture.get('completed_at', ''))[:16].replace('T', ' ')} | "
-                     f"`{capture.get('capture_id', '')}` | `{raw_hash(capture)}` | {cell(pins_text(definition['id'], record, pinned))} |")
+                     f"`{capture.get('capture_id', '')}` | {hash_cell(capture)} | {cell(pins_text(definition['id'], record, pinned))} |")
     lines += ["", ("*Table 4. The run behind each row of Table 3, and the pins that hold a run of the dataset. Source: the capture "
               "receipts and `data/pins/`.*"), "",
               ("Captures are working data and are not committed, so rebuilding this page needs the runs first. `data/README.md` "
