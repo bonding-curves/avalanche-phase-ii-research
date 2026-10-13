@@ -232,3 +232,13 @@ def test_a_variant_without_draws_is_run_by_its_draw_reading_name():
     assert m2.model_variant("v0.8-a") == "v0.8-a u" and m2.model_variant("v0.8-a u") == "v0.8-a u"
     with pytest.raises(ValueError, match="reads parameter draws"):
         m2.model_variant("v0.7")
+
+
+def test_the_design_names_its_files_relative_to_its_folder_so_it_is_the_same_anywhere(tmp_path):
+    for name in ("one", "two"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "rows.json").write_bytes(b"[]")
+        (tmp_path / name / "draws.parquet").write_bytes(b"draws")
+    one, two = m2.file_fields(tmp_path / "one"), m2.file_fields(tmp_path / "two")
+    assert one == two
+    assert one["rows_file"] == "rows.json" and one["draws_file"] == "draws.parquet"

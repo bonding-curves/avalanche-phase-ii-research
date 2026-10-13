@@ -346,6 +346,13 @@ def write_parquet(frame, path: Path) -> None:
         connection.close()
 
 
+def file_fields(out: Path) -> dict[str, str]:
+    """The design's row and draw files, named relative to the design file's own folder, with their hashes. Relative
+    names keep ``design.json`` identical wherever the design is written; the sweep reads them from that folder."""
+    return {"rows_file": "rows.json", "rows_sha256": sha256(out / "rows.json"),
+            "draws_file": "draws.parquet", "draws_sha256": sha256(out / "draws.parquet")}
+
+
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -478,8 +485,7 @@ def main(argv: list[str]) -> int:
     write_parquet(draws, out / "draws.parquet")
     design = {
         "name": DESIGN_NAME, "generator": "explicit",
-        "rows_file": str((out / "rows.json").resolve()), "rows_sha256": sha256(out / "rows.json"),
-        "draws_file": str((out / "draws.parquet").resolve()), "draws_sha256": sha256(out / "draws.parquet"),
+        **file_fields(out),
         "origins": [ORIGIN.isoformat()], "models": [variant], "rows": TOTAL_ROWS, "pin": PIN,
         "runs": 1, "timesteps": TIMESTEPS, "workers": "auto",
         # Every row sets its own outside yield, which the reducer reads as its competing yield. The return margin is
