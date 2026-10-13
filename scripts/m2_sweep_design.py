@@ -2,13 +2,16 @@
 
     python scripts/m2_sweep_design.py <variant> <out dir>
 
-``variant`` names a model variant of ``avalanche_research.model.variants``, such as ``v0.8-a``. Every row runs that
-variant with one parameter draw per trajectory, which the registry names with ``u`` added (``v0.8-a u``). The script
-writes five files to ``out dir``:
+``variant`` names a model variant of ``avalanche_research.model.variants``, such as ``v0.8.0`` or ``v0.8-a``. Every
+row runs that variant with one parameter draw per trajectory: a release such as ``v0.8.0`` reads draws under its own
+name, and any other variant is run by the registry name with ``u`` added (``v0.8-a u``). The script writes five files
+to ``out dir``:
 
-- ``rows.json``: a JSON list of 74,176 rows, each holding only ``seed``, ``draw``, ``origin``, ``model``,
-  ``mechanism``, ``renewal_response``, ``entry_response``, ``outside_yield_pp`` and ``fitted_outside_yield_pp``.
-- ``labels.csv``: each row's family, outside yield, block, indices and unit-cube Sobol coordinates, by row index.
+- ``rows.json``: a JSON list of 132,800 rows, 74,176 design rows then 58,624 baselines under the chain's rule, each
+  holding only ``seed``, ``draw``, ``origin``, ``model``, ``mechanism``, ``renewal_response``, ``entry_response``,
+  ``outside_yield_pp`` and ``fitted_outside_yield_pp``.
+- ``labels.csv``: each row's family, outside yield, block, indices, unit-cube Sobol coordinates and baseline, by row
+  index.
 - ``draws.parquet``: the variant's parameter draws, one per noise key. A row's ``draw`` is its row of this table.
 - ``design.json``: the design file for ``avalanche model sweep``, with the two files' SHA-256 hashes.
 - ``README.md``: every count, hash, seed and choice.
@@ -37,7 +40,9 @@ than mixed with it. Every distinct key has its own seed and its own draw.
 Beyond the Saltelli rows, at each yield: 8 independent keys at each of the first 64 points of A, to estimate the
 noise's total effect; both responses at zero for each family, on 64 keys shared across the families; the three stress
 settings (renewal response 0.3, entry response 0.3, both 0.3) at each family's middle setting, on the same 64 keys; and
-seven implementation controls on 64 keys of their own. The README lists each count and choice.
+seven implementation controls on 64 keys of their own. Every design row then pairs with a baseline row, the same key,
+responses and yields under ``ChainReward``, so the KPIs relative to the chain's rule are measured on the same noise.
+The README lists each count and choice.
 
 The script refuses to write unless the pins verify and the counts are exact. Run twice, it writes identical bytes.
 """
@@ -74,10 +79,13 @@ BILL_PIN = "data/pins/p4-opportunity-costs.json"
 BILL_DATASET = "fred.tbill-3m-daily"
 BILL_FROM, BILL_BEFORE = date(2024, 11, 19), date(2025, 11, 19)
 DESIGN_NAME = "milestone-2-sweep"
-TOTAL_ROWS, SALTELLI_ROWS = 74_176, 61_440
+DESIGN_ROWS, SALTELLI_ROWS, BASELINE_ROWS = 74_176, 61_440, 58_624
+TOTAL_ROWS = DESIGN_ROWS + BASELINE_ROWS
+BASELINE = {"name": "ChainReward"}
 ROW_KEYS = ("seed", "draw", "origin", "model", "mechanism", "renewal_response", "entry_response", "outside_yield_pp",
             "fitted_outside_yield_pp")
-LABEL_COLUMNS = ("index", "family", "yield_pp", "block", "i", "j", "u1", "u2", "u3")
+LABEL_COLUMNS = ("index", "family", "yield_pp", "block", "i", "j", "u1", "u2", "u3", "baseline")
+PAIRED = ("seed", "draw", "renewal_response", "entry_response", "outside_yield_pp", "fitted_outside_yield_pp")
 
 
 @dataclass(frozen=True)
@@ -157,11 +165,15 @@ def design_seed(family: str, yield_pp: float) -> int:
 DRAW_SEED = derived_seed("milestone 2 parameter draws")
 
 
+# Released versions are registered as their drawn build, so they read draws under their own name.
+RELEASES_READING_DRAWS = ("v0.8.0",)
+
+
 def model_variant(name: str) -> str:
     """The registry name of ``name`` with one parameter draw per run: ``name`` itself if it reads draws, else ``name u``."""
     from avalanche_research.model.variants import VARIANTS
 
-    drawn = name if name.endswith(" u") else f"{name} u"
+    drawn = name if name.endswith(" u") or name in RELEASES_READING_DRAWS else f"{name} u"
     if drawn not in VARIANTS:
         raise ValueError(f"no variant {drawn!r} reads parameter draws; known: {', '.join(sorted(VARIANTS))}")
     return drawn
@@ -211,7 +223,8 @@ def build(variant: str, fitted_yield: float) -> tuple[list[dict], list[dict], in
         })
         coordinates = [float(u) for u in unit] if unit is not None else []
         labels.append({"index": len(labels), "family": family.code, "yield_pp": yield_pp, "block": block, "i": i,
-                       "j": j, **{f"u{c + 1}": (coordinates[c] if c < len(coordinates) else None) for c in range(3)}})
+                       "j": j, **{f"u{c + 1}": (coordinates[c] if c < len(coordinates) else None) for c in range(3)},
+                       "baseline": None})
 
     def add_point(family: Family, unit, yield_pp: float, key: tuple, block: str, i: int, j: int | None = None) -> None:
         scaled = {name: family.bounds_of(name)[0] + float(u) * (family.bounds_of(name)[1] - family.bounds_of(name)[0])
@@ -258,6 +271,19 @@ def build(variant: str, fitted_yield: float) -> tuple[list[dict], list[dict], in
         for c in range(CONTROL_KEYS):
             add(BY_CODE[code], value, renewal, entry, yield_pp, ("control", c), "control", c, number)
 
+    # Each design row's baseline is the same run under the chain's rule as it runs: its own key, responses and yields
+    # with ChainReward. Rows that differ only in their mechanism share one baseline, numbered in order of first use.
+    baselines: dict[tuple, int] = {}
+    for label, row in zip(labels[:], rows[:]):
+        paired = tuple(row[name] for name in PAIRED)
+        if paired not in baselines:
+            baselines[paired] = len(rows)
+            rows.append({**row, "mechanism": dict(BASELINE)})
+            labels.append({"index": len(labels), "family": "chain", "yield_pp": row["outside_yield_pp"],
+                           "block": "baseline", "i": len(baselines) - 1, "j": None, "u1": None, "u2": None,
+                           "u3": None, "baseline": None})
+        label["baseline"] = baselines[paired]
+
     check(rows, labels, saltelli, len(keys))
     return rows, labels, len(keys)
 
@@ -276,6 +302,11 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
     if saltelli != SALTELLI_ROWS or sum(N * (2 * f.k + 2) for f in FAMILIES) * len(YIELDS) != SALTELLI_ROWS:
         raise ValueError(f"the design has {saltelli} Saltelli rows, not {SALTELLI_ROWS}")
     check_cardinality(rows, TOTAL_ROWS)
+    blocks = [label["block"] for label in labels]
+    if blocks.count("baseline") != BASELINE_ROWS or "baseline" in blocks[:DESIGN_ROWS] or set(blocks[DESIGN_ROWS:]) != {"baseline"}:
+        raise ValueError(f"the design needs its {DESIGN_ROWS:,} design rows first, then exactly {BASELINE_ROWS:,} baseline rows")
+    if {label["baseline"] for label in labels[:DESIGN_ROWS]} != set(range(DESIGN_ROWS, TOTAL_ROWS)):
+        raise ValueError("every baseline row must pair with at least one design row")
     check_origins(rows)
     if key_count != expected_keys():
         raise ValueError(f"the design has {key_count} noise keys, not {expected_keys()}")
@@ -288,7 +319,28 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
     if len(fitted) != 1 or not all(math.isfinite(value) for value in fitted):
         raise ValueError("every row must carry the same finite fitted outside yield")
     allowed_yields = {*YIELDS, *fitted}
-    for row, label in zip(rows, labels):
+    families, yields = len(FAMILIES), len(YIELDS)
+    expected_blocks = {
+        "A": N * families * yields, "B": N * families * yields,
+        "AB": N * sum(f.k for f in FAMILIES) * yields, "BA": N * sum(f.k for f in FAMILIES) * yields,
+        "noise": NOISE_POINTS * NOISE_KEYS * families * yields, "zero": CONTROL_KEYS * families * yields,
+        "stress": CONTROL_KEYS * len(STRESS) * families * yields, "control": CONTROL_KEYS * 7, "baseline": BASELINE_ROWS,
+    }
+    if counts(labels) != expected_blocks:
+        raise ValueError(f"the design's blocks hold {counts(labels)}, not {expected_blocks}")
+    stress = {setting: (renewal, entry) for setting, renewal, entry in STRESS}
+    for position, (row, label) in enumerate(zip(rows, labels)):
+        if label["index"] != position:
+            raise ValueError(f"label {position} names index {label['index']}")
+        responses = (row["renewal_response"], row["entry_response"])
+        block = label["block"]
+        if block in ("A", "B", "AB", "BA", "noise") and not (
+                all(RESPONSE_BOUNDS[0] <= r <= RESPONSE_BOUNDS[1] for r in responses) and row["outside_yield_pp"] in YIELDS):
+            raise ValueError(f"{block} row {position} needs responses in {RESPONSE_BOUNDS} and a scenario yield")
+        if block == "zero" and responses != (0.0, 0.0):
+            raise ValueError(f"response-zero row {position} has responses {responses}")
+        if block == "stress" and responses != stress.get(label["j"]):
+            raise ValueError(f"stress row {position} has responses {responses}, not setting {label['j']}'s")
         if tuple(row) != ROW_KEYS:
             raise ValueError(f"a row holds {sorted(row)}, not exactly {list(ROW_KEYS)}")
         if row["origin"] != ORIGIN.isoformat():
@@ -298,6 +350,14 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
                 raise ValueError(f"{name} must lie in [0, {STRESS_RESPONSE}], not {row[name]}")
         if row["outside_yield_pp"] not in allowed_yields:
             raise ValueError(f"outside yield {row['outside_yield_pp']} is neither a scenario nor the fitted level")
+        if label["block"] == "baseline":
+            if label["family"] != "chain" or row["mechanism"] != BASELINE or label["baseline"] is not None:
+                raise ValueError(f"baseline row {label['index']} must run ChainReward and name no baseline of its own")
+            continue
+        partner = label["baseline"]
+        if not (isinstance(partner, int) and DESIGN_ROWS <= partner < len(rows) and labels[partner]["block"] == "baseline"
+                and all(rows[partner][name] == row[name] for name in PAIRED)):
+            raise ValueError(f"row {label['index']} must name a baseline row with its own key, responses and yields")
         family = BY_CODE.get(label["family"])
         if family is None:
             raise ValueError(f"unknown family label {label['family']!r}")
@@ -404,9 +464,8 @@ Written by `scripts/m2_sweep_design.py {base} <out dir>`. Running it again write
 
 ## Model, origin and inputs
 
-- Model: `{variant}`, the variant `{base}` with one parameter draw per trajectory. Its base `{base}` builds its moves and
-  first-commitment tables without node codes, so it refuses a draw table with resample seeds. The variant `{variant}`
-  keeps them.
+- Model: `{variant}`, {"the released model, which reads one parameter draw per trajectory under its own name" if variant == base
+  else f"the variant `{base}` with one parameter draw per trajectory. Its base `{base}` builds its moves and first-commitment tables without node codes, so it refuses a draw table with resample seeds. The variant `{variant}` keeps them"}.
 - Origin 2025-11-18, 365 timesteps, one run per row. KPI horizons 365 and 180 days.
 - Staking periods and monetary ledger: pin `{PIN}`, staking periods run `{periods_run}`.
 - Fitting window's outside yield: {fitted_yield!r}% a year, the mean of FRED's 3-month bill rate (DTB3, a discount rate)
@@ -438,6 +497,8 @@ Both responses are U(0, 0.1). Outside yields are 3, 5, 7 and 10% a year.
 | Both responses zero, 4 families x 64 keys x 4 yields | {blocks["zero"]:,} |
 | Stress, 3 settings x 4 families x 64 keys x 4 yields | {blocks["stress"]:,} |
 | Implementation controls, 7 settings x 64 keys | {blocks["control"]:,} |
+| **Design rows** | **{DESIGN_ROWS:,}** |
+| Baselines under the chain's rule, one per distinct key, responses and yields | {blocks["baseline"]:,} |
 | **All rows** | **{TOTAL_ROWS:,}** |
 
 Distinct noise keys: {key_count:,}. Key number n is draw n and seed n + 1, so each key has its own draw and seed.
@@ -451,6 +512,11 @@ Distinct noise keys: {key_count:,}. Key number n is draw n and seed n + 1, so ea
   stress row is paired with the response-zero rows and with the other stress settings.
 - The seven implementation controls share one set of 64 keys of their own, keyed by control index c, so each check
   (the three `before` settings, `ramp` at 5% against 10%, `tenure` at 0 against 0.2) compares runs on the same keys.
+- Every design row has a baseline: the same key, responses and yields under `ChainReward`, the chain's rule as it
+  runs, with ACP-285 from Helicon on 2026-09-22. The baselines follow the design rows in `rows.json`, and `labels.csv`
+  column `baseline` gives each design row's baseline index. Rows that differ only in their mechanism, such as A_i and
+  AB_i^(j) for the mechanism column, share one baseline. The KPIs relative to the chain's rule (issuance saved,
+  validator stake and active validators retained) divide a row's absolute KPI by its baseline's.
 - Middle settings, for the response-zero and stress rows: `ramp` target 0.075 (ACP-285's), `tenure` boost 0.1, `quadratic` exponent 2.
 
 ## Controls
@@ -468,9 +534,10 @@ under draw seed {DRAW_SEED}. Renewal shift SD {tau!r}, {tau_source}. Columns: {"
 ## labels.csv
 
 `index` is the row's position in `rows.json` and the sweep's row index. `i` is the Saltelli point, noise base point or
-control index c. `j` is the 1-based column for AB and BA, the replicate 0 to 7 for noise rows, the stress setting
+control index c, or the baseline's ordinal. `j` is the 1-based column for AB and BA, the replicate 0 to 7 for noise rows, the stress setting
 (1 renewal 0.3, 2 entry 0.3, 3 both) or the control number. `u1` to `u3` are the row's unit-cube Sobol coordinates in
-the family's input order: the mechanism input first, then the renewal and entry responses.
+the family's input order: the mechanism input first, then the renewal and entry responses. `baseline` is the index of
+the design row's baseline row, empty on the baselines, whose `family` is `chain` and `block` is `baseline`.
 
 ## The rule under each design
 

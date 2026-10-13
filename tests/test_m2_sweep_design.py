@@ -41,9 +41,9 @@ def by_block(rows, labels):
 
 def test_the_counts_are_exact(design):
     rows, labels, keys = design
-    assert len(rows) == m2.TOTAL_ROWS == 74_176
+    assert len(rows) == m2.TOTAL_ROWS == 74_176 + 58_624
     assert m2.counts(labels) == {"A": 8192, "B": 8192, "AB": 22528, "BA": 22528, "noise": 8192, "zero": 1024,
-                                 "stress": 3072, "control": 448}
+                                 "stress": 3072, "control": 448, "baseline": 58_624}
     assert sum(1 for label in labels if label["block"] in ("A", "B", "AB", "BA")) == m2.SALTELLI_ROWS == 61_440
     per = defaultdict(int)
     for label in labels:
@@ -109,7 +109,7 @@ def test_response_zero_stress_and_control_keys_are_free_of_family(design):
             shared[label["yield_pp"], label["i"]].add(key(row))
         elif label["block"] == "control":
             control[label["i"]].add(key(row))
-        else:
+        elif label["block"] != "baseline":
             elsewhere.add(key(row))
     assert len(shared) == 4 * 64 and all(len(keys) == 1 for keys in shared.values())
     assert len({next(iter(keys)) for keys in shared.values()}) == 4 * 64
@@ -135,7 +135,7 @@ def test_every_key_has_its_own_seed_and_its_own_draw(design):
 
 def test_every_input_is_within_its_bounds_and_the_fixed_settings_are_exact(design):
     rows, labels, _ = design
-    for row, label in zip(rows, labels):
+    for row, label in zip(rows[:m2.DESIGN_ROWS], labels[:m2.DESIGN_ROWS]):
         family = m2.BY_CODE[label["family"]]
         mechanism = row["mechanism"]
         assert row["origin"] == "2025-11-18" and row["model"] == VARIANT and row["fitted_outside_yield_pp"] == FITTED
@@ -230,6 +230,7 @@ def test_the_design_repeats_byte_for_byte(design, tmp_path):
 
 def test_a_variant_without_draws_is_run_by_its_draw_reading_name():
     assert m2.model_variant("v0.8-a") == "v0.8-a u" and m2.model_variant("v0.8-a u") == "v0.8-a u"
+    assert m2.model_variant("v0.8.0") == "v0.8.0"
     with pytest.raises(ValueError, match="reads parameter draws"):
         m2.model_variant("v0.7")
 
@@ -244,7 +245,30 @@ def test_the_design_names_its_files_relative_to_its_folder_so_it_is_the_same_any
     assert one["rows_file"] == "rows.json" and one["draws_file"] == "draws.parquet"
 
 
-@pytest.mark.parametrize("plant", ["negative entry response", "negative ramp target", "earlier origin", "wrong family label"])
+def test_every_design_row_pairs_with_the_chain_rule_run_on_its_own_key_responses_and_yields(design):
+    rows, labels, _ = design
+    design_rows, baselines = rows[:m2.DESIGN_ROWS], rows[m2.DESIGN_ROWS:]
+    assert all(label["block"] == "baseline" and label["family"] == "chain" for label in labels[m2.DESIGN_ROWS:])
+    assert all(row["mechanism"] == {"name": "ChainReward"} for row in baselines)
+    users = defaultdict(int)
+    for row, label in zip(design_rows, labels):
+        partner = rows[label["baseline"]]
+        assert {k: v for k, v in partner.items() if k != "mechanism"} == {k: v for k, v in row.items() if k != "mechanism"}
+        users[label["baseline"]] += 1
+    assert set(users) == set(range(m2.DESIGN_ROWS, m2.TOTAL_ROWS))
+    assert len({tuple(row[name] for name in m2.PAIRED) for row in baselines}) == len(baselines)
+    table = by_block(rows, labels)
+    for family in m2.FAMILIES:
+        a, ab = table[family.code, 5.0, "A"], table[family.code, 5.0, "AB"]
+        if family.input_name:
+            # A_i with its mechanism input from B_i is the same run under the chain's rule as A_i.
+            assert all(ab[i, 1][1]["baseline"] == a[i, None][1]["baseline"] for i in range(512))
+        assert all(ab[i, family.k][1]["baseline"] != a[i, None][1]["baseline"] for i in range(512))
+
+
+@pytest.mark.parametrize("plant", ["negative entry response", "negative ramp target", "earlier origin", "wrong family label",
+                                   "baseline on another key", "baseline under another rule", "wrong index",
+                                   "wrong block", "ordinary response at the stress level"])
 def test_check_refuses_a_row_whose_settings_or_label_are_wrong(design, plant):
     rows, labels, keys = (list(map(dict, design[0])), [dict(label) for label in design[1]], design[2])
     i = next(n for n, label in enumerate(labels) if label["family"] == "ramp" and label["block"] == "A")
@@ -254,6 +278,16 @@ def test_check_refuses_a_row_whose_settings_or_label_are_wrong(design, plant):
         rows[i]["mechanism"] = {**rows[i]["mechanism"], "target_min_rate": -0.05}
     elif plant == "earlier origin":
         rows[i]["origin"] = "2025-10-01"
+    elif plant == "wrong index":
+        labels[i]["index"] = 100
+    elif plant == "wrong block":
+        labels[i]["block"] = "control"
+    elif plant == "ordinary response at the stress level":
+        rows[i]["renewal_response"] = 0.3
+    elif plant == "baseline on another key":
+        labels[i]["baseline"] = labels[i + 1]["baseline"]
+    elif plant == "baseline under another rule":
+        rows[labels[i]["baseline"]]["mechanism"] = {"name": "ACP285Ramp", "target_min_rate": 0.1}
     else:
         labels[i]["family"] = "tenure"
     with pytest.raises(ValueError):
