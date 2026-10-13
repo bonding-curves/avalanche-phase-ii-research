@@ -341,6 +341,23 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
             raise ValueError(f"response-zero row {position} has responses {responses}")
         if block == "stress" and responses != stress.get(label["j"]):
             raise ValueError(f"stress row {position} has responses {responses}, not setting {label['j']}'s")
+        i, j, family = label["i"], label["j"], BY_CODE.get(label["family"])
+        ranges = {"A": (N, None), "B": (N, None), "AB": (N, range(1, family.k + 1) if family else ()),
+                  "BA": (N, range(1, family.k + 1) if family else ()), "noise": (NOISE_POINTS, range(NOISE_KEYS)),
+                  "zero": (CONTROL_KEYS, None), "stress": (CONTROL_KEYS, stress), "control": (CONTROL_KEYS, range(1, 8)),
+                  "baseline": (BASELINE_ROWS, None)}
+        limit, allowed = ranges[block]
+        if not (isinstance(i, int) and 0 <= i < limit and (j is None if allowed is None else j in allowed)):
+            raise ValueError(f"{block} row {position} has indices i={i!r}, j={j!r}")
+        if block == "baseline" and i != position - DESIGN_ROWS:
+            raise ValueError(f"baseline row {position} has ordinal {i}, not {position - DESIGN_ROWS}")
+        if block in ("zero", "stress") and family and family.input_name and row["mechanism"].get(family.input_name) != family.middle:
+            raise ValueError(f"{block} row {position} must hold the {family.code} family's middle setting")
+        if block == "control":
+            number, code, value, renewal, entry, yield_pp = controls(next(iter(fitted)))[j - 1]
+            if (label["family"], *responses, row["outside_yield_pp"]) != (code, renewal, entry, yield_pp) or (
+                    BY_CODE[code].input_name and row["mechanism"].get(BY_CODE[code].input_name) != value):
+                raise ValueError(f"control row {position} is not control {number}")
         if tuple(row) != ROW_KEYS:
             raise ValueError(f"a row holds {sorted(row)}, not exactly {list(ROW_KEYS)}")
         if row["origin"] != ORIGIN.isoformat():
