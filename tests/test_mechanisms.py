@@ -136,3 +136,12 @@ def test_a_design_can_hold_the_rule_before_acp285_after_helicon(cls):
     assert held.config(after) == MAINNET_REWARD
     assert chain.config(after) == ChainReward().config(after) != MAINNET_REWARD
     assert held.config(before) == chain.config(before) == MAINNET_REWARD
+
+
+def test_equal_issuance_keeps_the_rule_before_acp285():
+    stakes = pd.DataFrame({"stake_navax": [2_000 * 10**9] * 3, "duration_seconds": [30 * SECONDS_PER_DAY, 180 * SECONDS_PER_DAY, 365 * SECONDS_PER_DAY],
+                           "start": [datetime(2026, 12, 1, tzinfo=UTC)] * 3})
+    held = QuadraticReward(exponent=2.0, acp285=False).at_equal_issuance(stakes, 465_000_000 * 10**9)
+    assert held.acp285 is False and held.config(datetime(2026, 12, 1, tzinfo=UTC)) == MAINNET_REWARD
+    chain = QuadraticReward(exponent=2.0).at_equal_issuance(stakes, 465_000_000 * 10**9)
+    assert chain.acp285 is True

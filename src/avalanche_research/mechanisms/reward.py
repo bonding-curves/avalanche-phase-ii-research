@@ -227,7 +227,10 @@ class QuadraticReward(RewardMechanism):
         return self.scale
 
     def at_equal_issuance(self, stakes: pd.DataFrame, supply_navax: int) -> QuadraticReward:
-        """A copy scaled so these stakes mint what the chain mints for them."""
-        chain = ChainReward().issuance_navax(stakes, supply_navax)
-        designed = QuadraticReward(exponent=self.exponent).issuance_navax(stakes, supply_navax)
-        return QuadraticReward(exponent=self.exponent, scale=chain / designed if designed else 1.0, label=f"{self.label}, equal issuance")
+        """A copy scaled so these stakes mint what the chain's linear rate mints for them under the same rule, keeping
+        this curve's choice of ACP-285."""
+        # The chain's linear rate under the same rule: exponent 1 with this curve's choice of ACP-285.
+        chain = QuadraticReward(exponent=1.0, acp285=self.acp285).issuance_navax(stakes, supply_navax)
+        designed = QuadraticReward(exponent=self.exponent, acp285=self.acp285).issuance_navax(stakes, supply_navax)
+        return QuadraticReward(exponent=self.exponent, scale=chain / designed if designed else 1.0, acp285=self.acp285,
+                               label=f"{self.label}, equal issuance")
