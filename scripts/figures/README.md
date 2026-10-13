@@ -17,6 +17,7 @@ Most scripts write four files with one stem: a PNG for the page, an HTML file fo
 | `etf_holdings.py`, `opportunity_costs.py` | AVAX held by exchange-traded funds, and the annual rates AVAX holders can earn outside staking |
 | `em2_minimum_stake.py`, `cheapest_seat.py`, `pilot_admission_frontier.py`, `pilot_levers_diagram.py` | A minimum validator stake that falls with committed duration, and the levers on a validator's choice |
 | `diagrams.py` | The data path from sources to the model's tables, drawn from run receipts with Graphviz |
+| `model_v08_structure.py` | The released v0.8.0 model's structure, traced from its code and drawn with Graphviz, for the model README |
 | `png.py` | Shared helper that renders a saved HTML chart to PNG with a headless Chromium |
 
 ## Run
