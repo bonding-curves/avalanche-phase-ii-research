@@ -86,6 +86,13 @@ def _whole(values, what: str) -> np.ndarray:
     """``values`` as int64, refusing any that is not a whole number in int64's range, checked before the cast, rather
     than truncating or wrapping it."""
     raw = np.asarray(values)
+    if raw.size == 0:
+        return np.zeros(0, dtype=np.int64)
+    if raw.dtype.kind == "O":
+        try:
+            raw = pd.to_numeric(pd.Series(raw)).to_numpy()
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"{what} must be whole numbers in the model's range") from error
     if raw.dtype.kind == "i":
         return raw.astype(np.int64)
     if raw.dtype.kind == "u":
@@ -106,7 +113,7 @@ def _operators(frame: pd.DataFrame, n_named: int) -> np.ndarray:
 
 
 def _validator_keys(frame: pd.DataFrame) -> np.ndarray:
-    rows = np.asarray(frame["validator"], dtype=np.int64)
+    rows = _whole(frame["validator"], "a validator row")
     later = np.asarray(frame["validator_scheduled"], dtype=bool) if "validator_scheduled" in frame else np.zeros(len(rows), bool)
     return np.where(later, node_keys(KIND_SCHEDULED, 0, rows), node_keys(KIND_OPEN, 0, rows))
 
@@ -153,6 +160,14 @@ class DelegatedLifecycle(FittedLifecycle):
             "which it makes no new delegation, NaN when it does not close. A delegation's operator column names its row",
     )
 
+    def specification(self):
+        """The engine's specification, without ``named_operators`` when it is not set, so a model without named
+        operators keeps the specification hash it had before they existed."""
+        specification = super().specification()
+        if self.named_operators is None:
+            specification["inputs_sha256"].pop("named_operators", None)
+        return specification
+
     @property
     def stages(self):
         """The fitted lifecycle's stages, then the delegations stage, which reads the next state's validators."""
@@ -190,9 +205,9 @@ class DelegatedLifecycle(FittedLifecycle):
         state = super().initial_state()
         n_open, n_later = len(state["stakes"]), len(self.scheduled) if self.scheduled is not None else 0
         frame = self.open_delegations if self.open_delegations is not None else pd.DataFrame(columns=OPEN_COLUMNS)
-        rows = np.asarray(frame["validator"], dtype=np.int64)
-        stakes = np.asarray(frame["stakes"], dtype=np.int64)
-        days_left = np.asarray(frame["days_left"], dtype=np.int64)
+        rows = _whole(frame["validator"], "an open delegation's validator row")
+        stakes = _whole(frame["stakes"], "an open delegation's stake")
+        days_left = _whole(frame["days_left"], "an open delegation's days left")
         if len(rows) and (rows.min() < 0 or rows.max() >= n_open):
             raise ValueError("an open delegation names a validator that is not a row of the initial commitments")
         if (stakes < MIN_DELEGATOR_STAKE).any() or (days_left < 1).any():
@@ -205,11 +220,12 @@ class DelegatedLifecycle(FittedLifecycle):
 
         later = self.scheduled_delegations if self.scheduled_delegations is not None else pd.DataFrame(columns=SCHEDULED_COLUMNS)
         on_later = np.asarray(later["validator_scheduled"], dtype=bool) if "validator_scheduled" in later else np.zeros(len(later), bool)
-        later_rows = np.asarray(later["validator"], dtype=np.int64)
-        start_day, days = np.asarray(later["start_day"], dtype=np.int64), np.asarray(later["days"], dtype=np.int64)
+        later_rows = _whole(later["validator"], "a scheduled delegation's validator row")
+        start_day, days = _whole(later["start_day"], "a scheduled delegation's start day"), _whole(later["days"], "a scheduled delegation's days")
+        later_stakes = _whole(later["stakes"], "a scheduled delegation's stake")
         if len(later_rows) and (later_rows.min() < 0 or (later_rows >= np.where(on_later, n_later, n_open)).any()):
             raise ValueError("a scheduled delegation names a validator that is not a row of the initial or scheduled commitments")
-        if (np.asarray(later["stakes"], dtype=np.int64) < MIN_DELEGATOR_STAKE).any() or (start_day < 1).any() or (days < 1).any():
+        if (later_stakes < MIN_DELEGATOR_STAKE).any() or (start_day < 1).any() or (days < 1).any():
             raise ValueError("a scheduled delegation needs at least the minimum delegator stake, a start after the origin and a day")
         # A validator open at the origin is active through day days_left - 1, a scheduled one from its start_day for
         # its days, and a delegation from its start_day for its days.
@@ -231,7 +247,7 @@ class DelegatedLifecycle(FittedLifecycle):
             "delegation_stakes": stakes, "delegation_days_left": days_left, "delegation_days": days_left.copy(),
             "delegation_validator": state["node_key"][rows], "delegation_benqi": benqi,
             "delegation_rewards": np.zeros(len(stakes), dtype=np.int64), "delegation_operator": operator,
-            "scheduled_stakes": np.asarray(later["stakes"], dtype=np.int64), "scheduled_start_day": start_day, "scheduled_days": days,
+            "scheduled_stakes": later_stakes, "scheduled_start_day": start_day, "scheduled_days": days,
             "scheduled_validator": _validator_keys(later) if len(later) else np.zeros(0, dtype=np.int64),
             "scheduled_benqi": later_benqi, "scheduled_operator": later_operator,
         }
@@ -257,7 +273,7 @@ class DelegatedLifecycle(FittedLifecycle):
             if self.delegation_flow.mean_per_day > 0:
                 raise ValueError("a delegation flow needs delegation_terms to draw each new delegation's stake and duration")
             return {}
-        stakes, days = np.asarray(terms["stake_navax"], dtype=np.int64), np.asarray(terms["days"], dtype=np.int64)
+        stakes, days = _whole(terms["stake_navax"], "a delegation term's stake"), _whole(terms["days"], "a delegation term's days")
         if (stakes < MIN_DELEGATOR_STAKE).any() or (days < MIN_DELEGATION_DAYS).any():
             raise ValueError(f"delegation terms need at least the minimum delegator stake and {MIN_DELEGATION_DAYS} days")
         benqi = np.asarray(terms["benqi"], dtype=bool) if "benqi" in terms else np.zeros(len(stakes), bool)
@@ -276,7 +292,7 @@ class DelegatedLifecycle(FittedLifecycle):
         frame = self.benqi_validators if self.benqi_validators is not None else pd.DataFrame(columns=["validator"])
         n_open = len(self.initial) if self.initial is not None else 0
         n_later = len(self.scheduled) if self.scheduled is not None else 0
-        rows = np.asarray(frame["validator"], dtype=np.int64)
+        rows = _whole(frame["validator"], "a BENQI validator row")
         on_later = np.asarray(frame["validator_scheduled"], dtype=bool) if "validator_scheduled" in frame else np.zeros(len(rows), bool)
         if len(rows) and (rows.min() < 0 or (rows >= np.where(on_later, n_later, n_open)).any()):
             raise ValueError("a BENQI validator is not a row of the initial or scheduled commitments")
@@ -347,8 +363,8 @@ def _days_after(times: pd.Series, cutoff_us: int) -> np.ndarray:
 
 
 def _validator_order(periods_parquet: str, origin: date) -> tuple[np.ndarray, np.ndarray]:
-    """The transaction hashes of the fitted lifecycle's ``initial`` and ``scheduled`` rows, in its order, with their
-    stakes: validator periods open at the origin's last instant, and those accepted by it that start after it."""
+    """The validator periods behind the fitted lifecycle's ``initial`` and ``scheduled`` rows, each with its transaction
+    hash and stake: those open at the origin's last instant, and those accepted by it that start after it."""
     cutoff = decided_by_us(origin)
     common = f"FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL AND start_time {{}} make_timestamp({cutoff})"
     opened = duckdb.execute(
@@ -363,10 +379,12 @@ def _validator_order(periods_parquet: str, origin: date) -> tuple[np.ndarray, np
 def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, origin: date, state: dict,
                       named: NamedOperators | None = None) -> dict:
     """This model's delegation inputs at ``origin`` from the origin's delegation tables, ``open``, ``validators`` and
-    ``scheduled``, and the fitted lifecycle's ``state`` (``initial`` and ``scheduled``) built from the same periods.
+    ``scheduled``, and the fitted lifecycle's ``state`` (``initial``, ``scheduled`` and their ``transactions``) built
+    from the same periods.
 
     Each delegation names its validator by transaction hash. That hash becomes a row of ``initial``, or of ``scheduled``
-    for a validator period that starts after the origin. BENQI's validators are those with a BENQI delegation open or
+    for a validator period that starts after the origin, found by the state's transaction hash for the row, and the
+    validator periods open and scheduled at the origin must be exactly those rows, with their stakes. BENQI's validators are those with a BENQI delegation open or
     scheduled at the origin.
 
     With ``named``, the named operators known at the origin, each delegation also gets its owner's row, by its funding
@@ -377,12 +395,21 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
     matched to its delegation by transaction hash, and the terms are returned as ``delegation_terms`` with each one's
     owner, so a new delegation that takes them is that owner's."""
     opened, later = _validator_order(periods_parquet, origin)
-    if (opened["stake_navax"].to_numpy() != np.asarray(state["initial"]["stakes"])).any() or len(opened) != len(state["initial"]):
-        raise ValueError("the open validator periods do not match the initial commitments row for row")
-    if len(later) != len(state["scheduled"]) or (later["stake_navax"].to_numpy() != np.asarray(state["scheduled"]["stakes"])).any():
-        raise ValueError("the scheduled validator periods do not match the scheduled commitments row for row")
-    open_row = dict(zip(opened["transaction_hash"], range(len(opened))))
-    later_row = dict(zip(later["transaction_hash"], range(len(later))))
+    if "transactions" not in state:
+        raise ValueError("the fitted lifecycle's state must name the transaction of each initial and scheduled commitment")
+
+    def rows_by_transaction(periods: pd.DataFrame, kind: str) -> dict[str, int]:
+        """Each validator period's row of the state's ``kind`` table, matched by transaction hash, never by position."""
+        hashes, stakes = np.asarray(state["transactions"][kind], dtype=object), np.asarray(state[kind]["stakes"])
+        if len(hashes) != len(stakes) or len(set(hashes)) != len(hashes) or set(hashes) != set(periods["transaction_hash"]):
+            raise ValueError(f"the {kind} validator periods do not match the {kind} commitments by transaction")
+        row = dict(zip(hashes, range(len(hashes))))
+        found = periods["transaction_hash"].map(row).to_numpy(dtype=np.int64)
+        if (stakes[found] != periods["stake_navax"].to_numpy()).any():
+            raise ValueError(f"a {kind} validator period's stake differs from its commitment matched by transaction")
+        return row
+
+    open_row, later_row = rows_by_transaction(opened, "initial"), rows_by_transaction(later, "scheduled")
     missing = set(tables["validators"]["transaction_hash"]) - set(open_row)
     if missing:
         raise ValueError(f"{len(missing)} validator periods open at the origin are not initial commitments")
@@ -437,6 +464,9 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
         if "transaction_hash" not in terms:
             raise ValueError("the delegation terms need each delegation's transaction_hash to be given their owners")
         hashes, known = terms["transaction_hash"], starts["transaction_hash"]
+        for name, column in (("terms", hashes), ("starts", known)):
+            if column.isna().any() or (column.astype(str).str.strip() == "").any():
+                raise ValueError(f"a delegation in the {name} has no transaction_hash, so it cannot be matched")
         if hashes.duplicated().any() or known.duplicated().any() or set(hashes) != set(known):
             raise ValueError("the delegation terms and starts do not list the same delegations")
         match = starts.set_index("transaction_hash").loc[hashes]

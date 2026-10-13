@@ -253,6 +253,11 @@ PERIODS = [
 ]
 
 
+def model_state(state: dict) -> dict:
+    """The fitted lifecycle's state as model inputs: everything but the transactions, which only delegation_inputs reads."""
+    return {key: value for key, value in state.items() if key != "transactions"}
+
+
 def write_periods(tmp_path) -> tuple[str, str]:
     frame = pd.DataFrame(PERIODS, columns=["transaction_hash", "role", "node_id", "validator_transaction_hash", "accepted_at",
                                            "start_time", "end_time", "stake_avax", "delegator_address"])
@@ -275,7 +280,7 @@ def origin_model(tmp_path, **overrides) -> tuple[DelegatedLifecycle, dict]:
     inputs = delegation_inputs(tables, periods, ORIGIN, state)
     terms = pd.DataFrame({"stake_navax": [5_000 * AVAX], "days": [14], "benqi": [False]})
     model = DelegatedLifecycle(**validators(**{
-        **state, **inputs, "origin": ORIGIN, "delegation_terms": terms, "arrivals": Arrivals(mean_per_day=0.0),
+        **model_state(state), **inputs, "origin": ORIGIN, "delegation_terms": terms, "arrivals": Arrivals(mean_per_day=0.0),
         "delegation_flow": flowing(mean=3.0, share=0.0), "runs": 1, **overrides,
     }))
     return model, tables
@@ -328,7 +333,7 @@ def test_delegation_terms_are_the_years_new_delegations_with_whole_days_and_benq
 def test_the_stub_variant_is_built_from_the_origins_delegation_tables_and_kept_out_of_the_development_scores(tmp_path, monkeypatch):
     # Four periods are too few to fit the validator blocks, so the variant takes the origin's state with default blocks.
     synthetic = {key: validators()[key] for key in ("moves", "first_commitments")}
-    monkeypatch.setattr(variants, "switched_inputs", lambda events, switches: {"origin": events.origin, **events.state, **synthetic})
+    monkeypatch.setattr(variants, "switched_inputs", lambda events, switches: {"origin": events.origin, **model_state(events.state), **synthetic})
     variant = VARIANTS["v0.8.1 stub"]
     assert variant.model is DelegatedLifecycle and "v0.8.1 stub" not in DEVELOPMENT_MODELS
     periods, delegators = write_periods(tmp_path)
@@ -473,7 +478,7 @@ def test_delegations_naming_an_operator_that_is_not_named_or_benqi_rows_that_dis
 
 def events_inputs(tmp_path, monkeypatch, events=EVENTS, attributions=ATTRIBUTIONS):
     synthetic = {key: validators()[key] for key in ("moves", "first_commitments")}
-    monkeypatch.setattr(variants, "switched_inputs", lambda events, switches: {"origin": events.origin, **events.state, **synthetic})
+    monkeypatch.setattr(variants, "switched_inputs", lambda events, switches: {"origin": events.origin, **model_state(events.state), **synthetic})
     periods, delegators = write_periods(tmp_path)
     tables = {**di.build(periods, delegators, ORIGIN), "terms": delegation_terms(periods, delegators, ORIGIN, di.BENQI_FUNDING, di.BENQI_EVIDENCE)}
     return VARIANTS["v0.8.1 events"].prepare(periods, ORIGIN, "synthetic", delegations=tables, operator_events=events,
@@ -624,7 +629,7 @@ def test_the_events_variant_gives_each_delegation_term_its_owner(tmp_path, monke
 
 def events_inputs_with(tmp_path, monkeypatch, changes):
     synthetic = {key: validators()[key] for key in ("moves", "first_commitments")}
-    monkeypatch.setattr(variants, "switched_inputs", lambda events, switches: {"origin": events.origin, **events.state, **synthetic})
+    monkeypatch.setattr(variants, "switched_inputs", lambda events, switches: {"origin": events.origin, **model_state(events.state), **synthetic})
     periods, delegators = write_periods(tmp_path)
     tables = {**di.build(periods, delegators, ORIGIN), "terms": delegation_terms(periods, delegators, ORIGIN, di.BENQI_FUNDING, di.BENQI_EVIDENCE)}
     tables |= {name: change(tables) for name, change in changes.items()}
@@ -675,3 +680,81 @@ def test_an_operator_row_too_large_for_the_model_is_refused_not_wrapped():
             named(open_delegations=DELEGATIONS.assign(operator=wrapped), named_operators=holder_only).initial_state()
     state = named(open_delegations=DELEGATIONS.assign(operator=np.zeros(4, dtype=np.uint64)), named_operators=holder_only).initial_state()
     assert state["holder_delegated_stake_navax"] == int(DELEGATIONS["stakes"].sum())
+
+
+def test_validator_periods_are_matched_to_the_commitments_by_transaction_not_by_position(tmp_path):
+    periods, delegators = write_periods(tmp_path)
+    tables = di.build(periods, delegators, ORIGIN)
+    state = training_events(periods, ORIGIN, "synthetic").state
+    # V1 and V2 both stake 2,000 AVAX, so a match by position and stake cannot tell them apart.
+    assert list(state["transactions"]["initial"]) == ["V1", "V2"] and list(state["transactions"]["scheduled"]) == ["V3"]
+    assert delegation_inputs(tables, periods, ORIGIN, state)["open_delegations"]["validator"].tolist() == [0, 1]
+    swapped = {**state, "initial": state["initial"].iloc[::-1].reset_index(drop=True),
+               "transactions": {**state["transactions"], "initial": state["transactions"]["initial"][::-1]}}
+    # D1 is on V1, now row 1, and D4 on V2, now row 0.
+    assert delegation_inputs(tables, periods, ORIGIN, swapped)["open_delegations"]["validator"].tolist() == [1, 0]
+    for transactions in ({**state["transactions"], "initial": np.array(["V1", "V9"], dtype=object)},
+                         {**state["transactions"], "initial": np.array(["V1"], dtype=object)},
+                         {**state["transactions"], "scheduled": np.array(["V9"], dtype=object)}):
+        with pytest.raises(ValueError, match="by transaction"):
+            delegation_inputs(tables, periods, ORIGIN, {**state, "transactions": transactions})
+
+
+@pytest.mark.parametrize("column, values", [
+    ("validator", np.array([1.5, 2.0, 2.0, 4.0])),
+    ("validator", np.array([1, 2, 2, 2**64 - 1], dtype=np.uint64)),
+    ("stakes", np.array([500, 1_000, 25, 50_000]) * AVAX + 0.5),
+    ("days_left", np.array([30.5, 60.0, 14.0, 200.0])),
+])
+def test_a_fractional_or_wrapping_open_delegation_value_is_refused(column, values):
+    with pytest.raises(ValueError, match="whole numbers"):
+        delegated(open_delegations=DELEGATIONS.assign(**{column: values})).initial_state()
+
+
+SCHEDULED_ONE = pd.DataFrame({"validator": [4], "validator_scheduled": [False], "start_day": [3], "stakes": [100 * AVAX], "days": [20], "benqi": [False]})
+
+
+@pytest.mark.parametrize("column, value", [("validator", 4.5), ("start_day", 3.5), ("days", 20.5), ("stakes", 100 * AVAX + 0.5)])
+def test_a_fractional_scheduled_delegation_value_is_refused(column, value):
+    assert delegated(scheduled_delegations=SCHEDULED_ONE).initial_state()["scheduled_stakes"].tolist() == [100 * AVAX]
+    with pytest.raises(ValueError, match="whole numbers"):
+        delegated(scheduled_delegations=SCHEDULED_ONE.assign(**{column: [value]})).initial_state()
+
+
+def test_a_fractional_benqi_validator_or_delegation_term_is_refused():
+    with pytest.raises(ValueError, match="whole numbers"):
+        run(delegated(benqi_validators=pd.DataFrame({"validator": [2.5, 4.0]}), timesteps=1, runs=1))
+    for column, values in (("stake_navax", TERMS["stake_navax"] + 0.5), ("days", TERMS["days"] + 0.5)):
+        with pytest.raises(ValueError, match="whole numbers"):
+            run(delegated(delegation_terms=TERMS.assign(**{column: values}), delegation_flow=flowing(), timesteps=1, runs=1))
+
+
+# The stub's specification hash on the synthetic origin before named operators existed (client 5b79e2c).
+STUB_SPECIFICATION_HASH = "935d1f54fdcef7d5"
+
+
+def test_without_named_operators_the_specification_is_the_one_before_they_existed(tmp_path, monkeypatch):
+    synthetic = {key: validators()[key] for key in ("moves", "first_commitments")}
+    monkeypatch.setattr(variants, "switched_inputs", lambda events, switches: {"origin": events.origin, **model_state(events.state), **synthetic})
+    periods, delegators = write_periods(tmp_path)
+    tables = {**di.build(periods, delegators, ORIGIN), "terms": delegation_terms(periods, delegators, ORIGIN, di.BENQI_FUNDING, di.BENQI_EVIDENCE)}
+    prepared = VARIANTS["v0.8.1 stub"].prepare(periods, ORIGIN, "synthetic", delegations=tables)
+    assert VARIANTS["v0.8.1 stub"].simulation(prepared, seed=0, timesteps=10, runs=1).specification_hash() == STUB_SPECIFICATION_HASH
+    assert "named_operators" not in delegated().specification()["inputs_sha256"]
+    assert "named_operators" in named().specification()["inputs_sha256"]
+
+
+@pytest.mark.parametrize("missing", [None, ""])
+def test_a_missing_transaction_in_the_terms_or_starts_is_refused_before_matching(tmp_path, monkeypatch, missing):
+    def blank(column_table):
+        def change(tables):
+            out = tables[column_table].copy()
+            out["transaction_hash"] = out["transaction_hash"].astype(object)
+            out.loc[out.index[0], "transaction_hash"] = missing
+            return out
+        return change
+
+    with pytest.raises(ValueError, match="transaction"):
+        events_inputs_with(tmp_path, monkeypatch, {"terms": blank("terms"), "starts": blank("starts")})
+    with pytest.raises(ValueError, match="transaction"):
+        events_inputs_with(tmp_path, monkeypatch, {"terms": blank("terms")})

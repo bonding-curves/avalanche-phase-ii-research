@@ -551,7 +551,7 @@ def validator_periods(periods_parquet: str, through_us: int) -> pd.DataFrame:
     ``through_us``.
     """
     rows = duckdb.execute(
-        f"""SELECT node_id, stake_navax, s, e, prev_e, next_s, next_e, next_stake, done FROM (
+        f"""SELECT node_id, stake_navax, s, e, prev_e, next_s, next_e, next_stake, done, transaction_hash FROM (
               SELECT node_id, stake_navax, epoch_us(start_time) AS s, epoch_us(end_time) AS e, start_time, transaction_hash,
                      lag(epoch_us(end_time)) OVER w AS prev_e,
                      lead(epoch_us(start_time)) OVER w AS next_s,
@@ -640,14 +640,16 @@ class TrainingEvents:
 
 
 def training_events(periods_parquet: str, origin: date, run: str = "") -> TrainingEvents:
-    """The events :func:`fitted_inputs` fits on, read from staking periods that started by the origin's end."""
+    """The events :func:`fitted_inputs` fits on, read from staking periods that started by the origin's end. Its
+    ``state`` also holds ``transactions``: the transaction hash of each row of ``initial`` and ``scheduled``, in their
+    order, by which a model with delegations matches its own tables to these rows. The model inputs leave it out."""
     if origin >= LOCKBOX_FIRST_DAY:
         raise ValueError(f"origin {origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
     day = _day(origin)
     cutoff = day * US_PER_DAY + INSTANT_US
     rows = validator_periods(periods_parquet, cutoff)
     pending = duckdb.execute(
-        f"""SELECT p.node_id, p.stake_navax, epoch_us(p.start_time) AS s, epoch_us(p.end_time) AS e
+        f"""SELECT p.node_id, p.stake_navax, epoch_us(p.start_time) AS s, epoch_us(p.end_time) AS e, p.transaction_hash
             FROM read_parquet(?) p WHERE role = 'validator' AND stake_navax IS NOT NULL
               AND accepted_at <= make_timestamp({cutoff}) AND start_time > make_timestamp({cutoff})
             ORDER BY start_time, transaction_hash""",
@@ -724,7 +726,9 @@ def training_events(periods_parquet: str, origin: date, run: str = "") -> Traini
         moves=moves.assign(node_code=code_of(moves.pop("node_id"))),
         first_commitments=pd.DataFrame({"days": first["days"].to_numpy(), "stake_navax": first["stake_navax"].to_numpy(dtype=np.int64),
                                         "node_code": code_of(first["node_id"])}),
-        state={"initial": initial, "out_of_set": out_of_set, "scheduled": scheduled, "supply0_navax": int(supply)},
+        state={"initial": initial, "out_of_set": out_of_set, "scheduled": scheduled, "supply0_navax": int(supply),
+               "transactions": {"initial": open_now["transaction_hash"].to_numpy(dtype=object),
+                                "scheduled": pending["transaction_hash"].to_numpy(dtype=object)}},
     )
 
 
