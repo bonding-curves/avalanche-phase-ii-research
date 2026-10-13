@@ -218,7 +218,7 @@ def test_scores_refuse_empty_draws_and_accept_a_single_draw():
     assert single["crps"] == pytest.approx(2.0) and single["width80"] == 0.0 and single["in80"] == 0.0
 
 
-ADOPTION_ORIGINS = pd.date_range("2021-01-01", periods=19, freq="QS")
+ADOPTION_ORIGINS = pd.date_range("2018-01-01", periods=19, freq="QS")
 PASSED = {"event_test": True, "calibration": True, "origin_available": True}
 
 
@@ -241,27 +241,27 @@ def _system(worse_by=None, wobble: float = 2.0) -> pd.DataFrame:
 def test_adoption_accepts_a_passing_block_within_the_margin():
     """A block that passes its event tests and worsens 90-day stake by 1.0 scaled unit, under the 2.2 margin, is adopted.
     The spread across origins, about 3.5 units, is near the measured one that makes 2.2 the smallest detectable mean."""
-    verdict = ev.adoption_verdict(PASSED, _system({("active_validator_stake_navax", 90): 1.0}, wobble=5.0))
+    verdict = ev.adoption_verdict(PASSED, _system({("active_validator_stake_navax", 90): 1.0}, wobble=5.0), ADOPTION_ORIGINS)
     assert verdict["verdict"] == "adopt" and verdict["reasons"] == []
     assert verdict["primary_mean_difference"] == pytest.approx(1.0)
 
 
 def test_adoption_rejects_a_worsening_beyond_the_margin():
     """A mean worsening of 3.0 on 90-day stake is past the margin, so the system clause rejects."""
-    verdict = ev.adoption_verdict(PASSED, _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0))
+    verdict = ev.adoption_verdict(PASSED, _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0), ADOPTION_ORIGINS)
     assert verdict["verdict"] == "reject" and verdict["reasons"] == ["system"]
 
 
 def test_adoption_never_rests_on_the_system_score_alone():
     """A block that fails its event test is rejected however much the forecast improves."""
     block = dict(PASSED, event_test=False)
-    verdict = ev.adoption_verdict(block, _system({("active_validator_stake_navax", 90): -5.0}))
+    verdict = ev.adoption_verdict(block, _system({("active_validator_stake_navax", 90): -5.0}), ADOPTION_ORIGINS)
     assert verdict["verdict"] == "reject" and verdict["reasons"] == ["event test"]
 
 
 def test_adoption_rejects_one_clearly_worse_cell():
     """One cell worse with a one-sided p near 0.001 or below rejects, even with the primary cell unchanged."""
-    verdict = ev.adoption_verdict(PASSED, _system({("active_validators", 30): 0.5}, wobble=0.1))
+    verdict = ev.adoption_verdict(PASSED, _system({("active_validators", 30): 0.5}, wobble=0.1), ADOPTION_ORIGINS)
     assert verdict["verdict"] == "reject" and verdict["reasons"] == ["cell active_validators 30"]
     assert verdict["worst_cell"] == ("active_validators", 30) and verdict["worst_cell_p"] < 0.001
 
@@ -269,7 +269,7 @@ def test_adoption_rejects_one_clearly_worse_cell():
 def test_adoption_needs_an_event_test():
     """A block with no held-out event test cannot be adopted, and its system score is still reported."""
     block = {"event_test": None, "calibration": None, "origin_available": None}
-    verdict = ev.adoption_verdict(block, _system({("active_validator_stake_navax", 90): -1.0}))
+    verdict = ev.adoption_verdict(block, _system({("active_validator_stake_navax", 90): -1.0}), ADOPTION_ORIGINS)
     assert verdict["verdict"] == "no event test"
     assert verdict["primary_mean_difference"] == pytest.approx(-1.0)
 
@@ -278,7 +278,7 @@ def test_adoption_does_not_depend_on_row_order():
     """The paired test runs on origins in date order, so shuffled rows give the same verdict and p-values."""
     system = _system({("active_validators", 180): 0.4}, wobble=0.5)
     shuffled = system.sample(frac=1.0, random_state=3).reset_index(drop=True)
-    assert ev.adoption_verdict(PASSED, shuffled) == ev.adoption_verdict(PASSED, system)
+    assert ev.adoption_verdict(PASSED, shuffled, ADOPTION_ORIGINS) == ev.adoption_verdict(PASSED, system, ADOPTION_ORIGINS)
 
 
 def test_adoption_refuses_scores_that_are_not_finite():
@@ -286,33 +286,34 @@ def test_adoption_refuses_scores_that_are_not_finite():
     system = _system()
     system.loc[0, "challenger"] = np.nan
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, system)
+        ev.adoption_verdict(PASSED, system, ADOPTION_ORIGINS)
 
 
 def test_adoption_reads_numpy_flags_and_refuses_other_types():
     """A failed test given as a NumPy boolean rejects as a Python one does. A flag that is not a boolean or None is
     refused."""
     system = _system()
-    assert ev.adoption_verdict(dict(PASSED, event_test=np.bool_(False)), system)["reasons"] == ["event test"]
-    assert ev.adoption_verdict(dict(PASSED, origin_available=np.bool_(False)), system)["reasons"] == ["origin-available"]
+    assert ev.adoption_verdict(dict(PASSED, event_test=np.bool_(False)), system, ADOPTION_ORIGINS)["reasons"] == ["event test"]
+    assert ev.adoption_verdict(dict(PASSED, origin_available=np.bool_(False)), system, ADOPTION_ORIGINS)["reasons"] == ["origin-available"]
     with pytest.raises(ValueError):
-        ev.adoption_verdict(dict(PASSED, calibration="yes"), system)
+        ev.adoption_verdict(dict(PASSED, calibration="yes"), system, ADOPTION_ORIGINS)
 
 
 def test_adoption_needs_every_cell():
     """The rule tests six cells, two variables at three horizons, so a table missing one is refused."""
     system = _system()
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, system[~((system.variable == "active_validators") & (system.horizon == 180))])
+        ev.adoption_verdict(PASSED, system[~((system.variable == "active_validators") & (system.horizon == 180))], ADOPTION_ORIGINS)
 
 
 def test_adoption_reads_dates_given_as_text():
-    """Dates given as text are ordered in time, not as text, so the verdict matches the one from datetimes."""
+    """Dates given as text, in either allowed form, give the verdict that datetimes give."""
     system = _system({("active_validators", 180): 0.4}, wobble=0.5)
-    dates = pd.Series(ADOPTION_ORIGINS.strftime("%Y-%m-%d"), index=ADOPTION_ORIGINS)
+    written = [day.strftime("%Y-%m-%d") if i % 2 else day.strftime("%Y-%m-%dT00:00:00.000Z")
+               for i, day in enumerate(ADOPTION_ORIGINS)]
+    dates = pd.Series(written, index=ADOPTION_ORIGINS)
     as_text = system.assign(date=dates.reindex(system["date"]).to_numpy())
-    as_text["date"] = as_text["date"].str.replace(r"^(\d{4})-0?(\d+)-0?(\d+)$", r"\1-\2-\3", regex=True)
-    assert ev.adoption_verdict(PASSED, as_text) == ev.adoption_verdict(PASSED, system)
+    assert ev.adoption_verdict(PASSED, as_text, ADOPTION_ORIGINS) == ev.adoption_verdict(PASSED, system, ADOPTION_ORIGINS)
 
 
 def test_adoption_refuses_a_repeated_origin():
@@ -320,7 +321,7 @@ def test_adoption_refuses_a_repeated_origin():
     system = _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0)
     primary = system[(system.variable == "active_validator_stake_navax") & (system.horizon == 90)]
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, pd.concat([system, primary.iloc[[0]]], ignore_index=True))
+        ev.adoption_verdict(PASSED, pd.concat([system, primary.iloc[[0]]], ignore_index=True), ADOPTION_ORIGINS)
 
 
 def test_adoption_refuses_malformed_tables_and_thresholds():
@@ -329,11 +330,11 @@ def test_adoption_refuses_malformed_tables_and_thresholds():
     system = _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0)
     primary = system[(system.variable == "active_validator_stake_navax") & (system.horizon == 90)]
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, pd.concat([system, primary.assign(horizon=90.5, challenger=0.0)], ignore_index=True))
+        ev.adoption_verdict(PASSED, pd.concat([system, primary.assign(horizon=90.5, challenger=0.0)], ignore_index=True), ADOPTION_ORIGINS)
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, system.assign(date=system["date"].where(system.index != 0)))
+        ev.adoption_verdict(PASSED, system.assign(date=system["date"].where(system.index != 0)), ADOPTION_ORIGINS)
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, pd.concat([system, primary.assign(horizon=0)], ignore_index=True))
+        ev.adoption_verdict(PASSED, pd.concat([system, primary.assign(horizon=0)], ignore_index=True), ADOPTION_ORIGINS)
 
 
 def test_adoption_refuses_unlabelled_rows_and_uneven_origins():
@@ -341,12 +342,12 @@ def test_adoption_refuses_unlabelled_rows_and_uneven_origins():
     can be dropped or left out to turn a rejection into an adoption."""
     system = _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0)
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, system.assign(variable=system["variable"].where(system.index != 0)))
+        ev.adoption_verdict(PASSED, system.assign(variable=system["variable"].where(system.index != 0)), ADOPTION_ORIGINS)
     primary = (system.variable == "active_validator_stake_navax") & (system.horizon == 90)
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, system[~(primary & (system["date"] > ADOPTION_ORIGINS[0]))])
+        ev.adoption_verdict(PASSED, system[~(primary & (system["date"] > ADOPTION_ORIGINS[0]))], ADOPTION_ORIGINS)
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, system[system["date"] < ADOPTION_ORIGINS[2]])
+        ev.adoption_verdict(PASSED, system[system["date"] < ADOPTION_ORIGINS[2]], ADOPTION_ORIGINS)
 
 
 def test_adoption_does_not_depend_on_the_scale_of_scores():
@@ -356,7 +357,7 @@ def test_adoption_does_not_depend_on_the_scale_of_scores():
     cell = (system.variable == "active_validators") & (system.horizon == 30)
     scaled = system.copy()
     scaled.loc[cell, ["incumbent", "challenger"]] *= 1e160
-    small, large = ev.adoption_verdict(PASSED, system), ev.adoption_verdict(PASSED, scaled)
+    small, large = ev.adoption_verdict(PASSED, system, ADOPTION_ORIGINS), ev.adoption_verdict(PASSED, scaled, ADOPTION_ORIGINS)
     assert large["verdict"] == small["verdict"] == "reject"
     assert large["cells"][("active_validators", 30)]["p_worse"] == pytest.approx(small["worst_cell_p"], rel=1e-9)
 
@@ -366,14 +367,14 @@ def test_adoption_refuses_scores_that_are_not_exact_real_numbers():
     converted with a loss that could change the verdict."""
     system = _system()
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, system.assign(challenger=system["challenger"].astype(complex)))
+        ev.adoption_verdict(PASSED, system.assign(challenger=system["challenger"].astype(complex)), ADOPTION_ORIGINS)
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, system.assign(horizon=system["horizon"].astype(complex)))
+        ev.adoption_verdict(PASSED, system.assign(horizon=system["horizon"].astype(complex)), ADOPTION_ORIGINS)
     large = system.assign(incumbent=np.int64(2**60), challenger=np.int64(2**60) + 3)
     with pytest.raises(ValueError):
-        ev.adoption_verdict(PASSED, large)
+        ev.adoption_verdict(PASSED, large, ADOPTION_ORIGINS)
     small = system.assign(incumbent=np.int64(5), challenger=np.int64(8))
-    assert ev.adoption_verdict(PASSED, small)["verdict"] == "reject"
+    assert ev.adoption_verdict(PASSED, small, ADOPTION_ORIGINS)["verdict"] == "reject"
 
 
 def test_adoption_thresholds_are_fixed_and_inputs_are_checked():
@@ -381,20 +382,129 @@ def test_adoption_thresholds_are_fixed_and_inputs_are_checked():
     that is not a mapping, a table that is not a DataFrame, or a table missing a column is refused with ValueError."""
     import inspect
 
-    assert list(inspect.signature(ev.adoption_verdict).parameters) == ["block", "system"]
+    assert list(inspect.signature(ev.adoption_verdict).parameters) == ["block", "system", "origins"]
     assert ev.ADOPTION_MARGIN == 2.2 and ev.ADOPTION_CELL_ALPHA == pytest.approx(0.05 / 6)
     system = _system()
     for block, table in ((None, system), (PASSED, None), (PASSED, system.to_dict("records")),
                          (PASSED, system.drop(columns="date")), (PASSED, system.drop(columns="challenger"))):
         with pytest.raises(ValueError):
-            ev.adoption_verdict(block, table)
+            ev.adoption_verdict(block, table, ADOPTION_ORIGINS)
 
 
 def test_adoption_a_failed_test_rejects_even_without_an_event_test():
     """A failed calibration or origin-available test rejects, and the missing event test is named among the reasons.
     With no failure and no event test the verdict is "no event test"."""
     system = _system()
-    verdict = ev.adoption_verdict({"event_test": None, "calibration": False, "origin_available": None}, system)
+    verdict = ev.adoption_verdict({"event_test": None, "calibration": False, "origin_available": None}, system, ADOPTION_ORIGINS)
     assert verdict["verdict"] == "reject" and verdict["reasons"] == ["no event test", "calibration"]
-    verdict = ev.adoption_verdict({"event_test": None, "calibration": None, "origin_available": False}, system)
+    verdict = ev.adoption_verdict({"event_test": None, "calibration": None, "origin_available": False}, system, ADOPTION_ORIGINS)
     assert verdict["verdict"] == "reject" and verdict["reasons"] == ["no event test", "origin-available"]
+
+
+def test_adoption_expects_each_horizon_to_hold_every_origin_it_can_reach():
+    """A cell holds every origin whose horizon ends before the held-back period and no other, so the longer horizons may
+    hold fewer origins, as the scoring scripts produce them, but no origin can be left out of or added to a cell."""
+    dates = pd.date_range("2021-04-01", periods=19, freq="QS")
+    rows = []
+    for variable in ("active_validators", "active_validator_stake_navax"):
+        for horizon in (30, 90, 180):
+            for i, day in enumerate(dates):
+                if day + pd.Timedelta(horizon, unit="D") > pd.Timestamp("2025-11-18"):
+                    continue
+                incumbent = 5.0 + np.cos(i * 0.7)
+                rows.append({"origin": f"o{i}", "date": day, "variable": variable, "horizon": horizon,
+                             "incumbent": incumbent, "challenger": incumbent + 0.5 * np.sin(i * 2.3)})
+    system = pd.DataFrame(rows)
+    counts = system.groupby("horizon").origin.nunique().to_dict()
+    assert counts == {30: 19, 90: 18, 180: 17}
+    assert ev.adoption_verdict(PASSED, system, dates)["verdict"] in ("adopt", "reject")
+    stake_90 = (system.variable == "active_validator_stake_navax") & (system.horizon == 90)
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, system.drop(system[stake_90].index[3]), dates)
+    beyond = system[stake_90].iloc[[0]].assign(horizon=180, date=dates[-1], origin="o18")
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, pd.concat([system, beyond], ignore_index=True), dates)
+
+
+def test_adoption_refuses_an_origin_left_out_of_every_cell():
+    """The registered origins come from the caller, so an origin dropped from every cell, a registered origin missing
+    from the list, a repeated one or a value that is not a date is refused rather than turning a rejection into an
+    adoption."""
+    system = _system({("active_validator_stake_navax", 90): 3.0}, wobble=8.0)
+    assert ev.adoption_verdict(PASSED, system, ADOPTION_ORIGINS)["verdict"] == "reject"
+    for table, origins in ((system[system["date"] != ADOPTION_ORIGINS[5]], ADOPTION_ORIGINS),
+                           (system, ADOPTION_ORIGINS[:-1]), (system, [*ADOPTION_ORIGINS, ADOPTION_ORIGINS[0]]),
+                           (system, ["not a date"])):
+        with pytest.raises(ValueError):
+            ev.adoption_verdict(PASSED, table, origins)
+
+
+def test_adoption_reads_utc_dates_as_their_naive_days():
+    """Origin dates given with a UTC zone, as timestamps or as text ending in Z, give the same verdict as naive dates."""
+    system = _system({("active_validators", 30): 0.5}, wobble=0.1)
+    naive = ev.adoption_verdict(PASSED, system, ADOPTION_ORIGINS)
+    aware = system.assign(date=system["date"].dt.tz_localize("UTC"))
+    assert ev.adoption_verdict(PASSED, aware, ADOPTION_ORIGINS.tz_localize("UTC")) == naive
+    as_z = system.assign(date=system["date"].dt.strftime("%Y-%m-%dT%H:%M:%SZ"))
+    assert ev.adoption_verdict(PASSED, as_z, [day.strftime("%Y-%m-%dT%H:%M:%SZ") for day in ADOPTION_ORIGINS]) == naive
+
+
+def test_adoption_refuses_a_zoned_date_that_is_not_a_utc_midnight():
+    """A cell date in another zone falls at a UTC hour that is no registered origin, so the rule refuses it."""
+    system = _system({("active_validators", 30): 0.5}, wobble=0.1)
+    shifted = system.assign(date=system["date"].dt.tz_localize("America/Los_Angeles"))
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, shifted, ADOPTION_ORIGINS)
+
+
+def test_adoption_refuses_origins_that_are_not_utc_midnights_even_when_the_table_matches():
+    """Non-midnight instants are refused in the table and in the registered origins alike, and so are numbers."""
+    system = _system({("active_validators", 30): 0.5}, wobble=0.1)
+    hour = pd.Timedelta(8, unit="h")
+    with pytest.raises(ValueError, match="UTC midnight"):
+        ev.adoption_verdict(PASSED, system.assign(date=system["date"] + hour), ADOPTION_ORIGINS + hour)
+    with pytest.raises(ValueError, match="a date, a datetime or ISO text"):
+        ev.adoption_verdict(PASSED, system, [0, 1, 2])
+
+
+def test_adoption_reads_mixed_iso_forms_of_the_same_days_alike():
+    """Date-only text, text ending in Z and dates may be mixed in the registered origins."""
+    system = _system({("active_validators", 30): 0.5}, wobble=0.1)
+    naive = ev.adoption_verdict(PASSED, system, ADOPTION_ORIGINS)
+    mixed = [day.strftime("%Y-%m-%d") if i % 3 == 0 else day.strftime("%Y-%m-%dT%H:%M:%SZ") if i % 3 == 1 else day.date()
+             for i, day in enumerate(ADOPTION_ORIGINS)]
+    assert ev.adoption_verdict(PASSED, system, mixed) == naive
+
+
+@pytest.mark.parametrize("text", ["2018-01-01T00:00:00.0000000001Z", "2018-01-01T00:00:00,5", "January 1, 2018", "1/1/2018",
+                                  "20180101T000000.0000000001Z", "2018-01-01 00:00:00", "2018-01-01x00:00:00",
+                                  "2018-01-01T09:00:00+09:00", "2018-02-30", " 2018-01-01"])
+def test_adoption_refuses_text_that_is_not_an_iso_midnight(text):
+    """A fraction finer than a nanosecond is not rounded away, and text that is not ISO 8601 is refused."""
+    system = _system({("active_validators", 30): 0.5}, wobble=0.1)
+    origins = [day.strftime("%Y-%m-%d") for day in ADOPTION_ORIGINS]
+    origins[0] = text
+    table = system.assign(date=system["date"].astype(object).where(system["date"] != ADOPTION_ORIGINS[0], text))
+    with pytest.raises(ValueError):
+        ev.adoption_verdict(PASSED, table, origins)
+
+
+@pytest.mark.parametrize("unit", ["ps", "fs", "as"])
+def test_adoption_refuses_numpy_dates_finer_than_a_nanosecond(unit):
+    """A NumPy instant in picoseconds or finer would be truncated to midnight or wrapped into another day."""
+    system = _system({("active_validators", 30): 0.5}, wobble=0.1)
+    origins = list(ADOPTION_ORIGINS)
+    origins[0] = np.datetime64(ADOPTION_ORIGINS[0].strftime("%Y-%m-%d"), unit) + np.timedelta64(1, unit)
+    with pytest.raises(ValueError, match="nanoseconds or coarser"):
+        ev.adoption_verdict(PASSED, system, origins)
+    table = system.assign(date=system["date"].astype(object).where(system["date"] != ADOPTION_ORIGINS[0], origins[0]))
+    with pytest.raises(ValueError, match="nanoseconds or coarser"):
+        ev.adoption_verdict(PASSED, table, ADOPTION_ORIGINS)
+
+
+def test_adoption_reads_numpy_days_and_nanoseconds_at_midnight():
+    system = _system({("active_validators", 30): 0.5}, wobble=0.1)
+    naive = ev.adoption_verdict(PASSED, system, ADOPTION_ORIGINS)
+    as_days = [np.datetime64(day.strftime("%Y-%m-%d"), "D") for day in ADOPTION_ORIGINS]
+    as_ns = [np.datetime64(day.strftime("%Y-%m-%d"), "ns") for day in ADOPTION_ORIGINS]
+    assert ev.adoption_verdict(PASSED, system, as_days) == naive == ev.adoption_verdict(PASSED, system, as_ns)

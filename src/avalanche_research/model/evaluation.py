@@ -23,11 +23,15 @@ reads the realized value a forecast is scored against.
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Iterable, Mapping
+from datetime import date
 
 import numpy as np
 import pandas as pd
 from scipy import optimize, stats
+
+from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
 
 DRIFT_DAYS = 180
 DRESS_DAYS = 730
@@ -357,7 +361,44 @@ def _flag(block, name: str):
     raise ValueError(f"{name} must be True, False or None, not {value!r}")
 
 
-def adoption_verdict(block, system: pd.DataFrame) -> dict[str, object]:
+# Text names a day only as YYYY-MM-DD, or as that day's UTC midnight. No other text form is read.
+_ISO_DAY = re.compile(r"(\d{4}-\d{2}-\d{2})(?:T00:00:00(?:\.0+)?(?:Z|\+00:00)?)?")
+
+
+def _utc_days(values, what: str) -> list[pd.Timestamp]:
+    """Each value as a naive UTC midnight. A date or datetime is read on its own, a zoned one in UTC, and text only in the
+    forms ``_ISO_DAY`` allows; any other type or text, or any instant that is not a UTC midnight, is refused, so an
+    origin is always one calendar day."""
+    days = []
+    for value in values:
+        if isinstance(value, (bool, int, float, np.integer, np.floating)) or not isinstance(value, (str, date, pd.Timestamp, np.datetime64)):
+            raise ValueError(f"{what} must be a date, a datetime or ISO text, not {value!r}")  # noqa: TRY004, one error type for every bad input
+        if isinstance(value, np.datetime64) and np.datetime_data(value)[0] in ("ps", "fs", "as"):
+            # Units finer than a nanosecond do not fit a timestamp and would be truncated or wrapped into another day.
+            raise ValueError(f"{what} must be given in nanoseconds or coarser, not {value!r}")
+        if isinstance(value, str):
+            match = _ISO_DAY.fullmatch(value)
+            if match is None:
+                raise ValueError(f"{what} given as text must be YYYY-MM-DD or that day's UTC midnight, not {value!r}")
+            try:
+                value = date.fromisoformat(match.group(1))
+            except ValueError as error:
+                raise ValueError(f"{what} given as text must be a real calendar day, not {value!r}") from error
+        try:
+            day = pd.Timestamp(value)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"{what} must be a date, a datetime or ISO text, not {value!r}") from error
+        if pd.isna(day):
+            raise ValueError(f"{what} must be a date, a datetime or ISO text, not {value!r}")
+        if day.tzinfo is not None:
+            day = day.tz_convert("UTC").tz_localize(None)
+        if day != day.normalize():
+            raise ValueError(f"{what} must be a UTC midnight, one calendar day, not {value!r}")
+        days.append(day)
+    return days
+
+
+def adoption_verdict(block, system: pd.DataFrame, origins) -> dict[str, object]:
     """Whether a challenger block replaces the incumbent, by a rule fixed before either is scored.
 
     The rule's margin, test level and cells are the module constants ``ADOPTION_MARGIN``, ``ADOPTION_CELL_ALPHA``,
@@ -374,9 +415,13 @@ def adoption_verdict(block, system: pd.DataFrame) -> dict[str, object]:
     ``incumbent`` scaled CRPS from the same seeds and parameter draws. The challenger must worsen the primary cell by
     less than the margin on average over origins, and no cell may be worse by a one-sided Diebold-Mariano test, on
     origins in date order, with p below the test level. ``block`` must be a mapping and ``system`` a DataFrame with
-    every column. Every cell must be present, every score finite, horizons whole days, every row labelled and dated,
-    and every cell must hold one row for each of the same origins, at least three, or a ValueError is raised. Dates
-    given as text are parsed.
+    every column. Every cell must be present, every score finite, horizons whole days and every row labelled and dated,
+    or a ValueError is raised. ``origins`` lists every registered origin's date, given by the caller and not read from
+    ``system``. Each cell must hold one row for every registered origin whose horizon ends before the held-back period
+    and for no other date, at least three, so a longer horizon may hold fewer origins but no origin can be left out of
+    one cell or of all. Each date may be a date or a datetime, read in UTC when zoned, or text
+    as YYYY-MM-DD or that day's UTC midnight (T00:00:00, optionally with zero fractions and Z or +00:00), and must
+    be a UTC midnight.
 
     The verdict is "reject" when any test fails, "no event test" when none fails but the block has no event test, and
     "adopt" otherwise. The reasons name every failure, and "no event test" first when it applies. The system figures
@@ -399,9 +444,9 @@ def adoption_verdict(block, system: pd.DataFrame) -> dict[str, object]:
     horizons = _real(system["horizon"], "horizon")
     if not (np.isfinite(horizons).all() and (horizons == np.round(horizons)).all() and (horizons > 0).all()):
         raise ValueError("every horizon must be a whole, positive number of days")
-    system = system.assign(date=pd.to_datetime(system["date"]), horizon=horizons.astype(int))
-    if system["date"].isna().any() or not system["variable"].map(lambda value: isinstance(value, str)).all():
+    if not system["variable"].map(lambda value: isinstance(value, str)).all():
         raise ValueError("every row needs its variable, as text, and its origin date")
+    system = system.assign(date=_utc_days(system["date"], "every row's origin date"), horizon=horizons.astype(int))
     if system.duplicated(["variable", "horizon", "date"]).any():
         raise ValueError("each cell must hold one row per origin date")
     scores = np.column_stack([_real(system[name], name) for name in ("challenger", "incumbent")])
@@ -412,9 +457,19 @@ def adoption_verdict(block, system: pd.DataFrame) -> dict[str, object]:
     if required - present:
         raise ValueError(f"the system table has no rows for {sorted(required - present)}")
 
-    origins = {cell: frozenset(rows["date"]) for cell, rows in system.groupby(["variable", "horizon"], sort=True)}
-    if len(set(origins.values())) != 1 or len(next(iter(origins.values()))) < 3:
-        raise ValueError("every cell must be scored on the same origins, at least three")
+    # A cell holds every registered origin whose horizon ends before the held-back period and no other date, as the
+    # scoring scripts produce them, so a longer horizon may hold fewer origins but none can be left out or added.
+    if isinstance(origins, (str, bytes)) or not isinstance(origins, Iterable):
+        raise ValueError("origins must be the registered origins' dates")  # noqa: TRY004, one error type for every bad input
+    every = _utc_days(list(origins), "each registered origin")
+    if len(set(every)) != len(every):
+        raise ValueError("origins must be distinct dates")
+    last = pd.Timestamp(LOCKBOX_FIRST_DAY) - pd.Timedelta(1, unit="D")
+    for (variable, horizon), rows in system.groupby(["variable", "horizon"], sort=True):
+        expected = frozenset(day for day in every if day + pd.Timedelta(int(horizon), unit="D") <= last)
+        if frozenset(rows["date"]) != expected or len(expected) < 3:
+            raise ValueError(f"the cell {variable} {horizon} must hold every origin whose horizon ends before the "
+                             "held-back period, and at least three")
 
     scored = {}
     for (variable, horizon), rows in system.groupby(["variable", "horizon"], sort=True):
