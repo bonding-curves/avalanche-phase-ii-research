@@ -315,6 +315,8 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
         raise ValueError("every noise key must have its own seed and its own draw, numbered from draw 0")
     if len(labels) != len(rows):
         raise ValueError("every row needs one label")
+    if len({row["model"] for row in rows}) != 1:
+        raise ValueError("every row, baselines included, must run the same model")
     fitted = {row["fitted_outside_yield_pp"] for row in rows}
     if len(fitted) != 1 or not all(math.isfinite(value) for value in fitted):
         raise ValueError("every row must carry the same finite fitted outside yield")
@@ -374,8 +376,8 @@ def check(rows: list[dict], labels: list[dict], saltelli: int, key_count: int) -
             continue
         partner = label["baseline"]
         if not (isinstance(partner, int) and DESIGN_ROWS <= partner < len(rows) and labels[partner]["block"] == "baseline"
-                and all(rows[partner][name] == row[name] for name in PAIRED)):
-            raise ValueError(f"row {label['index']} must name a baseline row with its own key, responses and yields")
+                and rows[partner] == {**row, "mechanism": BASELINE}):
+            raise ValueError(f"row {label['index']} must name a baseline row that differs from it only in its mechanism")
         family = BY_CODE.get(label["family"])
         if family is None:
             raise ValueError(f"unknown family label {label['family']!r}")
