@@ -236,3 +236,16 @@ def test_model_import_does_not_load_registry_so_registry_can_import_the_switch()
     probe = ("import sys; import avalanche_research.model.stake_lifecycle; "
              "assert 'avalanche_research.model.variants' not in sys.modules")
     subprocess.run([sys.executable, "-c", probe], env=environment, check=True, capture_output=True)
+
+
+def test_a_fitted_stake_lifecycle_pickles_with_its_law_read_only_and_runs_the_same():
+    import pickle
+    from types import MappingProxyType
+
+    model = model_on()
+    copy = pickle.loads(pickle.dumps(model))
+    assert copy.specification_hash() == model.specification_hash()
+    assert isinstance(copy.stake_choice._cells, MappingProxyType) and isinstance(copy.stake_choice._labels, MappingProxyType)
+    assert copy.stake_choice._cells == model.stake_choice._cells and copy.stake_choice._labels == model.stake_choice._labels
+    assert copy.stake_choice._entry_stakes == model.stake_choice._entry_stakes
+    pd.testing.assert_frame_equal(run(copy), run(model))

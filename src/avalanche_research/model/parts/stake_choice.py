@@ -266,6 +266,16 @@ class StakeChoice(BehaviourBlock):
         self._cells = MappingProxyType(cells)
         self._labels = MappingProxyType(dict(evidence))
 
+    def __getstate__(self):
+        # A read-only mapping does not pickle, and the sweep runner pickles each base model for its workers.
+        state = super().__getstate__()
+        state["_cells"], state["_labels"] = dict(self._cells), dict(self._labels)
+        return state
+
+    def __setstate__(self, state):
+        state = {**state, "_cells": MappingProxyType(state["_cells"]), "_labels": MappingProxyType(state["_labels"])}
+        super().__setstate__(state)
+
     @classmethod
     def fit(cls, renewals, returns, entries, evidence):
         return cls(renewals, returns, entries, evidence)
