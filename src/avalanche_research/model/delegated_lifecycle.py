@@ -410,7 +410,8 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
         hashes, stakes = np.asarray(state["transactions"][kind], dtype=object), np.asarray(state[kind]["stakes"])
         _identified(hashes, f"a {kind} commitment of the fitted lifecycle")
         _identified(periods["transaction_hash"], f"a {kind} validator period")
-        if len(hashes) != len(stakes) or len(set(hashes)) != len(hashes) or set(hashes) != set(periods["transaction_hash"]):
+        if len(hashes) != len(stakes) or len(set(hashes)) != len(hashes) or periods["transaction_hash"].duplicated().any() \
+                or set(hashes) != set(periods["transaction_hash"]):
             raise ValueError(f"the {kind} validator periods do not match the {kind} commitments by transaction")
         row = dict(zip(hashes, range(len(hashes))))
         found = periods["transaction_hash"].map(row).to_numpy(dtype=np.int64)
@@ -419,6 +420,9 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
         return row
 
     open_row, later_row = rows_by_transaction(opened, "initial"), rows_by_transaction(later, "scheduled")
+    _identified(tables["validators"]["transaction_hash"], "a validator period in the delegation tables")
+    if tables["validators"]["transaction_hash"].duplicated().any():
+        raise ValueError("a validator period is listed twice in the delegation tables, so it cannot be matched by transaction")
     missing = set(tables["validators"]["transaction_hash"]) - set(open_row)
     if missing:
         raise ValueError(f"{len(missing)} validator periods open at the origin are not initial commitments")
@@ -512,9 +516,13 @@ def delegation_terms(periods_parquet: str, delegators_parquet: str, origin: date
 
 def historical_flow(flows: pd.DataFrame, origin: date) -> DelegationFlow:
     """The flow block fitted to the daily delegation starts of the 365 UTC days to the origin day, a day with none
-    counting as zero."""
+    counting as zero. Each row's count is checked as a whole, non-negative number before any sum, and so is the total,
+    so no daily sum can pass int64."""
+    counts = _whole(flows["started"], "a row's delegation starts")
+    if (counts < 0).any() or sum(int(count) for count in counts) > np.iinfo(np.int64).max:
+        raise ValueError("delegation starts must be non-negative and their total in range")
     days = pd.date_range(end=pd.Timestamp(origin), periods=FLOW_DAYS, freq="D")
-    started = flows.assign(date_utc=pd.to_datetime(flows["date_utc"])).pivot_table(
+    started = flows.assign(date_utc=pd.to_datetime(flows["date_utc"]), started=counts).pivot_table(
         index="date_utc", columns="benqi", values="started", aggfunc="sum").reindex(days).fillna(0)
     benqi = _whole(started[True], "a day's BENQI delegation starts") if True in started else np.zeros(FLOW_DAYS, dtype=np.int64)
     others = _whole(started[False], "a day's other delegation starts") if False in started else np.zeros(FLOW_DAYS, dtype=np.int64)

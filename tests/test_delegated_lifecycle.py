@@ -20,6 +20,7 @@ from avalanche_research.model.delegated_lifecycle import (
     DelegatedLifecycle,
     delegation_inputs,
     delegation_terms,
+    historical_flow,
 )
 from avalanche_research.model.delegation_blocks import (
     BenqiAllocation,
@@ -787,3 +788,33 @@ def test_a_validator_period_without_a_transaction_hash_is_refused(tmp_path):
         blanked = {**state, "transactions": {**state["transactions"], "initial": np.array([blank, "V2"], dtype=object)}}
         with pytest.raises(ValueError, match="transaction hash"):
             delegation_inputs(tables, periods, ORIGIN, blanked)
+
+
+def test_a_validator_period_listed_twice_is_refused(tmp_path):
+    periods, delegators = write_periods(tmp_path)
+    tables, state = di.build(periods, delegators, ORIGIN), training_events(periods, ORIGIN, "synthetic").state
+    original = duckdb.execute("SELECT * FROM read_parquet(?)", [periods]).df()
+    twice = str(tmp_path / "twice.parquet")
+    duckdb.from_df(pd.concat([original, original[original["transaction_hash"] == "V1"]], ignore_index=True)).write_parquet(twice)
+    with pytest.raises(ValueError, match="by transaction"):
+        delegation_inputs(tables, twice, ORIGIN, state)
+    validators = pd.concat([tables["validators"], tables["validators"].iloc[:1]], ignore_index=True)
+    with pytest.raises(ValueError, match="by transaction"):
+        delegation_inputs({**tables, "validators": validators}, periods, ORIGIN, state)
+
+
+@pytest.mark.parametrize("started", [np.array([0.5, 0.5]), np.array([2**63, 2**63], dtype=np.uint64), np.array([-1, 3]),
+                                     np.array([2**62, 2**62])])
+def test_the_flow_refuses_a_daily_count_that_is_not_a_whole_number_in_range_before_summing(started):
+    flows = pd.DataFrame({"date_utc": [pd.Timestamp(ORIGIN)] * 2, "benqi": [False, False], "started": started})
+    with pytest.raises(ValueError, match="whole numbers|in range"):
+        historical_flow(flows, ORIGIN)
+    assert historical_flow(flows.assign(started=[1, 2]), ORIGIN).mean_per_day == pytest.approx(3 / 365)
+
+
+def test_the_events_variant_refuses_a_lockbox_origin_before_reading_any_staking_period(tmp_path):
+    unread = str(tmp_path / "unused.parquet")
+    delegations = {"starts": pd.DataFrame(), "terms": pd.DataFrame()}
+    with pytest.raises(ValueError, match="lockbox"):
+        VARIANTS["v0.8.1 events"].prepare(unread, date(2025, 11, 19), "synthetic", delegations=delegations)
+    assert not (tmp_path / "unused.parquet").exists()
