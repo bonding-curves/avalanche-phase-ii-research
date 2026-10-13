@@ -238,7 +238,7 @@ The verification, the scores and the bias together say what v0.7 can and cannot 
 | Validator stake over 90 days or more | Low | Worse than holding today's value, with a bias that changes sign |
 | Effect of a design on validators | Conditional | It depends entirely on the assumed response |
 
-*Table 3. What v0.7 can be used for. Source: the v0.7 research report of 8 October 2026.*
+*Table 3. What v0.7 can be used for. Source: the v0.7 research report, sent to the Foundation on 8 October 2026. Its Part 7 holds the design comparison behind the ranking row: the order of the designs on issuance is the same at every response swept.*
 
 The last row is conditional because the chain's history before Helicon does not identify the response (Section 1.2). Every statement about a design's effect on validators holds only for the response assumed.
 
@@ -266,7 +266,7 @@ Each later version adds one structure the record shows v0.7 lacks, and each must
 
 ## How it was built
 
-Every number on this page comes from the v0.7 research report of 8 October 2026 and the runs behind it. The model is the class `ValidatorLifecycle` in the library `avalanche_research`, released as tag `model-v0.7.0` at commit `087484b`. It runs on cadCAD 0.5.3, with every setting declared in Param 2.4 with its bounds. The inputs are pinned in `data/pins/p6-v0.7-report.json`, which names each data run with its sha256, among them the staking periods and the daily ledger of 30 September 2026.
+Every number on this page comes from the v0.7 research report, sent to the Foundation on 8 October 2026, and the runs behind it. The model is the class `ValidatorLifecycle` in the library `avalanche_research`, released as tag `model-v0.7.0` at commit `087484b`. It runs on cadCAD 0.5.3, with every setting declared in Param 2.4 with its bounds. The inputs are pinned in `data/pins/p6-v0.7-report.json`, which names each data run with its sha256, among them the staking periods and the daily ledger of 30 September 2026.
 
 | What | How it is rebuilt |
 | --- | --- |

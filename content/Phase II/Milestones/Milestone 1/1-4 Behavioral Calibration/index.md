@@ -107,7 +107,7 @@ The fitted function describes the year before one origin. Figure 2 shows the sam
 
 ![Renewal within seven days by commitment number on the node](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.png)
 
-*Figure 2. Share of ending validator commitments whose node started another within seven days, by the commitment's number on its node, for 40,506 endings from July 2022 to the held-back period. The band is the range of model v0.7's single renewal probability across its 19 forecast dates, and the dashed line its mean. Source: the research report on model v0.7, 8 October 2026, Figure 21. Data: [renewal-by-tenure.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.csv). An [interactive version](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.html) is available.*
+*Figure 2. Share of ending validator commitments whose node started another within seven days, by the commitment's number on its node, for 40,506 endings from July 2022 to the held-back period. The band is the range of model v0.7's single renewal probability across its 19 forecast dates, and the dashed line its mean. Source: the v0.7 research report, sent to the Foundation on 8 October 2026, Figure 21. Data: [renewal-by-tenure.csv](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.csv). An [interactive version](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/renewal-by-tenure.html) is available.*
 
 Over that span, 62% of first commitments renewed and 91% of the 25th or later. Model v0.7 used one probability per forecast date, between 75% and 83%, for every node, and the fitted function replaces it.
 
