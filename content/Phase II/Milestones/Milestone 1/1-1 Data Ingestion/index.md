@@ -20,7 +20,7 @@ Quoted from the [Signed Grant Agreement](/Phase-II/Milestones/Milestone-0/Signed
 
 ## Status
 
-Delivered for the Foundation's review. Not yet accepted. Every number in the text, the tables, and Figure 2 is generated from the receipts of the newest checked run of each dataset built on or before 8 October 2026. Figure 1 is dated separately: it shows the runs of 30 September 2026.
+Delivered for the Foundation's review. Not yet accepted. Every number in the text, the tables, and Figure 2 is generated from the receipts of the newest checked run of each dataset built on or before 8 October 2026 at 18:32:40 UTC. Figure 1 is dated separately: it shows the runs of 30 September 2026.
 
 ## What is ingested
 
@@ -89,7 +89,7 @@ Beyond these gaps, 5 of the 69 datasets have check findings to review. None is a
 
 ## How it was built
 
-Each dataset has a source contract in `data/data-catalog.json`: its endpoints or SQL queries, its fields, and their units. A capture writes a receipt with the hash of every raw response or query result. A build writes a typed table in Parquet, a columnar file format, and a check writes its result beside the build. A derived table's receipt names every input run with its hash, and its check rebuilds the table from those inputs. Captures are working data and are not committed, so rebuilding this page needs the runs first. `data/README.md` gives the commands that produce each one: `avalanche data fetch` captures a dataset, `avalanche data build` builds it, and `avalanche data check` checks it. Figure 2 is drawn by `scripts/figures/ingestion_coverage.py` from the run named in its caption. `scripts/milestone_pages.py build --as-of 2026-10-08` then generates this page from the receipts, and it stops without writing when a dataset of Table 1 has no built run.
+Each dataset has a source contract in `data/data-catalog.json`: its endpoints or SQL queries, its fields, and their units. A capture writes a receipt with the hash of every raw response or query result. A build writes a typed table in Parquet, a columnar file format, and a check writes its result beside the build. A derived table's receipt names every input run with its hash, and its check rebuilds the table from those inputs. Captures are working data and are not committed, so rebuilding this page needs the runs first. `data/README.md` gives the commands that produce each one: `avalanche data fetch` captures a dataset, `avalanche data build` builds it, and `avalanche data check` checks it. Figure 2 is drawn by `scripts/figures/ingestion_coverage.py` from the run named in its caption. `scripts/milestone_pages.py build --as-of 2026-10-08T18:32:40Z` then generates this page from the receipts, and it stops without writing when a dataset of Table 1 has no built run.
 
 ## Open questions
 

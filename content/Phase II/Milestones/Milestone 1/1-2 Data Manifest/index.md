@@ -18,7 +18,7 @@ Quoted from the [Signed Grant Agreement](/Phase-II/Milestones/Milestone-0/Signed
 
 ## Status
 
-Delivered for the Foundation's review. Not yet accepted. The catalog declares 69 datasets from 16 sources, and 69 have a built run. The tables below are generated from the newest run of each dataset built on or before 8 October 2026.
+Delivered for the Foundation's review. Not yet accepted. The catalog declares 69 datasets from 16 sources, and 69 have a built run. The tables below are generated from the newest run of each dataset built on or before 8 October 2026 at 18:32:40 UTC.
 
 ## How a dataset is made
 
@@ -304,4 +304,4 @@ Table 4 identifies each run behind Table 3: when it was captured, its capture ID
 
 *Table 4. The run behind each row of Table 3, and the pins that hold a run of the dataset. Source: the capture receipts and `data/pins/`.*
 
-Captures are working data and are not committed, so rebuilding this page needs the runs first. `data/README.md` gives the commands that produce each one: `avalanche data fetch` captures a dataset, `avalanche data build` builds it, and `avalanche data check` checks it. `scripts/milestone_pages.py build --as-of 2026-10-08` then generates this page from the receipts, and it stops without writing when a quantity of the agreement has no built run. [Data](/Phase-II/Wiki/Reference/Data) explains how to list, load, and pin runs.
+Captures are working data and are not committed, so rebuilding this page needs the runs first. `data/README.md` gives the commands that produce each one: `avalanche data fetch` captures a dataset, `avalanche data build` builds it, and `avalanche data check` checks it. `scripts/milestone_pages.py build --as-of 2026-10-08T18:32:40Z` then generates this page from the receipts, and it stops without writing when a quantity of the agreement has no built run. [Data](/Phase-II/Wiki/Reference/Data) explains how to list, load, and pin runs.

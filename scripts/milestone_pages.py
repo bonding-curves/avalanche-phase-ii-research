@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Generate the Milestone 1.1 and 1.2 deliverable pages from the data catalog, the run receipts, and the pins.
 
-    python scripts/milestone_pages.py build [--as-of YYYY-MM-DD]
+    python scripts/milestone_pages.py build [--as-of YYYY-MM-DDTHH:MM:SSZ]
     python scripts/milestone_pages.py check
 
 Standard library only, so the site's Python tests can run it without the research environment. The pages are
 generated output: edit the catalog, rebuild a dataset, rerun a check, or change the prose here, then run ``build``
-again. ``--as-of`` builds from the newest run of each dataset completed on or before that UTC date, so a page can be
-rebuilt exactly. ``build`` refuses when a quantity of the agreement has no built run, as in a clean checkout, where
+again. ``--as-of`` accepts a UTC date or a timezone-aware instant. A date includes its entire UTC day; an instant
+excludes later same-day builds. Generated rebuild commands retain the exact instant when supplied. ``build`` refuses when a quantity of the agreement has no built run, as in a clean checkout, where
 the runs must first be produced with the commands in ``data/README.md``. It also refuses when the coverage chart of 1.1
 was drawn from a different run of the staking periods than the page reports: redraw it with
 ``scripts/figures/ingestion_coverage.py`` first. ``check`` validates the pages' structure and, when the runs are
-present, that the committed pages equal a fresh render as of the date the pages state.
+present, that the committed pages equal a fresh render as of the cutoff the pages state.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ import itertools
 import json
 import re
 import sys
-from datetime import date, datetime
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from typing import Any
 
@@ -105,8 +105,29 @@ def flat_check(check: dict[str, Any] | None) -> dict[str, Any] | None:
     return {**inner, "status": inner.get("status", check.get("status")), "findings": inner.get("findings", check.get("findings", []))}
 
 
+def utc_instant(text: str) -> datetime:
+    """A timestamp must identify an instant, including its UTC offset."""
+    value = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    if value.tzinfo is None:
+        raise ValueError("timestamp must include Z or a UTC offset")
+    return value.astimezone(UTC)
+
+
+def as_of_value(text: str) -> str:
+    """Validate a legacy whole-day cutoff or normalize an exact instant to UTC."""
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        return date.fromisoformat(text).isoformat()
+    return utc_instant(text).isoformat().replace("+00:00", "Z")
+
+
+def cutoff_instant(text: str) -> datetime:
+    value = as_of_value(text)
+    return datetime.combine(date.fromisoformat(value), time.max, UTC) if len(value) == 10 else utc_instant(value)
+
+
 def latest_runs(runs_root: Path, as_of: str | None = None) -> dict[str, dict[str, Any]]:
     """Newest built run per dataset, completed on or before ``as_of`` when given, with its capture, build, and check receipts."""
+    cutoff = cutoff_instant(as_of) if as_of else None
     latest: dict[str, dict[str, Any]] = {}
     if not runs_root.is_dir():
         return latest
@@ -118,24 +139,27 @@ def latest_runs(runs_root: Path, as_of: str | None = None) -> dict[str, dict[str
         if build.get("source_capture_id") != capture.get("capture_id"):
             continue
         completed = build.get("completed_at") or ""
-        if as_of and completed[:10] > as_of:
+        if cutoff is not None and utc_instant(completed) > cutoff:
             continue
         check_path = directory / "dataset" / "check.json"
         record = {"run": directory.name, "build": build, "capture": capture,
                   "check": flat_check(load_json(check_path)) if check_path.is_file() else None}
         current = latest.get(build["dataset_id"])
-        if current is None or completed > (current["build"].get("completed_at") or ""):
+        if current is None or utc_instant(completed) > utc_instant(current["build"].get("completed_at") or ""):
             latest[build["dataset_id"]] = record
     return latest
 
 
-def load_pins(pins_root: Path) -> dict[str, list[tuple[str, str]]]:
+def load_pins(pins_root: Path, as_of: str | None = None) -> dict[str, list[tuple[str, str]]]:
     """For each dataset, the (pin, run) pairs that freeze one of its runs."""
+    cutoff = cutoff_instant(as_of) if as_of else None
     pinned: dict[str, list[tuple[str, str]]] = {}
     if not pins_root.is_dir():
         return pinned
     for path in sorted(pins_root.glob("*.json")):
         pin = load_json(path)
+        if cutoff is not None and utc_instant(pin.get("pinned_at") or "") > cutoff:
+            continue
         for item in pin.get("runs", []):
             pinned.setdefault(item["dataset_id"], []).append((pin["name"], item["run"]))
     return pinned
@@ -220,14 +244,22 @@ def long_date(text: str) -> str:
     return f"{day.day} {day:%B %Y}"
 
 
+def as_of_label(text: str) -> str:
+    """Readable cutoff without losing the instant needed for reproduction."""
+    if len(text) == 10:
+        return long_date(text)
+    value = utc_instant(text)
+    return f"{long_date(value.date().isoformat())} at {value:%H:%M:%S}" + (f".{value.microsecond:06d}" if value.microsecond else "") + " UTC"
+
+
 def primary(quantity: str, runs: dict[str, dict[str, Any]]) -> str:
     candidates = PRIMARY[quantity][0]
     return next((dataset_id for dataset_id in candidates if dataset_id in runs), candidates[-1])
 
 
 def as_of_date(runs: dict[str, dict[str, Any]], as_of: str | None) -> str:
-    newest = max((record["build"].get("completed_at") or "")[:10] for record in runs.values()) if runs else ""
-    return as_of or newest
+    newest = max((record["build"]["completed_at"] for record in runs.values()), key=utc_instant) if runs else ""
+    return as_of_value(as_of or newest) if as_of or newest else ""
 
 
 def chart_rows() -> list[dict[str, str]]:
@@ -349,7 +381,7 @@ def render_ingestion(catalog: dict[str, Any], runs: dict[str, dict[str, Any]], a
         f"Quoted from the {AGREEMENT}.", "",
         "## Status", "",
         f"Delivered for the Foundation's review. Not yet accepted. Every number in the text, the tables, and Figure 2 is "
-        f"generated from the receipts of the newest checked run of each dataset built on or before {long_date(as_of)}. "
+        f"generated from the receipts of the newest checked run of each dataset built on or before {as_of_label(as_of)}. "
         "Figure 1 is dated separately: it shows the runs of 30 September 2026." if as_of else
         "Delivered for the Foundation's review. Not yet accepted.", "",
         "## What is ingested", "",
@@ -481,7 +513,7 @@ def render_manifest(catalog: dict[str, Any], runs: dict[str, dict[str, Any]], pi
         "## Status", "",
         f"Delivered for the Foundation's review. Not yet accepted. The catalog declares {len(datasets)} datasets from "
         f"{len(sources)} sources, and {built} have a built run. The tables below are generated from the newest run of each "
-        f"dataset built on or before {long_date(as_of)}." if as_of else "Delivered for the Foundation's review. Not yet accepted.", "",
+        f"dataset built on or before {as_of_label(as_of)}." if as_of else "Delivered for the Foundation's review. Not yet accepted.", "",
         "## How a dataset is made", "",
         ("Every dataset passes through the same four steps, and every step leaves a **receipt**, a JSON file that records what "
         "the step read, what it wrote, and the SHA-256 hash of each file. A hash is a fixed-length fingerprint of a file's bytes: "
@@ -603,8 +635,11 @@ def validate(catalog: dict[str, Any], pages: dict[str, Path]) -> list[str]:
 
 
 def stated_as_of(pages: dict[str, Path]) -> str | None:
-    """The as-of date a committed manifest states, as YYYY-MM-DD."""
+    """The exact rebuild cutoff, or the date stated by an older page."""
     path = pages["manifest"]
+    command = re.search(r"milestone_pages\.py build --as-of ([^`\s]+)", path.read_text(encoding="utf-8")) if path.is_file() else None
+    if command:
+        return as_of_value(command.group(1))
     found = re.search(r"built on or before (\d{1,2} [A-Z][a-z]+ \d{4})", path.read_text(encoding="utf-8")) if path.is_file() else None
     return datetime.strptime(found.group(1) + " +0000", "%d %B %Y %z").date().isoformat() if found else None
 
@@ -621,7 +656,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--catalog", type=Path, default=CATALOG)
     parser.add_argument("--runs", type=Path, default=RUNS)
     parser.add_argument("--pins", type=Path, default=PINS)
-    parser.add_argument("--as-of", default=None, help="UTC date: use the newest run of each dataset completed on or before it")
+    parser.add_argument("--as-of", default=None, type=as_of_value, help="UTC date (whole day) or timezone-aware instant: use runs completed by this cutoff")
     parser.add_argument("--content", type=Path, default=None, help="directory holding the two milestone pages")
     args = parser.parse_args(argv)
     pages = PAGES if args.content is None else {name: args.content / path.parent.name / path.name for name, path in PAGES.items()}
@@ -640,7 +675,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"the coverage chart was drawn from {drawn}, but the page reports {periods['run']}: run "
                   f"scripts/figures/ingestion_coverage.py \"{PAGES['ingestion'].parent}\" --run {periods['run']} first")
             return 1
-        rendered = render(catalog, runs, load_pins(args.pins), args.as_of)
+        cutoff = as_of_date(runs, args.as_of)
+        rendered = render(catalog, runs, load_pins(args.pins, cutoff), cutoff)
         for name, text in rendered.items():
             pages[name].parent.mkdir(parents=True, exist_ok=True)
             pages[name].write_text(text, encoding="utf-8")
@@ -652,7 +688,7 @@ def main(argv: list[str] | None = None) -> int:
     if missing_quantities(runs):
         print(f"no complete set of data runs in {args.runs}: checked structure only, not that the pages equal a fresh render")
     else:
-        problems += stale(render(catalog, runs, load_pins(args.pins), as_of), pages)
+        problems += stale(render(catalog, runs, load_pins(args.pins, as_of), as_of), pages)
     for problem in problems:
         print(problem)
     print("milestone pages: " + ("pass" if not problems else f"{len(problems)} problems"))

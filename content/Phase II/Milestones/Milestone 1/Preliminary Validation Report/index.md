@@ -224,7 +224,7 @@ The **held-back period** runs from the Granite upgrade, at 16:00 UTC on 19 Novem
 
 The period is scored once, on 27 October 2026, by a script fixed in advance. Fixing the script before the scoring means the measures and the comparison cannot be changed after the result is seen. Because the period can be scored only once, the Foundation's answer on the standard (Table 2) is needed before that date. The result will be added to this page when it lands.
 
-A second out-of-sample test runs alongside it. Forecasts of five Helicon quantities, committed on 29 September against simple forecasts, are scored at 30 days on 22 October and at 90 days on 21 December.
+The Helicon forecast comparison has separate 30-day and 90-day windows. Only the simple forecasts of its five quantities were committed by 29 September for the 30-day window. The model forecast missed that deadline, so the 22 October score reports the simple forecasts only. A model forecast is planned for the 90-day window, scored on 21 December.
 
 ### 6. What v0.7 can be trusted for
 
@@ -270,7 +270,8 @@ Every number on this page comes from the v0.7 research report of 8 October 2026 
 
 | What | How it is rebuilt |
 | --- | --- |
-| Reward formula against the chain, replay, run spread | `scripts/model_v07_report_runs.py`, which exports the tag, checks the pin and reruns the model inside the export. It takes about two minutes |
+| Reward formula against the chain (Figure 1), ledger replay (Figure 2) | `uv run --group notebook python scripts/figures/model_v07_record.py kernel figures/` and `uv run --group notebook python scripts/figures/model_v07_record.py replay figures/`. The script checks its pinned inputs and writes each chart, CSV and receipt |
+| Run spread and reward-design experiments | `scripts/model_v07_report_runs.py`, which exports the tag, checks the pin and reruns the model inside the export. It takes about two minutes |
 | Forecast scores at the 19 development origins | `scripts/model_development_scores.py`, run on the model at the tag |
 | Figures | `scripts/figures/model_v07_report.py` and `scripts/figures/model_v07_experiments.py`, at commit `1616146` or later |
 

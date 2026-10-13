@@ -2,6 +2,7 @@ import contextlib
 import io
 import json
 import sys
+from unittest.mock import patch
 import tempfile
 import unittest
 from pathlib import Path
@@ -114,6 +115,92 @@ class MilestonePagesTest(unittest.TestCase):
             self.assertEqual(milestone_pages.stated_as_of(pages), "2026-10-08")
             pages["manifest"].write_text(rendered["manifest"] + "\nedited by hand\n")
             self.assertEqual(len(milestone_pages.stale(rendered, pages)), 1)
+
+    def test_instant_excludes_later_same_day_build_and_normalizes_offsets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, stamp in (("early-1", "2026-10-08T18:32:40Z"),
+                                ("later-2", "2026-10-08T21:08:06Z")):
+                write_run(root, name, "dataset", {"rows": 1}, None)
+                path = root / name / "dataset/build.json"
+                receipt = json.loads(path.read_text())
+                receipt["completed_at"] = stamp
+                path.write_text(json.dumps(receipt))
+            for cutoff in ("2026-10-08T18:32:40Z", "2026-10-08T11:32:40-07:00"):
+                self.assertEqual(milestone_pages.latest_runs(root, cutoff)["dataset"]["run"], "early-1")
+            self.assertEqual(milestone_pages.latest_runs(root, "2026-10-08")["dataset"]["run"], "later-2")
+            self.assertEqual(milestone_pages.latest_runs(root, "2026-10-08T18:32:39.999999Z"), {})
+            with self.assertRaises(ValueError):
+                milestone_pages.latest_runs(root, "2026-10-08T18:32:40")
+
+    def test_pin_membership_uses_same_instant(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, stamp in (("before", "2026-10-08T18:32:40Z"), ("after", "2026-10-08T19:16:58Z")):
+                (root / (name + ".json")).write_text(json.dumps({
+                    "name": name, "pinned_at": stamp, "runs": [{"dataset_id": "dataset", "run": name}]}))
+            self.assertEqual(milestone_pages.load_pins(root, "2026-10-08T18:32:40Z"), {"dataset": [("before", "before")]})
+            self.assertEqual(len(milestone_pages.load_pins(root, "2026-10-08")["dataset"]), 2)
+
+    def test_build_and_check_preserve_cutoff_after_later_run_and_pin_arrive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runs, pins, content = root / "runs", root / "pins", root / "content"
+            pins.mkdir()
+            catalog = root / "catalog.json"
+            catalog.write_text(json.dumps(CATALOG))
+            dataset = "snowflake.primary-staking-rewards"
+            write_run(runs, "early-1", dataset, {"rows": 5}, None)
+            stamp = runs / "early-1/dataset/build.json"
+            data = json.loads(stamp.read_text()); data["completed_at"] = "2026-10-08T18:32:40Z"
+            stamp.write_text(json.dumps(data))
+            common = ["--catalog", str(catalog), "--runs", str(runs), "--pins", str(pins), "--content", str(content)]
+            with patch.object(milestone_pages, "missing_quantities", return_value=[]), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(milestone_pages.main(["build", *common, "--as-of", "2026-10-08T18:32:40Z"]), 0)
+                targets = {name: content / path.parent.name / path.name for name, path in milestone_pages.PAGES.items()}
+                self.assertEqual(milestone_pages.stated_as_of(targets), "2026-10-08T18:32:40Z")
+                original = {name: path.read_bytes() for name, path in targets.items()}
+                write_run(runs, "later-2", dataset, {"rows": 999}, None)
+                stamp = runs / "later-2/dataset/build.json"
+                data = json.loads(stamp.read_text()); data["completed_at"] = "2026-10-08T21:08:06Z"
+                stamp.write_text(json.dumps(data))
+                (pins / "late.json").write_text(json.dumps({"name": "late", "pinned_at": "2026-10-08T19:16:58Z",
+                                                           "runs": [{"dataset_id": dataset, "run": "early-1"}]}))
+                self.assertEqual(milestone_pages.main(["check", *common]), 0)
+                self.assertEqual(milestone_pages.main(["build", *common, "--as-of", "2026-10-08T18:32:40Z"]), 0)
+                self.assertEqual({name: path.read_bytes() for name, path in targets.items()}, original)
+
+    def test_default_render_records_exact_cutoff_and_missing_timezone_refuses(self):
+        record = {"run": "early", "build": {"completed_at": "2026-10-08T18:32:40Z", "summary": {}}, "check": None, "capture": {}}
+        rendered = milestone_pages.render(CATALOG, {"dataset": record})
+        self.assertIn("build --as-of 2026-10-08T18:32:40Z", rendered["manifest"])
+        self.assertIn("8 October 2026 at 18:32:40 UTC", rendered["manifest"])
+        with self.assertRaises(ValueError):
+            milestone_pages.as_of_value("2026-10-08T18:32:40")
+
+    def test_frozen_selection_refuses_missing_or_malformed_timestamps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_run(root / "runs", "early-1", "dataset", {}, None)
+            path = root / "runs/early-1/dataset/build.json"
+            original = json.loads(path.read_text())
+            pins = root / "pins"
+            pins.mkdir()
+            for stamp in (None, "not-a-date", "2026-10-08T18:32:40"):
+                receipt = dict(original)
+                if stamp is None:
+                    receipt.pop("completed_at")
+                else:
+                    receipt["completed_at"] = stamp
+                path.write_text(json.dumps(receipt))
+                with self.subTest(build_timestamp=stamp), self.assertRaises(ValueError):
+                    milestone_pages.latest_runs(root / "runs", "2026-10-08T18:32:40Z")
+                pin = {"name": "legacy", "runs": [{"dataset_id": "dataset", "run": "early-1"}]}
+                if stamp is not None:
+                    pin["pinned_at"] = stamp
+                (pins / "legacy.json").write_text(json.dumps(pin))
+                with self.subTest(pin_timestamp=stamp), self.assertRaises(ValueError):
+                    milestone_pages.load_pins(pins, "2026-10-08T18:32:40Z")
 
     def test_coverage_reads_date_pairs_and_capture_windows(self):
         self.assertEqual(milestone_pages.coverage({"first_date": "2021-02-01", "last_date": "2021-03-01"}), "2021-02-01 to 2021-03-01")
