@@ -26,7 +26,8 @@ The design file is JSON:
 design made elsewhere; each row sets its ``seed``, and the required ``rows_sha256`` must match the file. ``draws_file``
 (CSV, gzipped CSV or Parquet, with a required ``draws_sha256``) attaches a table of parameter draws to each fitted base
 model, and a row's ``draw: k`` runs with row k of it alone, so rows that share a ``seed`` and a ``draw`` share their
-noise key. A row's ``outside_yield_pp`` is also the competing yield the KPI reducer uses for that row.
+noise key. A file-based design resolves relative row/draw file names from its own folder; a dictionary keeps
+the caller's working-directory paths. A row's ``outside_yield_pp`` is also the competing yield the KPI reducer uses for that row.
 
 With ``"reducer": {"kind": "kpis", "horizons": [365, 180], "competing_yield": 0.04, "operating_costs": {"mid": 0.01}}``
 each row keeps one value per run, KPI, horizon and cost level instead of its daily paths: the KPI module's
@@ -220,9 +221,14 @@ def run(design_path: Path | dict, out: Path, build: Callable[[Any, str], Simulat
     from ..core.clock import now
 
     design = dict(json.loads(design_path.read_text()) if isinstance(design_path, Path) else design_path)
+    authored_files = {}
     for stem in ("rows", "draws"):
         if design.get(f"{stem}_file"):
+            authored_files[f"{stem}_file"] = design[f"{stem}_file"]
             path = Path(design[f"{stem}_file"])
+            if isinstance(design_path, Path) and not path.is_absolute():
+                path = design_path.absolute().parent / path
+                design[f"{stem}_file"] = str(path)
             if not design.get(f"{stem}_sha256"):
                 raise ValueError(f"{stem}_file requires {stem}_sha256")
             digest = receipt.sha256(path.read_bytes())
@@ -252,7 +258,7 @@ def run(design_path: Path | dict, out: Path, build: Callable[[Any, str], Simulat
     specifications = stats.pop("base_specifications")
     made = receipt.build_sweep(out, specifications, stats["design_hash"], len(planned), stats, pin_file,
                                sorted({row["seed"] for row in planned}), started, now())
-    made["sweep"]["design_file"] = design
+    made["sweep"]["design_file"] = {**design, **authored_files}
     made["receipt_id"] = receipt.sha256(receipt.canonical_bytes({k: v for k, v in made.items() if k != "receipt_id"}))[:16]
     receipt.write(made, out / "receipt.json")
     return made

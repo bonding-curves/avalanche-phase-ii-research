@@ -511,3 +511,60 @@ def test_design_provenance_binds_same_count_row_values_base_and_order(tmp_path, 
     assert first == replay
     assert len({record["design_hash"] for record in (first, changed, rebased, reordered)}) == 4
     assert first["row_ids"] == reordered["row_ids"][::-1]
+
+
+@pytest.mark.parametrize("kind", ["relative", "absolute", "dictionary"])
+def test_sweep_sidecars_follow_design_location_and_relocate_without_changing_identity(tmp_path, monkeypatch, kind):
+    import json
+    from pathlib import Path
+
+    from avalanche_research.experiments import receipt, sweep
+
+    pin = pinned_sweep(tmp_path, monkeypatch)
+    unrelated = tmp_path / "cwd"
+    unrelated.mkdir()
+    monkeypatch.chdir(unrelated)
+    records, designs_written = [], []
+
+    def before_execution(planned, count, build, out, **options):
+        # Drive actual sidecar parsing and builder handoff, stopping before a fit or trajectory.
+        assert count == len(planned) == 1 and planned[0]["seed"] == 4 and planned[0]["draw"] == 0
+        model = build(planned[0]["origin"], planned[0]["model"])
+        out.mkdir()
+        return {"base_specifications": [model.specification()],
+                "design_hash": designs.design_hash(planned, model.specification_hash()), "written": 0, "skipped": 0}
+
+    monkeypatch.setattr(runner, "run_design", before_execution)
+    monkeypatch.setattr(receipt, "write", lambda value, path: None)  # No certification for a stopped fixture.
+    for name in ("first", "relocated"):
+        package = tmp_path / name
+        package.mkdir()
+        rows_file, draws_file = package / "rows.json", package / "draws.csv"
+        rows_file.write_text('[{"seed": 4, "draw": 0, "renewal_probability": 0.3}]')
+        draws_file.write_text("renewal_shift\n0.125\n")
+        design = {**sweep.scenario(pin, "2025-04-08", "v0.7", 1, 6, workers=1), "generator": "explicit",
+                  "rows_file": str(rows_file) if kind == "absolute" else "rows.json",
+                  "draws_file": str(draws_file) if kind == "absolute" else "draws.csv",
+                  "rows_sha256": receipt.sha256(rows_file.read_bytes()),
+                  "draws_sha256": receipt.sha256(draws_file.read_bytes())}
+        design_file = package / "design.json"
+        design_file.write_text(json.dumps(design, sort_keys=True))
+        designs_written.append(design_file.read_bytes())
+        # A dictionary retains caller-relative paths; path-based designs must ignore conflicting cwd files.
+        (unrelated / "rows.json").write_bytes(rows_file.read_bytes() if kind == "dictionary" else b"wrong cwd rows")
+        (unrelated / "draws.csv").write_bytes(draws_file.read_bytes() if kind == "dictionary" else b"wrong cwd draws")
+
+        def checked_builder(periods, run_name, runs, timesteps, draws=None):
+            assert draws.renewal_shift.tolist() == [0.125]
+            return builder
+
+        monkeypatch.setattr(sweep, "builder", checked_builder)
+        supplied = design if kind == "dictionary" else Path("..") / package.name / "design.json"
+        made = sweep.run(supplied, package / "output")
+        assert made["sweep"]["complete"] is False  # The fixture stops at the execution boundary.
+        assert made["sweep"]["design_file"] == design
+        assert json.loads(design_file.read_text()) == design
+        records.append(made)
+    assert records[0]["sweep"]["design_hash"] == records[1]["sweep"]["design_hash"]
+    if kind != "absolute":
+        assert designs_written[0] == designs_written[1]
