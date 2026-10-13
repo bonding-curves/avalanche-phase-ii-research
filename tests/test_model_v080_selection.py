@@ -30,7 +30,7 @@ def test_the_verdict_command_passes_and_an_altered_verdict_fails(tmp_path, monke
     assert selection.main(["verdict"]) == 1
 
 
-@pytest.mark.parametrize("plant", ["fractional horizon", "duplicate score", "missing origin"])
+@pytest.mark.parametrize("plant", ["fractional horizon", "duplicate score", "missing origin", "missing variable"])
 def test_a_score_table_that_is_not_the_design_is_refused(plant):
     import pandas as pd
 
@@ -39,7 +39,9 @@ def test_a_score_table_that_is_not_the_design_is_refused(plant):
         scores.loc[scores.horizon_days == 90, "horizon_days"] = 90.5
     elif plant == "duplicate score":
         scores = pd.concat([scores, scores[scores.forecast == selection.CHALLENGER].head(1)])
-    else:
+    elif plant == "missing origin":
         scores = scores[scores.origin != "Banff"]
+    else:
+        scores = scores[scores.variable != "active_validators"]
     with pytest.raises(ValueError):
         selection.checked_scores(scores)

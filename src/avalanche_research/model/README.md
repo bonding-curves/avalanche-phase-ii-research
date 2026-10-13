@@ -137,7 +137,7 @@ table = run(v080.simulation(prepared, seed=0, timesteps=30, runs=20, draws=prepa
                       **{**prepared.inputs, "renewal_response": 0.05})
    ```
 3. **A scenario.** The outside yield and its fitting-window level are settings (`outside_yield_pp`, `fitted_outside_yield_pp`), set the same way. A whole scenario grid is a design file for `avalanche model sweep` ([`designs.py`](designs.py)).
-4. **A mechanism.** Pass any reward design from [`../mechanisms/`](../mechanisms/), or a new subclass of `RewardMechanism`, as `mechanism`. This starts ACP-285's ramp at the origin with a 6% target, which lowers 30-day issuance by about 4% in this example:
+4. **A mechanism.** Pass any reward design from [`../mechanisms/`](../mechanisms/), or a new subclass of `RewardMechanism`, as `mechanism`. This starts ACP-285's ramp at the origin with a 6% target, so the commitments started in the run earn less than under the chain's rule:
    ```python
    ramp = ACP285Ramp(activation=datetime(2025, 11, 18, 16, tzinfo=UTC), ramp_days=90, target_min_rate=0.06)
    model = v080.model(timesteps=30, runs=20, seed=0, draws=prepared.draws, **{**prepared.inputs, "mechanism": ramp})

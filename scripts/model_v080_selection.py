@@ -60,7 +60,7 @@ def checked_scores(scores: pd.DataFrame) -> pd.DataFrame:
     horizons = pd.to_numeric(scores["horizon_days"], errors="coerce")
     if not horizons.isin([float(h) for h in HORIZONS]).all():
         raise ValueError(f"horizons must be exactly {HORIZONS} days, not {sorted(scores['horizon_days'].unique())}")
-    if set(scores["origin"]) != set(dates) or not set(scores["variable"]) <= set(VARIABLES):
+    if set(scores["origin"]) != set(dates) or set(scores["variable"]) != set(VARIABLES):
         raise ValueError("the scores must cover exactly the 19 development origins and the two variables")
     # A horizon that would reach the held-back period is not scored, so late origins have fewer cells.
     keys = ["origin", "variable", "horizon_days"]
