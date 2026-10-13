@@ -152,6 +152,21 @@ def test_the_run_daily_table_carries_the_signals_and_the_kpis_read_them():
     assert kpis.NOT_IN_MODEL_YET == {}
 
 
+def test_a_delegated_runs_daily_issuance_counts_validators_only_as_its_stake_days_do():
+    model = delegated(delegation_flow=flowing())
+    states, table = states_and_table(model)
+    one = table[table["run"] == 1]
+    wide = one.pivot_table(index="timestep", columns="variable", values="value", aggfunc="first")
+    assert wide["delegator_issued_navax"].iloc[1:].sum() > 0
+    daily = kpis.run_daily_table(one, model.origin)
+    assert daily["issued_navax"].tolist() == wide["validator_issued_navax"].tolist()
+    assert daily["issued_all_roles_navax"].tolist() == wide["issued_navax"].tolist()
+    expected = expected_signals(model, states).xs(1, level="run")
+    horizon = model.timesteps
+    assert kpis.earned_rate(daily, model.origin, horizon) == pytest.approx(
+        365 * wide["validator_issued_navax"].iloc[1:].sum() / expected["started_stake_days_navax"].sum(), rel=1e-12)
+
+
 def test_the_nakamoto_count_sums_each_nodes_stake_and_needs_more_than_a_third():
     assert nakamoto_third_nodes(np.array([1, 1, 1]), np.array([1, 2, 3])) == 2
     assert nakamoto_third_nodes(np.array([1, 1, 1]), np.array([1, 1, 2])) == 1

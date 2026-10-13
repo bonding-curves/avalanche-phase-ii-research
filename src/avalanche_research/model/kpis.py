@@ -517,6 +517,11 @@ def run_daily_table(table: pd.DataFrame, origin, chain: pd.DataFrame | None = No
     in the daily-table columns the run also produces, plus burn and realized supply, and the chain's table must be
     built for the same origin. A variable with two
     values at one timestep is refused.
+
+    A run with delegations writes ``issued_navax`` for validators and delegators together, and the validators' part
+    as ``validator_issued_navax``. The daily table's ``issued_navax`` counts validators only, as the chain's does, so
+    for such a run it is ``validator_issued_navax``, and the run's total is ``issued_all_roles_navax``, the chain's
+    name for it.
     """
     keys = [key for key in ("simulation", "run") if key in table.columns]
     if len(table[keys].drop_duplicates()) != 1:
@@ -533,6 +538,9 @@ def run_daily_table(table: pd.DataFrame, origin, chain: pd.DataFrame | None = No
             if conflicting.any():
                 raise ValueError(f"the long table has more than one {column} at timestep {conflicting.idxmax()}")
             wide[column] = values.first()
+    if "validator_issued_navax" in wide.columns:
+        wide = wide.rename(columns={"issued_navax": "issued_all_roles_navax"})
+        wide["issued_navax"] = wide["validator_issued_navax"]
     wide = wide.rename(columns={"supply_navax": "supply_counter_navax"})
     wide.columns.name = None
     wide.index = _day(origin) + pd.to_timedelta(wide.index, unit="D")
