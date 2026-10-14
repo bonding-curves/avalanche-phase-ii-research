@@ -1,0 +1,156 @@
+{
+  "schema": "avalanche-research/selection-provenance/v1",
+  "selection": "model-v0.8.0",
+  "written": "2026-10-14",
+  "purpose": "The receipt for the files in this folder: which code and command produced them, on what inputs and in what environment, and the hash of every output. The outputs themselves are unchanged since they were committed.",
+  "run": {
+    "date": "2026-10-13",
+    "window_pacific": "10:31 to 10:37",
+    "steps": [
+      {
+        "step": 1,
+        "script": "scripts/model_development_scores.py",
+        "command": "python scripts/model_development_scores.py <output folder> <workers>, with MODELS set to (\"v0.8-a u\", \"v0.8-a stake return u\") before main() runs",
+        "writes": [
+          "development-runs.csv.gz",
+          "development-specifications.csv"
+        ],
+        "note": "The script's final point-score summary stopped with an error after these two files were written, because it looks for a forecast named v0.8 that this model list does not contain. The two files it had written are complete and are the ones committed. The point-score summary is not part of the selection."
+      },
+      {
+        "step": 2,
+        "script": "scripts/model_distribution_scores.py",
+        "command": "python scripts/model_distribution_scores.py <output folder>",
+        "reads": [
+          "development-runs.csv.gz"
+        ],
+        "writes": [
+          "development-distribution.csv",
+          "development-distribution-summary.csv"
+        ]
+      },
+      {
+        "step": 3,
+        "script": "scripts/model_v080_selection.py",
+        "command": "python scripts/model_v080_selection.py verdict",
+        "reads": [
+          "development-distribution.csv"
+        ],
+        "note": "verdict.json holds the verdict the variant rule gives on development-distribution.csv. The command recomputes it from that file and compares. It needs no data and passes on any machine."
+      }
+    ]
+  },
+  "code": {
+    "statement": "The run used a development working tree that was not itself committed to this repository. Its model package (src/avalanche_research/model) and its scoring scripts equal commit 9dabd9dd2bee1955a1bc42f0b457390370c3ed76 in every file, except the order of two import lines in src/avalanche_research/model/runner.py and src/avalanche_research/experiments/sweep.py. Neither file is used by the scoring scripts. Commit 9dabd9d is the parent of the release commit a4990a009a164afa7aff6e5c48c4c1ff6e099377, which adds the name v0.8.0 for the chosen model and changes nothing the scoring runs.",
+    "equal_to_commit": "9dabd9dd2bee1955a1bc42f0b457390370c3ed76",
+    "release_commit": "a4990a009a164afa7aff6e5c48c4c1ff6e099377",
+    "tag": "model-v0.8.0 on b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc",
+    "scoring_scripts_unchanged_since": "scripts/model_development_scores.py and scripts/model_distribution_scores.py are byte for byte the same in the producing tree, in 9dabd9d, in the tag and in 0cc9b2c614b70a67b844437c72fe3538196e88c1.",
+    "reproduction_on_the_producing_machine": {
+      "date": "2026-10-14",
+      "commit": "0cc9b2c614b70a67b844437c72fe3538196e88c1",
+      "specifications": "python scripts/model_v080_selection.py specifications: every rebuilt batch hash equals development-specifications.csv at all 19 origins",
+      "outputs": "python scripts/model_v080_selection.py outputs Banff Durango 2025-10-01: every rerun value equals development-runs.csv.gz",
+      "meaning": "The code on main after the tag builds the same models and the same runs as the code that produced these files, on the machine that produced them."
+    }
+  },
+  "inputs": {
+    "pin": "data/pins/p2-model-v0.8.json",
+    "pin_sha256": "47a6f4af2b7bab7d2b2aae45b2a62c7c67ed5ca26c9123151132742b208d4dee",
+    "read": [
+      {
+        "dataset": "derived.staking-periods",
+        "run": "staking-periods-2026-09-30",
+        "file": "staking-periods.parquet",
+        "sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8"
+      }
+    ],
+    "also_pinned_not_read": [
+      {
+        "dataset": "derived.avax-monetary-daily",
+        "run": "avax-monetary-daily-2026-09-30",
+        "file": "avax-monetary-daily.parquet",
+        "sha256": "838a3df7e74bec49cdc198c1432d39654a529a3dac9f20909be0ee37236dfe3e"
+      }
+    ],
+    "design": {
+      "origins": 19,
+      "models": [
+        "v0.8-a u",
+        "v0.8-a stake return u"
+      ],
+      "runs_per_origin_and_model": 200,
+      "batches": "10 batches of 20 runs, base seeds 0 to 9",
+      "draw_seed": 0,
+      "horizons_days": [
+        30,
+        90,
+        180
+      ],
+      "held_back_from": "2025-11-19"
+    }
+  },
+  "environment": {
+    "cpu": "Intel Core i7-13700F, 24 threads",
+    "os": "Linux",
+    "python": "3.13.12",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "pandas": "2.3.3",
+    "blas": "OpenBLAS 0.3.34 as shipped in the numpy wheel, Haswell kernel chosen at run time, thread count at its default",
+    "note": "The fitted coefficients depend on this in their last binary digit. See reproduction_limits."
+  },
+  "outputs_sha256": {
+    "development-runs.csv.gz": "5c8f9e128b6b33789ef2938703d0d242f55820df3b8638d5605f2f504a3448b6",
+    "development-specifications.csv": "2018973b15d756eecd5a4201b7609d3f8f30d9b2c46a8e332cd8a53d6e6fc27d",
+    "development-distribution.csv": "63112c2776a0fc8b522fc7cd1e5f6e174989ca335731e313bdbe3fd9af2106f8",
+    "development-distribution-summary.csv": "5a04bec2a34150133199fa11222603283a3469e6fa98338a459d2cd7e0c970b5",
+    "verdict.json": "b978546d6c3279b8771b01c26b5ac571dadb02787b15ee65450adb97eb658406"
+  },
+  "outputs_note": "README.md is documentation and may be corrected forward, so it is not hashed here. The five files above are the evidence and have not changed since commit 1557e4d13765ff8159f5242c079c5329650a3eba.",
+  "reproduction_limits": {
+    "statement": "The specification hash and the run values are exact. They reproduce byte for byte on the producing machine. On another machine, or with a different BLAS thread count on the same machine, the fitted logit coefficients differ in their last binary digit, and with them the hash and a few run values.",
+    "cause": "The renewal and return logits are fitted by Newton steps whose matrix products and linear solves run in OpenBLAS. OpenBLAS picks its kernel by CPU and splits sums across threads, so the order of floating-point additions differs between machines and thread counts. The results differ by at most a few parts in 10^15.",
+    "evidence": [
+      {
+        "comparison": "producing machine, default threads (the recorded hash) against an AVX-512 machine with the SkylakeX kernel, one thread",
+        "origin": "Banff",
+        "model": "v0.8-a u",
+        "batch": 0,
+        "hashes": [
+          "a66e9cf14cbbc8d8",
+          "e5975c220615fb7c"
+        ],
+        "fields": 58,
+        "differing": "11 renewal coefficients, largest relative difference 5.2e-15, and the digest of the parameter draws derived from them",
+        "equal": "every setting, every input digest and every other coefficient"
+      },
+      {
+        "comparison": "producing machine, default threads against one thread",
+        "origin": "Banff",
+        "model": "v0.8-a u",
+        "batch": 0,
+        "hashes": [
+          "a66e9cf14cbbc8d8",
+          "77caa2cf40c85bcf"
+        ],
+        "differing": "the same 11 renewal coefficients, largest relative difference 6.2e-15, and the draws digest"
+      },
+      {
+        "comparison": "run values on an AVX-512 machine, one thread, against development-runs.csv.gz, batch 0 at Banff, Durango and 2025-10-01",
+        "result": "five of the six origin and model pairs equal in all 120 values. For v0.8-a stake return u at 2025-10-01, 3 of 120 values differ by at most 16 nAVAX."
+      }
+    ],
+    "how_to_read_a_difference": "A differing hash is checked by rebuilding the specification and comparing it field by field. Differences confined to the last digits of fitted coefficients and the digests derived from them are the same model. Any other difference is a different model or input."
+  },
+  "release_base_specification": {
+    "object": "The v0.8.0 base model at origin 2025-11-18 as the Milestone 2 sweep builds it: one run, 365 days, the sweep design's 24,896 parameter draws attached.",
+    "hashes": {
+      "producing machine, default threads, as the sweep executed it": "0bf2479578a89cf0",
+      "producing machine, one thread": "b61e21ac6c437dc8",
+      "AVX-512 machine, SkylakeX kernel": "56b5c9dcd1a87527"
+    },
+    "source_equality": "On the AVX-512 machine the hash is 56b5c9dcd1a87527 at the sweep's execution commit 5d05910059d7a6aacf9e7262abe5d241dbd4733b, at the tag commit b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc and at 0cc9b2c614b70a67b844437c72fe3538196e88c1. The three commits build the same model.",
+    "tag_message": "The tag message of model-v0.8.0 cites specification hash 6b5c978ee2afecc1 as the witness that 5d05910 and b18a4a2 build the same model. The construction behind that number was not recorded, and none of the constructions tried on either machine reproduces it. The witness that reproduces is the hash above. The equality it was cited for holds."
+  }
+}

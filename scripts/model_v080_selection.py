@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -44,6 +45,7 @@ from model_development_scores import (
 )
 
 from avalanche_research.model import evaluation
+from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
 
 FOLDER = Path(__file__).resolve().parents[1] / "results" / "model-v0.8.0-selection"
 CHALLENGER, INCUMBENT = "v0.8-a stake return u", "v0.8-a u"
@@ -51,22 +53,39 @@ PIN = Path("data/pins/p2-model-v0.8.json")
 
 
 VARIABLES = ("active_validator_stake_navax", "active_validators")
+# Every cell holds these forecasts once: the two models, each pooled with N1d, the point benchmarks N1 to N3, the dressed
+# benchmarks N1d and N2d, and the local-level model N4 (``scripts/model_distribution_scores.py``).
+FORECASTS = (CHALLENGER, INCUMBENT, f"{CHALLENGER} pool", f"{INCUMBENT} pool", *evaluation.BENCHMARKS, "N1d", "N2d", "N4")
+
+
+def expected_cells() -> dict[tuple[str, str, int], tuple[str, ...]]:
+    """The design's cells, origin, variable and horizon, each with the forecasts it must hold exactly once. A horizon
+    that would reach the held-back period, from ``LOCKBOX_FIRST_DAY``, is not scored, so late origins have fewer cells:
+    108 cells of 10 forecasts."""
+    last_day = LOCKBOX_FIRST_DAY - timedelta(days=1)
+    return {(origin, variable, horizon): FORECASTS
+            for origin, day in {**UPGRADES, **QUARTERS}.items() for variable in VARIABLES for horizon in HORIZONS
+            if day + timedelta(days=horizon) <= last_day}
 
 
 def checked_scores(scores: pd.DataFrame) -> pd.DataFrame:
-    """Refuse a score table that is not the design: the 19 origins, two variables, the three horizons as exact whole
-    days, and one score per model in every cell."""
-    dates = {**UPGRADES, **QUARTERS}
+    """Refuse a score table that is not the design: the three horizons as exact whole days, every expected cell of
+    ``expected_cells`` present and no other, and in each cell exactly one score for each of its forecasts. A cell
+    missing whole, with every one of its forecasts, is refused like a cell missing one model."""
     horizons = pd.to_numeric(scores["horizon_days"], errors="coerce")
     if not horizons.isin([float(h) for h in HORIZONS]).all():
         raise ValueError(f"horizons must be exactly {HORIZONS} days, not {sorted(scores['horizon_days'].unique())}")
-    if set(scores["origin"]) != set(dates) or set(scores["variable"]) != set(VARIABLES):
-        raise ValueError("the scores must cover exactly the 19 development origins and the two variables")
-    # A horizon that would reach the held-back period is not scored, so late origins have fewer cells.
+    expected = expected_cells()
     keys = ["origin", "variable", "horizon_days"]
-    cells = scores.assign(horizon_days=horizons.astype(int)).groupby(keys)["forecast"].agg(list)
-    if any(sorted(f.count(model) for model in (CHALLENGER, INCUMBENT)) != [1, 1] for f in cells):
-        raise ValueError("every scored origin, variable and horizon needs exactly one score for each of the two models")
+    observed = {tuple(key): sorted(forecasts)
+                for key, forecasts in scores.assign(horizon_days=horizons.astype(int)).groupby(keys)["forecast"].agg(list).items()}
+    missing, extra = sorted(set(expected) - set(observed)), sorted(set(observed) - set(expected))
+    if missing or extra:
+        raise ValueError(f"the scores must cover exactly the design's {len(expected)} cells: "
+                         f"{len(missing)} missing {missing[:3]}, {len(extra)} unexpected {extra[:3]}")
+    for key, forecasts in expected.items():
+        if observed[key] != sorted(forecasts):
+            raise ValueError(f"cell {key} must hold exactly one score for each of {sorted(forecasts)}, not {observed[key]}")
     return scores.assign(horizon_days=horizons.astype(int))
 
 
