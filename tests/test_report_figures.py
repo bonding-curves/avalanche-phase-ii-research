@@ -8,10 +8,13 @@ import pytest
 from bokeh.models import (
     ColumnDataSource,
     CustomJS,
+    DataTable,
     Div,
+    HoverTool,
     LinearColorMapper,
     Plot,
     Select,
+    Title,
 )
 
 from avalanche_research.analysis.report_figures import (
@@ -124,6 +127,10 @@ def sobol_data():
                 "Total-order low (95%)": 0.9,
                 "Total-order high (95%)": 1.4,
                 "Converged": False,
+                "Largest change when the sample size doubled": 0.027211364,
+                "Base sample size": 512,
+                "status": "assessable",
+                "convergence_status": "assessable",
             }
         ]
     )
@@ -156,6 +163,7 @@ def recommendation_data():
                 "Tier": "per-goal range",
                 "Value or range": "not found",
                 "Confidence rating": "not rated",
+                "Confidence basis": "Family against matched baseline across nine cells and shared anchors",
                 "Evidence": "synthetic.csv",
                 "Status": "not_found",
                 "Pass share": 0.7,
@@ -428,3 +436,163 @@ def test_required_schema_and_provenance_refused():
         correlation_heatmap(pd.DataFrame(), provenance=PROVENANCE)
     with pytest.raises(FigureContractError, match="Provenance"):
         recommendation_table(recommendation_data(), provenance={})
+
+
+def test_sobol_selected_facet_visibly_displays_failed_rule_and_source_status():
+    frame = sobol_data()
+    layout = sobol_figure(frame, provenance=PROVENANCE)
+    titles = [model.text for model in layout.select({"type": Title})]
+    assert any(
+        "Convergence: FAILED" in title
+        and "0.027211364" in title
+        and "limit: 0.02" in title
+        and "N=512" in title
+        for title in titles
+    )
+    visible_text = " ".join(model.text for model in layout.select({"type": Div}))
+    assert "Source status: assessable" in visible_text
+    assert "1 failed" in visible_text
+    assert "maximum movement across all first/total input indices" in visible_text
+    hover = next(iter(layout.select({"type": HoverTool})))
+    assert ("status", "@{status}") in hover.tooltips
+    assert ("convergence_status", "@{convergence_status}") in hover.tooltips
+    assert (
+        "Largest change when the sample size doubled",
+        "@{Largest change when the sample size doubled}",
+    ) in hover.tooltips
+    source = next(s for s in sources(layout) if "First-order index" in s.data)
+    assert source.data["Convergence interpretation"] == ["failed"]
+    assert (
+        source.tags[0]["canonical_frame_csv_sha256"]
+        == hashlib.sha256(frame.to_csv(index=False).encode()).hexdigest()
+    )
+    assert frame.columns.tolist() == source.tags[0]["columns"]
+
+
+def test_sobol_status_and_undefined_details_switch_with_whole_facet(tmp_path):
+    failed = sobol_data()
+    passed = failed.assign(
+        **{
+            "Competing yield (%)": 7.0,
+            "Converged": True,
+            "Largest change when the sample size doubled": 0.0123,
+        }
+    )
+    undefined = failed.assign(
+        **{
+            "Horizon (days)": 180,
+            "Converged": pd.NA,
+            "Largest change when the sample size doubled": np.nan,
+            "First-order index": np.nan,
+            "Total-order index": np.nan,
+            "status": "unassessable",
+            "convergence_status": "unassessable",
+            "reason": "constant KPI",
+            "convergence_reason": "undefined index",
+        }
+    )
+    layout = sobol_figure(pd.concat((failed, passed, undefined)), provenance=PROVENANCE)
+    selector = next(iter(layout.select({"type": Select})))
+    callback = next(iter(layout.select({"type": CustomJS})))
+    assert len(selector.options) == len(callback.args["panels"]) == 3
+    labels = [label for _, label in selector.options]
+    assert "FAILED" in labels[0] and "3.0" in labels[0]
+    assert "CONVERGED" in labels[1] and "7.0" in labels[1]
+    assert "UNDEFINED" in labels[2] and "180" in labels[2]
+    assert callback.args["container"].children == [callback.args["panels"][0]]
+    for panel, label in zip(callback.args["panels"], labels, strict=True):
+        assert panel.name == label
+        assert len(list(panel.select({"type": Plot}))) == 1
+    missing_panel = callback.args["panels"][2]
+    assert len(list(missing_panel.select({"type": DataTable}))) == 1
+    assert "UNDEFINED" in missing_panel.children[0].text
+    assert "Source status: unassessable" in missing_panel.children[0].text
+    assert "max movement: undefined" in missing_panel.children[0].text
+    # The undefined table is a child of its facet, never an extra Scope option.
+    html = write_standalone_html(
+        layout, tmp_path / "scoped-sobol.html", title="Sobol"
+    ).read_text()
+    assert "container.children = [panels[Number(cb_obj.value)]]" in html
+    assert "Details 4" not in html
+
+
+@pytest.mark.parametrize(
+    "flag,movement",
+    [
+        (True, 0.027),
+        (False, 0.02),
+        (False, np.nan),
+        (None, 0.03),
+        ("unknown", 0.03),
+        (1, 0.03),
+        (False, float("inf")),
+        (False, -0.03),
+    ],
+)
+def test_sobol_flag_or_movement_mutation_cannot_hide_a_failure(flag, movement):
+    frame = sobol_data().assign(
+        **{"Converged": flag, "Largest change when the sample size doubled": movement}
+    )
+    with pytest.raises(FigureContractError, match="Converged|convergence|Convergence"):
+        sobol_figure(frame, provenance=PROVENANCE)
+
+
+def test_sobol_exact_limit_is_visibly_converged_and_missing_source_status_refuses():
+    frame = sobol_data().assign(
+        **{"Converged": True, "Largest change when the sample size doubled": 0.02}
+    )
+    layout = sobol_figure(frame, provenance=PROVENANCE)
+    assert any(
+        "Convergence: CONVERGED" in model.text
+        for model in layout.select({"type": Title})
+    )
+    for column in (
+        "status",
+        "convergence_status",
+        "Converged",
+        "Largest change when the sample size doubled",
+    ):
+        with pytest.raises(FigureContractError, match="Missing report columns"):
+            sobol_figure(frame.drop(columns=column), provenance=PROVENANCE)
+
+
+def test_recommendation_confidence_alias_and_point_range_limits_are_visible():
+    frame = recommendation_data().assign(
+        **{
+            "Confidence rating": "High",
+            "Value or range": 0.052418318344280124,
+            "Tier": "point estimate",
+            "Evidence": "Observed A-only point; no validated point interval",
+        }
+    )
+    layout = recommendation_table(frame, provenance=PROVENANCE)
+    table = next(iter(layout.select({"type": DataTable})))
+    confidence = next(c for c in table.columns if c.field == "Confidence rating")
+    assert confidence.title == "Family-vs-baseline confidence"
+    assert any(c.field == "Confidence basis" for c in table.columns)
+    assert any(c.field == "Evidence" for c in table.columns)
+    assert table.source.data["Confidence rating"] == ["High"]
+    assert table.source.data["Confidence basis"] == frame["Confidence basis"].tolist()
+    assert table.source.data["Evidence"] == frame.Evidence.tolist()
+    visible = " ".join(model.text for model in layout.select({"type": Div}))
+    assert "view label for CSV Confidence rating" in visible
+    assert frame["Confidence basis"].iloc[0] in visible
+    assert "does not rate a selected optimum or an individual box" in visible
+    assert "Selected A points have no validated point interval" in visible
+    assert (
+        "sampled A-selected/B-confirmed candidates, provisional until fresh-seed reruns"
+        in visible
+    )
+    assert (
+        table.source.tags[0]["canonical_frame_csv_sha256"]
+        == hashlib.sha256(frame.to_csv(index=False).encode()).hexdigest()
+    )
+    assert "Family-vs-baseline confidence" not in frame.columns
+
+
+def test_recommendation_confidence_basis_cannot_be_dropped_from_view():
+    with pytest.raises(FigureContractError, match="Confidence basis"):
+        recommendation_table(
+            recommendation_data().drop(columns="Confidence basis"),
+            provenance=PROVENANCE,
+        )

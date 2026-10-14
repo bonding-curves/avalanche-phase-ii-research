@@ -24,6 +24,15 @@ import pandas as pd
 from avalanche_research.analysis import report_figures as figures
 from avalanche_research.analysis.m2_contract import CHAIN_INFLATION, COSTS, PRICE_FACTOR
 from avalanche_research.analysis.m2_resampling import replicated_noise_share
+from avalanche_research.analysis.report_summaries import (
+    contract_dispositions,
+    correction_summary_rows,
+    found_label,
+    paired_margin_fields,
+    recommendation_reversal_fields,
+    selector,
+    tree_top_input,
+)
 from avalanche_research.model.kpis import kpi_table
 
 CONTEXT = {"family": "Design family", "yield_pp": "Competing yield (%)",
@@ -105,7 +114,7 @@ def cart_tables(directory, wide):
             if "__prim__" in path.name:
                 confirmation = result.get("confirmation") or {}
                 shared = context | {"Failure condition": scope["measure"] + ":" + scope["threshold_alternative"],
-                    "Found": result["found"], "Meets both standards": result["found"],
+                    "Found": found_label(result), "Found boolean": result["found"], "Meets both standards": result["found"],
                     "Coverage": confirmation.get("coverage"), "Density": confirmation.get("density"),
                     "Runs in box": confirmation.get("runs_in_box"), "Failing runs in box": confirmation.get("failing_in_box"),
                     "status": result["status"], "reason": result["reason"], "Box": "A-selected, B-confirmed"}
@@ -127,7 +136,7 @@ def cart_tables(directory, wide):
                     points.append(context | {"Failure condition": shared["Failure condition"], "Run": row.row_id,
                         "Role": row.block, "First input": features[0], "Second input": features[1],
                         "First input value": row.renewal_response, "Second input value": row.entry_response,
-                        "Failed": bool(failure), "Inside box": bool(membership), "Found": result["found"]})
+                        "Failed": bool(failure), "Inside box": bool(membership), "Found": found_label(result), "Found boolean": result["found"]})
                 continue
             final = result.get("final_tree") or {}
             interval = result.get("accuracy_interval95") or [None, None]
@@ -137,7 +146,7 @@ def cart_tables(directory, wide):
             accuracies.append(context | {"Target type": result["target_type"],
                 "Cross-validated accuracy": accuracy, "Share with no splits": majority,
                 "Accuracy low (95%)": interval[0], "Accuracy high (95%)": interval[1],
-                "Margin": result.get("margin"), "Informative": result.get("informative"),
+                "Margin": result.get("margin"), "Informative": result.get("informative"), **paired_margin_fields(result), **tree_top_input(result),
                 "Paired difference low (95%)": paired[0], "Paired difference high (95%)": paired[1],
                 "Accuracy-low minus OOF training-majority display": result.get("raw_accuracy_low_minus_majority_display"),
                 "Depth": final.get("depth"), "Leaves": final.get("leaves"), "Folds": 10,
@@ -172,16 +181,17 @@ def recommendation_rows(directory):
         for bound in bounds:
             rows.append(record | {"input": bound["input"], "Value or range": f"[{bound['lower']}, {bound['upper']}]" if record["status"] == "found" else None,
                 "Recommendation": requested, "Requested tier": requested, "Tier": granted,
-                "Evidence": "A-selected bounds and unchanged B confirmation; provisional until QB19 reruns"})
+                "Evidence": "A-selected bounds and unchanged B confirmation; provisional until QB19 reruns",
+                **recommendation_reversal_fields(record | {"input": bound["input"]}, point=False)})
     for record in points.to_dict("records"):
         rows.append(record | {"Recommendation": "point estimate", "Tier": "point estimate" if record["status"] == "assessable" else record["status"], "target": "issuance_saved",
-                              "Value or range": record.get("value"), "Evidence": "Observed A point; no validated point interval"})
+                              "Value or range": record.get("value"), "Evidence": "Observed A point; no validated point interval",
+                              **recommendation_reversal_fields(record, point=True)})
     result = pd.DataFrame(rows)
     ratings = read_csv(directory / "confidence-ratings.csv")
     lookup = ratings[ratings.input.eq("family_against_matched_baseline")].set_index(["family", "yield_pp", "horizon_days", "measure"]).confidence_rating.to_dict()
     result["Confidence rating"] = [lookup.get((r["family"], r["yield_pp"], r["horizon_days"], r.get("target")), "not rated") for r in rows]
     result["Confidence basis"] = "Family against matched baseline across nine cells, zero and three stress settings; other goals not rated by this comparison"
-    result["Response value that reverses it"] = "See table-sign-changes.csv at response-band resolution"
     result["Competing yields where it holds"] = result.yield_pp
     return headers(result, {"target": "Goal", "pass_share": "Pass share", "ci_low": "Pass share low (95%)",
         "ci_high": "Pass share high (95%)", "meets_90": "Meets at 90%", "meets_70": "Meets at 70%", "meets_50": "Meets at 50%"})
@@ -278,9 +288,27 @@ def main():
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--chrome", type=Path, required=True, help="Local headless Chromium executable for PNG exports")
     parser.add_argument("--analysis-revision", default="uncommitted-source-bound-by-sha256", help="Delivery revision containing the exact hashed analysis sources")
+    parser.add_argument("--parent-report", type=Path, help="Immutable original report directory for a correction delta")
+    parser.add_argument("--parent-report-sha256", help="External SHA256 of the original analysis-receipt.json")
     args = parser.parse_args()
+    if args.output.exists() and any(args.output.iterdir()):
+        raise ValueError("use a new empty report directory; preserve original artifacts")
+    if bool(args.parent_report) != bool(args.parent_report_sha256):
+        raise ValueError("parent report path and external receipt hash must be supplied together")
+    parent = None
+    if args.parent_report:
+        if sha(args.parent_report / "analysis-receipt.json") != args.parent_report_sha256:
+            raise ValueError("parent report receipt differs from external hash")
+        parent = json.loads((args.parent_report / "analysis-receipt.json").read_text())
+        if args.output.resolve() == args.parent_report.resolve():
+            raise ValueError("correction output must differ from original report")
+        for name, digest in parent["outputs"].items():
+            if sha(args.parent_report / name) != digest:
+                raise ValueError("changed original report artifact")
     args.output.mkdir(parents=True, exist_ok=True)
     inputs = json.loads((args.inputs / "inputs-manifest.json").read_text())
+    if parent is not None and parent["inputs"] != inputs:
+        raise ValueError("correction must use unchanged original inputs")
     if sha(args.inputs / "wide.parquet") != inputs["wide_sha256"]:
         raise ValueError("changed wide input cache")
     if sha(args.inputs / "bootstrap.npz") != inputs["bootstrap"]["file_sha256"]:
@@ -289,6 +317,8 @@ def main():
     if not numerics["complete"]:
         raise ValueError("numerical methods incomplete")
     decisions = json.loads((args.decisions / "decisions-receipt.json").read_text())
+    if parent is not None and (parent["numerics_receipt_sha256"] != sha(args.numerics / "numerics-manifest.json") or parent["decisions_receipt_sha256"] != sha(args.decisions / "decisions-receipt.json")):
+        raise ValueError("correction must retain original numerical and decision receipts")
     if decisions["status"] != "computed_pending_review":
         raise ValueError("decision methods incomplete")
     for name, digest in decisions["outputs"].items():
@@ -310,6 +340,8 @@ def main():
     sobol = headers(sensitivity, SOBOL)
     wide = duckdb.sql("SELECT * FROM read_parquet(?) WHERE block IN ('A','B')", params=[str(args.inputs / "wide.parquet")]).df()
     accuracy, nodes, boxes, points, task_bindings = cart_tables(args.cart_prim, wide)
+    if parent is not None and parent["cart_tasks"] != task_bindings:
+        raise ValueError("correction must retain original CART/PRIM task bytes")
     ranking = headers(read_csv(args.decisions / "design-rankings.csv"), {"family": "Design", "mean": "Mean", "p10": "10th percentile", "p90": "90th percentile", "rank": "Rank", "runs": "Runs", "order_same_at_every_yield": "Order same at every yield"})
     ranking["Design family"] = ranking.Design
     recommendations = recommendation_rows(args.decisions)
@@ -348,27 +380,34 @@ def main():
     box_panel = box_panel[box_panel["Failure condition"].eq("issuance_saved:primary")]
     recommendation_panel = primary(recommendations, grid=True)
     recommendation_panel = recommendation_panel[(recommendation_panel.Goal.eq("all_joint") & recommendation_panel["Cost level"].eq("mid") & recommendation_panel["Threshold alternative"].eq("primary")) | recommendation_panel.Recommendation.eq("point estimate")]
-    recommendation_panel = recommendation_panel[["Recommendation", "Goal", "Input", "Tier", "Value or range", "Confidence rating", "Evidence"]]
+    recommendation_panel = recommendation_panel[["Recommendation", "Goal", "Input", "Tier", "Value or range", "Confidence rating", "Confidence basis", "Evidence"]]
     recommendation_panel["Input"] = recommendation_panel.Input.fillna("no confirmed range")
     recommendation_panel["Value or range"] = recommendation_panel["Value or range"].fillna("not found")
-    recommendation_panel["Evidence"] = np.where(recommendation_panel.Tier.eq("point estimate"), "Observed A point.", np.where(recommendation_panel.Tier.eq("global range"), "Confirmed fixed A box.", "No confirmed range."))
     captures = {
         "figure-2-correlations": (figures.correlation_heatmap(matrix_panel, provenance=provenance), 1550, "Ramp, 5% competing yield, 365 days. Spearman on full A+B response distribution. Stars use supplied BH 5% values. All 23 measures shown."),
         "figure-3-trees": (figures.tree_figure(tree_panel, provenance=provenance, facets=(*facets, "Measure")), 650, "Ramp, 5% competing yield, 365 days. Target: issuance saved > 0. Responses vary as inputs. Descriptive classification tree; OOF validation is in Table 10."),
-        "figure-4-sobol": (figures.sobol_figure(primary(sobol, measure="issuance_saved"), provenance=provenance), 520, "Ramp, 5% competing yield, 365 days. Issuance saved. N=512 original Saltelli units, 1000 shared bootstrap draws. See CSV for convergence status."),
+        "figure-4-sobol": (figures.sobol_figure(primary(sobol, measure="issuance_saved"), provenance=provenance), 700, "Ramp, 5% competing yield, 365 days. Issuance saved. N=512 original Saltelli units, 1000 shared bootstrap draws. The visible qualification reports the unchanged convergence verdict and largest movement against the frozen 0.02 limit."),
         "figure-5-regions": (figures.region_figure(point_panel, box_panel, provenance=provenance, x_input="renewal_response", y_input="entry_response", facets=(*facets, "Failure condition")), 780, "Ramp, 5% competing yield, 365 days. Failure: issuance saved <= 0. Points show A discovery and B confirmation roles; full box membership can depend on target_min_rate."),
         "figure-6-designs": (figures.design_ranking_figure(primary(ranking, family=False, grid=True, measure="issuance_saved"), provenance=provenance), 580, "5% competing yield, 365 days. Both responses in middle band [0.0333,0.0667). Issuance saved relative to each matched baseline. Vertical bars are 10th–90th percentile run spread."),
-        "table-13-recommendations": (figures.recommendation_table(recommendation_panel, provenance=provenance), 450, "Ramp, 5% competing yield, 365 days. Both responses in middle band. Global range uses 1.5% annual operating cost, main stake/inflation limits and 90% pass share. Point value is a fraction; all tiers provisional.")}
+        "table-13-recommendations": (figures.recommendation_table(recommendation_panel, provenance=provenance), 750, "Ramp, 5% competing yield, 365 days. Both responses in middle band. Global range uses 1.5% annual operating cost, main stake/inflation limits and 90% pass share. Point value is a fraction; all tiers provisional.")}
     for name, (layout, height, scope) in captures.items():
         screenshot(layout, args.output / (name + ".png"), args.chrome, height=height, scope=scope)
     scalar_rows = []
-    def scalar(key, value, unit, source, scope):
-        scalar_rows.append({"Summary key": key, "Value": value, "Unit": unit, "Display value": str(value), "Source artifact": source, "Source scope": scope})
+    def scalar(key, value, unit, source, scope, **metadata):
+        scalar_rows.append({"Summary key": key, "Value": value, "Unit": unit, "Display value": str(value), "Source artifact": source, "Source scope": scope, **metadata})
     for method, values, column in (("MM1", associations, "coefficient"), ("MM3", sensitivity, "total")):
         selected = values[(values.renewal_band.eq("all") if "renewal_band" in values else np.ones(len(values), bool)) & values.status.eq("assessable") & values[column].notna()]
         for scope, group in selected.groupby(["family", "yield_pp", "horizon_days", "measure"] + (["method"] if method == "MM1" else []), dropna=False):
             best = group.loc[group[column].abs().idxmax()]
-            scalar(method + ".top-input." + ".".join(map(str, scope)), best["input"], "input", "figure-2-correlations.csv" if method == "MM1" else "figure-4-sobol.csv", str(scope))
+            qualification = {} if method == "MM1" else {
+                "Converged": best["converged"],
+                "Largest change when the sample size doubled": best["max_change"],
+                "Convergence status": best["convergence_status"],
+                "Base sample size": best["base_n"],
+                "Qualification": "Saved group-max verdict across all inputs; not converged is retained, not accepted",
+                "Source selector": selector({CONTEXT[k]: best[k] for k in ["family", "yield_pp", "horizon_days", "measure", "input"]}, [CONTEXT[k] for k in ["family", "yield_pp", "horizon_days", "measure", "input"]]),
+            }
+            scalar(method + ".top-input." + ".".join(map(str, scope)), best["input"], "input", "figure-2-correlations.csv" if method == "MM1" else "figure-4-sobol.csv", str(scope), **qualification)
     ratings = read_csv(args.decisions / "confidence-ratings.csv")
     for scope, group in ratings.groupby(["family", "yield_pp", "horizon_days", "method"], dropna=False):
         prefix = ".".join(map(str, scope))
@@ -395,6 +434,9 @@ def main():
     scalar("CART.unassessable", int(accuracy.status.eq("unassessable").sum()), "targets", "table-10-tree-accuracy.csv", "every unsupported target retained")
     scalar("MM7.timed-evaluation", "pending owner timed record", "verdict", "analysis-receipt.json", "contract 2.8")
     scalar("scientific-acceptance", "pending independent review", "verdict", "analysis-receipt.json", "N1-N3")
+    scalar_rows.extend(correction_summary_rows(accuracy, read_csv(args.decisions / "point-estimates.csv"), ranking))
+    if pd.DataFrame(scalar_rows)["Summary key"].duplicated().any():
+        raise ValueError("summary selectors must identify exactly one cell")
     csv(pd.DataFrame(scalar_rows), args.output / "summary.csv")
     outputs = {p.name: sha(p) for p in sorted(args.output.iterdir()) if p.is_file() and p.name != "analysis-receipt.json"}
     receipt = {"schema": "m2-report-analysis/v1", "status": "computed_pending_review", "outputs": outputs,
@@ -405,6 +447,9 @@ def main():
         "model_tag": "model-v0.8.0", "model_tag_target": "b18a4a2",
         "noise_diagnostic": {"method": "nonnegative balanced one-way random-effects moments, whole-point bootstrap", "reference": "https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/onewayan.htm", "qualification": "conditional design diagnostic; no empirical QMC coverage claim"},
         "PNG_scope": {"family": "ramp", "yield_pp": 5., "horizon_days": 365, "response": "all", "method": "spearman", "failure": "issuance_saved"},
+        "contract_dispositions": contract_dispositions(),
+        "correction_of": {"analysis_receipt_sha256": args.parent_report_sha256, "analysis_delivery_revision": parent["analysis_delivery_revision"]} if parent else None,
+        "decision_inputs": decisions["outputs"],
         "limitations": ["independent review pending", "tiers provisional until QB19 fresh-seed reruns", "MM7 timed evaluation remains owner-supplied", "no independent conservation proof in producer receipt", "float64 KPI outputs, not integer daily replay", "BH uses conditional bootstrap interval inversion; empirical QMC FDR not established"]}
     (args.output / "analysis-receipt.json").write_text(json.dumps(receipt, indent=2, allow_nan=False) + "\n")
     print(json.dumps({"outputs": len(outputs), "status": receipt["status"]}), flush=True)

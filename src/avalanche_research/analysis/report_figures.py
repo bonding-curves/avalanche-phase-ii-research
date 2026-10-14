@@ -27,6 +27,7 @@ from bokeh.models import (
     Select,
     Span,
     TableColumn,
+    Title,
 )
 from bokeh.palettes import RdBu11, Viridis256
 from bokeh.plotting import figure
@@ -128,7 +129,11 @@ def _wrap(title: str, panels: list, provenance: Mapping[str, str], note: str):
         options = []
         for index, panel in enumerate(panels):
             title_model = getattr(panel, "title", None)
-            label = getattr(title_model, "text", None) or f"Details {index + 1}"
+            label = (
+                getattr(title_model, "text", None)
+                or panel.name
+                or f"Details {index + 1}"
+            )
             options.append((str(index), label))
         visible = column(panels[0], sizing_mode="stretch_width")
         selector = Select(
@@ -388,6 +393,11 @@ def sobol_figure(
             "Total-order index",
             "Total-order low (95%)",
             "Total-order high (95%)",
+            "Converged",
+            "Largest change when the sample size doubled",
+            "Base sample size",
+            "status",
+            "convergence_status",
         ),
     )
     panels = []
@@ -395,6 +405,66 @@ def sobol_figure(
         if rows.Input.duplicated().any():
             raise FigureContractError("Sobol inputs overlap; declare additional facets")
         plotted = rows.copy()
+        movement_name = "Largest change when the sample size doubled"
+        movements = pd.to_numeric(rows[movement_name], errors="raise").to_numpy(float)
+        flags = []
+        for value, movement in zip(rows.Converged, movements, strict=True):
+            if pd.isna(value):
+                flag = None
+            elif isinstance(value, (bool, np.bool_)):
+                flag = bool(value)
+            elif isinstance(value, str) and value in ("True", "False"):
+                flag = value == "True"
+            else:
+                raise FigureContractError("Converged must be Boolean or undefined")
+            if np.isnan(movement):
+                if flag is not None:
+                    raise FigureContractError(
+                        "Undefined movement requires undefined convergence"
+                    )
+            elif (
+                not np.isfinite(movement)
+                or movement < 0
+                or flag is None
+                or flag != (movement <= 0.02)
+            ):
+                raise FigureContractError(
+                    "Convergence flag differs from the frozen 0.02 movement rule"
+                )
+            flags.append(flag)
+        failed = sum(flag is False for flag in flags)
+        passed = sum(flag is True for flag in flags)
+        undefined_count = sum(flag is None for flag in flags)
+        state = (
+            "FAILED"
+            if failed
+            else "UNDEFINED"
+            if undefined_count == len(flags)
+            else "PARTLY UNDEFINED"
+            if undefined_count
+            else "CONVERGED"
+        )
+        finite_movements = movements[np.isfinite(movements)]
+        maximum = (
+            f"{finite_movements.max():.9f}" if len(finite_movements) else "undefined"
+        )
+        bases = pd.to_numeric(rows["Base sample size"], errors="raise").to_numpy(float)
+        if (
+            not np.isfinite(bases).all()
+            or (bases < 2).any()
+            or (bases != np.floor(bases)).any()
+        ):
+            raise FigureContractError("Base sample size must be a known integer >=2")
+        base_label = ", ".join(str(int(value)) for value in sorted(set(bases)))
+        qualification = f"Convergence: {state} | max movement: {maximum} | limit: 0.02 | N={base_label}"
+        status_label = ", ".join(dict.fromkeys(rows.status.astype(str)))
+        convergence_label = ", ".join(
+            dict.fromkeys(rows.convergence_status.astype(str))
+        )
+        plotted["Convergence interpretation"] = [
+            "undefined" if flag is None else "converged" if flag else "failed"
+            for flag in flags
+        ]
         plotted["_y_first"] = np.arange(len(rows)) + 0.12
         plotted["_y_total"] = np.arange(len(rows)) - 0.12
         source = _source(plotted, csv_frame=rows)
@@ -404,6 +474,7 @@ def sobol_figure(
             height=max(260, len(rows) * 65),
             tools="pan,wheel_zoom,reset,save",
         )
+        plot.add_layout(Title(text=qualification, text_font_size="12px"), "above")
         for name, y, color in (
             ("First-order", "_y_first", "#2166ac"),
             ("Total-order", "_y_total", "#b2182b"),
@@ -439,21 +510,57 @@ def sobol_figure(
                     line_dash="dashed",
                 )
             )
-        plot.add_tools(_hover(rows))
-        panels.append(plot)
+        plot.add_tools(
+            _hover(
+                rows.assign(
+                    **{
+                        "Convergence interpretation": plotted[
+                            "Convergence interpretation"
+                        ]
+                    }
+                )
+            )
+        )
+        annotation = Div(
+            text=(
+                f"<p><strong>{escape(qualification)}</strong><br>"
+                f"Source status: {escape(status_label)}. Convergence source status: {escape(convergence_label)}. "
+                f"Input rows: {passed} converged, {failed} failed, {undefined_count} undefined. "
+                "The measure's maximum movement across all first/total input indices supplies each repeated flag. "
+                "Undefined indices are not zero importance.</p>"
+            )
+        )
+        facet_children = [annotation, plot]
         undefined = rows[
-            [name for name in ("Status", "Reason", "Input") if name in rows]
+            [
+                name
+                for name in (
+                    "Input",
+                    "status",
+                    "reason",
+                    "Converged",
+                    movement_name,
+                    "convergence_status",
+                    "convergence_reason",
+                )
+                if name in rows
+            ]
         ]
         if any(
             rows[name].isna().any()
             for name in ("First-order index", "Total-order index")
         ):
-            panels.append(_table(undefined))
+            facet_children.append(_table(undefined))
+        panels.append(
+            column(
+                *facet_children, name=f"{title} | {state}", sizing_mode="stretch_width"
+            )
+        )
     return _wrap(
         "Variance sensitivity",
         panels,
         provenance,
-        "Responses are inputs, not filters. Finite indices outside [0,1] are retained. Undefined indices are not zero importance. Intervals and convergence status remain in hover data.",
+        "Responses are inputs, not filters. Finite indices outside [0,1] are retained. Convergence uses the unchanged maximum movement limit 0.02. Each selected facet displays its own source status and movement; hover retains every supplied value and interval.",
     )
 
 
@@ -599,14 +706,24 @@ def recommendation_table(frame: pd.DataFrame, *, provenance: Mapping[str, str]):
             "Tier",
             "Value or range",
             "Confidence rating",
+            "Confidence basis",
             "Evidence",
         ),
     )
+    table = _table(frame, max(250, min(700, len(frame) * 32 + 50)))
+    for table_column in table.columns:
+        if table_column.field == "Confidence rating":
+            table_column.title = "Family-vs-baseline confidence"
+            table_column.width = 550
+    comparison_basis = " | ".join(
+        dict.fromkeys(frame["Confidence basis"].fillna("unspecified").astype(str))
+    )
     return _wrap(
         "Provisional recommendations",
-        [_table(frame, max(250, min(700, len(frame) * 32 + 50)))],
+        [table],
         provenance,
-        "Sweep-based candidates are provisional until fresh-seed reruns. Not found, not applicable and unassessable remain separate states. Pass-share intervals do not certify every point in a continuous range.",
+        "Family-vs-baseline confidence is the view label for CSV Confidence rating, with its comparison scope in Confidence basis. It does not rate a selected optimum or an individual box. Selected A points have no validated point interval. Ranges are sampled A-selected/B-confirmed candidates, provisional until fresh-seed reruns. Pass-share intervals do not certify every point in a continuous range. Not found, not applicable and unassessable remain separate states. "
+        + f"Supplied comparison basis: {comparison_basis}.",
     )
 
 
