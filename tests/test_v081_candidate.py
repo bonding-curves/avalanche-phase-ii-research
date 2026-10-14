@@ -8,6 +8,7 @@ checks the block alone, then the stage, then the variant on the pinned staking p
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import duckdb
 import numpy as np
@@ -25,7 +26,16 @@ from test_delegated_lifecycle import (
 
 from avalanche_research import datasets
 from avalanche_research.catalog import DataError
+from avalanche_research.core.catalog import canonical_bytes, sha256
+from avalanche_research.datasets import pins
 from avalanche_research.datasets.derived import delegation_inputs as di
+from avalanche_research.experiments.v081_inputs import (
+    DELEGATORS_DATASET,
+    PERIODS_DATASET,
+    candidate_tables,
+    pinned_inputs,
+    prepare_candidate,
+)
 from avalanche_research.model import streams
 from avalanche_research.model.delegated_lifecycle import (
     CONTAINMENT,
@@ -34,7 +44,6 @@ from avalanche_research.model.delegated_lifecycle import (
     DelegationMixin,
     benqi_choices,
     delegation_inputs,
-    delegation_terms,
     recent_flow,
 )
 from avalanche_research.model.delegation_blocks import (
@@ -62,7 +71,6 @@ from avalanche_research.model.stake_lifecycle import StakeLifecycle
 from avalanche_research.model.variants import VARIANTS, Prepared
 from avalanche_research.views.model_structure import tiny_stake_lifecycle
 
-RUN = "staking-periods-2026-09-30"
 COLUMNS = ["run", "timestep", "time", "variable", "value", "yield_gap_pp", "model_version"]
 
 
@@ -472,20 +480,68 @@ def built(dataset_id, run=None):
         pytest.skip(f"no built run of {dataset_id} in this checkout")
 
 
+CANDIDATE_PIN = Path("data/pins/p9-model-v0.8.1.json")
+
+
 def pinned_tables(origin):
-    periods, delegators = built("derived.staking-periods", RUN), built("derived.seamed-delegator-stakes")
-    tables = {**di.build(periods, delegators, origin),
-              "terms": delegation_terms(periods, delegators, origin, di.BENQI_FUNDING, di.BENQI_EVIDENCE),
-              "benqi_choices": benqi_choices(periods, delegators, origin, di.BENQI_FUNDING, di.BENQI_EVIDENCE)}
-    return periods, tables
+    """The candidate's tables from its pin, never from the newest build. Skipped while the pin or its runs are absent."""
+    try:
+        inputs = pinned_inputs(CANDIDATE_PIN)
+    except DataError as error:
+        pytest.skip(f"the candidate's pin is not usable in this checkout: {error}")
+    return str(inputs.periods), inputs.periods_run, candidate_tables(str(inputs.periods), str(inputs.delegators), origin)
+
+
+def make_run(root: Path, run: str, dataset_id: str, built_at: str, status: str = "pass") -> Path:
+    capture_dir, dataset_dir = root / run / "capture", root / run / "dataset"
+    capture_dir.mkdir(parents=True)
+    dataset_dir.mkdir(parents=True)
+    parquet = dataset_dir / "table.parquet"
+    duckdb.connect().execute(f"COPY (SELECT '{run}' AS run) TO ? (FORMAT PARQUET)", [str(parquet)])
+    capture_id = f"capture:test:{run}"
+    (capture_dir / "capture.json").write_bytes(canonical_bytes({"capture_id": capture_id, "dataset_id": dataset_id, "completed_at": built_at}))
+    body = parquet.read_bytes()
+    (dataset_dir / "build.json").write_bytes(canonical_bytes({"dataset_id": dataset_id, "source_capture_id": capture_id, "completed_at": built_at,
+                                                              "summary": {"rows": 1}, "outputs": [{"path": parquet.name, "bytes": len(body), "sha256": sha256(body)}]}))
+    (dataset_dir / "check.json").write_bytes(canonical_bytes({"status": status}))
+    return parquet
+
+
+def test_the_candidate_reads_the_pinned_runs_and_never_a_newer_build(tmp_path):
+    root = tmp_path / "runs"
+    pinned_periods = make_run(root, "periods-pinned", PERIODS_DATASET, "2026-09-30T00:00:00Z")
+    make_run(root, "periods-newer", PERIODS_DATASET, "2026-10-14T00:00:00Z")
+    pinned_delegators = make_run(root, "delegators-pinned", DELEGATORS_DATASET, "2026-09-30T00:00:00Z")
+    newer = make_run(root, "delegators-newer", DELEGATORS_DATASET, "2026-10-14T00:00:00Z")
+    pin = pins.pin("candidate", [PERIODS_DATASET, DELEGATORS_DATASET], {PERIODS_DATASET: "periods-pinned", DELEGATORS_DATASET: "delegators-pinned"},
+                   root=root, directory=tmp_path / "pins")
+    path = tmp_path / "pins" / "candidate.json"
+    inputs = pinned_inputs(path, root)
+    # The newest build of both datasets is the unpinned one, and neither is read.
+    assert datasets.parquet_path(DELEGATORS_DATASET, root=root) == newer
+    assert (inputs.periods, inputs.delegators) == (pinned_periods, pinned_delegators)
+    assert (inputs.periods_run, inputs.delegators_run) == ("periods-pinned", "delegators-pinned")
+    assert inputs.delegators_sha256 == pin["runs"][1]["sha256"] == sha256(pinned_delegators.read_bytes())
+    # prepare_candidate reads the pinned files and no other: the one-column synthetic Parquet is refused by the first read.
+    with pytest.raises(Exception, match="role|column|Binder"):
+        prepare_candidate(path, ORIGIN, root=root)
+    # A missing pin, a pin without the delegator stakes, and a pinned file that changed are each refused.
+    with pytest.raises(DataError, match="missing"):
+        pinned_inputs(tmp_path / "pins" / "absent.json", root)
+    pins.pin("periods-only", [PERIODS_DATASET], {PERIODS_DATASET: "periods-pinned"}, root=root, directory=tmp_path / "pins")
+    with pytest.raises(DataError, match="names no run of derived.seamed-delegator-stakes"):
+        pinned_inputs(tmp_path / "pins" / "periods-only.json", root)
+    pinned_delegators.write_bytes(pinned_delegators.read_bytes() + b"x")
+    with pytest.raises(DataError, match="does not verify"):
+        pinned_inputs(path, root)
 
 
 def test_with_no_new_delegations_the_candidate_equals_variant_v080_exactly_at_a_pre_granite_origin():
     origin = date(2022, 10, 18)
-    periods, tables = pinned_tables(origin)
+    periods, run_name, tables = pinned_tables(origin)
     candidate, released = VARIANTS["v0.8.1 candidate"], VARIANTS["v0.8.0"]
-    ours = candidate.prepare(periods, origin, RUN, draws=2, draw_seed=0, delegations=tables)
-    theirs = released.prepare(periods, origin, RUN, draws=2, draw_seed=0)
+    ours = candidate.prepare(periods, origin, run_name, draws=2, draw_seed=0, delegations=tables)
+    theirs = released.prepare(periods, origin, run_name, draws=2, draw_seed=0)
     pd.testing.assert_frame_equal(ours.draws, theirs.draws)
     assert ours.tau == theirs.tau
     still = Prepared({**ours.inputs, "delegation_flow": DelegationFlow()}, ours.draws, ours.tau, ours.tau_source)

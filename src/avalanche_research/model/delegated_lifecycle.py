@@ -753,3 +753,4 @@ def benqi_choices(periods_parquet: str, delegators_parquet: str, origin: date, b
     ).df()
     _identified(rows["validator_transaction_hash"], "a BENQI delegation's validator period")
     return rows
+

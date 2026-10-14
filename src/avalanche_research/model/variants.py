@@ -285,7 +285,8 @@ def _delegated_candidate(periods: str, origin: date, run: str, draws: int, draw_
                          delegations: dict[str, pd.DataFrame] | None = None, operator_events: list[dict] | None = None,
                          operator_attributions: list[dict] | None = None) -> Prepared:
     """The v0.8.1 candidate's inputs: the released build's, with parameter draws when asked, plus the delegations under
-    the frozen laws, the named operators and one operator type."""
+    the frozen laws, the named operators and one operator type. The delegation tables are passed built as
+    ``delegations``; ``experiments.v081_inputs`` builds them from the runs a verified pin names."""
     needed = ("open", "validators", "scheduled", "flows", "starts", "terms", "benqi_choices")
     if delegations is None or any(name not in delegations for name in needed):
         raise ValueError(f"v0.8.1 candidate needs the origin's delegation tables as delegations: {', '.join(needed)}")

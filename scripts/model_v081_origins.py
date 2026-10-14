@@ -2,12 +2,12 @@
 """The v0.8.1 candidate at the 19 development origins: delegated stake, open delegations and BENQI's delegated stake at
 30, 90 and 180 days against the record, with the delegations the containment rule left unplaced.
 
-    uv run --group model python scripts/model_v081_origins.py OUT_DIR [--runs N] [--workers W] [--days D] [--origins NAME ...]
+    uv run --group model python scripts/model_v081_origins.py OUT_DIR --pin PIN [--runs N] [--workers W] [--days D] [--origins NAME ...]
 
 The origins are the five upgrades from Banff to Fortuna and the quarter starts from 2022-07-01 to 2025-10-01, as
-``scripts/model_development_scores.py`` lists them. At each origin the candidate is prepared once from the staking
-periods of pin ``data/pins/p2-model-v0.8.json`` and the newest checked run of ``derived.seamed-delegator-stakes`` (the
-funding addresses that set BENQI's delegations apart), with one parameter draw per run. Run ``r`` is batch ``r`` of one
+``scripts/model_development_scores.py`` lists them. At each origin the candidate is prepared once from the two runs the
+pin ``PIN`` names and verifies: the staking periods and the seamed delegator stakes (the funding addresses that set
+BENQI's delegations apart). No newer build is read in their place. One parameter draw per run. Run ``r`` is batch ``r`` of one
 run under base seed ``r``, reading draw ``r``, so every run has its own specification hash, recorded with its
 construction in ``specifications.csv`` and ``construction.json``.
 
@@ -37,16 +37,13 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from model_development_scores import HORIZONS, QUARTERS, UPGRADES
 
-from avalanche_research import datasets
-from avalanche_research.datasets import pins
 from avalanche_research.datasets.derived import delegation_inputs as di
-from avalanche_research.model.delegated_lifecycle import benqi_choices, delegation_terms
+from avalanche_research.experiments.v081_inputs import candidate_tables, pinned_inputs
 from avalanche_research.model.delegation_blocks import DelegationFlow
 from avalanche_research.model.engine import run
 from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
 from avalanche_research.model.variants import VARIANTS, Prepared
 
-PIN = Path("data/pins/p2-model-v0.8.json")
 CANDIDATE = "v0.8.1 candidate"
 VARIABLES = ("active_delegated_stake_navax", "active_delegations", "benqi_delegated_stake_navax")
 DRAW_SEED = 0
@@ -93,9 +90,7 @@ def at_horizons(table: pd.DataFrame) -> pd.DataFrame:
 
 def origin_task(task: tuple[str, date, str, str, str, int, int]) -> dict:
     name, origin, run_name, periods, delegators, runs, days = task
-    tables = {**di.build(periods, delegators, origin),
-              "terms": delegation_terms(periods, delegators, origin, di.BENQI_FUNDING, di.BENQI_EVIDENCE),
-              "benqi_choices": benqi_choices(periods, delegators, origin, di.BENQI_FUNDING, di.BENQI_EVIDENCE)}
+    tables = candidate_tables(periods, delegators, origin)
     variant = VARIANTS[CANDIDATE]
     prepared = variant.prepare(periods, origin, run_name, draws=runs, draw_seed=DRAW_SEED, delegations=tables)
     flow, benqi = prepared.inputs["delegation_flow"], prepared.inputs["benqi_allocation"]
@@ -139,15 +134,15 @@ def origin_task(task: tuple[str, date, str, str, str, int, int]) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("out", type=Path)
+    parser.add_argument("--pin", type=Path, required=True, help="the pin file naming the staking periods and seamed delegator stakes to read")
     parser.add_argument("--runs", type=int, default=5)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--days", type=int, default=max(HORIZONS))
     parser.add_argument("--origins", nargs="*", default=None)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
-    pinned = pins.runs(PIN)["derived.staking-periods"]
-    periods = str(datasets.parquet_path("derived.staking-periods", pinned))
-    delegators_path = datasets.parquet_path("derived.seamed-delegator-stakes")
+    inputs = pinned_inputs(args.pin)
+    pinned, periods, delegators_path = inputs.periods_run, str(inputs.periods), inputs.delegators
     chosen = {name: day for name, day in origins().items() if not args.origins or name in args.origins}
     tasks = [(name, day, pinned, periods, str(delegators_path), args.runs, args.days) for name, day in chosen.items()]
     with ProcessPoolExecutor(args.workers) as pool:
@@ -161,13 +156,13 @@ def main() -> None:
         "command": "uv run --group model python scripts/model_v081_origins.py " + " ".join(sys.argv[1:]),
         "code_commit": commit,
         "python": platform.python_version(),
-        "pin": str(PIN), "staking_periods_run": pinned, "staking_periods_sha256": hashlib.sha256(Path(periods).read_bytes()).hexdigest(),
-        "delegator_stakes_parquet": str(delegators_path.relative_to(Path.cwd())) if delegators_path.is_relative_to(Path.cwd()) else str(delegators_path),
-        "delegator_stakes_sha256": hashlib.sha256(delegators_path.read_bytes()).hexdigest(),
+        "pin": str(args.pin), "pin_sha256": hashlib.sha256(args.pin.read_bytes()).hexdigest(),
+        "staking_periods_run": pinned, "staking_periods_sha256": inputs.periods_sha256,
+        "delegator_stakes_run": inputs.delegators_run, "delegator_stakes_sha256": inputs.delegators_sha256,
         "specification_hash": {
             "object": f"VARIANTS[{CANDIDATE!r}].simulation(prepared, seed=r, timesteps={args.days}, runs=1, draws=prepared.draws.iloc[[r]].reset_index(drop=True))",
             "prepared": f"VARIANTS[{CANDIDATE!r}].prepare(periods, origin, {pinned!r}, draws={args.runs}, draw_seed={DRAW_SEED}, delegations=tables)",
-            "tables": "delegation_inputs.build(periods, delegators, origin) with delegation_terms(...) and benqi_choices(...), BENQI by its funding address from its evidence date",
+            "tables": "candidate_tables(periods, delegators, origin): delegation_inputs.build with delegation_terms and benqi_choices, BENQI by its funding address from its evidence date; both files from the pin",
             "method": "SimulationModel.specification_hash: the first 16 hex digits of the SHA-256 of json.dumps(model.specification(), sort_keys=True, default=str)",
             "specification": "the model class, every setting not at an omitted default, and the SHA-256 digest of every input table (engine.SimulationModel.specification)",
         },
