@@ -8,7 +8,7 @@ uv run --group model python scripts/model_v081_origins.py results/model-v0.8.1-c
 
 on the staking periods run `staking-periods-2026-09-30` (pin `data/pins/p2-model-v0.8.json`) and the seamed delegator stakes run `seamed-delegator-stakes-2026-10-14` for the funding addresses, whose SHA-256 are in `manifest.json`. That first run took the delegator stakes as the newest checked build; the script now takes both runs from one pin file (`--pin`), refuses a missing or unverified pin or one that names no delegator stakes run, and reads no newer build in their place. The pin for the candidate is being created, so the command above needs `--pin` with it before it can be rerun. Five runs of 180 days per origin, one parameter draw each. These are development results on a prototype branch, not a scored adoption: the variant rule's event test has not been run on them.
 
-`manifest.json` lists the branch head, the changed source files with their blob ids, every input run and pin with its SHA-256, the replay results, and the test command and count. `replay.json` holds the reward-counter replay results it summarises.
+[`manifest.json`](manifest.json) lists the branch head, the changed source files with their blob ids, every input run and pin with its SHA-256, the results files with theirs, the replay results, the origins command, and the test command and count. [`replay.json`](replay.json) holds the reward-counter replay results it summarises. Both are written by `scripts/model_v081_manifest.py`.
 
 ## Operator types are not adopted
 

@@ -1,0 +1,196 @@
+{
+  "branch": "prototype/v0.8.1-v0",
+  "head": "3bce5b88931bd15538c647da7558f440ba1d181a",
+  "base_on_main": "4ecfdfd7179e392ebba393de4e97a885dc94fdea",
+  "changed_files": [
+    {
+      "path": "results/model-v0.8.1-candidate/README.md",
+      "blob": "0e2487064fdb1e6444522a09c7ead9015ace28cf"
+    },
+    {
+      "path": "results/model-v0.8.1-candidate/origins/construction.json",
+      "blob": "f944faa52e96d23ce8b7080a7a243bfa0f3aaa43"
+    },
+    {
+      "path": "results/model-v0.8.1-candidate/origins/origins.csv",
+      "blob": "1c217cbcb0f768bbbf720c35886a8f23d68e0635"
+    },
+    {
+      "path": "results/model-v0.8.1-candidate/origins/parameters.csv",
+      "blob": "8272ae0cb8b7917ce6b8013bf2fd230a08bf5ec1"
+    },
+    {
+      "path": "results/model-v0.8.1-candidate/origins/specifications.csv",
+      "blob": "6453d048e8411f78c4f7805cca1f599124bd9819"
+    },
+    {
+      "path": "results/model-v0.8.1-candidate/origins/unplaced.csv",
+      "blob": "e16d34f0b3aca0fd5ca575cf759a4d7e4ab64f2b"
+    },
+    {
+      "path": "scripts/model_v081_origins.py",
+      "blob": "6684e211e9471f011263bed0d864b5e6cfedbc6c"
+    },
+    {
+      "path": "src/avalanche_research/experiments/v081_inputs.py",
+      "blob": "a50b203226ad160a774e42c30d70eab77ec978dd"
+    },
+    {
+      "path": "src/avalanche_research/model/README.md",
+      "blob": "32cc1599610914dabb7826828acb6bc51a776033"
+    },
+    {
+      "path": "src/avalanche_research/model/delegated_lifecycle.py",
+      "blob": "e2c62d4580c34d3ba15cc737e6ac94755fec171e"
+    },
+    {
+      "path": "src/avalanche_research/model/delegation_blocks.py",
+      "blob": "b242da30e30a41280eecebe1d1d1bd1c77a25fe9"
+    },
+    {
+      "path": "src/avalanche_research/model/parts/delegations.py",
+      "blob": "f5b2980a1180bfb231956be3eb613fbc87731558"
+    },
+    {
+      "path": "src/avalanche_research/model/parts/operator_types.py",
+      "blob": "ce3842e084a2c2b689cbb72669d07729910971cd"
+    },
+    {
+      "path": "src/avalanche_research/model/replay.py",
+      "blob": "78f980286a5b4c608453deb72f01fcda684ddb88"
+    },
+    {
+      "path": "src/avalanche_research/model/variants.py",
+      "blob": "a87e6ce7a69a0c448482a46167c84cadbac89c5e"
+    },
+    {
+      "path": "tests/test_replay.py",
+      "blob": "1f192d896fe34b512bb0201cbafd3ded0c096c5f"
+    },
+    {
+      "path": "tests/test_v081_candidate.py",
+      "blob": "e2a9a6c74fdc5798201fea00bb048952b136f8fc"
+    },
+    {
+      "path": "tests/test_variant_switches.py",
+      "blob": "138e938d6c362c3e60ff328f6f6fba5d5030047c"
+    }
+  ],
+  "inputs": {
+    "pins": [
+      {
+        "path": "data/pins/p2-model-v0.8.json",
+        "sha256": "47a6f4af2b7bab7d2b2aae45b2a62c7c67ed5ca26c9123151132742b208d4dee",
+        "role": "the staking periods run the results and the replay read"
+      },
+      {
+        "path": "data/pins/p9-model-v0.8.1.json",
+        "sha256": null,
+        "role": "the candidate's pin, not yet created; the origins table cannot be rerun until it exists"
+      }
+    ],
+    "runs": [
+      {
+        "dataset_id": "derived.staking-periods",
+        "run": "staking-periods-2026-09-30",
+        "sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8",
+        "read_by": [
+          "origins",
+          "replay"
+        ]
+      },
+      {
+        "dataset_id": "derived.seamed-delegator-stakes",
+        "run": "seamed-delegator-stakes-2026-10-14",
+        "sha256": "af2cdac46dad67e1ac8d51eff2ae11961a30f822061a807388b0e30017c4e131",
+        "read_by": [
+          "origins"
+        ],
+        "note": "taken as the newest checked build when the origins table was produced; the script now takes it from the pin"
+      }
+    ]
+  },
+  "origins": {
+    "command": "uv run --group model python scripts/model_v081_origins.py results/model-v0.8.1-candidate/origins --runs 5 --workers 4",
+    "code_commit": "9cee23edfdc218f8ccdc3b5cf7c101b5bedc8bed",
+    "specification_hash": {
+      "object": "VARIANTS['v0.8.1 candidate'].simulation(prepared, seed=r, timesteps=180, runs=1, draws=prepared.draws.iloc[[r]].reset_index(drop=True))",
+      "prepared": "VARIANTS['v0.8.1 candidate'].prepare(periods, origin, 'staking-periods-2026-09-30', draws=5, draw_seed=0, delegations=tables)",
+      "tables": "delegation_inputs.build(periods, delegators, origin) with delegation_terms(...) and benqi_choices(...), BENQI by its funding address from its evidence date",
+      "method": "SimulationModel.specification_hash: the first 16 hex digits of the SHA-256 of json.dumps(model.specification(), sort_keys=True, default=str)",
+      "specification": "the model class, every setting not at an omitted default, and the SHA-256 digest of every input table (engine.SimulationModel.specification)"
+    },
+    "held_back_from": "2025-11-19 16:00 UTC; a horizon on or after 2025-11-19 is not scored and its record is not read",
+    "outputs": {
+      "origins.csv": {
+        "path": "results/model-v0.8.1-candidate/origins/origins.csv",
+        "sha256": "9f1a56640c7ca2d3e181decb349a2513b254c15858e43589a087526e3c4690c1"
+      },
+      "parameters.csv": {
+        "path": "results/model-v0.8.1-candidate/origins/parameters.csv",
+        "sha256": "5861b6ab0668ee8d11a2418736dea62d77e6dd4d902f1af4b4da397da7608075"
+      },
+      "specifications.csv": {
+        "path": "results/model-v0.8.1-candidate/origins/specifications.csv",
+        "sha256": "6380a5fc28b3d7ba6e7c4ba314f17840f5aec5246a7eb6f794f99fa2346397d3"
+      },
+      "unplaced.csv": {
+        "path": "results/model-v0.8.1-candidate/origins/unplaced.csv",
+        "sha256": "53752723f20a373b2fb4c7c7e6a7722b2fa6e1fa7797c9477360eb20a4baa427"
+      },
+      "construction.json": {
+        "path": "results/model-v0.8.1-candidate/origins/construction.json",
+        "sha256": "553687b03de5cec22d0b34cc9207a864c363d9cbe9bf6c291ed74725c9ed7e05"
+      },
+      "replay.json": {
+        "path": "results/model-v0.8.1-candidate/replay.json",
+        "sha256": "1dd0bab6cfb240dd4e071a4bfa8891ca63db9ae217d45b4c85499dcd1c478cc7"
+      }
+    }
+  },
+  "replay": {
+    "command": "uv run --group model python scripts/model_v081_manifest.py replay",
+    "staking_periods_run": "staking-periods-2026-09-30",
+    "windows": [
+      {
+        "start": "2024-03-21",
+        "through": "2025-11-19",
+        "days_compared": 607,
+        "days_differ": 0,
+        "same_second_ties_resolved": 1,
+        "delegations_started": 3653465
+      },
+      {
+        "start": "2025-06-01",
+        "through": "2025-11-19",
+        "days_compared": 170,
+        "days_differ": 0,
+        "same_second_ties_resolved": 0,
+        "delegations_started": 600734,
+        "mints": 606165,
+        "priced_exactly": 606149,
+        "priced_differently": 16
+      },
+      {
+        "start": "2025-09-20",
+        "through": "2025-11-19",
+        "days_compared": 59,
+        "days_differ": 0,
+        "same_second_ties_resolved": 0,
+        "delegations_started": 240981,
+        "mints": 242301,
+        "priced_exactly": 242293,
+        "priced_differently": 8
+      }
+    ],
+    "output": {
+      "path": "results/model-v0.8.1-candidate/replay.json",
+      "sha256": "1dd0bab6cfb240dd4e071a4bfa8891ca63db9ae217d45b4c85499dcd1c478cc7"
+    }
+  },
+  "tests": {
+    "command": "uv run pytest -q -p no:cacheprovider (1680 passed, 1 skipped: the data test that waits on the candidate's pin)",
+    "passed": 1680
+  },
+  "operator_types": "Not adopted. The candidate carries one type with named operators, K = 1 with no shift. One class fit the held-out renewal endings best and two to four classes failed the adoption gates; one class is not significantly better than the shrunk operator renewal rate (p = 0.26) and its transfer calibration error is 0.039 against a limit of 0.02."
+}

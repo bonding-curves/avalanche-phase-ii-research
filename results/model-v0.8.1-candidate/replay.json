@@ -1,0 +1,101 @@
+{
+  "staking_periods_run": "staking-periods-2026-09-30",
+  "windows": [
+    {
+      "start": "2024-03-21",
+      "through": "2025-11-19",
+      "anchor_supply_navax": 440349592012554328,
+      "model": "avalanche_research.model.replay.MintReplay",
+      "specification": "111564853a839c7e",
+      "command": "mint_events(periods, date(2024, 3, 21)); run(MintReplay(events, supply0_navax=anchor)); compare_minting(table, events)",
+      "days": {
+        "days_compared": 607,
+        "days_differ": 0,
+        "first_differences": [],
+        "exact": true,
+        "distinct_differences": 0,
+        "same_second_ties_resolved": 1,
+        "minted_delegator_navax": 4130001155657144,
+        "minted_validator_navax": 21148994471608920,
+        "unpaid_navax": 258370277222262,
+        "delegations_started": 3653465
+      }
+    },
+    {
+      "start": "2025-06-01",
+      "through": "2025-11-19",
+      "anchor_supply_navax": 461157191660821358,
+      "model": "avalanche_research.model.replay.MintReplay",
+      "specification": "d89053151f52256a",
+      "command": "mint_events(periods, date(2025, 6, 1)); run(MintReplay(events, supply0_navax=anchor)); compare_minting(table, events)",
+      "days": {
+        "days_compared": 170,
+        "days_differ": 0,
+        "first_differences": [],
+        "exact": true,
+        "distinct_differences": 0,
+        "same_second_ties_resolved": 0,
+        "minted_delegator_navax": 904129332527250,
+        "minted_validator_navax": 3351280453601011,
+        "unpaid_navax": 42384084351489,
+        "delegations_started": 600734
+      },
+      "mints": {
+        "mints": 606165,
+        "priced_exactly": 606149,
+        "priced_differently": 16,
+        "counter_differs": 16,
+        "first_price_difference": [
+          "2025-06-29 18:59:16",
+          4335801480,
+          4335801595
+        ],
+        "first_counter_difference": [
+          "2025-06-29 18:59:16",
+          461769743886882677,
+          461769739468939496
+        ],
+        "reversals": 4487
+      },
+      "mints_command": "recomputed_mints(mint_rows(periods, date(2025, 6, 1)))"
+    },
+    {
+      "start": "2025-09-20",
+      "through": "2025-11-19",
+      "anchor_supply_navax": 463771472268679392,
+      "model": "avalanche_research.model.replay.MintReplay",
+      "specification": "e103803ac7595d58",
+      "command": "mint_events(periods, date(2025, 9, 20)); run(MintReplay(events, supply0_navax=anchor)); compare_minting(table, events)",
+      "days": {
+        "days_compared": 59,
+        "days_differ": 0,
+        "first_differences": [],
+        "exact": true,
+        "distinct_differences": 0,
+        "same_second_ties_resolved": 0,
+        "minted_delegator_navax": 376250263395600,
+        "minted_validator_navax": 1247947572359661,
+        "unpaid_navax": 25452741836523,
+        "delegations_started": 240981
+      },
+      "mints": {
+        "mints": 242301,
+        "priced_exactly": 242293,
+        "priced_differently": 8,
+        "counter_differs": 8,
+        "first_price_difference": [
+          "2025-09-30 10:39:21",
+          398952367,
+          398952403
+        ],
+        "first_counter_difference": [
+          "2025-09-30 10:39:21",
+          463911565123542249,
+          463911550603674163
+        ],
+        "reversals": 887
+      },
+      "mints_command": "recomputed_mints(mint_rows(periods, date(2025, 9, 20)))"
+    }
+  ]
+}
