@@ -1,8 +1,19 @@
-"""The fitted validator lifecycle with delegations, and delegator rewards counted in issuance.
+"""The validator lifecycle with delegations, and delegator rewards counted in issuance.
 
-:class:`DelegatedLifecycle` is :class:`FittedLifecycle` with one more stage at the end of its daily step,
+:class:`DelegationMixin` adds one stage to the end of a lifecycle's daily step,
 :func:`~avalanche_research.model.parts.delegations.delegations_stage`. That stage reads the next state's validators
-from the assembly stage, so the validator stages, their draws and their tables are those of the fitted lifecycle.
+from the assembly stage, so the validator stages, their draws and their tables are those of the base lifecycle.
+:class:`DelegatedLifecycle` puts it on :class:`FittedLifecycle`, the v0.8 build, and :class:`DelegatedStakeLifecycle`
+on :class:`~avalanche_research.model.stake_lifecycle.StakeLifecycle`, the v0.8.0 build with the stake hurdle and the
+return hazard on the node's own history. With no new delegations either model's validator tables are its base's.
+
+The v0.8.1 candidate runs on the second base under the frozen delegation laws: a flow at the mean of the 28 days before
+the origin (:func:`recent_flow`), the ordinary choice in proportion to own stake plus open delegated stake
+(:class:`~avalanche_research.model.delegation_blocks.ProportionalChoice`), BENQI's two-stage choice over its prior-use
+set (:class:`~avalanche_research.model.delegation_blocks.BenqiTwoStage`, its share from :func:`benqi_choices`), and the
+containment choice set (``placement_rule="containment"``, see the delegations part). An operator-type interface,
+``operator_types``, shifts the renewal logit's intercept by latent class
+(:class:`~avalanche_research.model.parts.operator_types.ClassShift`), one class with no shift by default.
 
 The delegation limit is the protocol's: the validator's own stake times one plus the delegation multiplier, 4 on
 mainnet, capped at 3,000,000 AVAX of total weight. A validator's room for a new delegation is its reserved room: that
@@ -49,8 +60,10 @@ from avalanche_research.domain.protocol import (
 )
 from avalanche_research.model.delegation_blocks import (
     BenqiAllocation,
+    BenqiTwoStage,
     DelegationFlow,
     DelegatorChoice,
+    ProportionalChoice,
 )
 from avalanche_research.model.fitted_lifecycle import (
     COMMITMENT,
@@ -60,6 +73,7 @@ from avalanche_research.model.fitted_lifecycle import (
 )
 from avalanche_research.model.operator_events import BENQI, NamedOperators, owners
 from avalanche_research.model.parts.delegations import (
+    BENQI_USE,
     DELEGATION,
     MIN_DELEGATION_DAYS,
     MIN_DELEGATOR_STAKE,
@@ -70,10 +84,18 @@ from avalanche_research.model.parts.delegations import (
     on_validators,
     stake_on,
 )
+from avalanche_research.model.parts.operator_types import (
+    ClassShift,
+    posterior_lookup,
+    typed_renewal_stage,
+)
+from avalanche_research.model.stake_lifecycle import StakeLifecycle
 from avalanche_research.model.streams import KIND_OPEN, KIND_SCHEDULED, node_keys
 
 US_PER_DAY = 86_400_000_000
 FLOW_DAYS = 365
+RECENT_DAYS = 28
+RESERVED_ROOM, CONTAINMENT = "reserved room", "containment"
 OPEN_COLUMNS = ["validator", "stakes", "days_left", "benqi"]
 SCHEDULED_COLUMNS = ["validator", "validator_scheduled", "start_day", "stakes", "days", "benqi"]
 NAMED_COLUMNS = ["operator", "key", "closes_day"]
@@ -150,12 +172,42 @@ def _validator_keys(frame: pd.DataFrame) -> np.ndarray:
     return np.where(later, node_keys(KIND_SCHEDULED, 0, rows), node_keys(KIND_OPEN, 0, rows))
 
 
-class DelegatedLifecycle(FittedLifecycle):
-    """Validator commitments, the nodes out of the set, and the delegations on the active validators."""
+class _DelegationsStage:
+    """The delegations stage of one model, with the model's setup built and checked on the first day it runs."""
+
+    def __init__(self, model):
+        self.model = model
+        self.setup = None
+
+    def __call__(self, state, day, earlier):
+        if self.setup is None:
+            self.setup = self.model._setup()
+        return delegations_stage(state, day, earlier, setup=self.setup)
+
+
+class DelegationMixin(param.Parameterized):
+    """The delegations on the active validators, added to a lifecycle's daily step as its last stage. Combined with a
+    lifecycle class, the lifecycle first in the base list."""
 
     delegation_flow = param.ClassSelector(class_=DelegationFlow, default=DelegationFlow(), doc="The block for the day's new delegations and BENQI's share of them")
-    delegator_choice = param.ClassSelector(class_=DelegatorChoice, default=DelegatorChoice(), doc="The validator choice of delegators other than BENQI")
-    benqi_allocation = param.ClassSelector(class_=BenqiAllocation, default=BenqiAllocation(), doc="BENQI's allocation among its validators")
+    delegator_choice = param.ClassSelector(
+        class_=(DelegatorChoice, ProportionalChoice), default=DelegatorChoice(),
+        doc="The validator choice of delegators other than BENQI: the conditional logit, or the proportional rule the containment placement needs",
+    )
+    benqi_allocation = param.ClassSelector(
+        class_=(BenqiAllocation, BenqiTwoStage), default=BenqiAllocation(),
+        doc="BENQI's allocation: by capacity among its validators at the origin, or the two-stage choice over its prior-use set the containment placement needs",
+    )
+    placement_rule = param.Selector(
+        default=RESERVED_ROOM, objects=[RESERVED_ROOM, CONTAINMENT], metadata={"omit_at_default": True},
+        doc="How a new delegation's choice set is formed: by the reserved room on validators with 14 days left, or by containment of "
+            "its whole interval with room after the largest overlapping load (the v0.8.1 law). At its default it is left out of the specification",
+    )
+    operator_types = param.ClassSelector(
+        class_=ClassShift, default=None, allow_None=True, metadata={"omit_at_default": True},
+        doc="Latent operator classes as intercept shifts on the renewal logit, with each node's class posterior from type_posteriors "
+            "or the entrant shares. None leaves the renewal stage as it is",
+    )
     delegation_fee_shares = param.Integer(
         default=MAINNET.min_delegation_fee_shares, bounds=(MAINNET.min_delegation_fee_shares, 1_000_000),
         doc="Every validator's delegation fee in millionths, which the choice block reads. The protocol minimum until fees are inputs",
@@ -191,19 +243,37 @@ class DelegatedLifecycle(FittedLifecycle):
         doc="The named operators known at the origin: operator, key, and closes_day, the day counted from the origin from "
             "which it makes no new delegation, NaN when it does not close. A delegation's operator column names its row",
     )
+    type_posteriors = param.DataFrame(
+        default=None, allow_None=True, precedence=-1,
+        doc="Each node's class posterior for operator_types: node_key and one column per class, w_0 to w_{K-1}. A node not "
+            "listed takes the entrant shares",
+    )
+
+    def __init__(self, **params):
+        super().__init__(**params)
+        if self.placement_rule == CONTAINMENT and not (isinstance(self.delegator_choice, ProportionalChoice)
+                                                        and isinstance(self.benqi_allocation, BenqiTwoStage)):
+            raise ValueError("the containment placement needs the proportional choice and BENQI's two-stage choice")
+        if self.type_posteriors is not None and self.operator_types is None:
+            raise ValueError("type_posteriors need operator_types")
+        # The base lifecycle's stages, then the delegations stage, which reads the next state's validators. With operator
+        # types the renewal stage shifts each node's log-odds by its class. The delegation setup is built and checked
+        # when the first day runs, so a model built only to read its specification needs no terms.
+        stages = tuple(self.stages)
+        if self.operator_types is not None:
+            lookup = posterior_lookup(self.type_posteriors, self.operator_types)
+            stages = tuple((name, partial(typed_renewal_stage, types=self.operator_types, posteriors=lookup) if name == "renewal" else stage)
+                           for name, stage in stages)
+        self.stages = (*stages, ("delegations", _DelegationsStage(self)))
 
     def specification(self):
-        """The engine's specification, without ``named_operators`` when it is not set, so a model without named
-        operators keeps the specification hash it had before they existed."""
+        """The engine's specification, without ``named_operators`` or ``type_posteriors`` when they are not set, so a
+        model without them keeps the specification hash it had before they existed."""
         specification = super().specification()
-        if self.named_operators is None:
-            specification["inputs_sha256"].pop("named_operators", None)
+        for name in ("named_operators", "type_posteriors"):
+            if getattr(self, name) is None:
+                specification["inputs_sha256"].pop(name, None)
         return specification
-
-    @property
-    def stages(self):
-        """The fitted lifecycle's stages, then the delegations stage, which reads the next state's validators."""
-        return (*FittedLifecycle.stages, ("delegations", partial(delegations_stage, setup=self._setup())))
 
     def _named(self) -> pd.DataFrame:
         frame = self.named_operators if self.named_operators is not None else pd.DataFrame(columns=NAMED_COLUMNS)
@@ -218,8 +288,8 @@ class DelegatedLifecycle(FittedLifecycle):
         A name the state already has is refused, so no operator overwrites another variable."""
         frame = self._named()
         tracked = [(row, f"{key}_delegated_stake_navax") for row, (name, key) in enumerate(zip(frame["operator"], frame["key"])) if name != BENQI]
-        taken = {*super().state_variables(), *self.float_variables(), *DELEGATION_VARIABLES, *DELEGATION, *SCHEDULED, *COMMITMENT, *OUT,
-                 "node_key", "out_node_key", *ENGINE_KEYS}
+        taken = {*super().state_variables(), *self.float_variables(), *DELEGATION_VARIABLES, *DELEGATION, *SCHEDULED, *BENQI_USE,
+                 *COMMITMENT, *OUT, "node_key", "out_node_key", *ENGINE_KEYS}
         clashes = [name for _, name in tracked if name in taken]
         if clashes:
             raise ValueError(f"a named operator's key gives a state variable the model already has: {', '.join(clashes)}")
@@ -283,7 +353,7 @@ class DelegatedLifecycle(FittedLifecycle):
             "scheduled_benqi": later_benqi, "scheduled_operator": later_operator,
         }
         return {
-            **state, **delegations,
+            **state, **delegations, **self._benqi_use(),
             "active_delegations": len(stakes),
             "active_delegated_stake_navax": int(stakes.sum()),
             "benqi_delegated_stake_navax": int(stakes[benqi].sum()),
@@ -292,6 +362,47 @@ class DelegatedLifecycle(FittedLifecycle):
             "delegator_issued_navax": 0,
             "unplaced_delegations": 0,
         }
+
+    def _benqi_frame(self) -> pd.DataFrame:
+        frame = self.benqi_validators if self.benqi_validators is not None else pd.DataFrame(columns=["validator"])
+        n_open = len(self.initial) if self.initial is not None else 0
+        n_later = len(self.scheduled) if self.scheduled is not None else 0
+        rows = _whole(frame["validator"], "a BENQI validator row")
+        on_later = np.asarray(frame["validator_scheduled"], dtype=bool) if "validator_scheduled" in frame else np.zeros(len(rows), bool)
+        if len(rows) and (rows.min() < 0 or (rows >= np.where(on_later, n_later, n_open)).any()):
+            raise ValueError("a BENQI validator is not a row of the initial or scheduled commitments")
+        return frame
+
+    def _benqi_use(self) -> dict[str, np.ndarray]:
+        """BENQI's prior-use records at the origin from ``benqi_validators``: each validator's key, BENQI's total
+        delegated stake on it, ``benqi_stake_navax``, and the last day counted from the origin on which one of BENQI's
+        delegations there is open, ``benqi_until_day``. A table without those columns, the stub's, gives each validator
+        the BENQI delegations open and scheduled on it at the origin: their stake, and the latest of their ends."""
+        frame = self._benqi_frame()
+        keys = _validator_keys(frame) if len(frame) else np.zeros(0, dtype=np.int64)
+        if len(set(keys.tolist())) != len(keys):
+            raise ValueError("each BENQI validator is listed once")
+        if "benqi_stake_navax" in frame or "benqi_until_day" in frame:
+            navax = _whole(frame["benqi_stake_navax"], "BENQI's delegated stake on a validator")
+            until = _whole(frame["benqi_until_day"], "the last day of BENQI's use of a validator")
+            if (navax < 0).any():
+                raise ValueError("BENQI's delegated stake on a validator cannot be negative")
+            return {"benqi_use_key": keys, "benqi_use_navax": navax, "benqi_use_until": until}
+        opened = self.open_delegations if self.open_delegations is not None else pd.DataFrame(columns=OPEN_COLUMNS)
+        later = self.scheduled_delegations if self.scheduled_delegations is not None else pd.DataFrame(columns=SCHEDULED_COLUMNS)
+        benqi_open, benqi_later = np.asarray(opened["benqi"], dtype=bool), np.asarray(later["benqi"], dtype=bool)
+        held_keys = np.concatenate([node_keys(KIND_OPEN, 0, _whole(opened["validator"], "an open delegation's validator row"))[benqi_open],
+                                    _validator_keys(later)[benqi_later] if len(later) else np.zeros(0, dtype=np.int64)])
+        held_navax = np.concatenate([_whole(opened["stakes"], "an open delegation's stake")[benqi_open],
+                                     _whole(later["stakes"], "a scheduled delegation's stake")[benqi_later]])
+        held_until = np.concatenate([_whole(opened["days_left"], "an open delegation's days left")[benqi_open],
+                                     (_whole(later["start_day"], "a scheduled delegation's start day") + _whole(later["days"], "a scheduled delegation's days"))[benqi_later]])
+        navax, until = np.zeros(len(keys), dtype=np.int64), np.zeros(len(keys), dtype=np.int64)
+        rows = on_validators(keys, held_keys) if len(keys) else np.zeros(0, dtype=np.int64)
+        on = rows >= 0
+        np.add.at(navax, rows[on], held_navax[on])
+        np.maximum.at(until, rows[on], held_until[on])
+        return {"benqi_use_key": keys, "benqi_use_navax": navax, "benqi_use_until": until}
 
     def _chain_time(self, timestep: int) -> datetime:
         return datetime.combine(self.origin + timedelta(days=timestep), time(12), tzinfo=UTC)
@@ -320,19 +431,14 @@ class DelegatedLifecycle(FittedLifecycle):
                 for rows in [(benqi == kind) if (benqi == kind).any() else np.ones(len(stakes), bool)]}
 
     def _setup(self) -> DelegationSetup:
-        frame = self.benqi_validators if self.benqi_validators is not None else pd.DataFrame(columns=["validator"])
-        n_open = len(self.initial) if self.initial is not None else 0
-        n_later = len(self.scheduled) if self.scheduled is not None else 0
-        rows = _whole(frame["validator"], "a BENQI validator row")
-        on_later = np.asarray(frame["validator_scheduled"], dtype=bool) if "validator_scheduled" in frame else np.zeros(len(rows), bool)
-        if len(rows) and (rows.min() < 0 or (rows >= np.where(on_later, n_later, n_open)).any()):
-            raise ValueError("a BENQI validator is not a row of the initial or scheduled commitments")
+        frame = self._benqi_frame()
         return DelegationSetup(
             flow=self.delegation_flow, choice=self.delegator_choice, allocation=self.benqi_allocation,
             fee_shares=self.delegation_fee_shares, multiplier=self.delegation_multiplier,
             benqi_keys=_validator_keys(frame) if len(frame) else np.zeros(0, dtype=np.int64),
             terms=self._terms(), batch=self.placement_batch,
             benqi_operator=self._benqi_row(), closes_days=_closing_days(self._named()["closes_day"]),
+            rule=self.placement_rule,
         )
 
     def blocks(self):
@@ -345,7 +451,7 @@ class DelegatedLifecycle(FittedLifecycle):
             return lambda params, substep, history, state, signal: (name, value(signal))
 
         block["variables"] |= {
-            **{name: s_copy(name) for name in (*DELEGATION, *SCHEDULED, "validator_issued_navax", "delegator_issued_navax", "unplaced_delegations")},
+            **{name: s_copy(name) for name in (*DELEGATION, *SCHEDULED, *BENQI_USE, "validator_issued_navax", "delegator_issued_navax", "unplaced_delegations")},
             "active_delegations": s_scalar("active_delegations", lambda g: len(g["delegation_stakes"])),
             "active_delegated_stake_navax": s_scalar("active_delegated_stake_navax", lambda g: int(g["delegation_stakes"].sum())),
             "benqi_delegated_stake_navax": s_scalar("benqi_delegated_stake_navax", lambda g: int(g["delegation_stakes"][g["delegation_benqi"]].sum())),
@@ -386,6 +492,14 @@ class DelegatedLifecycle(FittedLifecycle):
         ]
 
 
+class DelegatedLifecycle(DelegationMixin, FittedLifecycle):
+    """Validator commitments, the nodes out of the set, and the delegations on the active validators, on the v0.8 build."""
+
+
+class DelegatedStakeLifecycle(DelegationMixin, StakeLifecycle):
+    """The same delegations on the v0.8.0 build: the stake hurdle and the return hazard on the node's own history."""
+
+
 def _days_after(times: pd.Series, cutoff_us: int) -> np.ndarray:
     """The UTC day, counted from the origin, whose end is the first at or after each time."""
     us = pd.to_datetime(times).astype("datetime64[us]").astype(np.int64).to_numpy()
@@ -407,7 +521,7 @@ def _validator_order(periods_parquet: str, origin: date) -> tuple[np.ndarray, np
 
 
 def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, origin: date, state: dict,
-                      named: NamedOperators | None = None) -> dict:
+                      named: NamedOperators | None = None, prior_use: bool = False) -> dict:
     """This model's delegation inputs at ``origin`` from the origin's delegation tables, ``open``, ``validators`` and
     ``scheduled``, and the fitted lifecycle's ``state`` (``initial``, ``scheduled`` and their ``transactions``) built
     from the same periods.
@@ -423,7 +537,13 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
     the tables flag, in ``open``, ``scheduled`` and ``starts``, and none is flagged when BENQI is not named, or the
     inputs are refused. When the tables hold ``terms`` and ``starts``, which list the same delegations, each term is
     matched to its delegation by transaction hash, and the terms are returned as ``delegation_terms`` with each one's
-    owner, so a new delegation that takes them is that owner's."""
+    owner, so a new delegation that takes them is that owner's.
+
+    With ``prior_use``, ``benqi_validators`` is instead BENQI's prior-use set at the origin: every validator period open
+    or scheduled at the origin on which BENQI held a delegation open or scheduled in the 365 days before it, read from
+    ``open``, ``scheduled`` and ``starts``, with ``benqi_stake_navax``, BENQI's total delegated stake there over those
+    delegations, and ``benqi_until_day``, the last day counted from the origin on which one of them is open. That is the
+    set the two-stage BENQI choice reads."""
     opened, later = _validator_order(periods_parquet, origin)
     if "transactions" not in state:
         raise ValueError("the fitted lifecycle's state must name the transaction of each initial and scheduled commitment")
@@ -460,6 +580,8 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
         on_later = hashes.map(lambda h: h not in open_row).to_numpy(dtype=bool)
         return hashes.map(lambda h: open_row.get(h, later_row.get(h))).to_numpy(dtype=np.int64), on_later
 
+    where.known = lambda h: h in open_row or h in later_row
+
     current = tables["open"]
     _identified(current["validator_transaction_hash"], "an open delegation's validator period")
     rows, on_later = where(current["validator_transaction_hash"])
@@ -480,9 +602,14 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
         "benqi": pending["benqi"].to_numpy(dtype=bool),
     })
 
-    benqi = pd.concat([open_delegations.loc[open_delegations["benqi"], ["validator"]].assign(validator_scheduled=False),
-                       scheduled_delegations.loc[scheduled_delegations["benqi"], ["validator", "validator_scheduled"]]])
-    benqi_validators = benqi.drop_duplicates().sort_values(["validator_scheduled", "validator"]).reset_index(drop=True)
+    if prior_use:
+        if "starts" not in tables:
+            raise ValueError("BENQI's prior-use set needs the starts of the 365 days before the origin")
+        benqi_validators = _prior_use(tables, current, pending, open_delegations, scheduled_delegations, where, cutoff)
+    else:
+        benqi = pd.concat([open_delegations.loc[open_delegations["benqi"], ["validator"]].assign(validator_scheduled=False),
+                           scheduled_delegations.loc[scheduled_delegations["benqi"], ["validator", "validator_scheduled"]]])
+        benqi_validators = benqi.drop_duplicates().sort_values(["validator_scheduled", "validator"]).reset_index(drop=True)
     inputs = {"open_delegations": open_delegations, "scheduled_delegations": scheduled_delegations, "benqi_validators": benqi_validators}
     if named is None:
         return inputs
@@ -517,6 +644,38 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
         inputs["delegation_terms"] = terms.drop(columns="transaction_hash").assign(
             operator=owners(match["delegator_address"], match["accepted_at"], named))
     return inputs
+
+
+def _prior_use(tables, current, pending, open_delegations, scheduled_delegations, where, cutoff: int) -> pd.DataFrame:
+    """BENQI's prior-use set at the origin, see :func:`delegation_inputs`. A BENQI delegation counts once by transaction
+    hash, whether it is open, scheduled or among the year's starts, and a start whose validator period is neither open nor
+    scheduled at the origin is on no candidate and is left out."""
+    starts = tables["starts"]
+    _identified(starts["transaction_hash"], "a delegation in the starts")
+    _identified(starts["validator_transaction_hash"], "a started delegation's validator period")
+    parts = [
+        pd.DataFrame({"transaction_hash": current["transaction_hash"].to_numpy(dtype=object), "validator": open_delegations["validator"],
+                      "validator_scheduled": False, "benqi": open_delegations["benqi"], "stake": open_delegations["stakes"],
+                      "until": open_delegations["days_left"]}),
+        pd.DataFrame({"transaction_hash": pending["transaction_hash"].to_numpy(dtype=object), "validator": scheduled_delegations["validator"],
+                      "validator_scheduled": scheduled_delegations["validator_scheduled"], "benqi": scheduled_delegations["benqi"],
+                      "stake": scheduled_delegations["stakes"], "until": scheduled_delegations["start_day"] + scheduled_delegations["days"]}),
+    ]
+    began = starts[starts["benqi"].to_numpy(dtype=bool)]
+    if len(began):
+        hashes = began["validator_transaction_hash"]
+        placed = hashes.map(where.known).to_numpy()
+        kept = began[placed]
+        rows, on_later = where(kept["validator_transaction_hash"])
+        parts.append(pd.DataFrame({"transaction_hash": kept["transaction_hash"].to_numpy(dtype=object), "validator": rows, "validator_scheduled": on_later,
+                                   "benqi": True, "stake": _whole(kept["stake_navax"], "a started delegation's stake"),
+                                   "until": _days_after(kept["committed_end_time"], cutoff)}))
+    together = pd.concat(parts, ignore_index=True)
+    together = together[together["benqi"].to_numpy(dtype=bool)].drop_duplicates("transaction_hash")
+    grouped = together.groupby(["validator_scheduled", "validator"], sort=True).agg(
+        benqi_stake_navax=("stake", "sum"), benqi_until_day=("until", "max")).reset_index()
+    return grouped[["validator", "validator_scheduled", "benqi_stake_navax", "benqi_until_day"]].astype(
+        {"validator": np.int64, "validator_scheduled": bool, "benqi_stake_navax": np.int64, "benqi_until_day": np.int64}).reset_index(drop=True)
 
 
 def delegation_terms(periods_parquet: str, delegators_parquet: str, origin: date, benqi_funding: str, benqi_from: str) -> pd.DataFrame:
@@ -555,3 +714,42 @@ def historical_flow(flows: pd.DataFrame, origin: date) -> DelegationFlow:
     benqi = _whole(started[True], "a day's BENQI delegation starts") if True in started else np.zeros(FLOW_DAYS, dtype=np.int64)
     others = _whole(started[False], "a day's other delegation starts") if False in started else np.zeros(FLOW_DAYS, dtype=np.int64)
     return DelegationFlow.fit(benqi + others, benqi, f"delegation starts in the {FLOW_DAYS} days to {origin}")
+
+
+def recent_flow(flows: pd.DataFrame, origin: date, days: int = RECENT_DAYS) -> DelegationFlow:
+    """The flow block at the mean daily delegation starts of the ``days`` UTC days to the origin day, split BENQI and
+    other at that window's shares, read as observed moments with no model fitted. A day with no starts counts as zero.
+    The window's rows are checked as :func:`historical_flow` checks them."""
+    counts = _whole(flows["started"], "a row's delegation starts")
+    if (counts < 0).any() or sum(int(count) for count in counts) > np.iinfo(np.int64).max:
+        raise ValueError("delegation starts must be non-negative and their total in range")
+    window = pd.date_range(end=pd.Timestamp(origin), periods=days, freq="D")
+    dates = pd.to_datetime(flows["date_utc"], utc=True).dt.tz_localize(None).dt.normalize()
+    started = flows.assign(date_utc=dates, started=counts).pivot_table(
+        index="date_utc", columns="benqi", values="started", aggfunc="sum").reindex(window).fillna(0)
+    benqi = _whole(started[True], "a day's BENQI delegation starts") if True in started else np.zeros(days, dtype=np.int64)
+    others = _whole(started[False], "a day's other delegation starts") if False in started else np.zeros(days, dtype=np.int64)
+    return DelegationFlow.observed(benqi + others, benqi, f"delegation starts in the {days} days to {origin}")
+
+
+def benqi_choices(periods_parquet: str, delegators_parquet: str, origin: date, benqi_funding: str, benqi_from: str) -> pd.DataFrame:
+    """BENQI's delegation choices in the 365 days to the origin's last instant, in acceptance order, each with whether
+    it went to a validator period outside BENQI's prior-use set at that choice: ``new`` is true when no BENQI delegation
+    on the same validator period was accepted at an earlier instant. BENQI's delegations are those funded by
+    ``benqi_funding`` and accepted at or after ``benqi_from``. A validator period lasts at most a year, so every earlier
+    BENQI delegation on a period still accepting delegations was open or scheduled within the 365 days before the choice."""
+    cutoff = decided_by_us(origin)
+    rows = duckdb.execute(
+        f"""WITH b AS (
+                SELECT p.transaction_hash, p.validator_transaction_hash, p.accepted_at
+                FROM read_parquet(?) p JOIN read_parquet(?) f USING (transaction_hash)
+                WHERE p.role = 'delegator' AND p.stake_navax IS NOT NULL AND f.delegator_address = ? AND p.accepted_at >= ?::TIMESTAMP
+                  AND p.accepted_at <= make_timestamp({cutoff}))
+            SELECT transaction_hash, validator_transaction_hash, accepted_at,
+                   min(accepted_at) OVER (PARTITION BY validator_transaction_hash) = accepted_at AS new
+            FROM b QUALIFY accepted_at > make_timestamp({cutoff - FLOW_DAYS * US_PER_DAY})
+            ORDER BY accepted_at, transaction_hash""",
+        [periods_parquet, delegators_parquet, benqi_funding, benqi_from],
+    ).df()
+    _identified(rows["validator_transaction_hash"], "a BENQI delegation's validator period")
+    return rows

@@ -71,6 +71,16 @@ And it builds two models with delegations, outside the development scores:
   ``delegations`` as the stub's does, with ``starts``. ``operator_events`` and ``operator_attributions`` replace the
   files' rows when given.
 
+And one candidate for v0.8.1 on the released base, outside the development scores:
+
+* ``v0.8.1 candidate``: :class:`~avalanche_research.model.delegated_lifecycle.DelegatedStakeLifecycle`, the ``v0.8.0``
+  build with the delegations open and scheduled at the origin, new delegations under the frozen v0.8.1 laws (the flow at
+  the mean of the 28 days before the origin, the ordinary choice in proportion to own stake plus open delegated stake,
+  BENQI's two-stage choice over its prior-use set, the containment choice set with each delegation placed on the room the
+  one before left), the named operators known at the origin, and one operator type with no shift. Its ``prepare`` needs
+  ``delegations`` as ``v0.8.1 events`` does, with ``benqi_choices`` from
+  :func:`~avalanche_research.model.delegated_lifecycle.benqi_choices`.
+
 A variant is built in two steps. :meth:`Variant.prepare` reads the staking periods once per origin and returns the
 inputs every batch shares, with the draw table for a variant that reads draws. :meth:`Variant.simulation` builds one
 batch from them.
@@ -85,10 +95,14 @@ from datetime import date
 import pandas as pd
 
 from avalanche_research.model.delegated_lifecycle import (
+    CONTAINMENT,
     DelegatedLifecycle,
+    DelegatedStakeLifecycle,
     delegation_inputs,
     historical_flow,
+    recent_flow,
 )
+from avalanche_research.model.delegation_blocks import BenqiTwoStage, ProportionalChoice
 from avalanche_research.model.engine import SimulationModel
 from avalanche_research.model.fitted_lifecycle import (
     FittedLifecycle,
@@ -103,6 +117,7 @@ from avalanche_research.model.fitted_lifecycle import (
 )
 from avalanche_research.model.lifecycle import ValidatorLifecycle, origin_inputs
 from avalanche_research.model.operator_events import named_operators
+from avalanche_research.model.parts.operator_types import ClassShift
 from avalanche_research.model.stake_lifecycle import (
     StakeLifecycle,
     build_stake_candidate,
@@ -266,6 +281,31 @@ def _delegated_events(periods: str, origin: date, run: str, draws: int, draw_see
     })
 
 
+def _delegated_candidate(periods: str, origin: date, run: str, draws: int, draw_seed: int,
+                         delegations: dict[str, pd.DataFrame] | None = None, operator_events: list[dict] | None = None,
+                         operator_attributions: list[dict] | None = None) -> Prepared:
+    """The v0.8.1 candidate's inputs: the released build's, with parameter draws when asked, plus the delegations under
+    the frozen laws, the named operators and one operator type."""
+    needed = ("open", "validators", "scheduled", "flows", "starts", "terms", "benqi_choices")
+    if delegations is None or any(name not in delegations for name in needed):
+        raise ValueError(f"v0.8.1 candidate needs the origin's delegation tables as delegations: {', '.join(needed)}")
+    named = named_operators(origin, operator_events, operator_attributions)
+    base = _stake_on(RETURN_HISTORY, with_draws=bool(draws))(periods, origin, run, draws, draw_seed)
+    events = training_events(periods, origin, run)
+    inputs = {
+        **base.inputs,
+        **delegation_inputs(delegations, periods, origin, events.state, named, prior_use=True),
+        "delegation_flow": recent_flow(delegations["flows"], origin),
+        "delegator_choice": ProportionalChoice(),
+        "benqi_allocation": BenqiTwoStage.observed(delegations["benqi_choices"]["new"].to_numpy(dtype=bool),
+                                                   f"{run or 'staking periods'}, BENQI's choices in the 365 days to {origin}"),
+        "placement_rule": CONTAINMENT,
+        "placement_batch": 1,
+        "operator_types": ClassShift(),
+    }
+    return Prepared(inputs, base.draws, base.tau, base.tau_source)
+
+
 _CANDIDATE_DESCRIPTIONS = {
     "v0.8-a": "v0.8 without the node's own renewal record, with the stake ratio drawn unweighted within three stake bands",
     "v0.8-c": "v0.8-a with the node's own renewal record and the stake ratio weighted by previous stake",
@@ -320,6 +360,9 @@ VARIANTS: dict[str, Variant] = {
         Variant("v0.8.1 events", DelegatedLifecycle,
                 "v0.8.1 stub with the named operators known at the origin, their delegations tracked and their closures scheduled",
                 _delegated_events),
+        Variant("v0.8.1 candidate", DelegatedStakeLifecycle,
+                "v0.8.0 with delegations under the frozen v0.8.1 laws, the named operators known at the origin and one operator type",
+                _delegated_candidate),
     )
 }
 

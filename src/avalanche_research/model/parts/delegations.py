@@ -20,6 +20,19 @@ fit its room, and the rest choose again in the next batch on the room left. With
 the room left by the one before. Each new delegation mints its potential reward on the supply left by the one before
 it, in the order they were accepted, after the day's validator rewards.
 
+Under the containment rule (``setup.rule == "containment"``), the choice set of a delegation of stake ``s`` for ``d``
+days is instead every active validator whose period contains the delegation's whole interval, ``days_left >= d``, and
+whose room covers ``s`` after the largest load of every earlier-accepted delegation on any day of that interval, the
+open ones, the scheduled ones and those accepted earlier today. Placement runs in batches of ``batch``: every
+delegation of a batch counts every other delegation of the batch against the room, whichever validator it chooses, so
+each choice is feasible however the batch falls. A batch of one places each delegation on the room left by the one
+before it. The delegation runs its requested days, never cut to the validator's. The ordinary choice goes by
+``setup.choice`` on each candidate's own stake plus its open delegated stake on the delegation's first day. BENQI's
+choice goes by ``setup.allocation`` over its prior-use set, the validator periods it held open or scheduled in the 365
+days before the decision, carried in the state as ``benqi_use_key``, ``benqi_use_navax`` (BENQI's total delegated stake
+on each) and ``benqi_use_until`` (the last day one of its delegations there was open), and grown by each BENQI
+placement.
+
 Each delegation carries the row of the named operator that owns it, or -1. A new delegation drawn as BENQI's is owned by
 BENQI's row. One drawn as another delegator's is owned by the named operator, other than BENQI, that owned the
 delegation of the year before whose terms it takes, or by none. From a named operator's closing day, the new
@@ -53,6 +66,8 @@ if TYPE_CHECKING:
 
 MIN_DELEGATION_DAYS = MAINNET.min_stake_duration_seconds // SECONDS_PER_DAY
 MIN_DELEGATOR_STAKE = MAINNET.min_delegator_stake_navax
+BENQI_USE = ("benqi_use_key", "benqi_use_navax", "benqi_use_until")
+WINDOW_DAYS = 365
 DELEGATION = ("delegation_stakes", "delegation_days_left", "delegation_days", "delegation_validator", "delegation_benqi", "delegation_rewards",
               "delegation_operator")
 SCHEDULED = ("scheduled_stakes", "scheduled_start_day", "scheduled_days", "scheduled_validator", "scheduled_benqi", "scheduled_operator")
@@ -76,6 +91,7 @@ class DelegationSetup:
     batch: int
     benqi_operator: int = -1
     closes_days: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    rule: str = "reserved room"
 
 
 def limits(stakes: np.ndarray, chain_time: datetime, multiplier: int) -> np.ndarray:
@@ -162,6 +178,84 @@ def place(stakes: np.ndarray, is_benqi: np.ndarray, u_choice: np.ndarray, u_benq
     return (np.concatenate(accepted) if accepted else np.zeros(0, dtype=np.int64)), validator
 
 
+def load_profile(n_validators: int, horizon: int, rows: np.ndarray, starts: np.ndarray, ends: np.ndarray, stakes: np.ndarray) -> np.ndarray:
+    """``load[r, k]``: the delegated stake on validator row ``r`` on day ``k`` ahead, 0 being the first day of a new
+    delegation, from delegations covering the day offsets ``[start, end)``. A row of -1 is on no active validator."""
+    diff = np.zeros((n_validators, horizon + 1), dtype=np.int64)
+    on = (rows >= 0) & (starts < horizon) & (ends > starts)
+    first, last = np.clip(starts[on], 0, horizon), np.clip(ends[on], 0, horizon)
+    np.add.at(diff, (rows[on], first), stakes[on])
+    np.add.at(diff, (rows[on], last), -stakes[on])
+    return np.cumsum(diff, axis=1)[:, :horizon]
+
+
+def place_contained(stakes: np.ndarray, days: np.ndarray, is_benqi: np.ndarray, u_choice: np.ndarray, u_benqi: np.ndarray,
+                    load: np.ndarray, room_limit: np.ndarray, validator_days: np.ndarray, own: np.ndarray,
+                    prior_use: np.ndarray, prior_stakes: np.ndarray, setup: DelegationSetup) -> np.ndarray:
+    """Place the day's delegations under the containment rule, in batches of ``setup.batch`` in draw order. Returns
+    each one's validator row, -1 when no validator is feasible. ``load`` (validators by days ahead), ``prior_use`` and
+    ``prior_stakes`` are updated in place by every accepted delegation."""
+    chosen = np.full(len(stakes), -1, dtype=np.int64)
+    if not len(stakes):
+        return chosen
+    peak = np.maximum.accumulate(load, axis=1)
+    for start in range(0, len(stakes), setup.batch):
+        batch = np.arange(start, min(start + setup.batch, len(stakes)))
+        d, s = days[batch], stakes[batch]
+        peers = s.sum() - s
+        room = room_limit[None, :] - peak[:, d - 1].T - peers[:, None]
+        eligible = (validator_days[None, :] >= d[:, None]) & (room >= s[:, None])
+        open_now = load[:, 0]
+        for j, i in enumerate(batch):
+            rows = np.flatnonzero(eligible[j])
+            if not len(rows):
+                continue
+            inputs = {"own_stake_navax": own[rows], "open_delegated_navax": open_now[rows]}
+            if is_benqi[i]:
+                inputs |= {"prior_use": prior_use[rows], "benqi_stake_navax": prior_stakes[rows]}
+                chosen[i] = rows[setup.allocation.choose_from_uniform(inputs, float(u_benqi[i]))]
+            else:
+                chosen[i] = rows[setup.choice.choose_from_uniform(inputs, float(u_choice[i]))]
+        for i in batch[chosen[batch] >= 0]:
+            row = chosen[i]
+            load[row, :days[i]] += stakes[i]
+            peak[row] = np.maximum.accumulate(load[row])
+            if is_benqi[i]:
+                prior_use[row] = True
+                prior_stakes[row] += stakes[i]
+    return chosen
+
+
+def _benqi_use(state: Mapping[str, Any], keys: np.ndarray, t: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """BENQI's prior-use set on the day's active validators: for each validator row, whether BENQI held a delegation
+    on it open or scheduled in the 365 days before the decision, and its total delegated stake there; and the rows of
+    the state's use records among the active validators."""
+    rows = on_validators(keys, state["benqi_use_key"])
+    in_window = state["benqi_use_until"] > t + 1 - WINDOW_DAYS
+    prior_use = np.zeros(len(keys), dtype=bool)
+    prior_stakes = np.zeros(len(keys), dtype=np.int64)
+    on = (rows >= 0) & in_window
+    prior_use[rows[on]] = True
+    np.add.at(prior_stakes, rows[on], state["benqi_use_navax"][on])
+    return prior_use, prior_stakes, rows
+
+
+def _next_benqi_use(state: Mapping[str, Any], keys: np.ndarray, rows: np.ndarray, t: int, placed_keys: np.ndarray,
+                    placed_stakes: np.ndarray, placed_days: np.ndarray, placed_benqi: np.ndarray, scheduled_keys: np.ndarray) -> dict:
+    """The use records carried to the next state: those on a validator still active or scheduled, plus today's BENQI
+    placements, one record per validator key."""
+    keep = (rows >= 0) | np.isin(state["benqi_use_key"], scheduled_keys)
+    all_keys = np.concatenate([state["benqi_use_key"][keep], placed_keys[placed_benqi]])
+    all_navax = np.concatenate([state["benqi_use_navax"][keep], placed_stakes[placed_benqi]])
+    all_until = np.concatenate([state["benqi_use_until"][keep], t + placed_days[placed_benqi]])
+    unique, inverse = np.unique(all_keys, return_inverse=True)
+    navax = np.zeros(len(unique), dtype=np.int64)
+    np.add.at(navax, inverse, all_navax)
+    until = np.full(len(unique), np.iinfo(np.int64).min, dtype=np.int64)
+    np.maximum.at(until, inverse, all_until)
+    return {"benqi_use_key": unique, "benqi_use_navax": navax, "benqi_use_until": until}
+
+
 def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict], *, setup: DelegationSetup) -> dict:
     """The daily delegations stage. Returns the assembly's next state with the delegations added, and issuance as the
     day's validator rewards plus its delegator rewards."""
@@ -208,11 +302,33 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
     if len(setup.closes_days) and (owner >= 0).any():
         made = ~((owner >= 0) & (setup.closes_days[np.maximum(owner, 0)] <= t + 1))
         index, is_benqi, new_stakes, new_days, owner = index[made], is_benqi[made], new_stakes[made], new_days[made], owner[made]
-    order, chosen = place(new_stakes, is_benqi, draw.uniforms("delegator_choice", t, index), draw.uniforms("benqi_allocation", t, index),
-                          room, validator_days >= MIN_DELEGATION_DAYS, np.isin(keys, setup.benqi_keys), setup)
-    rows = chosen[order]
-    placed_stakes = new_stakes[order]
-    placed_days = np.minimum(new_days[order], validator_days[rows])
+    u_choice, u_benqi = draw.uniforms("delegator_choice", t, index), draw.uniforms("benqi_allocation", t, index)
+    use = {name: state[name] for name in BENQI_USE}
+    if setup.rule == "containment":
+        horizon = int(max(1, validator_days.max(initial=0), new_days.max(initial=0), state["scheduled_start_day"].max(initial=0) - t)) + 1
+        covering = (
+            (on_validators(keys, kept["delegation_validator"]), np.zeros(len(kept["delegation_stakes"]), dtype=np.int64),
+             kept["delegation_days_left"], kept["delegation_stakes"]),
+            (on_validators(keys, starting["delegation_validator"]), np.zeros(len(starting["delegation_stakes"]), dtype=np.int64),
+             starting["delegation_days_left"], starting["delegation_stakes"]),
+            (on_validators(keys, waiting["scheduled_validator"]), waiting["scheduled_start_day"] - (t + 1),
+             waiting["scheduled_start_day"] - (t + 1) + waiting["scheduled_days"], waiting["scheduled_stakes"]),
+        )
+        load = sum(load_profile(n_validators, horizon, *part) for part in covering)
+        prior_use, prior_stakes, use_rows = _benqi_use(state, keys, t)
+        chosen = place_contained(new_stakes, new_days, is_benqi, u_choice, u_benqi, load, limits(stakes, day.start, setup.multiplier) - stakes,
+                                 validator_days, stakes, prior_use, prior_stakes, setup)
+        order = np.flatnonzero(chosen >= 0)
+        rows = chosen[order]
+        placed_stakes, placed_days = new_stakes[order], new_days[order]
+        use = _next_benqi_use(state, keys, use_rows, t, keys[rows], placed_stakes, placed_days, is_benqi[order],
+                              day.settings.scheduled["node_key"][day.settings.scheduled["start_day"] > t + 1])
+    else:
+        order, chosen = place(new_stakes, is_benqi, u_choice, u_benqi, room, validator_days >= MIN_DELEGATION_DAYS,
+                              np.isin(keys, setup.benqi_keys), setup)
+        rows = chosen[order]
+        placed_stakes = new_stakes[order]
+        placed_days = np.minimum(new_days[order], validator_days[rows])
 
     validator_issued = int(validators["issued_navax"])
     opening = int(state["supply_navax"]) + validator_issued
@@ -230,7 +346,7 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
     }
     out = {name: np.concatenate([kept[name], starting[name], new[name]]) for name in DELEGATION}
     return {
-        **validators, **out, **waiting,
+        **validators, **out, **waiting, **use,
         "validator_issued_navax": validator_issued,
         "delegator_issued_navax": supply - opening,
         "issued_navax": validator_issued + supply - opening,

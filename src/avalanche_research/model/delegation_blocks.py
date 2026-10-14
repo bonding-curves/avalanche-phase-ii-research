@@ -6,6 +6,13 @@
   logit on the validator's delegation fee and the log of its remaining delegation capacity.
 * :class:`BenqiAllocation`: the validator BENQI delegates to among the eligible validators of its own set, with
   probability proportional to remaining capacity raised to a power.
+* :class:`ProportionalChoice`: the ordinary delegator's choice adopted for v0.8.1, in proportion to each eligible
+  validator's own stake plus its open delegated stake at the decision. It has no parameter. The conditional logit stays
+  in the code as :class:`DelegatorChoice`, reported and not adopted.
+* :class:`BenqiTwoStage`: BENQI's choice adopted for v0.8.1, in two stages. With probability ``new_share`` the
+  delegation goes to a validator period outside BENQI's prior-use set, chosen by the proportional rule; otherwise to one
+  inside it, in proportion to BENQI's total delegated stake on each. When one feasible set is empty the other takes
+  the whole probability.
 
 Each block offers ``sample`` for the simulator and ``log_prob`` for the estimator, as every block does, a ``fit``
 class method that returns an instance whose every parameter is labelled ``fitted``, and an inversion method that
@@ -82,10 +89,19 @@ class DelegationFlow(BehaviourBlock):
     @classmethod
     def fit(cls, counts: np.ndarray, benqi_counts: np.ndarray, evidence: str) -> DelegationFlow:
         """The sample mean and the pooled BENQI share, each its maximum-likelihood value."""
+        return cls._from_counts(counts, benqi_counts, evidence, "fitted")
+
+    @classmethod
+    def observed(cls, counts: np.ndarray, benqi_counts: np.ndarray, evidence: str) -> DelegationFlow:
+        """The same mean and share read as observed moments of a short window, with no model fitted to them."""
+        return cls._from_counts(counts, benqi_counts, evidence, "observed moment")
+
+    @classmethod
+    def _from_counts(cls, counts, benqi_counts, evidence: str, source: str) -> DelegationFlow:
         counts, benqi = np.asarray(counts), np.asarray(benqi_counts)
         total = int(counts.sum())
         values = {"mean_per_day": float(counts.mean()), "benqi_share": float(benqi.sum() / total) if total else 0.0}
-        provenance = {name: {"source": "fitted", "evidence": f"{evidence}; {total} delegations in {len(counts)} days", "value": value}
+        provenance = {name: {"source": source, "evidence": f"{evidence}; {total} delegations in {len(counts)} days", "value": value}
                       for name, value in values.items()}
         return cls(provenance=provenance, **values)
 
@@ -214,3 +230,158 @@ class BenqiAllocation(_ConditionalChoice):
     def design(self, inputs):
         return _log_capacity(inputs)[:, None]
 
+
+
+def _weights(inputs: Mapping[str, np.ndarray]) -> np.ndarray:
+    """Each candidate's weight under the adopted ordinary rule: its validator's own stake plus its open delegated stake
+    at the decision, in nAVAX. Every candidate has positive weight, since a validator's own stake is positive."""
+    own = np.asarray(inputs["own_stake_navax"], dtype=float)
+    open_ = np.asarray(inputs["open_delegated_navax"], dtype=float)
+    if (own <= 0).any() or (open_ < 0).any():
+        raise ValueError("every candidate needs a positive own stake and non-negative open delegated stake")
+    return own + open_
+
+
+def _group_normalise(weights: np.ndarray, sets: np.ndarray) -> np.ndarray:
+    total = np.zeros(sets.max() + 1)
+    np.add.at(total, sets, weights)
+    return weights / total[sets]
+
+
+def _invert(weights: np.ndarray, u: float) -> int:
+    """The row of a single set whose cumulative weight share first passes ``u``."""
+    cumulative = np.cumsum(weights)
+    return int(min(np.searchsorted(cumulative, u * cumulative[-1], side="right"), len(cumulative) - 1))
+
+
+class ProportionalChoice(BehaviourBlock):
+    """The ordinary delegator's choice: each eligible validator in proportion to its own stake plus its open delegated
+    stake at the decision. The inputs are ``own_stake_navax`` and ``open_delegated_navax`` for each eligible validator,
+    with ``choice_set`` naming the set each row belongs to when there is more than one. It has no parameter."""
+
+    reads = ("eligible_validators",)
+    writes = ("delegations",)
+    decision = "choose a validator to delegate to"
+
+    def probabilities(self, inputs: Mapping[str, np.ndarray]) -> np.ndarray:
+        """Each row's probability of being chosen within its set."""
+        sets = _set_ids({"remaining_navax": inputs["own_stake_navax"], **({"choice_set": inputs["choice_set"]} if "choice_set" in inputs else {})})
+        return _group_normalise(_weights(inputs), sets)
+
+    def choose_from_uniform(self, inputs: Mapping[str, np.ndarray], u: float) -> int:
+        """The chosen row of a single set by inversion of one uniform."""
+        return _invert(_weights(inputs), u)
+
+    def sample(self, inputs, rng):
+        p = self.probabilities(inputs)
+        sets = _set_ids({"remaining_navax": p, **({"choice_set": inputs["choice_set"]} if "choice_set" in inputs else {})})
+        chosen = np.zeros(len(sets), dtype=bool)
+        for s in range(sets.max() + 1):
+            rows = np.flatnonzero(sets == s)
+            chosen[rows[_invert(p[rows], rng.random())]] = True
+        return chosen
+
+    def log_prob(self, inputs, decisions):
+        p = self.probabilities(inputs)
+        sets = _set_ids({"remaining_navax": p, **({"choice_set": inputs["choice_set"]} if "choice_set" in inputs else {})})
+        chosen = _outcomes(decisions, len(sets))
+        if np.bincount(sets[chosen], minlength=sets.max() + 1).tolist() != [1] * (sets.max() + 1):
+            raise ValueError("each choice set needs exactly one chosen row")
+        return float(np.log(p[chosen]).sum())
+
+
+class BenqiTwoStage(BehaviourBlock):
+    """BENQI's choice in two stages. First, with probability ``new_share`` the delegation goes to a validator period
+    outside BENQI's prior-use set, the periods it held open or scheduled in the 365 days before the decision. A new
+    period is chosen by the ordinary rule, in proportion to own stake plus open delegated stake. A repeat is chosen
+    among the prior-use periods in proportion to BENQI's total delegated stake on each over those 365 days. When one of
+    the two feasible sets is empty, the other takes the whole probability.
+
+    The inputs are one row per feasible validator period: ``own_stake_navax``, ``open_delegated_navax``,
+    ``prior_use`` (whether the period is in the prior-use set) and ``benqi_stake_navax`` (BENQI's total delegated stake
+    on it, read for prior-use rows), with ``choice_set`` when there is more than one set.
+    """
+
+    reads = ("eligible_validators",)
+    writes = ("benqi_delegations",)
+    decision = "allocate a BENQI delegation"
+
+    new_share = behavioural(
+        0.0, (0.0, 1.0), "assumed", "Share of BENQI's choices that go to a validator period outside its prior-use set",
+        "Placeholder, every choice a repeat, until set from the 365 days before the origin by BenqiTwoStage.observed",
+    )
+
+    @classmethod
+    def observed(cls, new: np.ndarray, evidence: str) -> BenqiTwoStage:
+        """The block with ``new_share`` the share of ``new`` choices, read as an observed moment."""
+        flags = np.asarray(new, dtype=bool)
+        share = float(flags.mean()) if len(flags) else 0.0
+        provenance = {"new_share": {"source": "observed moment", "value": share,
+                                    "evidence": f"{evidence}; {int(flags.sum())} of {len(flags)} BENQI choices to a period outside its prior-use set"}}
+        return cls(provenance=provenance, new_share=share)
+
+    def _stage_probabilities(self, prior: np.ndarray) -> tuple[float, float]:
+        """The probability of the new stage and of the repeat stage, given which rows are prior-use."""
+        has_new, has_repeat = bool((~prior).any()), bool(prior.any())
+        if not has_new and not has_repeat:
+            raise ValueError("a BENQI choice set needs at least one feasible validator period")
+        p_new = self.new_share if has_new and has_repeat else float(has_new)
+        return p_new, 1.0 - p_new
+
+    def _set_weights(self, inputs: Mapping[str, np.ndarray], rows: np.ndarray) -> np.ndarray:
+        """Each row's probability within one set."""
+        prior = np.asarray(inputs["prior_use"], dtype=bool)[rows]
+        p_new, p_repeat = self._stage_probabilities(prior)
+        out = np.zeros(len(rows))
+        if p_new:
+            new = _weights({k: np.asarray(inputs[k])[rows][~prior] for k in ("own_stake_navax", "open_delegated_navax")})
+            out[~prior] = p_new * new / new.sum()
+        if p_repeat:
+            repeat = np.asarray(inputs["benqi_stake_navax"], dtype=float)[rows][prior]
+            if (repeat <= 0).any():
+                raise ValueError("every prior-use period needs positive BENQI delegated stake")
+            out[prior] = p_repeat * repeat / repeat.sum()
+        return out
+
+    def probabilities(self, inputs: Mapping[str, np.ndarray]) -> np.ndarray:
+        if not len(inputs["prior_use"]):
+            raise ValueError("a BENQI choice set needs at least one feasible validator period")
+        sets = _set_ids({"remaining_navax": inputs["prior_use"], **({"choice_set": inputs["choice_set"]} if "choice_set" in inputs else {})})
+        out = np.zeros(len(sets))
+        for s in range(sets.max() + 1):
+            rows = np.flatnonzero(sets == s)
+            out[rows] = self._set_weights(inputs, rows)
+        return out
+
+    def choose_from_uniform(self, inputs: Mapping[str, np.ndarray], u: float) -> int:
+        """The chosen row of a single set from one uniform: the stage by its probability, then the row within the stage
+        by inversion of the uniform rescaled to that stage."""
+        prior = np.asarray(inputs["prior_use"], dtype=bool)
+        p_new, _ = self._stage_probabilities(prior)
+        if u < p_new:
+            rows = np.flatnonzero(~prior)
+            weights = _weights({k: np.asarray(inputs[k])[rows] for k in ("own_stake_navax", "open_delegated_navax")})
+            return int(rows[_invert(weights, u / p_new)])
+        rows = np.flatnonzero(prior)
+        weights = np.asarray(inputs["benqi_stake_navax"], dtype=float)[rows]
+        if (weights <= 0).any():
+            raise ValueError("every prior-use period needs positive BENQI delegated stake")
+        return int(rows[_invert(weights, (u - p_new) / (1.0 - p_new))])
+
+    def sample(self, inputs, rng):
+        sets = _set_ids({"remaining_navax": inputs["prior_use"], **({"choice_set": inputs["choice_set"]} if "choice_set" in inputs else {})})
+        chosen = np.zeros(len(sets), dtype=bool)
+        for s in range(sets.max() + 1):
+            rows = np.flatnonzero(sets == s)
+            chosen[rows[self.choose_from_uniform({k: np.asarray(v)[rows] for k, v in inputs.items() if k != "choice_set"}, rng.random())]] = True
+        return chosen
+
+    def log_prob(self, inputs, decisions):
+        p = self.probabilities(inputs)
+        sets = _set_ids({"remaining_navax": p, **({"choice_set": inputs["choice_set"]} if "choice_set" in inputs else {})})
+        chosen = _outcomes(decisions, len(sets))
+        if np.bincount(sets[chosen], minlength=sets.max() + 1).tolist() != [1] * (sets.max() + 1):
+            raise ValueError("each choice set needs exactly one chosen row")
+        if (p[chosen] <= 0).any():
+            return float("-inf")
+        return float(np.log(p[chosen]).sum())
