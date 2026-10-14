@@ -1,0 +1,37 @@
+{
+  "name": "p2-model-v0.8.1",
+  "pinned_at": "2026-10-14T19:21:27Z",
+  "runs": [
+    {
+      "bytes": 692906576,
+      "capture_id": "capture:derived:2026-09-30T17:25:46Z:e0b8a7f3be51",
+      "captured_at": "2026-09-30T17:25:46Z",
+      "check": "pass",
+      "dataset_id": "derived.staking-periods",
+      "parquet": "staking-periods.parquet",
+      "run": "staking-periods-2026-09-30",
+      "sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8"
+    },
+    {
+      "bytes": 233039,
+      "capture_id": "capture:derived:2026-09-30T18:42:56Z:7e2248466077",
+      "captured_at": "2026-09-30T18:42:56Z",
+      "check": "pass",
+      "dataset_id": "derived.avax-monetary-daily",
+      "parquet": "avax-monetary-daily.parquet",
+      "run": "avax-monetary-daily-2026-09-30",
+      "sha256": "838a3df7e74bec49cdc198c1432d39654a529a3dac9f20909be0ee37236dfe3e"
+    },
+    {
+      "bytes": 536807520,
+      "capture_id": "capture:derived:2026-10-14T03:32:05Z:270bc07e5570",
+      "captured_at": "2026-10-14T03:32:05Z",
+      "check": "pass",
+      "dataset_id": "derived.seamed-delegator-stakes",
+      "parquet": "seamed-delegator-stakes.parquet",
+      "run": "seamed-delegator-stakes-2026-10-14",
+      "sha256": "af2cdac46dad67e1ac8d51eff2ae11961a30f822061a807388b0e30017c4e131"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}

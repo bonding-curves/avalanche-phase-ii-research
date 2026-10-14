@@ -1,0 +1,67 @@
+{
+  "schema": "m2-analysis-replay-protocol/v1",
+  "purpose": "Authenticate the completed M2 sweep, compute declared analyses and export DR1\u2013DR12 without new simulations or fitting.",
+  "environment": {
+    "python": "3.13.14 used for reported execution; package supports Python>=3.11",
+    "runner_prefix": "uv run --group model --group notebook --with scikit-learn==1.9.1 python",
+    "thread_environment": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1"
+    },
+    "numerical_versions": {
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.9.1",
+      "duckdb": "1.5.5",
+      "bokeh": "3.9.2"
+    }
+  },
+  "inputs": {
+    "bundle": "Externally supplied immutable design.json, rows.json, labels.csv and draws.parquet.",
+    "raw": "Original completed trajectory Parquets and receipt.json. Do not mix designs.",
+    "bindings_json": "bundle_sha256 maps all four filenames to SHA256. Also supply code_commit, pin_sha256 and receipt_sha256 externally.",
+    "producer_commit": "5d05910059d7a6aacf9e7262abe5d241dbd4733b",
+    "model_tag": "model-v0.8.0",
+    "model_tag_target": "b18a4a2",
+    "receipt_id": "cd70f232764c616c",
+    "receipt_sha256": "4b845dc0616409adfaf1e6d12867964d1b3ed0b0d830030ac94469080ebf8fc7",
+    "protected_observations": "No observed data on/after2025-11-19T16:00:00Z is fitted, selected or scored by this workflow."
+  },
+  "commands": {
+    "prepare": "scripts/m2_analysis_prepare.py --bundle <bundle> --bindings <bindings.json> --raw <raw> --output <cache>",
+    "numerics": "scripts/m2_numerics.py --wide <cache>/wide.parquet --bootstrap <cache>/bootstrap.npz --manifest <cache>/inputs-manifest.json --manifest-sha256 <externally-recorded-SHA256> --output <numerics>",
+    "cart_prim": "scripts/m2_cart_prim.py --wide <cache>/wide.parquet --bootstrap <cache>/bootstrap.npz --manifest <cache>/inputs-manifest.json --output <cart-prim>",
+    "association_join": "Concatenate the eight mm1__<family>__<horizon>.csv files with one header and unchanged columns. Record the resulting SHA256. Pooled-yield rows use yield_pp=pooled.",
+    "decisions": "scripts/m2_decisions.py --wide <cache>/wide.parquet --bootstrap <cache>/bootstrap.npz --manifest <cache>/inputs-manifest.json --associations <associations-long.csv> --associations-sha256 <externally-recorded-SHA256> --output <decisions>",
+    "report": "scripts/m2_report_analysis.py --inputs <cache> --numerics <numerics> --cart-prim <cart-prim> --decisions <decisions> --output <report> --chrome <local-headless-Chromium> --analysis-revision <delivery-commit>"
+  },
+  "expected_accounting": {
+    "trajectories": 132800,
+    "design_rows": 74176,
+    "baseline_rows": 58624,
+    "absolute_cells": 3718400,
+    "relative_cells": 445056,
+    "controls": 1344,
+    "wide_rows": 265600,
+    "bootstrap_matrices": 36,
+    "MM1_rows": 40986,
+    "MM3_rows": 2024,
+    "cart_prim_scopes": 32,
+    "cart_prim_tasks": 1184
+  },
+  "interpretation": {
+    "uncertainty": "1000 shared whole-unit bootstrap draws, seed20261005,95% percentile intervals. Conditional design summaries, not demonstrated empirical predictive coverage.",
+    "CART_margin": "Lower95bound of paired OOF correctness minus training-fold-majority correctness. Regression has MSE/R2 and no prescribed Informative verdict.",
+    "PRIM": "Choose bounds on A only, confirm unchanged on B once. Both B coverage/density>=.7. Not found remains a result.",
+    "tiers": "A-only sampled point or fixed A-selected box, B pass share and separate issuance-mean interval. Zero cost is diagnostic. All ranges provisional until fresh-seed reruns.",
+    "BH": "Full 1000-draw inclusive-tail percentile inversion with conservative add-one, matrix BH5%. Undefined slots retain missing p/q/star with p=1 multiplicity bookkeeping only. No empirical QMC FDR claim.",
+    "noise": "Balanced nonnegative one-way random-effects variance fraction. Preserve raw between-component estimate and bootstrap all8keys together within each of64points.",
+    "Sobol": "All compatible Saltelli blocks; responses are inputs. Constant outcomes undefined. Negative/above-one indices retained.256/512maxmovement>.02 means not converged.",
+    "MM7": "Owner-supplied timed evaluation remains separate. Runtime is not contract2.8 acceptance.",
+    "precision": "Float64 final KPIs, not exact integer daily-state replay. The producer receipt contains no independent conservation proof."
+  },
+  "storage": "Keep raw trajectories, cache tables, full task results and report HTML/CSV outside Git. Commit only implementation, tests, protocol and compact hash-bound evidence.",
+  "review": "Run tests, lint, client boundary check and intended-source clean checkout checks. Independently validate selected statistics and every final artifact hash/schema. Inspect exported PNGs and exercise HTML scope switching."
+}
