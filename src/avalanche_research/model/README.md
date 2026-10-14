@@ -157,9 +157,9 @@ table = run(v080.simulation(prepared, seed=0, timesteps=30, runs=20, draws=prepa
 | [`response.py`](response.py) | The reward-rate gap the swept responses act on |
 | [`evaluation.py`](evaluation.py) | Forecast scores, distribution scores and the variant rule `adoption_verdict` |
 | [`designs.py`](designs.py), [`runner.py`](runner.py) | Sweep designs and the row runner the sweep command uses |
-| [`replay.py`](replay.py) | Replays recorded starts, ends and rewards with no behaviour, to check the engine against the ledger |
+| [`replay.py`](replay.py) | Replays recorded starts, ends and rewards with no behaviour, to check the engine against the ledger, and the reward counter through every recorded mint and reversal, to check the models' supply accounting with delegator rewards |
 | [`lifecycle.py`](lifecycle.py) | v0.7, `ValidatorLifecycle`, kept for its tagged release |
-| [`delegated_lifecycle.py`](delegated_lifecycle.py), [`delegation_blocks.py`](delegation_blocks.py), [`operator_events.py`](operator_events.py) | The v0.8.1 delegation and named-operator blocks, in development |
+| [`delegated_lifecycle.py`](delegated_lifecycle.py), [`delegation_blocks.py`](delegation_blocks.py), [`parts/delegations.py`](parts/delegations.py), [`operator_events.py`](operator_events.py), [`parts/operator_types.py`](parts/operator_types.py) | The v0.8.1 delegation, named-operator and operator-type blocks, in development. `v0.8.1 candidate` puts them on the v0.8.0 build under the delegation laws frozen on 13 October 2026; its origin table is written by [`scripts/model_v081_origins.py`](../../../scripts/model_v081_origins.py) |
 | [`versions.py`](versions.py), [`backtest.py`](backtest.py) | The version table, and the check that recomputes each recorded reward from the protocol formula |
 
 ## Terms

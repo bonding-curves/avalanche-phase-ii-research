@@ -1,0 +1,18 @@
+{
+  "command": "uv run --group model python scripts/model_v081_origins.py results/model-v0.8.1-candidate/origins --runs 5 --workers 4",
+  "code_commit": "9cee23edfdc218f8ccdc3b5cf7c101b5bedc8bed",
+  "python": "3.13.14",
+  "pin": "data/pins/p2-model-v0.8.json",
+  "staking_periods_run": "staking-periods-2026-09-30",
+  "staking_periods_sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8",
+  "delegator_stakes_parquet": "data/runs/seamed-delegator-stakes-2026-10-14/dataset/seamed-delegator-stakes.parquet",
+  "delegator_stakes_sha256": "af2cdac46dad67e1ac8d51eff2ae11961a30f822061a807388b0e30017c4e131",
+  "specification_hash": {
+    "object": "VARIANTS['v0.8.1 candidate'].simulation(prepared, seed=r, timesteps=180, runs=1, draws=prepared.draws.iloc[[r]].reset_index(drop=True))",
+    "prepared": "VARIANTS['v0.8.1 candidate'].prepare(periods, origin, 'staking-periods-2026-09-30', draws=5, draw_seed=0, delegations=tables)",
+    "tables": "delegation_inputs.build(periods, delegators, origin) with delegation_terms(...) and benqi_choices(...), BENQI by its funding address from its evidence date",
+    "method": "SimulationModel.specification_hash: the first 16 hex digits of the SHA-256 of json.dumps(model.specification(), sort_keys=True, default=str)",
+    "specification": "the model class, every setting not at an omitted default, and the SHA-256 digest of every input table (engine.SimulationModel.specification)"
+  },
+  "held_back_from": "2025-11-19 16:00 UTC; a horizon on or after 2025-11-19 is not scored and its record is not read"
+}
