@@ -4,7 +4,7 @@ A simulation of how Avalanche Primary Network validators commit, renew, leave an
 
 [![The v0.8.0 model: staking events measured before the origin fit the behaviour blocks, six stages run each day in order and read and write the state, and the run writes a daily table that the KPIs read](images/v0.8-structure.png)](images/v0.8-structure.svg)
 
-**Status:** model version 0.8.0, the variant `v0.8.0`. Tag `model-v0.8.0` pending review. Chosen against candidate a by the variant rule fixed on 6 October 2026 ([evidence](../../../results/model-v0.8.0-selection/README.md)). The previous release is tagged `model-v0.7.0`.
+**Status:** model version 0.8.0, the variant `v0.8.0`. Tagged `model-v0.8.0` on 13 October 2026. Chosen against candidate a by the variant rule fixed on 6 October 2026 ([evidence](../../../results/model-v0.8.0-selection/README.md)). The previous release is tagged `model-v0.7.0`.
 
 ## Contents
 
