@@ -480,7 +480,7 @@ def built(dataset_id, run=None):
         pytest.skip(f"no built run of {dataset_id} in this checkout")
 
 
-CANDIDATE_PIN = Path("data/pins/p9-model-v0.8.1.json")
+CANDIDATE_PIN = Path("data/pins/p2-model-v0.8.1.json")
 
 
 def pinned_tables(origin):

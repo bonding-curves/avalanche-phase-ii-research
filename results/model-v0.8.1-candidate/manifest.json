@@ -1,11 +1,15 @@
 {
   "branch": "prototype/v0.8.1-v0",
-  "head": "3bce5b88931bd15538c647da7558f440ba1d181a",
-  "base_on_main": "4ecfdfd7179e392ebba393de4e97a885dc94fdea",
+  "head": "056ea0fda5b20383025e386ffa3140a7cf279d63",
+  "base_on_main": "1fb1994a2718d6f3ca3cdfa6fd50c9d642224e5c",
   "changed_files": [
     {
       "path": "results/model-v0.8.1-candidate/README.md",
-      "blob": "0e2487064fdb1e6444522a09c7ead9015ace28cf"
+      "blob": "0b1d61d2276da34affea782e80ccc6a03ae6869b"
+    },
+    {
+      "path": "results/model-v0.8.1-candidate/manifest.json",
+      "blob": "52639ef1b29d631e9c97fd3cdc566fa8d88b52af"
     },
     {
       "path": "results/model-v0.8.1-candidate/origins/construction.json",
@@ -26,6 +30,14 @@
     {
       "path": "results/model-v0.8.1-candidate/origins/unplaced.csv",
       "blob": "e16d34f0b3aca0fd5ca575cf759a4d7e4ab64f2b"
+    },
+    {
+      "path": "results/model-v0.8.1-candidate/replay.json",
+      "blob": "7f931cbb0b032635466255aedb46b3d21160427a"
+    },
+    {
+      "path": "scripts/model_v081_manifest.py",
+      "blob": "aa471663c080c91e1ea1c05adeb3057f64215fe1"
     },
     {
       "path": "scripts/model_v081_origins.py",
@@ -84,9 +96,9 @@
         "role": "the staking periods run the results and the replay read"
       },
       {
-        "path": "data/pins/p9-model-v0.8.1.json",
-        "sha256": null,
-        "role": "the candidate's pin, not yet created; the origins table cannot be rerun until it exists"
+        "path": "data/pins/p2-model-v0.8.1.json",
+        "sha256": "5e36e9e2330d97cd8fd7cc158b838b4d6fd46c87a68cc38aa31c6eec6131fedf",
+        "role": "the candidate's pin, both runs"
       }
     ],
     "runs": [
@@ -189,8 +201,8 @@
     }
   },
   "tests": {
-    "command": "uv run pytest -q -p no:cacheprovider (1680 passed, 1 skipped: the data test that waits on the candidate's pin)",
-    "passed": 1680
+    "command": "uv run --with scikit-learn==1.9.1 pytest -q -p no:cacheprovider (scikit-learn is imported by analysis/cart.py on main but not declared in pyproject.toml)",
+    "passed": 1921
   },
   "operator_types": "Not adopted. The candidate carries one type with named operators, K = 1 with no shift. One class fit the held-out renewal endings best and two to four classes failed the adoption gates; one class is not significantly better than the shrunk operator renewal rate (p = 0.26) and its transfer calibration error is 0.039 against a limit of 0.02."
 }

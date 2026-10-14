@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = Path("results/model-v0.8.1-candidate")
 PERIODS_PIN = Path("data/pins/p2-model-v0.8.json")
-CANDIDATE_PIN = Path("data/pins/p9-model-v0.8.1.json")
+CANDIDATE_PIN = Path("data/pins/p2-model-v0.8.1.json")
 PERIODS_RUN = "staking-periods-2026-09-30"
 WINDOWS = ((date(2024, 3, 21), False), (date(2025, 6, 1), True), (date(2025, 9, 20), True))
 
