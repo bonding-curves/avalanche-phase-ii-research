@@ -16,25 +16,25 @@ The research works to the schedule of [proposal v2.5](/Phase-II/Milestones/Miles
 | [Milestone 2](/Phase-II/Milestones/Milestone-2/) | August 15 to October 14, 2026 | Parameter sweeps, Monte Carlo simulation, and sensitivity analysis | Sensitivity Analysis Report covering all key parameters |
 | [Milestone 3](/Phase-II/Milestones/Milestone-3/) | October 15 to December 14, 2026 | Recommendations, playbook, open-source release, and knowledge transfer | Final Parameter Report delivered and code repository transferred |
 
-In September the research was rebuilt from the chain up: every dataset recaptured with receipts, and the protocol's reward formula reimplemented and checked against the chain. Milestone 1 is therefore being delivered again inside Milestone 2's window.
+The Foundation accepted Milestone 1 in August 2026. In September the research was rebuilt from the chain up: every dataset recaptured with receipts, and the protocol's reward formula reimplemented and checked against the chain. Milestone 1's deliverables were rebuilt on that basis and published again on 8 October.
 
 ## Deliverables
 
 Status is one of not started, in progress, delivered, or accepted by Avalanche.
 
-| ID | Deliverable | Status on 2026-09-28 |
+| ID | Deliverable | Status on 14 October 2026 |
 | --- | --- | --- |
-| [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | Data Ingestion | Delivered for review |
-| [1.2](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) | Data Manifest | Delivered for review |
-| [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | Staking Model Spec | In progress |
-| [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) | Behavioral Calibration | In progress |
-| [M1](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/) | Preliminary Validation Report | Not started |
-| [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/) | PSUU Infrastructure | Not started |
-| [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | Simulation Execution | Not started |
-| [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/) | KPI Computation | Not started |
-| [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) | Validation Confirmation | Not started |
-| [2.5](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) | Sensitivity Analysis | Not started |
-| [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | Risk Surface Map | Not started |
+| [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | Data Ingestion | Accepted by Avalanche |
+| [1.2](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) | Data Manifest | Accepted by Avalanche |
+| [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | Staking Model Spec | Accepted by Avalanche |
+| [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) | Behavioral Calibration | Accepted by Avalanche |
+| [M1](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/) | Preliminary Validation Report | Accepted by Avalanche |
+| [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/) | PSUU Infrastructure | In progress |
+| [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | Simulation Execution | In progress |
+| [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/) | KPI Computation | In progress |
+| [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) | Validation Confirmation | In progress |
+| [2.5](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) | Sensitivity Analysis | In progress |
+| [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | Risk Surface Map | In progress |
 | [2.7](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/) | Workshop 1 | Not started |
 | [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) | Collaborative Mechanism Design | Not started |
 | [3.1](/Phase-II/Milestones/Milestone-3/3-1-Parameter-Recommendation-Report/) | Parameter Recommendation Report | Not started |

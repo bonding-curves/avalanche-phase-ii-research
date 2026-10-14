@@ -4,7 +4,7 @@ description: What the two notebooks of the staking model v0.7 show, how to open 
 tags: ["staking-duration-and-liquidity", "issuance-and-rewards", "structural-estimation"]
 ---
 
-The repository holds two Jupyter notebooks in `notebooks/` for the staking model v0.7. Both are saved with their outputs, so every table and chart can be read without running anything. Both read one dataset, `derived.staking-periods`, from its run `staking-periods-2026-09-30`. That run is part of the pinned input set, which follows on 2026-10-07. [Data](/Phase-II/Wiki/Reference/Data) describes the dataset.
+Of the five Jupyter notebooks in `notebooks/`, this page describes the two for the staking model v0.7. Both are saved with their outputs, so every table and chart can be read without running anything. Both read one dataset, `derived.staking-periods`, from its run `staking-periods-2026-09-30`. That run is part of the pinned input sets, which are not yet distributed with the repository. [Data](/Phase-II/Wiki/Reference/Data) describes the dataset.
 
 | Notebook | What it shows |
 | --- | --- |
@@ -46,7 +46,7 @@ The charts are HoloViews and Bokeh outputs. JupyterLab draws them only when the 
 
 ## Run the notebooks
 
-Running the notebooks needs the pinned input set, which follows on 2026-10-07. Once it is extracted into `data/runs/`:
+Running the notebooks needs the pinned input sets, which are not yet distributed with the repository. A command that fetches and checks them is planned with the code transfer of Milestone 3. Once a set is extracted into `data/runs/`:
 
 1. Run `uv run --group notebook python scripts/verify_notebooks.py`. It checks the run `staking-periods-2026-09-30` against its build receipt and runs both notebooks into a temporary folder, so the saved copies are never changed. Every line starts with `PASS`, and the last line is `All checks passed.` It takes about a minute and a half.
 2. In JupyterLab, choose **Run > Run All Cells** in either notebook.
