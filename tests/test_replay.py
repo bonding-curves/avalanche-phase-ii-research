@@ -66,7 +66,7 @@ def test_the_mint_replay_adds_mints_takes_reversals_off_and_compares_before_each
         "minted_validator_navax": [100, 0, 50], "minted_delegator_navax": [10, 20, 0], "delegations_started": [1, 2, 0],
         # Day 2 has a 7 nAVAX reversal before its first mint and 3 after; day 3 starts with the counter after day 2.
         "supply_first_navax": pd.array([1_000, 1_000 + 110 - 7, 1_000 + 110 - 10 + 20], dtype="Int64"),
-        "unpaid_navax": [0, 10, 4], "unpaid": [0, 2, 1], "unpaid_before_first_mint_navax": [0, 7, 0],
+        "unpaid_navax": [0, 10, 4], "unpaid": [0, 2, 1], "unpaid_before_first_mint_navax": [0, 7, 0], "unpaid_at_first_mint_navax": [0, 0, 0],
     })
     table = run(MintReplay(events=events, events_source="synthetic", supply0_navax=1_000))
     supply = table[table["variable"] == "supply_navax"].sort_values("timestep")["value"].tolist()
@@ -75,6 +75,10 @@ def test_the_mint_replay_adds_mints_takes_reversals_off_and_compares_before_each
     assert result["exact"] and result["days_compared"] == 2 and result["minted_delegator_navax"] == 30 and result["unpaid_navax"] == 14
     off = events.assign(supply_first_navax=pd.array([1_000, 1_104, 1_120], dtype="Int64"))
     assert compare_minting(run(MintReplay(events=off, events_source="synthetic", supply0_navax=1_000)), off)["first_differences"] == [("2025-06-01", 1)]
+    # A reversal in the same second as the first mint is taken off when the recorded counter says it came first.
+    tied = events.assign(supply_first_navax=pd.array([1_000, 1_000 + 110 - 7 - 2, 1_118], dtype="Int64"), unpaid_at_first_mint_navax=[0, 2, 0], unpaid_navax=[0, 12, 4])
+    resolved = compare_minting(run(MintReplay(events=tied, events_source="synthetic", supply0_navax=1_000)), tied)
+    assert resolved["exact"] and resolved["same_second_ties_resolved"] == 1
 
 
 def synthetic_events(validator_changes):

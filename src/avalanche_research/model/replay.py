@@ -177,13 +177,14 @@ d AS (
 f AS (SELECT day, min(accepted_at) AS first_mint_at FROM m GROUP BY 1),
 u AS (
     SELECT epoch_us(rewarded_at) // {US_PER_DAY} AS day, sum(potential_reward_navax)::BIGINT AS unpaid_navax, count(*)::BIGINT AS unpaid,
-           coalesce(sum(potential_reward_navax) FILTER (WHERE rewarded_at < f.first_mint_at), 0)::BIGINT AS unpaid_before_first_mint_navax
+           coalesce(sum(potential_reward_navax) FILTER (WHERE rewarded_at < f.first_mint_at), 0)::BIGINT AS unpaid_before_first_mint_navax,
+           coalesce(sum(potential_reward_navax) FILTER (WHERE rewarded_at = f.first_mint_at), 0)::BIGINT AS unpaid_at_first_mint_navax
     FROM read_parquet(?) r LEFT JOIN f ON f.day = epoch_us(r.rewarded_at) // {US_PER_DAY}
     WHERE rewarded_at >= ?::TIMESTAMP AND rewarded_at < ?::TIMESTAMP AND NOT rewarded GROUP BY 1
 )
 SELECT coalesce(d.day, u.day) AS day, coalesce(minted_validator_navax, 0) AS minted_validator_navax, coalesce(minted_delegator_navax, 0) AS minted_delegator_navax,
        coalesce(delegations_started, 0) AS delegations_started, supply_first_navax, coalesce(unpaid_navax, 0) AS unpaid_navax, coalesce(unpaid, 0) AS unpaid,
-       coalesce(unpaid_before_first_mint_navax, 0) AS unpaid_before_first_mint_navax
+       coalesce(unpaid_before_first_mint_navax, 0) AS unpaid_before_first_mint_navax, coalesce(unpaid_at_first_mint_navax, 0) AS unpaid_at_first_mint_navax
 FROM d FULL OUTER JOIN u USING (day) ORDER BY 1
 """
 
@@ -215,14 +216,16 @@ def mint_events(periods_parquet: str, start: date, through: date = LOCKBOX_FIRST
     """One row per UTC day from ``start`` to the day before ``through``: the potential rewards minted by the validator and
     delegator periods accepted that day, the count of delegations started, the recorded reward counter before the day's
     first mint, and the potential rewards given back by periods that ended that day without their reward, with the part
-    of them given back before the day's first mint. A day with no mint carries no recorded counter. ``through`` may not pass the first day of the validation lockbox."""
+    of them given back before the day's first mint and the part given back in the same second as it, which the record
+    does not order against it. A day with no mint carries no recorded counter. ``through`` may not pass the first day of the validation lockbox."""
     first, last = _window(start, through)
     rows = duckdb.execute(MINT_DAYS_SQL, [periods_parquet, first, last, periods_parquet, first, last]).df()
     rows["supply_first_navax"] = rows["supply_first_navax"].astype("Int64")
     first_day, last_day = (first - pd.Timestamp(0)).days, (last - pd.Timestamp(0)).days - (1 if last == last.normalize() else 0)
     days = pd.DataFrame({"day": np.arange(first_day, last_day + 1)})
     table = days.merge(rows, on="day", how="left")
-    for column in ("minted_validator_navax", "minted_delegator_navax", "delegations_started", "unpaid_navax", "unpaid", "unpaid_before_first_mint_navax"):
+    for column in ("minted_validator_navax", "minted_delegator_navax", "delegations_started", "unpaid_navax", "unpaid",
+                   "unpaid_before_first_mint_navax", "unpaid_at_first_mint_navax"):
         table[column] = table[column].fillna(0).astype(np.int64)
     table.insert(0, "date_utc", pd.to_datetime(table.pop("day").to_numpy() * US_PER_DAY, unit="us").date)
     return table
@@ -280,21 +283,26 @@ class MintReplay(SimulationModel):
 
 def compare_minting(table: pd.DataFrame, events: pd.DataFrame) -> dict[str, Any]:
     """The replayed counter at each day's end, less the next day's reversals before its first mint, against the recorded
-    counter before that first mint, exactly. Days whose next day has no mint are not compared."""
+    counter before that first mint, exactly. A reversal in the same second as that mint is taken off when the recorded
+    counter says it came first, and counted as a tie the record resolved. Days whose next day has no mint are not
+    compared."""
     wide = table.pivot_table(index="timestep", columns="variable", values="value", aggfunc="first")
-    recorded, early = events["supply_first_navax"], events["unpaid_before_first_mint_navax"]
-    pairs = []
+    recorded, early, tied = events["supply_first_navax"], events["unpaid_before_first_mint_navax"], events["unpaid_at_first_mint_navax"]
+    pairs, ties = [], 0
     # Timestep t holds the state after day t - 1 of the events, so the counter at the end of day t - 1 meets the counter
     # recorded before day t's first mint, once the reversals of day t that came before that mint are taken off.
     for t in range(1, len(events)):
         if pd.notna(recorded.iloc[t]):
-            pairs.append((str(events["date_utc"].iloc[t - 1]), int(recorded.iloc[t]), int(wide.loc[t, "supply_navax"]) - int(early.iloc[t])))
+            observed, replayed = int(recorded.iloc[t]), int(wide.loc[t, "supply_navax"]) - int(early.iloc[t])
+            if observed != replayed and int(tied.iloc[t]) and observed == replayed - int(tied.iloc[t]):
+                replayed, ties = replayed - int(tied.iloc[t]), ties + 1
+            pairs.append((str(events["date_utc"].iloc[t - 1]), observed, replayed))
     differ = [(day, observed - replayed) for day, observed, replayed in pairs if observed != replayed]
     # One difference carried unchanged through every later day is a single event the record places elsewhere, such as a
-    # pending staker before Durango minted at its start; a difference that moves is a disagreement in the accounting.
+    # pending staker before Durango minted at its start, so the count of distinct differences counts such events.
     distinct = sorted({gap for _, gap in differ})
     return {"days_compared": len(pairs), "days_differ": len(differ), "first_differences": differ[:5], "exact": not differ,
-            "distinct_differences": len(distinct), "constant_offset": distinct[0] if len(distinct) == 1 and len(differ) == len(pairs) - pairs.index(next(p for p in pairs if p[1] != p[2])) else None,
+            "distinct_differences": len(distinct), "same_second_ties_resolved": ties,
             "minted_delegator_navax": int(wide["minted_delegator_navax"].sum()), "minted_validator_navax": int(wide["minted_validator_navax"].sum()),
             "unpaid_navax": int(wide["unpaid_navax"].sum()), "delegations_started": int(events["delegations_started"].sum())}
 
