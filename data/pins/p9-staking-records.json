@@ -9,6 +9,11 @@
       "check": "pass",
       "dataset_id": "derived.staking-periods",
       "parquet": "staking-periods.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "6f8bd4462f57be9c26c66b1d27e8d53a5e0b9d595d1799efa15b2f44dfc035c6",
+        "dataset/build.json": "d0eb3fd4cdab7baae07fdbf128902050367e5dba2bb8c6d7d5b66825ba94b421",
+        "dataset/check.json": "bc8063cdca1b72b1bb547e1c1436bacf2686a6daeaa8aacb2b237deea701c45d"
+      },
       "run": "staking-periods-2026-10-14",
       "sha256": "c00402da86b47bd54d965209ee3fc69ae85a29f81aaf52f80b9c3f69630227ea"
     },
@@ -19,6 +24,11 @@
       "check": "pass",
       "dataset_id": "derived.avax-monetary-daily",
       "parquet": "avax-monetary-daily.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "866b79a4f5631d1955fddafa23cc762af52302801585d01bffb1c1ce0c1529be",
+        "dataset/build.json": "00c5fbad7704760abaead18b39a660d026ad7b5353463065ab9ea7574b912b41",
+        "dataset/check.json": "d06eb530c9550933dc0e738459ef0622a5a889730e7a4a1c84abe14c7b05fb1b"
+      },
       "run": "avax-monetary-daily-2026-10-14",
       "sha256": "bc537e89203eadcc72292193b30a5183aa0c92c1932ad43765b9ea02f64a26cc"
     },
@@ -29,6 +39,11 @@
       "check": "pass",
       "dataset_id": "derived.seamed-validator-stakes",
       "parquet": "seamed-validator-stakes.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "677e02a3dc892de5414839df211b1d0a8883a95d1ceb865cbb0d65595b02ac61",
+        "dataset/build.json": "dafa8adca4c300eaf49ae39b4843be5ee5ab9a480a4b38fe83c1f8b65df0286c",
+        "dataset/check.json": "f072577447a6c04ba6009182fa602c67e4889b43203df590895aeaab281e492e"
+      },
       "run": "seamed-validator-stakes-2026-10-14",
       "sha256": "46c285ecbea80601ad04be420f15e6e97849c437df27d44d094a7bcf8ea37dc8"
     },
@@ -39,6 +54,11 @@
       "check": "pass",
       "dataset_id": "derived.seamed-delegator-stakes",
       "parquet": "seamed-delegator-stakes.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "673f96c18b90d1126df76e056df141581f46dd6f1961b41f6ca9620bad063d96",
+        "dataset/build.json": "0823d5f37fabbd6ac0b9defcc98bfbb765f278e19d6933ae8f989e5d8005acf2",
+        "dataset/check.json": "9a14e59771bf77dd708ba8f75019db545460013de134e2ab35a2cd80d3aa03c9"
+      },
       "run": "seamed-delegator-stakes-2026-10-14",
       "sha256": "af2cdac46dad67e1ac8d51eff2ae11961a30f822061a807388b0e30017c4e131"
     },
@@ -49,6 +69,11 @@
       "check": "pass",
       "dataset_id": "derived.p-chain-staking-cycles",
       "parquet": "p-chain-staking-cycles.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "8c663e894203460095c1a51271b8f39507cea2093211c8f274d305c2d221bcbf",
+        "dataset/build.json": "02866348f54ee26e7778f78be88cbe11d37f57fd4fa6ea22be80cbcbb6192069",
+        "dataset/check.json": "b7f641fc7e5f628c1a7cdc3547a2be695833a5f5a564697ba91efb443560f2d6"
+      },
       "run": "p-chain-staking-cycles-2026-10-14",
       "sha256": "9c83da90d8e4d2dd8588a36435f3cb8ba83987a183c99d046752c916ce6f0bc3"
     }
