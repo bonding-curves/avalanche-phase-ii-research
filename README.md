@@ -6,7 +6,7 @@ A calibrated simulation of Avalanche Primary Network staking, built by BCRG, the
 
 [![The v0.8.0 model: staking events measured before the origin fit the behaviour blocks, six stages run each day in order and read and write the state, and the run writes a daily table that the KPIs read](src/avalanche_research/model/images/v0.8-structure.png)](src/avalanche_research/model/README.md)
 
-**Status, 13 October 2026:** staking model v0.8.0, released on `main`. Tag `model-v0.8.0` pending its release review, previous release `model-v0.7.0`. 1,647 tests, all passing with the input data. The pinned input data is not yet distributed (see [Data availability](#data-availability)).
+**Status, 13 October 2026:** staking model v0.8.0, tagged `model-v0.8.0`. Previous release `model-v0.7.0`. 1,647 tests, all passing with the input data. The pinned input data is not yet distributed (see [Data availability](#data-availability)).
 
 ## Contents
 
@@ -111,7 +111,7 @@ The model's pinned input sets are not yet distributed with this repository. A co
 | Item | Version |
 | --- | --- |
 | Python package `avalanche-phase-ii-research` | 0.1 (`0.1.0.dev0` in [`pyproject.toml`](pyproject.toml)) |
-| Staking model | v0.8.0, released on `main` on 13 October 2026. Each model run records `MODEL_VERSION = "0.8.0"`. The tag `model-v0.8.0` follows its release review. v0.7 is tagged `model-v0.7.0` |
+| Staking model | v0.8.0, tagged `model-v0.8.0` on 13 October 2026. Each model run records `MODEL_VERSION = "0.8.0"`. v0.7 is tagged `model-v0.7.0` |
 
 ## Writing links
 
