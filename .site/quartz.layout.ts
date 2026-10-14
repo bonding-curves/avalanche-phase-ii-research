@@ -4,7 +4,7 @@ import * as Component from "./quartz/components"
 export const sharedPageComponents: SharedLayout = {
   head: Component.Head(),
   header: [],
-  afterBody: [],
+  afterBody: [Component.ImageZoom()],
   footer: Component.Footer({ links: {} }),
 }
 

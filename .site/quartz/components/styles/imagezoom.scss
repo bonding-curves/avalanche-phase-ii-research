@@ -1,0 +1,90 @@
+article img.image-zoomable {
+  cursor: zoom-in;
+}
+
+html.image-zoom-lock {
+  overflow: hidden;
+}
+
+.image-zoom {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(12, 12, 14, 0.94);
+  flex-direction: column;
+
+  &.active {
+    display: flex;
+  }
+
+  .image-zoom-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: zoom-out;
+    touch-action: none;
+
+    &.zoomed {
+      cursor: grab;
+    }
+
+    img {
+      max-width: 96vw;
+      max-height: calc(100vh - 64px);
+      object-fit: contain;
+      background: #ffffff;
+      transform-origin: center center;
+      cursor: zoom-in;
+      user-select: none;
+      border-radius: 0;
+      margin: 0;
+    }
+
+    &.zoomed img {
+      cursor: grab;
+    }
+  }
+
+  .image-zoom-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 1rem;
+    background: #0c0c0e;
+    border-top: 1px solid #27272a;
+    color: #f4f4f5;
+    font-size: 0.9rem;
+
+    .image-zoom-caption {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .image-zoom-count {
+      color: #a1a1aa;
+    }
+
+    button,
+    a {
+      background: transparent;
+      border: 1px solid #52525b;
+      border-radius: 4px;
+      color: #f4f4f5;
+      padding: 0.15rem 0.6rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    button:hover,
+    a:hover {
+      border-color: #f4f4f5;
+    }
+  }
+}
