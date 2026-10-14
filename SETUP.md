@@ -51,7 +51,7 @@ This installs the package with its test tools (the `dev` group, installed by def
 uv run pytest -q
 ```
 
-The suite holds 652 tests and takes 2 to 3 minutes. Without the input data the last line reads `649 passed, 3 skipped`, followed by a count of warnings. The three skipped tests replay the model against the built staking periods, which arrive with the input set (see step 7). With the input set in place, all 652 pass.
+The suite holds 1,647 tests and takes 2 to 3 minutes. With the input set in place (see step 7), all of them pass. Without it, 37 tests skip and 17 tests of the one-time scoring script fail, because they read a data run instead of skipping.
 
 ## 5. Query the model from the command line
 
@@ -74,15 +74,18 @@ uv run avalanche data list
 
 | Notebook | What it shows |
 | --- | --- |
-| `notebooks/model-story.ipynb` | Model v0.7: its structure traced from the code, the reward designs it compares, the validator response to issuance, a test of the lifecycle model across five protocol upgrades, and the model's version roadmap |
+| `notebooks/model-story.ipynb` | Written for model v0.7: its structure traced from the code, the reward designs it compares, the validator response to issuance, a test of the lifecycle model across five protocol upgrades, and the model's version roadmap |
 | `notebooks/mechanism-explorer.ipynb` | Reward and admission mechanisms compared on one reference cohort of real stakes: reward rate by duration, the AVAX each would mint, and admission by duration |
+| `notebooks/staking-periods.ipynb` | Every validator and delegator staking period since genesis, from the Avalanche Foundation's Snowflake data share |
+| `notebooks/validator-lifecycle-v0.ipynb` | The first behaviour model, v0: from five origin days, the validator commitments open at each, set against what happened |
+| `notebooks/validator-rewards-article.ipynb` | A reading of Eric Lu's article on how validators think about staking rewards |
 
-Both notebooks are saved with their outputs. GitHub shows their text and code but does not draw their interactive charts.
+All five notebooks are saved with their outputs. GitHub shows their text and code but does not draw their interactive charts.
 
 Trust the notebooks, then start JupyterLab:
 
 ```sh
-uv run jupyter trust notebooks/model-story.ipynb notebooks/mechanism-explorer.ipynb
+uv run jupyter trust notebooks/*.ipynb
 uv run jupyter lab notebooks/
 ```
 
@@ -92,13 +95,13 @@ Do not choose **Run All** before the input set is in place. The notebooks read t
 
 ## 7. Run the notebooks with data
 
-The model's input data, a pinned input set, follows on 2026-10-07. Extract it into `data/runs/`, so each run is one folder such as `data/runs/staking-periods-2026-09-30/`. Then check it and run both notebooks:
+The model's pinned input sets are not yet distributed with this repository. A command that fetches and checks them is planned with the code transfer of Milestone 3. When you have an input set, extract it into `data/runs/`, so each run is one folder such as `data/runs/staking-periods-2026-09-30/`. Then check it and run the model and mechanism notebooks:
 
 ```sh
 uv run python scripts/verify_notebooks.py
 ```
 
-This checks each data run against its receipt and runs both notebooks into a temporary folder, so the saved copies are not changed. Every line starts with `PASS` and the last line reads `All checks passed.` A `FAIL` line names the problem. After that, **Run > Run All Cells** works in JupyterLab.
+This checks each data run against its receipt and runs the model and mechanism notebooks into a temporary folder, so the saved copies are not changed. Every line starts with `PASS` and the last line reads `All checks passed.` A `FAIL` line names the problem. After that, **Run > Run All Cells** works in JupyterLab.
 
 [`data/README.md`](data/README.md) describes the run layout, and [`data/data-catalog.json`](data/data-catalog.json) defines every dataset.
 
