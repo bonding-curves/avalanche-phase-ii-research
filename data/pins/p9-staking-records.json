@@ -1,0 +1,57 @@
+{
+  "name": "p9-staking-records",
+  "pinned_at": "2026-10-14T19:49:49Z",
+  "runs": [
+    {
+      "bytes": 696148236,
+      "capture_id": "capture:derived:2026-10-14T03:34:18Z:235f3d2f81a0",
+      "captured_at": "2026-10-14T03:34:18Z",
+      "check": "pass",
+      "dataset_id": "derived.staking-periods",
+      "parquet": "staking-periods.parquet",
+      "run": "staking-periods-2026-10-14",
+      "sha256": "c00402da86b47bd54d965209ee3fc69ae85a29f81aaf52f80b9c3f69630227ea"
+    },
+    {
+      "bytes": 234585,
+      "capture_id": "capture:derived:2026-10-14T03:38:24Z:ace7aff2d7ae",
+      "captured_at": "2026-10-14T03:38:24Z",
+      "check": "pass",
+      "dataset_id": "derived.avax-monetary-daily",
+      "parquet": "avax-monetary-daily.parquet",
+      "run": "avax-monetary-daily-2026-10-14",
+      "sha256": "bc537e89203eadcc72292193b30a5183aa0c92c1932ad43765b9ea02f64a26cc"
+    },
+    {
+      "bytes": 6202968,
+      "capture_id": "capture:derived:2026-10-14T03:31:36Z:b1295d2b3029",
+      "captured_at": "2026-10-14T03:31:36Z",
+      "check": "pass",
+      "dataset_id": "derived.seamed-validator-stakes",
+      "parquet": "seamed-validator-stakes.parquet",
+      "run": "seamed-validator-stakes-2026-10-14",
+      "sha256": "46c285ecbea80601ad04be420f15e6e97849c437df27d44d094a7bcf8ea37dc8"
+    },
+    {
+      "bytes": 536807520,
+      "capture_id": "capture:derived:2026-10-14T03:32:05Z:270bc07e5570",
+      "captured_at": "2026-10-14T03:32:05Z",
+      "check": "pass",
+      "dataset_id": "derived.seamed-delegator-stakes",
+      "parquet": "seamed-delegator-stakes.parquet",
+      "run": "seamed-delegator-stakes-2026-10-14",
+      "sha256": "af2cdac46dad67e1ac8d51eff2ae11961a30f822061a807388b0e30017c4e131"
+    },
+    {
+      "bytes": 13565,
+      "capture_id": "capture:derived:2026-10-14T03:29:10Z:9b3f0d9c9984",
+      "captured_at": "2026-10-14T03:29:10Z",
+      "check": "pass",
+      "dataset_id": "derived.p-chain-staking-cycles",
+      "parquet": "p-chain-staking-cycles.parquet",
+      "run": "p-chain-staking-cycles-2026-10-14",
+      "sha256": "9c83da90d8e4d2dd8588a36435f3cb8ba83987a183c99d046752c916ce6f0bc3"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
