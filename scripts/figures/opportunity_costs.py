@@ -12,8 +12,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from decimal import Decimal
+from html import escape
 from pathlib import Path
 
+import duckdb
 import pandas as pd
 from bokeh.layouts import column
 from bokeh.models import ColumnDataSource, Div, LabelSet, Range1d
@@ -22,9 +25,12 @@ from bokeh.resources import INLINE
 from png import save_png
 
 from avalanche_research import datasets
+from avalanche_research.datasets.derived.opportunity import NATIVE_SUPPLY_BASIS
 
 CLIENT = Path(__file__).resolve().parents[2]
 NEEDED = ("derived.opportunity-costs-daily", "derived.avax-monetary-daily", "defillama.pool-history")
+QUALIFIED_PIN = "p4-opportunity-costs-qualified-2026-10-26"
+NATIVE_METADATA = ("native_supply_basis", "native_quote_at", "native_supply_navax")
 
 
 def sha256(path):
@@ -33,8 +39,8 @@ def sha256(path):
 
 def inputs(pin_path, runs_root):
     pin = json.loads(pin_path.read_text())
-    if pin["name"] != "p4-opportunity-costs":
-        raise ValueError("expected the P4 pin")
+    if pin["name"] not in ("p4-opportunity-costs", QUALIFIED_PIN):
+        raise ValueError("expected an explicitly supported P4 pin")
     records = {r["dataset_id"]: r for r in pin["runs"]}
     if len(records) != len(pin["runs"]):
         raise ValueError("duplicate pinned dataset ID")
@@ -44,9 +50,45 @@ def inputs(pin_path, runs_root):
         path = datasets.parquet_path(dataset, run=r["run"], root=runs_root)
         if path.name != r["parquet"] or path.stat().st_size != r["bytes"] or sha256(path) != r["sha256"]:
             raise ValueError(f"frozen pin mismatch: {dataset}")
-        frames[dataset] = datasets.load(dataset, run=r["run"], root=runs_root)
+        # DuckDB's pandas conversion turns DECIMAL(38,0) into lossy float64.
+        # Keep the actual qualified source integers as strings before conversion.
+        integer = {NEEDED[0]: "native_supply_navax", NEEDED[1]: "total_supply_open_wei"}.get(dataset)
+        if pin["name"] == QUALIFIED_PIN and integer:
+            with duckdb.connect() as connection:
+                columns = {row[0] for row in connection.execute("DESCRIBE SELECT * FROM read_parquet(?)", [str(path)]).fetchall()}
+                if integer not in columns:
+                    raise ValueError("qualified native source lacks its supply column")
+                frames[dataset] = connection.execute(
+                    f"SELECT * REPLACE ({integer}::VARCHAR AS {integer}) FROM read_parquet(?)", [str(path)]).df()
+        else:
+            frames[dataset] = datasets.load(dataset, run=r["run"], root=runs_root)
         sources[dataset] = r
+    if pin["name"] == QUALIFIED_PIN:
+        validate_native_metadata(frames[NEEDED[0]], frames[NEEDED[1]])
     return frames, sources
+
+
+def validate_native_metadata(raw, ledger):
+    """Check the qualified approximation against its actual ledger opening and UTC clock."""
+    if not set(NATIVE_METADATA).issubset(raw.columns):
+        raise ValueError("qualified native source lacks basis, quote clock or supply")
+    native = raw[raw.series.isin(["native-14d", "native-365d"])].copy()
+    if native.empty or native.duplicated(["date_utc", "series"]).any():
+        raise ValueError("qualified native rows must have unique date/series keys")
+    if native[list(NATIVE_METADATA)].isna().any().any() or not native.native_supply_basis.eq(NATIVE_SUPPLY_BASIS).all():
+        raise ValueError("unsupported or missing qualified native basis/clock/supply")
+    quote = pd.to_datetime(native.native_quote_at, utc=True, errors="raise")
+    midnight = pd.to_datetime(native.date_utc, utc=True, errors="raise")
+    if not quote.eq(midnight).all() or not midnight.eq(midnight.dt.normalize()).all():
+        raise ValueError("qualified native quote clock must be nominal UTC midnight")
+    joined = native.merge(ledger[["date_utc", "total_supply_open_wei"]], on="date_utc", how="left", validate="many_to_one")
+    if joined.total_supply_open_wei.isna().any():
+        raise ValueError("qualified native supply lacks its ledger opening")
+    for row in joined.itertuples():
+        supply = Decimal(str(row.native_supply_navax))
+        opening = Decimal(str(row.total_supply_open_wei))
+        if not supply.is_finite() or supply <= 0 or supply != supply.to_integral_value() or supply != opening // 10**9:
+            raise ValueError("qualified native supply differs from integer ledger opening")
 
 
 def tables(frames, sources, day):
@@ -78,10 +120,16 @@ def tables(frames, sources, day):
         value = float(selected.loc[selected.series == series, "rate_pct"].iloc[0])
         if series == "savax":
             value = geometric
+        native = selected.loc[selected.series == series].iloc[0]
+        metadata = {key: None for key in NATIVE_METADATA}
+        if series.startswith("native-") and set(NATIVE_METADATA).issubset(raw.columns):
+            metadata = {"native_supply_basis": native.native_supply_basis,
+                        "native_quote_at": pd.to_datetime(native.native_quote_at, utc=True).isoformat(),
+                        "native_supply_navax": str(native.native_supply_navax)}
         rows.append({"code": code, "series": series, "label": label, "date_utc": str(day.date()), "rate_pct": value,
                          "denomination": denomination, "basis": basis, "duration_days": duration, "window": window,
                          "fees": fees, "exit_route": exit_route, "dataset": dataset, "run": sources[dataset]["run"],
-                         "sha256": sources[dataset]["sha256"], "capture_id": sources[dataset]["capture_id"]})
+                         "sha256": sources[dataset]["sha256"], "capture_id": sources[dataset]["capture_id"], **metadata})
     history = raw[raw.series.isin(definitions)].sort_values(["series", "date_utc"])[["date_utc", "series", "rate_pct"]].copy()
     if history.duplicated(["date_utc", "series"]).any():
         raise ValueError("duplicate historical date/series key")
@@ -89,6 +137,11 @@ def tables(frames, sources, day):
     # Historical sAVAX is the provider's one-day APY, not the headline 30-day rate.
     history.loc[history.series == "savax", "basis"] = "provider one-day reported APY; not headline 30-day PPS measure"
     extras = {"pps_endpoints": [{"date": str(r.observation_date.date()), "avax_per_savax": float(r.price_per_share)} for r in pps.itertuples()],
+                  "source_runs": [sources[key]["run"] for key in NEEDED],
+                  "native_metadata": [{"series": row["series"], **{key: row[key] for key in NATIVE_METADATA}}
+                                      for row in rows if row["series"].startswith("native-")],
+                  "native_basis": NATIVE_SUPPLY_BASIS if set(NATIVE_METADATA).issubset(raw.columns)
+                      else "legacy ledger-supply benchmark; source clock/supply metadata unavailable",
                   "savax_simple_30d_pct": simple, "savax_provider_one_day_apy_pct": float(today.apy),
                   "native_opening_supply_wei": str(stock.iloc[0].total_supply_open_wei),
                   "history_coverage": {k: {"first": str(g.date_utc.min().date()), "last": str(g.date_utc.max().date()),
@@ -139,7 +192,7 @@ def chart(table, extras, day):
                       f"One-day provider APY {extras['savax_provider_one_day_apy_pct']:.2f}% is a separate measure.<br>"
                       "<b>Bill:</b> DTB3 discount quote, 360-day convention. Different denomination and quote basis.<br>"
                       "These measures do not identify a matched spread, liquidity price or investment ranking.<br>"
-                      "Sources: opportunity-costs-daily-2026-10-06; pool-history-2026-10-05.</div>"), width=1040)
+                      f"Sources: {'; '.join(escape(run) for run in extras['source_runs'])}.</div>"), width=1040)
     return column(title, *panels, notes, spacing=10, width=1060)
 
 
@@ -157,7 +210,7 @@ def main():
     table.to_csv(args.output / "opportunity-costs.csv", index=False, float_format="%.17g")
     history.to_csv(args.output / "opportunity-costs-history.csv", index=False, float_format="%.17g")
     provenance = {"schema": "opportunity-costs-exhibit/v1", "observation_date": str(day.date()),
-                      "pin_sha256": sha256(args.pin), "sources": sources, "native_basis": "ledger-supply benchmark",
+                      "pin_sha256": sha256(args.pin), "sources": sources, "native_basis": extras["native_basis"],
                       "decision": "labelled benchmark fallback; no canonical-offer or matched-spread claim",
                       "derivations": extras, "missingness": "No interpolation or forward filling", "fitting": False}
     (args.output / "opportunity-costs-runs.json").write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n")
