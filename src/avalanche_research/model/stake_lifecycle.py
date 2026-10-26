@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import param
 
+from avalanche_research.core.clock import LOCKBOX_FIRST_DAY
 from avalanche_research.model.fitted_lifecycle import (
     FittedLifecycle,
     checked_stake_decisions,
@@ -93,6 +94,10 @@ class StakeLifecycle(FittedLifecycle):
     source encodings participate in the specification digest.
     """
     fitted_stake = param.Boolean(default=False, constant=True, metadata={"omit_at_default": True})
+    stake_fit_origin = param.CalendarDate(
+        default=None, allow_None=True, constant=True, metadata={"omit_at_default": True},
+        doc="The frozen hurdle fit origin when origin state advances. None retains the released same-origin binding",
+    )
     stake_point_estimate = param.Boolean(
         default=False, constant=True, metadata={"omit_at_default": True},
         doc="Allow other-block and duration bootstrap draws while the stake hurdle stays fixed, labelled stake hurdle not resampled",
@@ -107,14 +112,18 @@ class StakeLifecycle(FittedLifecycle):
             self._check_stake_binding()
             self.stages = tuple((name, self._stake_continuation if name == "continuation" else stage)
                                 for name, stage in FittedLifecycle.stages)
-        elif (self.stake_point_estimate or any(value is not None for value in (self.stake_choice, self.stake_fit_receipt))
+        elif (self.stake_fit_origin is not None or self.stake_point_estimate
+              or any(value is not None for value in (self.stake_choice, self.stake_fit_receipt))
               or self.stake_fit_sha256):
             raise ValueError("give stake fit inputs only with fitted_stake=True")
 
     def _check_stake_binding(self):
         if self.stake_choice is None or self.stake_fit_receipt is None:
             raise ValueError("fitted_stake=True needs the checked fitted stake law and receipt")
-        if self.stake_fit_receipt.get("origin") != self.origin.isoformat():
+        fit_origin = self.stake_fit_origin or self.origin
+        if self.stake_fit_origin is not None and (fit_origin > self.origin or fit_origin >= LOCKBOX_FIRST_DAY):
+            raise ValueError("stake fit origin must be pre-lockbox and no later than state origin")
+        if self.stake_fit_receipt.get("origin") != fit_origin.isoformat():
             raise ValueError("stake fit origin differs from the lifecycle origin")
         if self.stake_fit_receipt.get("run") != self.inputs_source:
             raise ValueError("stake fit run differs from lifecycle inputs_source")

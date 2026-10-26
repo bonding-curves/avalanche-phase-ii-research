@@ -1,0 +1,44 @@
+{
+  "status": "draft",
+  "released_model": {
+    "tag": "model-v0.8.0",
+    "commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc"
+  },
+  "selection": {
+    "path": "results/model-v0.8.0-selection/verdict.json",
+    "sha256": "b978546d6c3279b8771b01c26b5ac571dadb02787b15ee65450adb97eb658406"
+  },
+  "specification_log": {
+    "path": "results/model-v0.8.0-selection/development-specifications.csv",
+    "sha256": "2018973b15d756eecd5a4201b7609d3f8f30d9b2c46a8e332cd8a53d6e6fc27d"
+  },
+  "specifications_tried": null,
+  "contamination_record_complete": false,
+  "reviewed_scientific_registration": false,
+  "note": "No final count or exposure closure is inferred from software implementation. Model selection evidence is preserved.",
+  "pre_outcome_overlap_check": {
+    "origins": [
+      "2025-11-18",
+      "2025-12-01",
+      "2026-01-01",
+      "2026-02-01",
+      "2026-03-01",
+      "2026-04-01",
+      "2026-05-01",
+      "2026-06-01"
+    ],
+    "horizon_days": 90,
+    "previous_candidate_lag": 3,
+    "current_origin_overlap_lag": 4,
+    "algorithm": "one plus maximum later origins strictly inside forecast window",
+    "controlling_code": "src/avalanche_research/model/evaluation.py:dm_horizon",
+    "baseline_revision": "c654a52283b6ad7ee7a389f2081688f8cc908278",
+    "first_case_overlap": [
+      "2025-12-01",
+      "2026-01-01",
+      "2026-02-01"
+    ],
+    "scientific_adoption": "pending",
+    "power_reassessment": "pending"
+  }
+}

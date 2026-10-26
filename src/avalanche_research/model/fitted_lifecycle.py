@@ -26,6 +26,7 @@ import param
 from scipy import special
 
 from avalanche_research.core.clock import LOCKBOX_START
+from avalanche_research.core.lockbox import Unseal, require
 from avalanche_research.mechanisms import ChainReward, RewardMechanism
 from avalanche_research.model.engine import SimulationModel
 from avalanche_research.model.fitted_blocks import (
@@ -542,7 +543,7 @@ def _whole_days(us: pd.Series) -> pd.Series:
     return (us - INSTANT_US + US_PER_DAY - 1) // US_PER_DAY
 
 
-def validator_periods(periods_parquet: str, through_us: int) -> pd.DataFrame:
+def validator_periods(periods_parquet: str, through_us: int, *, accepted_by_us: int | None = None) -> pd.DataFrame:
     """Validator commitments that started by ``through_us``, each with its node's neighbours and the terms the blocks read.
 
     ``done`` counts the node's commitments before this one. ``after_return`` marks a commitment that began more than
@@ -550,6 +551,7 @@ def validator_periods(periods_parquet: str, through_us: int) -> pd.DataFrame:
     ``renewed`` marks one followed on the same node within seven days of its end, by a commitment that started by
     ``through_us``.
     """
+    acceptance = "" if accepted_by_us is None else f" AND accepted_at <= make_timestamp({int(accepted_by_us)})"
     rows = duckdb.execute(
         f"""SELECT node_id, stake_navax, s, e, prev_e, next_s, next_e, next_stake, done, transaction_hash FROM (
               SELECT node_id, stake_navax, epoch_us(start_time) AS s, epoch_us(end_time) AS e, start_time, transaction_hash,
@@ -558,7 +560,7 @@ def validator_periods(periods_parquet: str, through_us: int) -> pd.DataFrame:
                      lead(epoch_us(end_time)) OVER w AS next_e,
                      lead(stake_navax) OVER w AS next_stake,
                      row_number() OVER w - 1 AS done
-              FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL AND start_time <= make_timestamp({through_us})
+              FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL AND start_time <= make_timestamp({through_us}){acceptance}
               WINDOW w AS (PARTITION BY node_id ORDER BY start_time, transaction_hash))
             ORDER BY start_time, transaction_hash""",
         [periods_parquet],
@@ -639,38 +641,11 @@ class TrainingEvents:
     state: dict
 
 
-def training_events(periods_parquet: str, origin: date, run: str = "") -> TrainingEvents:
-    """The events :func:`fitted_inputs` fits on, read from staking periods that started by the origin's end. Its
-    ``state`` also holds ``transactions``: the transaction hash of each row of ``initial`` and ``scheduled``, in their
-    order, by which a model with delegations matches its own tables to these rows. The model inputs leave it out."""
-    if origin >= LOCKBOX_FIRST_DAY:
-        raise ValueError(f"origin {origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
+def state_from_rows(rows: pd.DataFrame, pending: pd.DataFrame, origin: date, supply: int) -> dict:
+    """Build the released initial state from already admitted rows, without fitting a block."""
     day = _day(origin)
     cutoff = day * US_PER_DAY + INSTANT_US
-    rows = validator_periods(periods_parquet, cutoff)
-    pending = duckdb.execute(
-        f"""SELECT p.node_id, p.stake_navax, epoch_us(p.start_time) AS s, epoch_us(p.end_time) AS e, p.transaction_hash
-            FROM read_parquet(?) p WHERE role = 'validator' AND stake_navax IS NOT NULL
-              AND accepted_at <= make_timestamp({cutoff}) AND start_time > make_timestamp({cutoff})
-            ORDER BY start_time, transaction_hash""",
-        [periods_parquet],
-    ).df()
     follow = RENEWAL_DAYS * US_PER_DAY
-    overlapped = rows["next_s"].notna() & (rows["next_s"] < rows["e"])
-
-    ended = renewal_endings(rows, cutoff - 365 * US_PER_DAY - follow, cutoff - follow)
-    window = f"{run or 'staking periods'}, endings from {pd.Timestamp(int(cutoff - 365 * US_PER_DAY - follow), unit='us').date()} to {pd.Timestamp(int(cutoff - follow), unit='us').date()}"
-
-    lapsed = rows[(rows["e"] > cutoff - 730 * US_PER_DAY) & (rows["e"] <= cutoff) & ~overlapped & ~rows["renewed"]]
-    came_back = lapsed["next_s"].notna()
-    days_out = np.where(came_back, np.ceil((lapsed["next_s"] - lapsed["e"]) / US_PER_DAY), np.floor((cutoff - lapsed["e"]) / US_PER_DAY))
-
-    first = _first_ever(rows, day)
-    counts = np.bincount((_whole_days(first["s"]) - (day - 364)).to_numpy(dtype=np.int64), minlength=365)
-
-    moved = _moved(rows, cutoff)
-    moves = _move_table(moved)
-
     open_now = rows[rows["e"] > cutoff]
     pending_nodes = set(pending["node_id"])
     initial = pd.DataFrame({
@@ -705,11 +680,84 @@ def training_events(periods_parquet: str, origin: date, run: str = "") -> Traini
     })
     scheduled["returns"] = (pending["last_returns"].fillna(0).to_numpy(dtype=np.int64) + scheduled["after_return"].to_numpy()).astype(np.int64)
 
+    return {"initial": initial, "out_of_set": out_of_set, "scheduled": scheduled, "supply0_navax": int(supply),
+            "transactions": {"initial": open_now["transaction_hash"].to_numpy(dtype=object),
+                             "scheduled": pending["transaction_hash"].to_numpy(dtype=object)}}
+
+
+def origin_state(periods_parquet: str, origin: date, token: Unseal | None = None) -> dict:
+    """Public-at-origin state only; never recompute fitted blocks or continuation distributions.
+
+    Guard the requested instant before opening a file. Start/end/stake schedule fields are public
+    at acceptance. Reward outcomes and later commitments are not selected by this reader.
+    """
+    instant = datetime.combine(origin, time(23, 59, 59), tzinfo=UTC)
+    require(instant, token)
+    cutoff = decided_by_us(origin)
+    invalid = duckdb.execute(
+        "SELECT count(*) FROM read_parquet(?) WHERE role = 'validator' AND start_time <= make_timestamp(?) "
+        "AND (accepted_at IS NULL OR node_id IS NULL OR stake_navax IS NULL OR end_time IS NULL)",
+        [periods_parquet, cutoff],
+    ).fetchone()[0]
+    if invalid:
+        raise ValueError("origin state has commitments without required public clock or schedule fields")
+    rows = validator_periods(periods_parquet, cutoff, accepted_by_us=cutoff)
+    pending = duckdb.execute(
+        "SELECT node_id, stake_navax, epoch_us(start_time) AS s, epoch_us(end_time) AS e, transaction_hash "
+        "FROM read_parquet(?) WHERE role = 'validator' AND stake_navax IS NOT NULL "
+        "AND accepted_at <= make_timestamp(?) AND start_time > make_timestamp(?) ORDER BY start_time, transaction_hash",
+        [periods_parquet, cutoff, cutoff],
+    ).df()
+    if pending[["node_id", "stake_navax", "s", "e", "transaction_hash"]].isna().any().any():
+        raise ValueError("scheduled state has missing public schedule fields")
+    supply = duckdb.execute(
+        "SELECT supply_before_navax FROM read_parquet(?) WHERE accepted_at <= make_timestamp(?) "
+        "AND start_time <= make_timestamp(?) AND supply_before_navax IS NOT NULL "
+        "ORDER BY start_time DESC, transaction_hash LIMIT 1", [periods_parquet, cutoff, cutoff],
+    ).fetchone()
+    if supply is None:
+        raise ValueError("no public-at-origin P-Chain reward counter")
+    return state_from_rows(rows, pending, origin, int(supply[0]))
+
+
+def training_events(periods_parquet: str, origin: date, run: str = "") -> TrainingEvents:
+    """The events :func:`fitted_inputs` fits on, read from staking periods that started by the origin's end. Its
+    ``state`` also holds ``transactions``: the transaction hash of each row of ``initial`` and ``scheduled``, in their
+    order, by which a model with delegations matches its own tables to these rows. The model inputs leave it out."""
+    if origin >= LOCKBOX_FIRST_DAY:
+        raise ValueError(f"origin {origin} is inside the validation lockbox, which starts 2025-11-19 16:00 UTC")
+    day = _day(origin)
+    cutoff = day * US_PER_DAY + INSTANT_US
+    rows = validator_periods(periods_parquet, cutoff)
+    pending = duckdb.execute(
+        f"""SELECT p.node_id, p.stake_navax, epoch_us(p.start_time) AS s, epoch_us(p.end_time) AS e, p.transaction_hash
+            FROM read_parquet(?) p WHERE role = 'validator' AND stake_navax IS NOT NULL
+              AND accepted_at <= make_timestamp({cutoff}) AND start_time > make_timestamp({cutoff})
+            ORDER BY start_time, transaction_hash""",
+        [periods_parquet],
+    ).df()
+    follow = RENEWAL_DAYS * US_PER_DAY
+    overlapped = rows["next_s"].notna() & (rows["next_s"] < rows["e"])
+
+    ended = renewal_endings(rows, cutoff - 365 * US_PER_DAY - follow, cutoff - follow)
+    window = f"{run or 'staking periods'}, endings from {pd.Timestamp(int(cutoff - 365 * US_PER_DAY - follow), unit='us').date()} to {pd.Timestamp(int(cutoff - follow), unit='us').date()}"
+
+    lapsed = rows[(rows["e"] > cutoff - 730 * US_PER_DAY) & (rows["e"] <= cutoff) & ~overlapped & ~rows["renewed"]]
+    came_back = lapsed["next_s"].notna()
+    days_out = np.where(came_back, np.ceil((lapsed["next_s"] - lapsed["e"]) / US_PER_DAY), np.floor((cutoff - lapsed["e"]) / US_PER_DAY))
+
+    first = _first_ever(rows, day)
+    counts = np.bincount((_whole_days(first["s"]) - (day - 364)).to_numpy(dtype=np.int64), minlength=365)
+
+    moved = _moved(rows, cutoff)
+    moves = _move_table(moved)
+
     supply = duckdb.execute(
         f"SELECT supply_before_navax FROM read_parquet(?) WHERE start_time <= make_timestamp({cutoff}) "
         "AND supply_before_navax IS NOT NULL ORDER BY start_time DESC, transaction_hash LIMIT 1",
         [periods_parquet],
     ).fetchone()[0]
+    state = state_from_rows(rows, pending, origin, int(supply))
     codes = {node: i for i, node in enumerate(sorted(set(ended["node_id"]) | set(lapsed["node_id"]) | set(moved["node_id"]) | set(first["node_id"])))}
 
     def code_of(nodes) -> np.ndarray:
@@ -726,9 +774,7 @@ def training_events(periods_parquet: str, origin: date, run: str = "") -> Traini
         moves=moves.assign(node_code=code_of(moves.pop("node_id"))),
         first_commitments=pd.DataFrame({"days": first["days"].to_numpy(), "stake_navax": first["stake_navax"].to_numpy(dtype=np.int64),
                                         "node_code": code_of(first["node_id"])}),
-        state={"initial": initial, "out_of_set": out_of_set, "scheduled": scheduled, "supply0_navax": int(supply),
-               "transactions": {"initial": open_now["transaction_hash"].to_numpy(dtype=object),
-                                "scheduled": pending["transaction_hash"].to_numpy(dtype=object)}},
+        state=state,
     )
 
 

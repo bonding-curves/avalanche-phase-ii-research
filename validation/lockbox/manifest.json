@@ -1,0 +1,27 @@
+{
+  "status": "draft-not-preregistered",
+  "entry_point": "avalanche_research.model.lockbox_evaluation:score",
+  "author": "modeling-lead",
+  "uv_lock_sha256": "cf1a9b244db3bc80054164763314b9c4ea60df921486427ca2b065af32c0f4e2",
+  "pins": [
+    "data/pins/p2-model-v0.8.json"
+  ],
+  "rehearsal": {
+    "fit_until": "2024-12-16",
+    "score_until": "2025-11-19"
+  },
+  "foundation_answer": {
+    "recorded": false,
+    "default_used": false,
+    "status": "unresolved; candidate scientific rule is not Foundation acceptance"
+  },
+  "registration_commit": null,
+  "registration_tree": null,
+  "witness": null,
+  "runner": null,
+  "released_model": {
+    "tag": "model-v0.8.0",
+    "commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc"
+  },
+  "purpose": "development configuration only; final witnessed registration not delivered"
+}

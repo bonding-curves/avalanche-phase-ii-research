@@ -1,0 +1,119 @@
+{
+  "schema": "validator-evaluation-specification/v1",
+  "status": "draft",
+  "variant": "v0.8.0",
+  "released_model": {
+    "tag": "model-v0.8.0",
+    "commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc"
+  },
+  "training_pin": "data/pins/p2-model-v0.8.json",
+  "scoring_pin": "data/pins/p2-model-v0.8.json",
+  "batch_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "runs_per_batch": 20,
+  "draw_seed": 0,
+  "horizons_days": [
+    30,
+    90
+  ],
+  "primary_variables": [
+    "active_validator_stake_navax"
+  ],
+  "reported_variables": [
+    "active_validator_stake_navax",
+    "active_validators"
+  ],
+  "primary_rule": {
+    "source": "Candidate rule for scientific review; final disposition pending",
+    "horizon_days": 90,
+    "benchmarks": [
+      "N1",
+      "N2",
+      "N3"
+    ],
+    "loss": "mean absolute scaled error of ensemble mean",
+    "comparison": "unrounded MASE strictly below every benchmark",
+    "test": "one-sided HLN-corrected Diebold-Mariano",
+    "lag": "one plus maximum later origins inside forecast window, as existing evaluation.dm_horizon",
+    "alpha": 0.05,
+    "pass": "point-better on all primary comparisons and every p_less<0.05",
+    "fail": "any primary point MASE at or above its benchmark",
+    "inconclusive": "point-better but insufficient or undefined inference"
+  },
+  "origins": "fit origin plus month starts with complete horizon support",
+  "fitting": "reconstruct released estimators once at day before exclusive fit cut; keep blocks/tables/draws immutable",
+  "state_clock": "23:59:59 UTC at each origin; accepted_at must be no later than that instant",
+  "daily_window": "before exclusive score_until; exclude all Granite start day from fitting and Helicon partial day from daily score",
+  "event_window": "Granite16:00UTC to Helicon15:00UTC for protected labels; exact maturity by target",
+  "missingness": "fail on missing/incomplete/duplicate daily stocks; no silent date or comparator substitution",
+  "units": {
+    "active_validator_stake_navax": "AVAX (nAVAX divided by1e9)",
+    "active_validators": "validators"
+  },
+  "distribution_benchmarks": [
+    "N1d",
+    "N2d"
+  ],
+  "supplementary": [
+    "CRPS",
+    "coverage50",
+    "coverage80",
+    "interval_score80",
+    "PIT",
+    "Pearson levels and first differences",
+    "RMSE",
+    "7-day direction",
+    "phase lag"
+  ],
+  "behaviour_table": "frozen point renewal/return blocks and conditional duration tables; prior/history/persistence frozen before fit cut; separate from system ensemble verdict",
+  "unresolved": [
+    "Final primary-series/origin/decision-rule adoption before a witnessed scientific freeze",
+    "Foundation answer or explicit G8 team-default definition and remaining contractual acceptance gap",
+    "Total-bonded and staking-ratio scope: released validator model supplies no delegation forecast",
+    "Final source/window fitness, scientific registration review, witness and independent runner",
+    "Specification-changing exposure/development-record reconciliation after2October"
+  ],
+  "behaviour_targets": {
+    "renewal_7d": "Ended validator commitments with full7-day follow-up strictly before event end; same-node successor in[end,end+7days].",
+    "return_8_90d_given_no_7d_renewal": "Full90-day follow-up, conditional on no observed7-day renewal; daily frozen hazard survival over days8through90.",
+    "next_duration_days": "First nonoverlapping successor started before event end; exact scheduled duration rounded to nearest whole day, minimum1.",
+    "leave_365d": "Deferred because this evaluation window does not mature365-day labels.",
+    "baselines": "Prior, node history and node persistence from source eligible by the frozen fit cut. Renewal/return baseline cohorts use365pre-fit days.",
+    "distribution": "Frozen point coefficients and empirical duration tables, separate from200-draw system scores."
+  },
+  "pre_outcome_overlap_check": {
+    "origins": [
+      "2025-11-18",
+      "2025-12-01",
+      "2026-01-01",
+      "2026-02-01",
+      "2026-03-01",
+      "2026-04-01",
+      "2026-05-01",
+      "2026-06-01"
+    ],
+    "horizon_days": 90,
+    "previous_candidate_lag": 3,
+    "current_origin_overlap_lag": 4,
+    "algorithm": "one plus maximum later origins strictly inside forecast window",
+    "controlling_code": "src/avalanche_research/model/evaluation.py:dm_horizon",
+    "baseline_revision": "c654a52283b6ad7ee7a389f2081688f8cc908278",
+    "first_case_overlap": [
+      "2025-12-01",
+      "2026-01-01",
+      "2026-02-01"
+    ],
+    "scientific_adoption": "pending",
+    "power_reassessment": "pending"
+  }
+}
