@@ -70,3 +70,45 @@ def test_menu_rates_rise_with_duration_under_the_chain_rule(tmp_path):
     layer = market_layer.build(*write(tmp_path))
     rates = layer[[f"rate_{days}d" for days in market_layer.MENU_DAYS]].iloc[0].tolist()
     assert rates == sorted(rates) and 0.03 < rates[0] < rates[-1] < 0.12
+
+
+def test_observed_clock_uses_strict_completed_day_and_whole_latest_null(tmp_path):
+    _periods, price, tbill, ledger = write(tmp_path)
+    quotes = pd.DataFrame({
+        'observed_at': pd.to_datetime(['2023-02-28 20:00', '2023-02-28 23:59', '2023-03-01 00:00']),
+        'observation_date': pd.to_datetime(['2023-02-28', '2023-03-01', '2023-02-28']).date,
+        'price_usd': [10.0, None, 999.0], 'realized_volatility_30d': [0.1, None, 9.9]})
+    duckdb.from_df(quotes).write_parquet(price)
+    frame = pd.DataFrame({'transaction_hash': ['v'], 'accepted_at': pd.to_datetime(['2023-03-01 09:00'])})
+    result = market_layer.as_of(frame, price, tbill, ledger, price_clock=market_layer.OBSERVED_PRICE_CLOCK)
+    row = result.iloc[0]
+    assert row.price_observed_at == pd.Timestamp('2023-02-28 23:59', tz='UTC')
+    assert row.price_quote_status == 'selected' and pd.isna(row.price_usd) and pd.isna(row.volatility_30d)
+    assert row.price_nominal_date == pd.Timestamp('2023-03-01')
+    assert row.price_age_at_cutoff_seconds == 60 and row.price_age_at_decision_seconds == 9*3600+60
+    assert row.price_day == pd.Timestamp('2023-02-28')
+    assert 'publication' in result.attrs['price_selection']['availability_limit'].lower()
+
+
+def test_observed_build_propagates_named_clock_without_changing_legacy_default(tmp_path):
+    paths = write(tmp_path)
+    legacy = market_layer.build(*paths)
+    explicit = market_layer.build(*paths, price_clock=market_layer.LEGACY_PRICE_CLOCK)
+    pd.testing.assert_frame_equal(legacy, explicit)
+    current = market_layer.build(*paths, price_clock=market_layer.OBSERVED_PRICE_CLOCK)
+    assert current.price_clock.eq(market_layer.OBSERVED_PRICE_CLOCK).all()
+    selected = current.price_observed_at.notna()
+    assert (current.loc[selected, 'price_observed_at'] < current.loc[selected, 'price_cutoff_at']).all()
+    assert current.attrs['price_clock'] == market_layer.OBSERVED_PRICE_CLOCK
+
+
+def test_observed_market_refuses_raw_numeric_and_mixed_numeric_acceptance_clocks(tmp_path):
+    import pytest
+
+    from avalanche_research.core.catalog import DataError
+
+    _periods, price, tbill, ledger = write(tmp_path)
+    for clocks in ([123], ["2023-03-01 09:00:00", 123]):
+        frame = pd.DataFrame({"transaction_hash": [f"v{i}" for i in range(len(clocks))], "accepted_at": clocks})
+        with pytest.raises(DataError, match="clock"):
+            market_layer.as_of(frame, price, tbill, ledger, price_clock=market_layer.OBSERVED_PRICE_CLOCK)

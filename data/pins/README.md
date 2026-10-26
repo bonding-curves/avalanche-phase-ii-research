@@ -28,6 +28,7 @@ A pin may also carry `code`: the full commit of this repository the results were
 | `p7-systems-learning-weeks.json` | The validator-week panel of 2026-10-06, whose reward addresses as of each week allow an operator grouping that reads no later data |
 | `p8-v0.9.5-inputs.json` | The scenario inputs for revenue-funded rewards: the monetary ledger, AVAX price, Avalanche fees and revenue, and the competing yields |
 | `p9-staking-records.json` | Frozen staking records of 2026-10-14: staking periods, daily monetary ledger, seamed validator and delegator stakes, and auto-renewed cycle history. The original ledger predates the cycle accounting repair |
+| `price-consumers-observed-2026-10-26.json` | Seven explicit inputs for completed-day market, strict 24-hour weekly DefiLlama and descriptive daily-close scenario projections. Legacy defaults remain unchanged |
 | `staking-records-accounting-qualified-2026-10-26.json` | Canonical era-table successor using the qualified cycle-effective ledger and exact 26 October staking/cycle inputs. Principal and effective stock are separate, with restake counted once |
 | `monetary-accounting-qualified-2026-10-26.json` | Explicit successor daily ledger and upgrade-period summary through 2026-10-25, with cycle-recognised issuance, effective cycle stake and inclusive C-EVM burn once. Records the producing code commit and receipt hashes |
 

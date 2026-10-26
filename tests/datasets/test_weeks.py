@@ -294,3 +294,21 @@ def test_receipt_rows_count_the_table_built(market_runs):
         result = built(market_runs, dataset_id)
         summary = __import__("json").loads((result["output"] / "dataset" / "build.json").read_text())["summary"]
         assert summary["rows"] == summary["distinct_keys"] == len(result["rows"]) == (expected or len(result["rows"]))
+
+
+def test_named_weekly_price_projection_excludes_cutoff_and_caps_age(tmp_path):
+    import pandas as pd
+    frame = pd.DataFrame({'week_start_utc': pd.to_datetime(['2023-01-02', '2023-01-09', '2023-01-16']),
+                          'price_usdt': [1., 2., 3.], 'price_present': [True]*3,
+                          'price_usd_defillama': [999.]*3, 'volatility_30d_defillama': [99.]*3})
+    source = pd.DataFrame({'observation_date': pd.to_datetime(['2023-01-01', '2023-01-01', '2023-01-07']).date,
+                           'observed_at': pd.to_datetime(['2023-01-01 00:00', '2023-01-02 00:00', '2023-01-07 23:59']),
+                           'price_usd': [10., 999., 20.], 'realized_volatility_30d': [None, 9.9, 0.2]})
+    path = tmp_path/'prices.parquet'; duckdb.from_df(source).write_parquet(str(path))
+    result = weeks.with_observed_market_prices(frame, str(path))
+    assert result.iloc[0].price_usd_defillama == 10 and pd.isna(result.iloc[0].volatility_30d_defillama)
+    assert result.iloc[0].defillama_price_age_at_cutoff_seconds == 86400
+    assert result.iloc[1].defillama_price_quote_status == 'stale' and pd.isna(result.iloc[1].price_usd_defillama)
+    assert result.iloc[2].defillama_price_quote_status == 'stale'
+    pd.testing.assert_series_equal(result.price_usdt, frame.price_usdt)
+    pd.testing.assert_series_equal(result.price_present, frame.price_present)

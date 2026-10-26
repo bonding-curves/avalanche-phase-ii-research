@@ -36,3 +36,41 @@ def test_one_row_per_complete_ledger_day_with_each_series_joined_by_day(tmp_path
     assert pd.isna(first["avax_price_usd"]) and second["avax_price_usd"] == 10.0 and second["burned_total_usd"] == 30.0
     assert first["yield_tbill_3m_pct"] == 4.0 and first["yield_benqi_avax_pct"] == 6.0 and pd.isna(second["yield_tbill_3m_pct"])
     assert first["burned_total_avax"] == 3.0 and first["issued_rewards_avax"] == 10.0 and first["revenue_usd"] == 50.0
+
+
+def qualified_yields(path):
+    with duckdb.connect() as c:
+        frame = c.execute('SELECT * FROM read_parquet(?)', [path]).df()
+    from avalanche_research.datasets.derived.opportunity import NATIVE_SUPPLY_BASIS
+    extra = pd.DataFrame({'date_utc': pd.to_datetime(['2023-01-01', '2023-01-01']),
+                          'series': ['native-14d', 'native-365d'], 'rate_pct': [5.0, 6.0],
+                          'native_supply_basis': [NATIVE_SUPPLY_BASIS]*2,
+                          'native_quote_at': pd.to_datetime(['2023-01-01', '2023-01-01']),
+                          'native_supply_navax': ['450000000000000017']*2})
+    frame = pd.concat([frame, extra], ignore_index=True)
+    duckdb.from_df(frame).write_parquet(path)
+
+
+def test_observed_close_keeps_whole_quote_and_native_provenance(tmp_path):
+    paths = write(tmp_path); qualified_yields(paths[3])
+    quotes = pd.DataFrame({'observation_date': pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-01']).date,
+                          'observed_at': pd.to_datetime(['2023-01-01 20:00', '2023-01-01 23:59', '2023-01-02 00:00']),
+                          'price_usd': [10.0, 20.0, 999.0], 'realized_volatility_30d': [0.1, None, 9.9]})
+    duckdb.from_df(quotes).write_parquet(paths[1])
+    result = scenario_inputs.build(*paths, price_clock=scenario_inputs.OBSERVED_CLOSE_CLOCK)
+    first = result.iloc[0]
+    assert first.avax_price_usd == 20 and first.burned_total_usd == 60
+    assert pd.isna(first.realized_volatility_30d)
+    assert first.price_observed_at == pd.Timestamp('2023-01-01 23:59', tz='UTC')
+    assert first.yield_native_14d_pct == 5
+    assert first.yield_native_14d_native_supply_navax == '450000000000000017'
+    assert first.yield_native_14d_native_quote_at == pd.Timestamp('2023-01-01')
+    assert result.attrs['use'].startswith('Descriptive')
+
+
+def test_observed_close_refuses_unqualified_opportunity_source(tmp_path):
+    import pytest
+
+    from avalanche_research.core.catalog import DataError
+    with pytest.raises(DataError, match='qualified opportunity'):
+        scenario_inputs.build(*write(tmp_path), price_clock=scenario_inputs.OBSERVED_CLOSE_CLOCK)

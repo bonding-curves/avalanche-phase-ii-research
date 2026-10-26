@@ -466,6 +466,34 @@ def quote(start: datetime, duration_seconds: int, supply_navax: int) -> float:
     return annualized_reward_rate(start, duration_seconds, QUOTE_STAKE_NAVAX, supply_navax)
 
 
+def with_observed_market_prices(frame, price_parquet):
+    """Named successor of a weekly market table using strictly earlier quotes at most24h old.
+
+    Existing derives and frozen panels retain their original selection. This
+    projection replaces only DefiLlama price/volatility and adds quote lineage.
+    Observation timestamps are proxies, not historical publication vintages.
+    """
+    import pandas as pd
+
+    from .observed_quotes import select_quotes
+
+    if "week_start_utc" not in frame or frame.week_start_utc.isna().any() or frame.week_start_utc.duplicated().any():
+        raise DataError("weekly market projection needs unique known week_start_utc keys")
+    keys = pd.DataFrame({"quote_key": frame.week_start_utc, "quote_cutoff_at": frame.week_start_utc})
+    quotes = select_quotes(keys, price_parquet, max_age_seconds=86400)
+    metadata = dict(quotes.attrs)
+    names = {"quote_key": "week_start_utc", "quote_cutoff_at": "defillama_price_cutoff_at",
+             "price_usd": "price_usd_defillama", "volatility_30d": "volatility_30d_defillama"}
+    names.update({name: "defillama_" + name for name in quotes if name not in names})
+    quotes = quotes.rename(columns=names)
+    result = frame.drop(columns=["price_usd_defillama", "volatility_30d_defillama"], errors="ignore").merge(
+        quotes, on="week_start_utc", how="left", validate="one_to_one")
+    result["defillama_price_clock"] = "observed-before-week-cutoff-24h/v1"
+    result.attrs = {**frame.attrs, "defillama_price_clock": "observed-before-week-cutoff-24h/v1", "defillama_price_selection": metadata,
+                    "scope": "DefiLlama price projection only; other weekly fields are retained; scientific fitness is not assessed."}
+    return result
+
+
 def compute(connection: Any, window_start: str = WINDOW_START, window_end: str = WINDOW_END, known_until: str | None = None) -> None:
     """Build ``panel`` and ``observed`` from the input views. ``known_until`` drops every transaction accepted from then on,
     which is how the check proves that earlier rows do not depend on later events."""

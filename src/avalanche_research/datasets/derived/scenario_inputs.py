@@ -14,14 +14,29 @@ from __future__ import annotations
 import duckdb
 import pandas as pd
 
+from ...core.catalog import DataError
+from .observed_quotes import select_quotes
+from .opportunity import NATIVE_SUPPLY_BASIS
+
 WEI_PER_AVAX = 10**18
+LEGACY_PRICE_CLOCK = "legacy-nominal-day/v1"
+OBSERVED_CLOSE_CLOCK = "observed-before-daily-close/v1"
 
 
 def _quoted(path: str) -> str:
     return path.replace("'", "''")
 
 
-def build(ledger_parquet: str, price_parquet: str, fees_parquet: str, opportunity_parquet: str) -> pd.DataFrame:
+def build(ledger_parquet: str, price_parquet: str, fees_parquet: str, opportunity_parquet: str,
+          *, price_clock: str = LEGACY_PRICE_CLOCK) -> pd.DataFrame:
+    if price_clock == OBSERVED_CLOSE_CLOCK:
+        return _observed_build(ledger_parquet, price_parquet, fees_parquet, opportunity_parquet)
+    if price_clock != LEGACY_PRICE_CLOCK:
+        raise DataError(f"unsupported scenario price clock: {price_clock}")
+    return _legacy_build(ledger_parquet, price_parquet, fees_parquet, opportunity_parquet)
+
+
+def _legacy_build(ledger_parquet, price_parquet, fees_parquet, opportunity_parquet):
     connection = duckdb.connect()
     try:
         series = [row[0] for row in connection.execute(
@@ -46,3 +61,41 @@ def build(ledger_parquet: str, price_parquet: str, fees_parquet: str, opportunit
             """).df()
     finally:
         connection.close()
+
+
+def _observed_build(ledger_parquet, price_parquet, fees_parquet, opportunity_parquet):
+    # Validate source grain before the legacy pivot can hide a duplicate or a NULL.
+    with duckdb.connect(config={"threads": "2", "memory_limit": "2GB", "TimeZone": "UTC"}) as connection:
+        columns = {row[0] for row in connection.execute("DESCRIBE SELECT * FROM read_parquet(?)", [opportunity_parquet]).fetchall()}
+        required = {"date_utc", "series", "rate_pct", "native_supply_basis", "native_quote_at", "native_supply_navax"}
+        if not required <= columns:
+            raise DataError("observed-close scenarios require qualified opportunity basis/time/supply metadata")
+        opportunity = connection.execute("""SELECT date_utc,series,rate_pct,native_supply_basis,native_quote_at,
+            native_supply_navax::VARCHAR AS native_supply_navax FROM read_parquet(?)""", [opportunity_parquet]).df()
+    opportunity = opportunity.drop_duplicates()
+    if opportunity[["date_utc", "series"]].isna().any().any() or opportunity.duplicated(["date_utc", "series"]).any():
+        raise DataError("conflicting or unknown opportunity date/series key")
+    native = opportunity[opportunity.series.isin(["native-14d", "native-365d"])]
+    if native.empty or not native.native_supply_basis.eq(NATIVE_SUPPLY_BASIS).all() or native[["native_quote_at", "native_supply_navax"]].isna().any().any():
+        raise DataError("native scenario yields require their declared realised-supply approximation")
+    result = _legacy_build(ledger_parquet, price_parquet, fees_parquet, opportunity_parquet)
+    days = pd.to_datetime(result.date_utc, utc=True)
+    quotes = select_quotes(pd.DataFrame({"quote_key": result.date_utc,
+                                        "quote_cutoff_at": days + pd.Timedelta(days=1)}), price_parquet)
+    quote_metadata = dict(quotes.attrs)
+    quotes = quotes.rename(columns={"quote_key": "date_utc", "quote_cutoff_at": "price_cutoff_at",
+                                    "price_usd": "avax_price_usd", "volatility_30d": "realized_volatility_30d"})
+    result = result.drop(columns=["avax_price_usd", "realized_volatility_30d", "burned_total_usd"])
+    result = result.merge(quotes, on="date_utc", how="left", validate="one_to_one")
+    result["burned_total_usd"] = result.burned_total_avax * result.avax_price_usd
+    for series in ("native-14d", "native-365d"):
+        selected = native[native.series.eq(series)][["date_utc", "native_supply_basis", "native_quote_at", "native_supply_navax"]]
+        prefix = "yield_" + series.replace("-", "_")
+        selected = selected.rename(columns={field: prefix + "_" + field for field in selected if field != "date_utc"})
+        result = result.merge(selected, on="date_utc", how="left", validate="one_to_one")
+    result["price_clock"] = OBSERVED_CLOSE_CLOCK
+    result.attrs = {"price_clock": OBSERVED_CLOSE_CLOCK, "price_selection": quote_metadata,
+                    "use": "Descriptive daily-close projection; not information at the day's opening.",
+                    "native_yield_basis": NATIVE_SUPPLY_BASIS,
+                    "native_limit": "Kernel quote uses its recorded realised-ledger opening supply, not a verified protocol-counter offer."}
+    return result

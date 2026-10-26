@@ -557,3 +557,27 @@ uv run --locked avalanche data manifest --json
 ```
 
 Snowpeer is a curated secondary source. Its results are suitable for discovery, dashboard reproduction, and cross-checking. Claims that require raw on-chain evidence must use an authoritative chain or warehouse source such as the Avalanche Snowflake share.
+
+### Explicit price-clock successors
+
+The price consumers offer additive observed-time policies. Their default calls retain the historical nominal-date behavior. Select the policy by name when rebuilding a result, record the exact input pin and preserve the returned frame metadata in the export. An observation timestamp is a retrospective availability proxy. Historical provider publication and revision times are unverified.
+
+| Consumer and explicit call | Observation-time rule | Meaning |
+| --- | --- | --- |
+| `market_layer.as_of(..., price_clock=market_layer.OBSERVED_PRICE_CLOCK)` or `market_layer.build(...)` | Latest whole quote with `observed_at` strictly before UTC midnight of the acceptance day. No added age cap | Completed-day market context. Both cutoff age and actual-decision age are exposed |
+| `weeks.with_observed_market_prices(frame, price_parquet)` | Latest whole quote strictly before `week_start_utc`, at most 24 hours old | DefiLlama price/volatility projection only. Other weekly fields and their source rules are retained |
+| `scenario_inputs.build(..., price_clock=scenario_inputs.OBSERVED_CLOSE_CLOCK)` | Latest whole quote strictly before the next UTC midnight. No added age cap | End-of-day valuation of daily AVAX burn. Neither a prediction-time feature nor an intraday transaction-weighted dollar total |
+
+Price and volatility come from the same row. A latest NULL stays NULL. Exact duplicates collapse and a conflicting simultaneous quote refuses if it would be selected. Nominal dates remain provenance and never govern the join. Weekly stale quotes have missing admitted values, an explicit stale status and retained candidate time/age. All paths record the price-file SHA-256. Missing quotes never fill from future data.
+
+The scenario successor requires qualified native-yield basis, quote time and exact integer supply metadata and carries them into its result. Those rates remain realised-supply approximations. Their supply input can differ from the scenario ledger and must be reported separately. This does not establish an exact historical protocol-counter offer. Changing a named engineering projection does not automatically adopt it into an existing research study or model.
+
+Reproduce the named three-table engineering export from its seven-input pin:
+
+```sh
+uv run python scripts/price_consumer_tables.py \
+  --pin data/pins/price-consumers-observed-2026-10-26.json \
+  --runs-root data/runs --out /tmp/price-consumers-observed
+```
+
+The output must be new and outside a Git checkout. The command writes sorted CSVs for each successor and its fixed-input legacy comparison, input selection, quote-age/missingness summaries and byte-hash receipts. The market export reads validator identity and acceptance clocks strictly before 19 November 2025 at 16:00 UTC. It reads no validator outcome fields. Scenario outputs cover the selected ledger's complete days. Weekly outputs retain the selected historical frame and change only its DefiLlama projection. These are engineering exports, with no model fitting or scoring.

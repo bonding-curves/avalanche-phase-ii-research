@@ -17,17 +17,22 @@ unseal.
 
 from __future__ import annotations
 
+import tempfile
 from datetime import UTC
 
 import duckdb
 import pandas as pd
 
+from ...core.catalog import DataError
 from ...core.clock import LOCKBOX_START
 from ...domain.protocol import MAINNET_UPGRADES, annualized_reward_rate
+from .observed_quotes import normalize_utc, select_quotes
 from .weeks import max_weight_sql
 
 MENU_DAYS = (14, 30, 60, 90, 180, 365)
 SECONDS_PER_DAY = 86_400
+LEGACY_PRICE_CLOCK = "legacy-nominal-day/v1"
+OBSERVED_PRICE_CLOCK = "observed-before-completed-day/v1"
 
 
 def _quoted(path: str) -> str:
@@ -77,10 +82,15 @@ def upgrade_crossed(frame: pd.DataFrame) -> pd.Series:
     return pd.Series(crossed, index=frame.index, dtype="object")
 
 
-def as_of(frame: pd.DataFrame, price_parquet: str, tbill_parquet: str, ledger_parquet: str) -> pd.DataFrame:
+def as_of(frame: pd.DataFrame, price_parquet: str, tbill_parquet: str, ledger_parquet: str,
+          *, price_clock: str = LEGACY_PRICE_CLOCK) -> pd.DataFrame:
     """Each series' last recorded value on a UTC day before the decision day. Days with no value, such as market
     holidays in the Treasury series, are skipped rather than read as missing. The price series repeats some dates, and
     the last observation of a day is taken."""
+    if price_clock == OBSERVED_PRICE_CLOCK:
+        return _observed_as_of(frame, price_parquet, tbill_parquet, ledger_parquet)
+    if price_clock != LEGACY_PRICE_CLOCK:
+        raise DataError(f"unsupported market price clock: {price_clock}")
     keys = frame[["transaction_hash", "accepted_at"]].assign(decision_day=frame["accepted_at"].dt.normalize())
     connection = duckdb.connect()
     try:
@@ -105,11 +115,48 @@ def as_of(frame: pd.DataFrame, price_parquet: str, tbill_parquet: str, ledger_pa
         connection.close()
 
 
-def build(periods_parquet: str, price_parquet: str, tbill_parquet: str, ledger_parquet: str) -> pd.DataFrame:
+def _observed_as_of(frame, price_parquet, tbill_parquet, ledger_parquet):
+    accepted = normalize_utc(frame.accepted_at, "accepted_at")
+    keys = pd.DataFrame({"quote_key": frame.transaction_hash, "quote_cutoff_at": accepted.dt.normalize()})
+    quotes = select_quotes(keys, price_parquet)
+    quote_metadata = dict(quotes.attrs)
+    quotes = quotes.rename(columns={"quote_key": "transaction_hash", "quote_cutoff_at": "price_cutoff_at"})
+    quotes["price_day"] = quotes.price_observed_at.dt.floor("D").dt.tz_localize(None)
+    quotes["price_age_at_decision_seconds"] = (accepted.reset_index(drop=True) - quotes.price_observed_at).dt.total_seconds()
+    quotes["price_clock"] = OBSERVED_PRICE_CLOCK
+    source_keys = pd.DataFrame({"transaction_hash": frame.transaction_hash,
+                                "decision_day": accepted.dt.normalize().dt.tz_localize(None)})
+    with (
+        tempfile.TemporaryDirectory(prefix="market-observed-") as scratch,
+        duckdb.connect(config={"threads": "2", "memory_limit": "2GB", "TimeZone": "UTC", "temp_directory": scratch}) as connection,
+    ):
+        connection.register("k", source_keys)
+        other = connection.execute(f"""
+            WITH t AS (SELECT date_utc::TIMESTAMP AS day, discount_rate_pct
+                       FROM read_parquet('{_quoted(tbill_parquet)}') WHERE discount_rate_pct IS NOT NULL),
+                 l AS (SELECT date_utc::TIMESTAMP AS day,
+                       (active_validator_stake_wei + active_delegated_stake_wei)::DOUBLE / total_supply_close_wei::DOUBLE AS staking_ratio
+                       FROM read_parquet('{_quoted(ledger_parquet)}') WHERE complete)
+            SELECT k.transaction_hash,t.day AS tbill_day,t.discount_rate_pct AS tbill_3m_pct,
+                   l.day AS ledger_day,l.staking_ratio FROM k
+            ASOF LEFT JOIN t ON k.decision_day>t.day
+            ASOF LEFT JOIN l ON k.decision_day>l.day
+        """).df()
+    result = quotes.merge(other, on="transaction_hash", how="left", validate="one_to_one")
+    result.attrs = {"price_clock": OBSERVED_PRICE_CLOCK, "price_selection": quote_metadata,
+                    "interpretation": "Retrospective observed-time and complete-day proxies; publication/revision vintages unverified."}
+    return result
+
+
+def build(periods_parquet: str, price_parquet: str, tbill_parquet: str, ledger_parquet: str,
+          *, price_clock: str = LEGACY_PRICE_CLOCK) -> pd.DataFrame:
     frame = decisions(periods_parquet)
     frame = pd.concat([frame, menu_rates(frame)], axis=1)
     frame["upgrade_crossed"] = upgrade_crossed(frame)
     frame["compounding"] = (frame["prev_stake_navax"].notna() & frame["prev_reward_navax"].notna()
                             & (frame["stake_navax"] == frame["prev_stake_navax"] + frame["prev_reward_navax"]))
     frame["held_back"] = frame["accepted_at"] >= LOCKBOX_START.replace(tzinfo=None)
-    return frame.merge(as_of(frame, price_parquet, tbill_parquet, ledger_parquet), on="transaction_hash", how="left")
+    market = as_of(frame, price_parquet, tbill_parquet, ledger_parquet, price_clock=price_clock)
+    result = frame.merge(market, on="transaction_hash", how="left")
+    result.attrs = dict(market.attrs)
+    return result

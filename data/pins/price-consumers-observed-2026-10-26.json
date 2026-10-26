@@ -1,0 +1,112 @@
+{
+  "name": "price-consumers-observed-2026-10-26",
+  "pinned_at": "2026-10-26T22:50:47.763523+00:00",
+  "runs": [
+    {
+      "bytes": 698302109,
+      "capture_id": "capture:derived:2026-10-26T03:57:43Z:c7ecefd2be7a",
+      "captured_at": "2026-10-26T03:57:43Z",
+      "check": "pass",
+      "dataset_id": "derived.staking-periods",
+      "parquet": "staking-periods.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "ed772a890fb782d1d4f4b26561b8bf135871448c27c0df32055924a3e0e8c784",
+        "dataset/build.json": "46fbd5f417615f8d9d7122fe7266265a28c37c349076bda9fb9e5a50a841c786",
+        "dataset/check.json": "80a3663ba6f950a8d254af4dde92d7bee6489a4281f0ffc446cc64ddd6a9fe4a"
+      },
+      "run": "staking-periods-2026-10-26",
+      "sha256": "5bcce9b6b996564fcf5376d82205d384370c35b053259626f4e1c545ebfee8a8"
+    },
+    {
+      "bytes": 235932,
+      "capture_id": "capture:derived:2026-10-26T20:06:18Z:d4e1d5797fb7",
+      "captured_at": "2026-10-26T20:06:18Z",
+      "check": "pass",
+      "dataset_id": "derived.avax-monetary-daily",
+      "parquet": "avax-monetary-daily.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "59f882e3efe85aa78457b3ea079b06257779f74ac4819b21458f3f65a7b8f1f5",
+        "dataset/build.json": "45f7669bcdf0d2fbcff3ff8b7a5cd2764442a98f9d0d1dcb9ca1183f205a1c59",
+        "dataset/check.json": "8741e79e7988f32bf8014eca4f7dc737e2b126ced376afc0319359aea9cdff2e"
+      },
+      "run": "avax-monetary-daily-2026-10-26-accounting-qualified",
+      "sha256": "5d08d01a7607cbe0ec5bdd075a905d240cc332226593960808031928e2030f3c"
+    },
+    {
+      "bytes": 66991,
+      "capture_id": "capture:defillama:2026-10-05T20:53:21Z:6316ac2eca63",
+      "captured_at": "2026-10-05T20:53:21Z",
+      "check": "pass",
+      "dataset_id": "defillama.avax-price-daily",
+      "parquet": "avax-price-daily.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "3de349d0dfffd5bab73294986b4fdf8714b614ab3b381ffca84f0ab462580107",
+        "dataset/build.json": "74130eec687f15a32215e804a33d2c243107d2ab592ac78f006e636e1566df75",
+        "dataset/check.json": "850dd71d12746b5ae23e6de6f811ea35e68ae5f2b1cded3a1bbbbecbf3e7b658"
+      },
+      "run": "avax-price-2026-10-26-rebuild",
+      "sha256": "717e4427f4d18568d82fd1a86f7a52d25f7f235cde458ac2a0ba94c04805a522"
+    },
+    {
+      "bytes": 82512,
+      "capture_id": "capture:fred:2026-10-05T20:50:59Z:8b074e52777a",
+      "captured_at": "2026-10-05T20:50:59Z",
+      "check": "pass",
+      "dataset_id": "fred.tbill-3m-daily",
+      "parquet": "tbill-3m-daily.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "072348b4b115ffa821dfc8068d549787d250bb9ba5fa36deca36015fbeb74018",
+        "dataset/build.json": "e442d2c05f3fbc6328f5591701ca4cd387342bb37b7307c4623c6ae3eba524cf",
+        "dataset/check.json": "98ed1b60114e29c358789eb2cab4983add6a9045aa67b193255f60f958482597"
+      },
+      "run": "tbill-3m-daily-2026-10-05",
+      "sha256": "c9f2cd72b4dfc966278da6a3f100c695b9bdd097ad88290713d3ece504f65fb4"
+    },
+    {
+      "bytes": 22991,
+      "capture_id": "capture:defillama:2026-09-29T18:46:55Z:aaac291d6498",
+      "captured_at": "2026-09-29T18:46:55Z",
+      "check": "pass",
+      "dataset_id": "defillama.avalanche-fees-daily",
+      "parquet": "avalanche-fees-daily.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "7e3b9d119e39cfeca32e0e304e3e058a01caca7d71c678e1cf3e9a0fddb168e2",
+        "dataset/build.json": "c4a318d7abe5e4f52eeb0c5747700d9b7f5c5c58fd0003af862a9efc540e5658",
+        "dataset/check.json": "614ef1847588d9acc533953e82a558e6d89d4e305d4ab3be1a8be6c832877a22"
+      },
+      "run": "avalanche-fees-daily-2026-09-29",
+      "sha256": "2cec7127c71e7ac8757fed8557cd0ceeea8ba42bbd50a339cab8dc84ce9157f2"
+    },
+    {
+      "bytes": 543664,
+      "capture_id": "capture:derived:2026-10-26T17:19:20Z:c592aefd8f16",
+      "captured_at": "2026-10-26T17:19:20Z",
+      "check": "pass",
+      "dataset_id": "derived.opportunity-costs-daily",
+      "parquet": "opportunity-costs-daily.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "1fc7d085433b20f38e3dcaafc3883a2b891b025a349396c903b9c51f821004f2",
+        "dataset/build.json": "31ba1824e8f448fe5d50defb3c8678215a9a0a3428f9604f9d5a267481bdae16",
+        "dataset/check.json": "eea45f32f7259ba774c66f87581654eb0e01f93793b54e31a53e4d17287dbbcf"
+      },
+      "run": "opportunity-costs-daily-2026-10-26-qualified",
+      "sha256": "4d898f577bd5b85d9a07b8e2b287c24db1290710a4e11bea979528d216e40fad"
+    },
+    {
+      "bytes": 34706,
+      "capture_id": "capture:derived:2026-09-28T19:29:15Z:53e74d7702dc",
+      "captured_at": "2026-09-28T19:29:15Z",
+      "check": "pass",
+      "dataset_id": "derived.market-weeks",
+      "parquet": "market-weeks.parquet",
+      "receipt_hashes": {
+        "capture/capture.json": "9b81609b6f908684b91efb74b68778b72bc1275fbae282bfe5e482c03246b2b5",
+        "dataset/build.json": "1524d2de4319c52d820a3d24fe9c39a78d43d2b091d3c81c6e28c058c59a6bbd",
+        "dataset/check.json": "4ba2b12df2de094a5df8291108d44516e119d21d282b721670f73673ce37a482"
+      },
+      "run": "market-weeks-2026-09-28",
+      "sha256": "7fe42b2292cdc0d3cbe1078ec75042d27a40c6deea64fd3cc824fa5de4ee71e9"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
