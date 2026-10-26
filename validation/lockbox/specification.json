@@ -123,5 +123,181 @@
     "identity": "unique(role,transaction_hash), compared in sorted4096-row streams"
   },
   "frozen_fit": null,
-  "frozen_fit_binding_status": "Unadopted. Protected scoring and pre-marker numerical preflight require adopted origin, exact fit/draw SHA256 and artifact-manifest SHA256."
+  "frozen_fit_binding_status": "Unadopted. Protected scoring and pre-marker numerical preflight require adopted origin, exact fit/draw SHA256 and artifact-manifest SHA256.",
+  "active_requirements_status": "Declared active scope with explicit measurement limits; scientific dispositions pending. No missing row is a pass.",
+  "active_requirements": [
+    {
+      "id": "U1",
+      "population": "First-ever validator commitments versus same-node renewals; compare minimum-duration shares.",
+      "clock_and_window": "Original Durango R1 is outside lockbox. A whole-R3 analogue would use event acceptance in Granite16UTC to Helicon15UTC and correct first-ever/renewal classifications.",
+      "fixed_band": {
+        "sign": "same as observed",
+        "absolute_difference_max_percentage_points": 10
+      },
+      "measurement_status": "NOT_MEASURED_ORIGINAL_WINDOW_OUTSIDE_LOCKBOX; ANALOGUE_NOT_IMPLEMENTED",
+      "measured": false,
+      "current_output": "Current S paths and B next-duration loss do not contain first-ever-versus-renewal minimum shares.",
+      "limitation": "Keep original R1 result outside this protected claim. A proposed whole-R3 contrast preserves the concept/band but needs explicit pre-outcome restatement adoption; do not invent a passing analogue.",
+      "next_action": "Freeze analogue population/minimum rule and event/cohort trace or emit NOT_MEASURED with the original-window reason.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "U2",
+      "population": "Active validator count and own stake outside named agents; original August2025 decline, excluding dated operator flags.",
+      "clock_and_window": "Original compares31July2025 to31August2025 at origins before1August2025, hence outside current protected window.",
+      "fixed_band": null,
+      "measurement_status": "NOT_MEASURED_WINDOW_AND_ACTOR_SCOPE",
+      "measured": false,
+      "current_output": "Aggregate count/stake diagnostics do not implement named-operator exclusions.",
+      "limitation": "Do not silently move August to2026 or treat node IDs as operators. Literal original pattern is out-of-window; any in-window analogue, actor evidence cutoff and still-unfixed band require owner disposition before freeze.",
+      "next_action": "Record OUTSIDE_WINDOW/NOT_MEASURED now. Final report needs the explicit scope decision; no new operator model or arbitrary band is introduced by this matrix.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "U3",
+      "population": "Daily total bonded principal over closing total supply, including validator and delegated stake.",
+      "clock_and_window": "Complete daily values inside each admitted forecast horizon; first-difference SD.",
+      "fixed_band": {
+        "simulated_to_observed_sd_ratio": [
+          0.5,
+          2.0
+        ]
+      },
+      "measurement_status": "NOT_MEASURED_MODEL_SCOPE",
+      "measured": false,
+      "current_output": "Released model has no delegated-principal forecast; validator-only path is not this ratio.",
+      "limitation": "Retain active row and band, report NOT_MEASURED; never substitute validator stake.",
+      "next_action": "Report typed missing-target row/reason. A delegation-capable model would be a separate adopted scope, not an automatic requirement to build it now.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "U4",
+      "population": "Delegated AVAX held by20most-delegated validators as share of all delegated AVAX.",
+      "clock_and_window": "Original quarter ends through30September2025 are outside lockbox. Restated in-window quarter ends would be31December2025,31March2026,30June2026; no invented partial-quarter substitute.",
+      "fixed_band": {
+        "absolute_difference_max_percentage_points": 10
+      },
+      "measurement_status": "NOT_MEASURED_MODEL_SCOPE_AND_WINDOW_RESTATEMENT",
+      "measured": false,
+      "current_output": "No simulated delegated holdings/ranks in v0.8.0.",
+      "limitation": "Report NOT_MEASURED with delegation limitation; any quarter restatement remains explicit.",
+      "next_action": "Typed missing-target row and declared dates if adopted. Do not substitute validator self-stake concentration.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "U5",
+      "population": "Validator commitments, stake-weighted median scheduled duration divided by unweighted median; consistent period population.",
+      "clock_and_window": "By regime; observed acceptance clock inside R3, with simulated decision/cohort clock explicitly aligned. Scheduled duration known at acceptance, not realized completion.",
+      "fixed_band": {
+        "median_ratio": [
+          1.3,
+          2.2
+        ]
+      },
+      "measurement_status": "NOT_IMPLEMENTED_TRACE_AGGREGATION",
+      "measured": false,
+      "current_output": "B next-duration loss is an ending-successor cohort, not this all-commitment weighted median ratio. S scalar paths do not contain the needed joint duration/stake rows.",
+      "limitation": "Retain fixed band and state NOT_MEASURED until joint period traces and timing/population alignment are bound. No band adaptation from outcomes.",
+      "next_action": "Bounded simulated event trace or sufficient joint summary, weighted-median/tie convention and typed pattern result. No new fitted law is needed.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "U6",
+      "population": "Correlation of4week AVAX price return with weekly net delegated-flow ratio, by regime.",
+      "clock_and_window": "Weeks wholly within declared regime; price and flow clocks/availability must be fixed before scoring.",
+      "fixed_band": {
+        "absolute_correlation_error_max": 0.15
+      },
+      "measurement_status": "NOT_MEASURED_MODEL_SCOPE",
+      "measured": false,
+      "current_output": "No delegated-flow forecast or price process in v0.8.0; active DE price-clock successors not adopted here.",
+      "limitation": "Retain row and NOT_MEASURED; no inference from zero assumed response or historical correlation.",
+      "next_action": "Typed missing-target row. Any price/flow scope addition needs its own adopted model/input contract, not a substitute metric.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "AM1",
+      "population": "Unweighted validator commitment-duration shares in bins<=21,<=45,<=120,<=240,else365days plus median; by accepted_at.",
+      "clock_and_window": "Event acceptance inside Granite16UTC to Helicon15UTC; scheduled duration available when accepted.",
+      "fixed_band": null,
+      "measurement_status": "NOT_IMPLEMENTED_MOMENT_TABLE",
+      "measured": false,
+      "current_output": "Current B categorical next-duration loss covers nonoverlapping successors of ending commitments, not all accepted validator commitments.",
+      "limitation": "Report AM1 NOT_MEASURED until full all-acceptance population and model trace are supplied. Multinomial/week-clustered error is described by source, but no new numerical pass band is invented.",
+      "next_action": "Add declared bins/median, observed/model moments and miss with appropriate uncertainty, or explicit missing row. Generated decision versus chain acceptance clock must be disclosed.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "AM2",
+      "population": "Seven-day same-node renewal per ended validator commitment;14day sensitivity, nonoverlapping successor.",
+      "clock_and_window": "Require full7/14day follow-up before event end for every label; cohort endings within declared window.",
+      "fixed_band": null,
+      "measurement_status": "PARTIAL_B_TABLE_NOT_FULL_AM2",
+      "measured": false,
+      "current_output": "B renewal_7d provides log/Brier losses for frozen point blocks. It does not expose the AM2 observed fraction/model mean probability/miss or14day sensitivity.",
+      "limitation": "Retain current loss table as partial evidence, not AM2 completion. No fixed AM2 numerical band recovered.",
+      "next_action": "Bounded typed moment row with observed rate/expected rate/miss and14day sensitivity; clarify point-block versus simulated-ensemble quantity and uncertainty.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "AM3",
+      "population": "Weekly starts not classed as renewal, including late returns as specified, plus log-entry response to spread with week controls.",
+      "clock_and_window": "Acceptance/start distinction, nonrenewal definition and full weekly support inside declared regime; spread uses its as-of clock.",
+      "fixed_band": null,
+      "measurement_status": "NOT_MEASURED_DEFINITION_AND_RESPONSE",
+      "measured": false,
+      "current_output": "Model first-ever arrivals alone are not all nonrenewal starts. Default zero entry_response is an assumption, not a measured spread-response coefficient.",
+      "limitation": "Separate level from response. Do not label first-ever arrival mean as this AM3 level or estimate a response from protected data.",
+      "next_action": "If level is supported, add return/entry tags and weekly aggregation; report response NOT_ESTIMATED under this fixed model. No new regression or fit requested.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "AM4",
+      "population": "Ended-not-renewed-within14days per active validator-day, by authenticated operator/self-stake type, named agents excluded.",
+      "clock_and_window": "Mature14day endings, exact active exposure; actor evidence available by declared cutoff; provisional100kAVAX type boundary requires explicit adoption.",
+      "fixed_band": null,
+      "measurement_status": "NOT_MEASURED_POPULATION_AND_EXPOSURE",
+      "measured": false,
+      "current_output": "B return_8_90d conditional loss is not this14day exit hazard/exposure table. v0.8.0 does not authenticate operator-group strata/exclusions.",
+      "limitation": "Retain NOT_MEASURED with population/exposure reason; do not substitute node hazard or permanent-exit claim.",
+      "next_action": "Bind actor/type/exposure support or keep explicit unsupported row. No automatic new type fit or named-agent intervention.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "AM5",
+      "population": "Mean and30day slope of (validator+delegated principal)/closing total supply by regime.",
+      "clock_and_window": "Complete UTC days before22September2026; no Helicon partial day.",
+      "fixed_band": null,
+      "measurement_status": "NOT_MEASURED_MODEL_SCOPE",
+      "measured": false,
+      "current_output": "No delegated-principal forecast, hence no simulated total staking ratio.",
+      "limitation": "Retain NOT_MEASURED; own-stake diagnostics are separate.",
+      "next_action": "Typed missing-target row. No denominator/population substitution.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "AM6",
+      "population": "Delegator conditional-choice effects at2%fee, log capacity, node age and completed periods, strata without/onlyBENQI.",
+      "clock_and_window": "Decision information known at acceptance; authenticated addresses/eligible set and stratum evidence. No post-cut feature/parameter fitting.",
+      "fixed_band": null,
+      "measurement_status": "NOT_MEASURED_MODEL_SCOPE",
+      "measured": false,
+      "current_output": "No delegator choice model or BENQI allocation forecast in v0.8.0.",
+      "limitation": "Retain NOT_MEASURED and distinguish all-delegation reported stratum from fit targets.",
+      "next_action": "Typed missing-target row; no new choice fit or actor attribution added here.",
+      "primary_verdict_role": "reported secondary only"
+    },
+    {
+      "id": "AM7",
+      "population": "Top10% active validator self-stake share at quarter ends and log spread of entrant self-stake; preserve source unit/operator-group qualification.",
+      "clock_and_window": "In-window quarter closes31Dec2025,31Mar2026,30Jun2026; entry-cohort information at decision. Top-decile/tie and grouping conventions need declaration.",
+      "fixed_band": null,
+      "measurement_status": "NOT_IMPLEMENTED_MOMENT_AGGREGATES",
+      "measured": false,
+      "current_output": "Nakamoto count and aggregate own-stake paths do not equal top-decile share. Stake-law fit inputs are not a held-back entrant-spread result.",
+      "limitation": "Report NOT_MEASURED until correctly scoped active-rank and entrant summaries are bound. Do not claim operator heterogeneity from node outputs.",
+      "next_action": "Bounded active-stake and entrant trace summaries, rank/tie conventions, grouping limitation and typed observed/model/miss rows; otherwise explicit unsupported status.",
+      "primary_verdict_role": "reported secondary only"
+    }
+  ]
 }

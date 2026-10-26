@@ -299,6 +299,20 @@ def test_report_displays_measured_coverage_from_the_score_schema():
     assert [value.strip() for value in row.split("|")][-3:-1] == ["1", "1"]
 
 
+def test_report_keeps_active_pattern_limitations_and_fixed_bands_visible():
+    requirements = [{"id": "U5", "population": "validator commitments", "measurement_status": "NOT_MEASURED",
+                     "fixed_band": {"median_ratio": [1.3, 2.2]}, "limitation": "joint trace not supplied"},
+                    {"id": "AM5", "population": "validator and delegated principal", "measurement_status": "NOT_MEASURED",
+                     "fixed_band": None, "limitation": "no delegation forecast"}]
+    text = subject.report({"verdict": "INCONCLUSIVE", "mode": "development", "specification_status": "draft",
+                           "primary_comparisons": [], "S": [], "distribution_comparisons": [], "B": [],
+                           "contract_diagnostics": [], "not_measured": [], "unresolved_specification_choices": [],
+                           "active_requirements": requirements})
+    assert '| U5 | validator commitments | NOT_MEASURED | {"median_ratio": [1.3, 2.2]}' in text
+    assert "joint trace not supplied" in text and "no delegation forecast" in text
+    assert "missing measurement is not a pass" in text
+
+
 def test_duration_history_excludes_overlapping_successors(tmp_path):
     def row(tx, start, end, accepted):
         return {"role": "validator", "node_id": "a", "transaction_hash": tx, "stake_navax": 2_000 * 10**9,

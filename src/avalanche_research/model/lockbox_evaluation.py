@@ -556,6 +556,7 @@ def evaluate(prepared: Prepared, *, periods: Path, monetary: Path, training: Pat
               "B": behaviour_table(prepared, training, periods, fit_origin, event_start, event_end, token),
               "contract_diagnostics": diagnostics, "daily_mean_paths": paths,
               "unresolved_specification_choices": specification.get("unresolved", []),
+              "active_requirements": specification.get("active_requirements", []),
               "crps_convention": "existing distribution_scores: fair correction below100 draws; ordinary sample score at registered200",
               "behaviour_loss_units": {"log_loss": "nats per event", "brier": "dimensionless"},
               "not_measured": [{"target": "total_bonded_avax", "reason": "released model has no delegated-principal forecast"},
@@ -609,6 +610,13 @@ def report(result: dict) -> str:
               "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
     for row in result["contract_diagnostics"]:
         lines.append(f"| {row['origin']} | {row['variable']} | {row['unit']} | {number(row['pearson_levels'])} | {number(row['pearson_first_differences'])} | {number(row['rmse'])} | {number(row['direction_7d'])} | {number(row['phase_lag_days'])} | {row['undefined_reason'] or ''} |")
+    lines += ["", "## Active patterns and moments", "",
+              "These declared requirement statuses are separate from measured S/B losses. A missing measurement is not a pass.", "",
+              "| Requirement | Population | Status | Fixed band | Limitation |",
+              "| --- | --- | --- | --- | --- |"]
+    for row in result.get("active_requirements", []):
+        band = json.dumps(row["fixed_band"], ensure_ascii=False, sort_keys=True) if row["fixed_band"] is not None else "not fixed in recovered definition"
+        lines.append(f"| {row['id']} | {row['population']} | {row['measurement_status']} | {band} | {row['limitation']} |")
     lines += ["", "## Unmeasured targets and unresolved decisions", ""]
     lines += [f"- {row['target']}: {row['reason']}." for row in result["not_measured"]]
     lines += [f"- Proposed decision: {item}." for item in result["unresolved_specification_choices"]]
