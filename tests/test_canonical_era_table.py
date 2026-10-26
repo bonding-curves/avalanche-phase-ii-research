@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 
 from avalanche_research.core.catalog import DataError
+from avalanche_research.datasets.derived.monetary import REWARD_ACCOUNTING_BASIS
 from avalanche_research.staking_cohorts import (
     CANONICAL_ERA_FAMILIES,
     canonical_era_table,
@@ -88,6 +89,7 @@ def pinned(
     ledger=None,
     cutoff="2026-09-25T12:00:00Z",
     addresses=None,
+    basis=None,
 ):
     periods = (
         periods
@@ -240,6 +242,28 @@ def pinned(
             "captured_at": cutoff,
         }
     )
+    if basis is not None:
+        captures["derived.avax-monetary-daily"]["reward_accounting_basis"] = basis
+    if basis == REWARD_ACCOUNTING_BASIS:
+        cycle_entry = next(e for e in entries if e["dataset_id"] == "derived.p-chain-staking-cycles")
+        block_reference = {"input_id": "blocks", "dataset_id": "p-chain-rpc.blocks", "run": "block-walk",
+                           "parquet": "blocks.parquet", "bytes": 7, "sha256": "a"*64, "capture_id": "capture:blocks"}
+        captures["derived.p-chain-staking-cycles"]["inputs"] = [block_reference]
+        captures["derived.avax-monetary-daily"]["inputs"].extend([
+            {**cycle_entry, "input_id": "staking-cycles"}, {**block_reference, "input_id": "cycle-blocks"}])
+        companion = root / "ledger/dataset/cycle-accounting-events.parquet"
+        with duckdb.connect() as db:
+            db.execute("CREATE TABLE events(validator_transaction_hash VARCHAR,node_id VARCHAR,cycle BIGINT,reward_transaction_hash VARCHAR,rewarded_at TIMESTAMP,rewarded BOOLEAN,recognised_reward_navax DECIMAL(38,0))")
+            rows = [[c['validator_transaction_hash'],c['node_id'],c['cycle'],c['reward_transaction_hash'],c['end_time'],c['rewarded'],
+                     sum(c[k] for k in ('restaked_validation_navax','restaked_delegatee_navax','withdrawn_validation_navax','withdrawn_delegatee_navax'))]
+                    for c in (cycles or []) if c['rewarded'] is not None]
+            if rows:
+                db.executemany("INSERT INTO events VALUES (?,?,?,?,?,?,?)", rows)
+            db.execute("COPY events TO ? (FORMAT PARQUET)", [str(companion)])
+        build_path = companion.parent / "build.json"
+        build = json.loads(build_path.read_text())
+        build["outputs"].append({"path": companion.name, "bytes": companion.stat().st_size, "sha256": hashlib.sha256(companion.read_bytes()).hexdigest()})
+        build_path.write_text(json.dumps(build))
     for entry in entries:
         (root / entry["run"] / "capture/capture.json").write_text(
             json.dumps(captures[entry["dataset_id"]])
@@ -550,4 +574,132 @@ def test_required_nulls_are_refused_even_with_authentic_byte_pin(
         }
         pin, root = pinned(tmp_path, periods=rows, cycles=[cycle])
     with pytest.raises(DataError, match="invalid or duplicate"):
+        canonical_era_table(pin, root=root)
+
+
+def restaking_pin(tmp_path, *, effective=True):
+    """Twelve independent owners: principal1200, then effective1210. Ten AVAX restakes once."""
+    rows = [period(f"v{i}", f"n{i}", "2026-09-22 18:00", duration=100) for i in range(11)]
+    rows += [period("auto", "auto-node", "2026-09-22 18:00", tx_type="AddAutoRenewedValidatorTx",
+                    last_cycle_end_time="2026-09-25 18:00"),
+             period("d", "n0", "2026-09-22 18:00", role="delegator", stake=50, duration=100)]
+    cycles = [
+        {"validator_transaction_hash": "auto", "node_id": "auto-node", "cycle": 1,
+         "start_time": "2026-09-22 18:00", "end_time": "2026-09-23 18:00", "weight_navax": 100*10**9,
+         "reward_transaction_hash": "reward-auto", "rewarded": True, "restaked_validation_navax": 10*10**9,
+         "restaked_delegatee_navax": 0, "withdrawn_validation_navax": 0, "withdrawn_delegatee_navax": 0},
+        {"validator_transaction_hash": "auto", "node_id": "auto-node", "cycle": 2,
+         "start_time": "2026-09-23 18:00", "end_time": "2026-09-25 18:00", "weight_navax": 110*10**9,
+         "reward_transaction_hash": None, "rewarded": None, "restaked_validation_navax": None,
+         "restaked_delegatee_navax": None, "withdrawn_validation_navax": None, "withdrawn_delegatee_navax": None},
+    ]
+    ledger = [{"date_utc": f"2026-09-{day}", "complete": True, "total_supply_close_wei": 10000*10**18,
+               "active_validator_stake_wei": (1200+(10 if effective and day==23 else 0))*10**18,
+               "active_delegated_stake_wei": 50*10**18, "issued_rewards_wei": (10 if day==23 else 0)*10**18,
+               "burned_wei": 0} for day in (22, 23)]
+    return pinned(tmp_path, periods=rows, cycles=cycles, ledger=ledger, basis=REWARD_ACCOUNTING_BASIS if effective else None)
+
+
+def test_effective_ledger_stock_is_used_once_with_principal_identity_and_exact_denominators(tmp_path):
+    pin, root = restaking_pin(tmp_path)
+    f = canonical_era_table(pin, root=root, threads=2, memory_limit="256MB")
+    assert cell(f, "Mean active stake", "validator transaction-base stock").value == 1200
+    assert cell(f, "Mean active stake", "validator cycle-weight stock including restaking").value == 1205
+    assert cell(f, "Mean active stake", "active restaked reward increment").value == 5
+    assert cell(f, "Calendar AVAX-days", "role stock").value == 2410
+    assert cell(f, "Calendar AVAX-days", "combined stock").value == 2510
+    assert cell(f, "Staking ratio", "validator").value == pytest.approx(12.05)
+    assert cell(f, "Staking ratio", "combined validator and delegated").value == pytest.approx(12.55)
+    concentration = cell(f, "Concentration")
+    assert concentration.value == pytest.approx(100*10/12) and concentration.support_count == 2
+    assert concentration.support_status == "Complete dated identity support"
+    rate = cell(f, "Calendar earned rate")
+    assert rate.denominator_value == 2510 and rate.numerator_value == 10
+    assert rate.value == pytest.approx(36500*10/2510)
+    assert cell(f, "Issued in the window").statistic == "recognised issuance"
+    metadata = f.attrs['metadata']
+    assert metadata['ledger_reward_accounting_basis'] == REWARD_ACCOUNTING_BASIS
+    assert metadata['daily_stock_oracle']['complete_days'] == 2
+    assert metadata['ledger_cycle_event_companion']['path'] == 'cycle-accounting-events.parquet'
+
+
+def test_legacy_report_retains_principal_calendar_basis_and_separate_cycle_mean(tmp_path):
+    pin, root = restaking_pin(tmp_path, effective=False)
+    f = canonical_era_table(pin, root=root)
+    assert cell(f, "Mean active stake", "validator transaction-base stock").value == 1200
+    assert cell(f, "Mean active stake", "validator cycle-weight stock including restaking").value == 1205
+    assert cell(f, "Calendar AVAX-days", "combined stock").value == 2500
+    assert cell(f, "Staking ratio", "validator").value == 12
+    assert cell(f, "Issued in the window").statistic == "paid issuance"
+    assert cell(f, "Calendar earned rate").statistic == "combined role rate"
+    assert 'Original transaction stake' in f.attrs['metadata']['ledger_stock_basis']
+    assert 'daily_stock_oracle' not in f.attrs['metadata']
+
+
+@pytest.mark.parametrize('mutation', ['unknown-basis', 'ledger-cycle', 'period-cycle', 'ledger-period', 'blocks', 'companion'])
+def test_new_basis_requires_exact_lineage_and_companion(tmp_path, mutation):
+    pin, root = restaking_pin(tmp_path)
+    path = root / ('periods' if mutation == 'period-cycle' else 'ledger') / 'capture/capture.json'
+    capture = json.loads(path.read_text())
+    if mutation == 'unknown-basis':
+        capture['reward_accounting_basis'] = 'unknown/v1'
+    elif mutation == 'companion':
+        (root / 'ledger/dataset/cycle-accounting-events.parquet').unlink()
+    else:
+        input_id = {'ledger-cycle':'staking-cycles', 'period-cycle':'p-staking-cycles', 'ledger-period':'staking-periods', 'blocks':'cycle-blocks'}[mutation]
+        next(i for i in capture['inputs'] if i['input_id'] == input_id)['bytes'] += 1
+    path.write_text(json.dumps(capture))
+    with pytest.raises(DataError, match='basis|lineage|companion'):
+        canonical_era_table(pin, root=root)
+
+
+def rewrite_bound_table(pin, root, name, expression):
+    path = root / name / 'dataset' / (name+'.parquet')
+    with duckdb.connect() as db:
+        db.execute(f'CREATE TABLE replacement AS {expression}', [str(path)])
+        db.execute('COPY replacement TO ? (FORMAT PARQUET)', [str(path)])
+    receipt_path = path.parent / 'build.json'
+    build = json.loads(receipt_path.read_text())
+    changed = {'bytes': path.stat().st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    next(o for o in build['outputs'] if o['path'] == path.name).update(changed)
+    receipt_path.write_text(json.dumps(build))
+    value = json.loads(pin.read_text())
+    entry = next(e for e in value['runs'] if e['run'] == name)
+    entry.update(changed)
+    pin.write_text(json.dumps(value))
+    for capture_path in root.glob('*/capture/capture.json'):
+        capture = json.loads(capture_path.read_text())
+        for item in capture['inputs']:
+            if item.get('run') == name:
+                item.update(changed)
+        capture_path.write_text(json.dumps(capture))
+
+
+@pytest.mark.parametrize('name,expression,reason', [
+    ('ledger', "SELECT * REPLACE (active_validator_stake_wei+1000000000 AS active_validator_stake_wei) FROM read_parquet(?)", 'daily interval oracle'),
+    ('ledger', "SELECT * REPLACE (1200*1000000000000000000::DECIMAL(38,0) AS active_validator_stake_wei) FROM read_parquet(?)", 'daily interval oracle'),
+    ('cycles', "SELECT * REPLACE (CASE WHEN cycle=2 THEN weight_navax+1 ELSE weight_navax END AS weight_navax) FROM read_parquet(?)", 'stock intervals'),
+    ('cycles', "SELECT * REPLACE (CASE WHEN cycle=2 THEN start_time+INTERVAL 1 HOUR ELSE start_time END AS start_time) FROM read_parquet(?)", 'stock intervals'),
+])
+def test_malformed_or_wrong_basis_stock_refuses_despite_coherent_byte_pin(tmp_path, name, expression, reason):
+    pin, root = restaking_pin(tmp_path)
+    rewrite_bound_table(pin, root, name, expression)
+    with pytest.raises(DataError, match=reason):
+        canonical_era_table(pin, root=root)
+
+
+@pytest.mark.parametrize('mutation', ['clock', 'duplicate'])
+def test_rehashed_companion_must_agree_with_selected_cycle_outcomes(tmp_path, mutation):
+    pin, root = restaking_pin(tmp_path)
+    path = root / 'ledger/dataset/cycle-accounting-events.parquet'
+    query = ("SELECT * REPLACE (rewarded_at+INTERVAL 1 HOUR AS rewarded_at) FROM read_parquet(?)" if mutation == 'clock' else
+             "SELECT * FROM read_parquet(?) UNION ALL SELECT * FROM read_parquet(?)")
+    with duckdb.connect() as db:
+        db.execute('CREATE TABLE replacement AS '+query, [str(path)] * (1 if mutation == 'clock' else 2))
+        db.execute('COPY replacement TO ? (FORMAT PARQUET)', [str(path)])
+    build_path = path.parent / 'build.json'
+    build = json.loads(build_path.read_text())
+    next(o for o in build['outputs'] if o['path'] == path.name).update(bytes=path.stat().st_size, sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+    build_path.write_text(json.dumps(build))
+    with pytest.raises(DataError, match='companion differs'):
         canonical_era_table(pin, root=root)

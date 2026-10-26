@@ -417,7 +417,42 @@ def _canonical_inputs(pin, root):
     upstream = ledger_inputs.get("derived.staking-periods", {})
     if any(upstream.get(k) != period_entry[k] for k in ("run", "sha256", "capture_id")):
         raise DataError("ledger receipt does not bind the pinned staking periods")
-    return records, paths, {"pin_sha256": _report_digest(pin), "inputs": bindings}
+    metadata = {"pin_sha256": _report_digest(pin), "inputs": bindings}
+    ledger_capture = records["derived.avax-monetary-daily"]
+    basis = ledger_capture.get("reward_accounting_basis")
+    from .datasets.derived.monetary import CYCLE_EVENTS_FILE, REWARD_ACCOUNTING_BASIS
+
+    if basis not in (None, REWARD_ACCOUNTING_BASIS):
+        raise DataError(f"unsupported ledger reward accounting basis: {basis}")
+    metadata["ledger_reward_accounting_basis"] = basis or "archived-ordinary-payout-only"
+    if basis is not None:
+        selected = {entry["dataset_id"]: entry for entry in bindings}
+
+        def exact_reference(capture, input_id, expected):
+            references = [i for i in capture["inputs"] if i.get("input_id") == input_id]
+            keys = ("dataset_id", "run", "capture_id", "parquet", "bytes", "sha256")
+            if len(references) != 1 or any(references[0].get(k) != expected.get(k) for k in keys):
+                raise DataError(f"cycle-aware lineage differs for {input_id}")
+            capture_hash = expected.get("capture_sha256") or expected.get("receipt_hashes", {}).get("capture/capture.json")
+            if "capture_sha256" in references[0] and capture_hash is not None and references[0]["capture_sha256"] != capture_hash:
+                raise DataError(f"cycle-aware capture lineage differs for {input_id}")
+
+        cycles = selected["derived.p-chain-staking-cycles"]
+        exact_reference(records["derived.staking-periods"], "p-staking-cycles", cycles)
+        exact_reference(ledger_capture, "staking-periods", selected["derived.staking-periods"])
+        exact_reference(ledger_capture, "staking-cycles", cycles)
+        blocks = [i for i in records["derived.p-chain-staking-cycles"]["inputs"] if i.get("input_id") == "blocks"]
+        if len(blocks) != 1 or blocks[0].get("dataset_id") != "p-chain-rpc.blocks":
+            raise DataError("cycle-aware source lacks its exact block lineage")
+        exact_reference(ledger_capture, "cycle-blocks", blocks[0])
+        build = json.loads((paths["ledger"].parent / "build.json").read_text())
+        companions = [o for o in build["outputs"] if o.get("path") == CYCLE_EVENTS_FILE]
+        companion = paths["ledger"].parent / CYCLE_EVENTS_FILE
+        if len(companions) != 1 or not companion.is_file() or companion.stat().st_size != companions[0].get("bytes") or _report_digest(companion) != companions[0].get("sha256"):
+            raise DataError("cycle-aware ledger companion is missing or differs from its build")
+        paths["cycle_events"] = companion
+        metadata["ledger_cycle_event_companion"] = companions[0]
+    return records, paths, metadata
 
 
 def _canonical_windows(cutoffs):
@@ -562,25 +597,95 @@ def _canonical_statistics(db):
     )
 
 
-def era_stocks(db, start, end):
+def _canonical_stock_oracle(db):
+    """Reconstruct complete-day principal/effective stocks independently from pinned half-open intervals."""
+    from .core.catalog import DataError
+
+    invalid_events = db.execute("""SELECT count(*) FROM (
+        SELECT validator_transaction_hash,cycle FROM cycle_events GROUP BY 1,2 HAVING count(*)<>1)
+        UNION ALL SELECT count(*) FROM cycles c FULL JOIN cycle_events e
+          ON c.validator_transaction_hash=e.validator_transaction_hash AND c.cycle=e.cycle
+        WHERE (c.rewarded IS NOT NULL OR e.validator_transaction_hash IS NOT NULL) AND (
+          c.rewarded IS NULL OR e.validator_transaction_hash IS NULL OR c.node_id IS DISTINCT FROM e.node_id
+          OR c.reward_transaction_hash IS DISTINCT FROM e.reward_transaction_hash OR c.rewarded IS DISTINCT FROM e.rewarded
+          OR c.end_time IS DISTINCT FROM e.rewarded_at
+          OR e.recognised_reward_navax IS DISTINCT FROM
+            c.restaked_validation_navax::HUGEINT+c.restaked_delegatee_navax+c.withdrawn_validation_navax+c.withdrawn_delegatee_navax)
+    """).fetchall()
+    if any(n for (n,) in invalid_events):
+        raise DataError("cycle-aware companion differs from the pinned closed cycle outcomes")
+    bad = db.execute("""WITH sequenced AS (
+        SELECT c.*,p.stake_navax,p.start_time AS parent_start,p.end_time AS parent_end,p.last_cycle_end_time,
+          lag(c.end_time) OVER w AS previous_end,
+          lag(c.weight_navax::HUGEINT+c.restaked_validation_navax+c.restaked_delegatee_navax) OVER w AS next_weight,
+          lag(c.rewarded) OVER w AS previous_rewarded,
+          max(c.cycle) OVER(PARTITION BY c.validator_transaction_hash) AS last_cycle
+        FROM cycles c JOIN periods p ON p.transaction_hash=c.validator_transaction_hash
+        WINDOW w AS(PARTITION BY c.validator_transaction_hash ORDER BY c.cycle))
+        SELECT count(*) FROM sequenced WHERE
+          (cycle=1 AND (weight_navax<>stake_navax OR start_time<>parent_start OR end_time<>parent_end))
+          OR (cycle>1 AND (start_time IS DISTINCT FROM previous_end OR weight_navax IS DISTINCT FROM next_weight OR previous_rewarded IS DISTINCT FROM TRUE))
+          OR (cycle=last_cycle AND last_cycle_end_time IS NOT NULL AND end_time<>last_cycle_end_time)
+          OR (rewarded IS NULL AND (cycle<>last_cycle OR end_time<=(SELECT max(date_utc)::TIMESTAMP+INTERVAL '23:59:59' FROM ledger WHERE complete)))
+    """).fetchone()[0]
+    if bad:
+        raise DataError("cycle-aware stock intervals are incomplete or inconsistent")
+    db.execute("""CREATE TEMP TABLE canonical_stock_days AS
+        WITH intervals AS (
+          SELECT role,start_time,end_time,stake_navax::HUGEINT AS principal,stake_navax::HUGEINT AS effective
+          FROM periods WHERE tx_type<>'AddAutoRenewedValidatorTx'
+          UNION ALL SELECT 'validator',c.start_time,c.end_time,p.stake_navax::HUGEINT,c.weight_navax::HUGEINT
+          FROM cycles c JOIN periods p ON p.transaction_hash=c.validator_transaction_hash),
+        events AS (
+          SELECT role,start_time AS event_at,principal,effective FROM intervals
+          UNION ALL SELECT role,end_time,-principal,-effective FROM intervals),
+        daily AS (
+          SELECT (event_at-INTERVAL '23:59:59')::DATE + CASE WHEN event_at-INTERVAL '23:59:59' > (event_at-INTERVAL '23:59:59')::DATE THEN 1 ELSE 0 END AS date_utc,
+            sum(principal) FILTER(WHERE role='validator') AS validator_principal,
+            sum(effective) FILTER(WHERE role='validator') AS validator_effective,
+            sum(principal) FILTER(WHERE role='delegator') AS delegated
+          FROM events GROUP BY 1),
+        cumulative AS (
+          SELECT date_utc,sum(coalesce(validator_principal,0)) OVER w AS validator_principal,
+            sum(coalesce(validator_effective,0)) OVER w AS validator_effective,
+            sum(coalesce(delegated,0)) OVER w AS delegated
+          FROM daily WINDOW w AS(ORDER BY date_utc ROWS UNBOUNDED PRECEDING))
+        SELECT l.date_utc,coalesce(o.validator_principal,0)::HUGEINT AS validator_principal,
+          coalesce(o.validator_effective,0)::HUGEINT AS validator_effective,coalesce(o.delegated,0)::HUGEINT AS delegated
+        FROM ledger l ASOF LEFT JOIN cumulative o ON l.date_utc>=o.date_utc WHERE l.complete
+    """)
+    bad = db.execute("""SELECT count(*) FROM ledger l JOIN canonical_stock_days o USING(date_utc) WHERE
+        l.active_validator_stake_wei IS DISTINCT FROM o.validator_effective::DECIMAL(38,0)*1000000000
+        OR l.active_delegated_stake_wei IS DISTINCT FROM o.delegated::DECIMAL(38,0)*1000000000
+        OR o.validator_effective<o.validator_principal OR o.validator_principal<0 OR o.delegated<0""").fetchone()[0]
+    if bad:
+        raise DataError("cycle-aware ledger stock differs from the independent daily interval oracle")
+    return db.execute("SELECT count(*) FROM canonical_stock_days").fetchone()[0]
+
+
+def era_stocks(db, start, end, *, effective_ledger=False):
     """Complete UTC days whose 23:59:59 stock observation lies in [start,end).
 
     Flow sums and rate denominators use this identical support. Day-close assignment does
     not prorate an upgrade day. It is distinct from fractional protocol-window duration.
     """
+    increment = ("(SELECT o.validator_effective-o.validator_principal FROM canonical_stock_days o WHERE o.date_utc=l.date_utc)" if effective_ledger else
+                 """coalesce((SELECT sum(c.weight_navax::HUGEINT-p.stake_navax::HUGEINT)
+            FROM cycles c JOIN periods p ON p.transaction_hash=c.validator_transaction_hash
+            WHERE c.start_time<=l.close_at AND c.end_time>l.close_at),0)""")
+    principal_mean = "avg((active_validator_stake_wei-restaked_navax::DECIMAL(38,0)*1000000000)::DOUBLE)/1e18" if effective_ledger else "avg(active_validator_stake_wei::DOUBLE)/1e18"
+    effective = "active_validator_stake_wei::DOUBLE/1e9" if effective_ledger else "active_validator_stake_wei::DOUBLE/1e9+restaked_navax::DOUBLE"
     return (
         db.execute(
-            """WITH supported AS (SELECT *, date_utc::TIMESTAMP+INTERVAL '23:59:59' AS close_at
+            f"""WITH supported AS (SELECT *, date_utc::TIMESTAMP+INTERVAL '23:59:59' AS close_at
         FROM ledger WHERE complete AND date_utc::TIMESTAMP+INTERVAL '23:59:59' >= ?
         AND date_utc::TIMESTAMP+INTERVAL '23:59:59' < ?),
-        weights AS (SELECT l.*, coalesce((SELECT sum(c.weight_navax::HUGEINT-p.stake_navax::HUGEINT)
-            FROM cycles c JOIN periods p ON p.transaction_hash=c.validator_transaction_hash
-            WHERE c.start_time<=l.close_at AND c.end_time>l.close_at),0) AS restaked_navax FROM supported l)
+        weights AS (SELECT l.*, {increment} AS restaked_navax FROM supported l)
         SELECT count(*) AS "days",
         avg(total_supply_close_wei::DOUBLE)/1e18 supply,
-        avg(active_validator_stake_wei::DOUBLE)/1e18 validator_stake,
+        {principal_mean} validator_stake,
         avg(active_delegated_stake_wei::DOUBLE)/1e18 delegated_stake,
-        avg(active_validator_stake_wei::DOUBLE/1e9+restaked_navax::DOUBLE)/1e9 validator_cycle_stake,
+        avg({effective})/1e9 validator_cycle_stake,
         avg(restaked_navax::DOUBLE)/1e9 active_restaked_increment,
         sum(active_validator_stake_wei::DECIMAL(38,0))::DOUBLE/1e18 validator_days,
         sum(active_delegated_stake_wei::DECIMAL(38,0))::DOUBLE/1e18 delegated_days,
@@ -597,8 +702,8 @@ def era_stocks(db, start, end):
     )
 
 
-def _canonical_identity(db, paths, windows):
-    """Dated address groups on transaction-base stock, the monetary ledger's basis."""
+def _canonical_identity(db, paths, windows, *, effective_ledger=False):
+    """Dated address groups on original principal, reconciled with the admitted ledger stock basis."""
     from .core.catalog import DataError
     from .datasets.derived import identity
 
@@ -612,13 +717,16 @@ def _canonical_identity(db, paths, windows):
     edge_table = edge_table.sort_values(
         ["evidence_at", "transaction_hash", "address"], kind="stable"
     )
-    stocks = db.execute("""SELECT transaction_hash,node_id,start_time,
-        greatest(end_time,coalesce(last_cycle_end_time,end_time)) AS stake_end,stake_navax
+    stake_end = ("CASE WHEN tx_type='AddAutoRenewedValidatorTx' THEN greatest(end_time,coalesce(last_cycle_end_time,end_time)) ELSE end_time END"
+                 if effective_ledger else "greatest(end_time,coalesce(last_cycle_end_time,end_time))")
+    stocks = db.execute(f"""SELECT transaction_hash,node_id,start_time,
+        {stake_end} AS stake_end,stake_navax
         FROM periods WHERE role='validator'""").df()
     cohort_nodes = db.execute(
         "SELECT DISTINCT node_id,decision_at FROM commitments WHERE role='validator'"
     ).df()
     days = db.execute(
+        "SELECT date_utc,validator_principal::DECIMAL(38,0)*1000000000 FROM canonical_stock_days ORDER BY date_utc" if effective_ledger else
         "SELECT date_utc,active_validator_stake_wei FROM ledger WHERE complete ORDER BY date_utc"
     ).fetchall()
     daily = []
@@ -697,6 +805,7 @@ def canonical_era_table(
     ):
         raise DataError("threads must be an integer from 1 to 8")
     records, paths, metadata = _canonical_inputs(pin, root)
+    effective_ledger = metadata["ledger_reward_accounting_basis"] != "archived-ordinary-payout-only"
     period_capture = records["derived.staking-periods"]
     source_cutoffs = _source_cutoffs(period_capture)
     cycle_cutoff = _report_utc(
@@ -728,8 +837,15 @@ def canonical_era_table(
         duckdb.connect(config={**config, "temp_directory": spill_directory}) as db,
     ):
         _canonical_relations(db, paths, cutoffs, reward_cutoff, cycle_cutoff)
+        if effective_ledger:
+            metadata["daily_stock_oracle"] = {
+                "complete_days": _canonical_stock_oracle(db),
+                "basis": "Independent cumulative half-open period/cycle interval events; exact integer wei equality for validator effective and delegated principal stock on every complete ledger day",
+                "validator_effective_mismatches": 0,
+                "delegated_principal_mismatches": 0,
+            }
         stats = _canonical_statistics(db)
-        identities = _canonical_identity(db, paths, windows)
+        identities = _canonical_identity(db, paths, windows, effective_ledger=effective_ledger)
         first_nodes = db.execute(
             "SELECT role,node_id,min(decision_at) first_at FROM commitments GROUP BY 1,2"
         ).df()
@@ -744,7 +860,7 @@ def canonical_era_table(
                 int(s.get("closed_count", 0)),
                 s.get("closed_stake", 0.0),
             )
-            stocks = era_stocks(db, start, end)
+            stocks = era_stocks(db, start, end, effective_ledger=effective_ledger)
             eligible = sum(
                 start <= pd.Timestamp(f"{d.date()}T23:59:59") < end
                 for d in pd.date_range(
@@ -1249,10 +1365,10 @@ def canonical_era_table(
             )
             ledger_add(
                 "Issued in the window",
-                "paid issuance",
+                "recognised issuance" if effective_ledger else "paid issuance",
                 stocks["issued"],
                 "AVAX",
-                "sum by ledger payment day",
+                "sum by ledger recognition day" if effective_ledger else "sum by ledger payment day",
             )
             ledger_add(
                 "Burned in the window",
@@ -1263,7 +1379,7 @@ def canonical_era_table(
             )
             ledger_add(
                 "Calendar earned rate",
-                "combined role rate",
+                "combined role recognised-issuance rate" if effective_ledger else "combined role rate",
                 ratio(36500 * stocks["issued"], combined_days),
                 "percent/year (365 days)",
                 "ratio of sums",
@@ -1313,7 +1429,9 @@ def canonical_era_table(
             "cycle_clock": "Initial cycle uses parent accepted_at; subsequent cycle start is a renewal decision-clock proxy. No config-at-acceptance or payment-time claim.",
             "cycle_reward_basis": "Ordinary realized validator rewards include delegation fees. Auto-cycle totals replace the parent reward: restaked_validation_navax + withdrawn_validation_navax + restaked_delegatee_navax + withdrawn_delegatee_navax on closed-known cycles. The first two are validation rewards; the last two are delegatee fees. Unknown components remain null. No cycle payment-day attribution.",
             "cohort_weight_basis": "Ordinary original stake, auto-renewed cycle weight including restaking.",
-            "ledger_stock_basis": "Original transaction stake through greatest(end_time,last_cycle_end_time), without restaked cycle weights.",
+            "ledger_stock_basis": "Effective validator cycle weights including restaking, plus ordinary validator/delegator original stake on half-open intervals. Principal and effective means are shown separately; no second restake adjustment." if effective_ledger else "Original transaction stake through greatest(end_time,last_cycle_end_time), without restaked cycle weights.",
+            "calendar_stock_basis": "Effective validator plus original delegated stock" if effective_ledger else "Original validator plus original delegated stock",
+            "ledger_issuance_basis": "Ordinary net payouts plus current cycle recognition; restaked rewards recognised once, prior accrual release excluded" if effective_ledger else "Ordinary payouts on payment day",
             "identity_basis": "Dated latest reward addresses form inferred shared-address groups, not proven owners. Cohort groups at exclusive window end; concentration uses transaction-base stock and refuses unsupported days.",
             "calendar_support": "Ledger day-close assignment, not prorated fractional era days. Rates use identical complete-day numerator/denominator support.",
             "capture_qualification": "Capture completion is a source cutoff, not a proof of chain inactivity or full chain coverage.",

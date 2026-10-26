@@ -1,0 +1,82 @@
+{
+  "name": "staking-records-accounting-qualified-2026-10-26",
+  "pinned_at": "2026-10-26T22:23:14Z",
+  "runs": [
+    {
+      "bytes": 698302109,
+      "capture_id": "capture:derived:2026-10-26T03:57:43Z:c7ecefd2be7a",
+      "captured_at": "2026-10-26T03:57:43Z",
+      "check": "pass",
+      "dataset_id": "derived.staking-periods",
+      "parquet": "staking-periods.parquet",
+      "run": "staking-periods-2026-10-26",
+      "sha256": "5bcce9b6b996564fcf5376d82205d384370c35b053259626f4e1c545ebfee8a8",
+      "receipt_hashes": {
+        "capture/capture.json": "ed772a890fb782d1d4f4b26561b8bf135871448c27c0df32055924a3e0e8c784",
+        "dataset/build.json": "46fbd5f417615f8d9d7122fe7266265a28c37c349076bda9fb9e5a50a841c786",
+        "dataset/check.json": "80a3663ba6f950a8d254af4dde92d7bee6489a4281f0ffc446cc64ddd6a9fe4a"
+      }
+    },
+    {
+      "bytes": 235932,
+      "capture_id": "capture:derived:2026-10-26T20:06:18Z:d4e1d5797fb7",
+      "captured_at": "2026-10-26T20:06:18Z",
+      "check": "pass",
+      "dataset_id": "derived.avax-monetary-daily",
+      "parquet": "avax-monetary-daily.parquet",
+      "run": "avax-monetary-daily-2026-10-26-accounting-qualified",
+      "sha256": "5d08d01a7607cbe0ec5bdd075a905d240cc332226593960808031928e2030f3c",
+      "receipt_hashes": {
+        "capture/capture.json": "59f882e3efe85aa78457b3ea079b06257779f74ac4819b21458f3f65a7b8f1f5",
+        "dataset/build.json": "45f7669bcdf0d2fbcff3ff8b7a5cd2764442a98f9d0d1dcb9ca1183f205a1c59",
+        "dataset/check.json": "8741e79e7988f32bf8014eca4f7dc737e2b126ced376afc0319359aea9cdff2e"
+      }
+    },
+    {
+      "bytes": 6221420,
+      "capture_id": "capture:derived:2026-10-26T03:53:02Z:d5b2d34cabd7",
+      "captured_at": "2026-10-26T03:53:02Z",
+      "check": "pass",
+      "dataset_id": "derived.seamed-validator-stakes",
+      "parquet": "seamed-validator-stakes.parquet",
+      "run": "seamed-validator-stakes-2026-10-26",
+      "sha256": "3f4f3aa941998876e499329e0fe82fc608e1c1f000ee526b428065518abb30b8",
+      "receipt_hashes": {
+        "capture/capture.json": "6f859fbbbf2d15d463b36535f655f92f9e550f1801a87849ade4a48b8879844b",
+        "dataset/build.json": "46313ffb6688864e4253bbe632bffb299aa6eadbbaf5fe8e7dc045f1a4135ecd",
+        "dataset/check.json": "6d4e6ceaff81d21a91050aa36927dda3562146a6160cd96c383816a1da993a99"
+      }
+    },
+    {
+      "bytes": 538218184,
+      "capture_id": "capture:derived:2026-10-26T03:53:53Z:9ddedc6c0a54",
+      "captured_at": "2026-10-26T03:53:53Z",
+      "check": "pass",
+      "dataset_id": "derived.seamed-delegator-stakes",
+      "parquet": "seamed-delegator-stakes.parquet",
+      "run": "seamed-delegator-stakes-2026-10-26",
+      "sha256": "d45b6afc7e9cbfec383350cd1a46b51188a105b55e460c347d23c5f95c8b07b0",
+      "receipt_hashes": {
+        "capture/capture.json": "79184356dd196f04c335ad2c1252160b7b93b8eb53f871448696a4f222b8a787",
+        "dataset/build.json": "45df9b055f5ec5f5fb3a8aa7da79c1aceeb3bae6e45d4ec574826c8a0a4c5ad2",
+        "dataset/check.json": "3d0eb4677cbfce1a07e1eb52fb053e808c1c56821378210276e39405d67e496d"
+      }
+    },
+    {
+      "bytes": 24941,
+      "capture_id": "capture:derived:2026-10-26T03:46:42Z:708f1181be64",
+      "captured_at": "2026-10-26T03:46:42Z",
+      "check": "pass",
+      "dataset_id": "derived.p-chain-staking-cycles",
+      "parquet": "p-chain-staking-cycles.parquet",
+      "run": "p-chain-staking-cycles-2026-10-26",
+      "sha256": "5692e7aa24f208ccd703f800d4c23fae030e7be8fddebd876540f149160442b4",
+      "receipt_hashes": {
+        "capture/capture.json": "ca2a051e051ebbe3d3f0193c0908cef1e88ebf54ec0fc1436fe2d727d568079a",
+        "dataset/build.json": "17d3f1b3b0f786875c0af6c76b4db84c373929beed403313a68cd32f2949c9b6",
+        "dataset/check.json": "fe6e084895a04ccb6e6caebe4db88823e36499232a9e96432f651b8bd6286f0d"
+      }
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
