@@ -168,6 +168,22 @@ def test_future_start_counter_is_not_an_at_fit_projection_feature(periods, tmp_p
     assert subject.matching_training_slices(periods, later_counter, ORIGIN)["status"] == "PASS"
 
 
+def test_projection_sorts_use_distinct_temporary_directories(periods, tmp_path, monkeypatch):
+    other = tmp_path / "copy.parquet"
+    other.write_bytes(periods.read_bytes())
+    original = subject.duckdb.connect
+    settings = []
+    def connect(*args, **kwargs):
+        settings.append(dict(kwargs["config"]))
+        return original(*args, **kwargs)
+    monkeypatch.setattr(subject.duckdb, "connect", connect)
+    assert subject.matching_training_slices(periods, other, ORIGIN)["status"] == "PASS"
+    assert len(settings) == 2
+    assert settings[0]["temp_directory"] != settings[1]["temp_directory"]
+    assert all(x["memory_limit"] == "512MB" and x["threads"] == 2 for x in settings)
+    assert all(not Path(x["temp_directory"]).exists() for x in settings)
+
+
 def test_legacy_fit_inputs_need_an_acceptance_check_separate_from_slice_equality(tmp_path):
     rows = public_periods()
     rows[0]["accepted_at"] = datetime(2024, 3, 7)  # Start precedes fit cut but acceptance is later.

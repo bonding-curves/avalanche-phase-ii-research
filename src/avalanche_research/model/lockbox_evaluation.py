@@ -12,6 +12,7 @@ import math
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import duckdb
 import numpy as np
@@ -109,30 +110,36 @@ def matching_training_slices(training: Path, scoring: Path, fit_origin: date) ->
                "THEN supply_before_navax::VARCHAR ELSE NULL END")
     sql = (f"SELECT {columns} FROM read_parquet(?) WHERE accepted_at <= make_timestamp(?) "
            "ORDER BY role, transaction_hash")
-    # Stream both sorted projections: the full pin includes millions of delegation schedules.
-    digest, count, previous = hashlib.sha256(), 0, None
-    with duckdb.connect() as left, duckdb.connect() as right:
-        for connection in (left, right):
-            connection.execute("SET memory_limit='512MB'")
-            connection.execute("SET threads=2")
-        left.execute(sql, [str(training), cutoff])
-        right.execute(sql, [str(scoring), cutoff])
-        while True:
-            a, b = left.fetchmany(4096), right.fetchmany(4096)
-            if a != b:
-                raise ValueError("pre-fit public schedule slices differ between training and scoring runs")
-            if not a:
-                break
-            for row in a:
-                key = row[0], row[1]
-                if row[1] is None or key == previous:
-                    raise ValueError("training projection requires unique non-null role/transaction identities")
-                previous = key
-            count += len(a)
-            digest.update(canonical_bytes(a))
+    # Each backend has an isolated spill directory, and projections run sequentially.
+    # Do not hold two large independent sorts in DuckDB's shared default directory.
+    def projection(path):
+        digest, count, previous = hashlib.sha256(), 0, None
+        with TemporaryDirectory(prefix="validator-slice-") as temporary, duckdb.connect(
+            config={"temp_directory": temporary, "memory_limit": "512MB", "threads": 2},
+        ) as connection:
+            connection.execute(sql, [str(path), cutoff])
+            while True:
+                rows = connection.fetchmany(4096)
+                if not rows:
+                    break
+                for row in rows:
+                    key = row[0], row[1]
+                    if row[1] is None or key == previous:
+                        raise ValueError("training projection requires unique non-null role/transaction identities")
+                    previous = key
+                count += len(rows)
+                digest.update(canonical_bytes(rows))
+        return count, digest.hexdigest()
+
+    count, digest = projection(training)
+    identical_file = training.samefile(scoring)
+    if not identical_file and projection(scoring) != (count, digest):
+        raise ValueError("pre-fit public schedule slices differ between training and scoring runs")
     return {"status": "PASS", "rows": count, "columns": list(PROJECTION), "timestamp_unit": "UTC microseconds",
-            "accepted_through_us": cutoff, "sha256": digest.hexdigest(),
+            "accepted_through_us": cutoff, "sha256": digest,
+            "comparison": "same verified file and queried projection" if identical_file else "two independently queried projection digests",
             "digest_convention": "canonical JSON chunks of4096 sorted rows; native integer text, UTC microseconds"}
+
 
 
 def validate_training_information(path: Path, fit_origin: date) -> dict:
