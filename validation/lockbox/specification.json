@@ -121,5 +121,7 @@
     "scheduled_fields": "role,transaction,node,acceptance,start,end,stake",
     "supply_counter": "include only when the period started by fit cut; exclude future-start counters",
     "identity": "unique(role,transaction_hash), compared in sorted4096-row streams"
-  }
+  },
+  "frozen_fit": null,
+  "frozen_fit_binding_status": "Unadopted. Protected scoring and pre-marker numerical preflight require adopted origin, exact fit/draw SHA256 and artifact-manifest SHA256."
 }

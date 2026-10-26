@@ -23,5 +23,7 @@
     "tag": "model-v0.8.0",
     "commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc"
   },
-  "purpose": "development configuration only; final witnessed registration not delivered"
+  "purpose": "development configuration only; final witnessed registration not delivered",
+  "fit_preflight_entry_point": "avalanche_research.model.lockbox_evaluation:preflight_fit",
+  "fit_preflight_status": "requires adopted frozen numerical binding; no protected labels, token or marker"
 }

@@ -199,6 +199,60 @@ def at_origin(prepared: Prepared, state: dict, origin: date, fit_origin: date) -
                                      "origin": origin, "stake_fit_origin": fit_origin})
 
 
+def configured_fit_binding(specification: dict, fit_origin: date, *, required: bool) -> dict | None:
+    """Validate the declared numerical identity before any input is opened.
+
+    A Granite binding does not apply to an earlier development rehearsal cut.
+    Protected scoring and the pre-marker preflight require an adopted matching binding.
+    """
+    binding = specification.get("frozen_fit")
+    if binding is None:
+        if required:
+            raise ValueError("an adopted frozen fit binding is required")
+        return None
+    if (not isinstance(binding, dict) or not isinstance(binding.get("status"), str)
+            or binding["status"] not in {"candidate", "adopted"}):
+        raise ValueError("invalid frozen fit binding status")
+    for key in ("fit_sha256", "draws_sha256", "artifact_manifest_sha256"):
+        value = binding.get(key)
+        if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+            raise ValueError(f"frozen fit binding needs a SHA-256 for {key}")
+    try:
+        origin = date.fromisoformat(binding["fit_origin"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("frozen fit binding needs an ISO fit origin") from error
+    if origin >= LOCKBOX_FIRST_DAY:
+        raise ValueError("frozen fit binding origin must precede the protected daily boundary")
+    if origin != fit_origin:
+        if required:
+            raise ValueError("frozen fit binding origin differs from the requested fit cut")
+        return None
+    if required and binding["status"] != "adopted":
+        raise ValueError("an adopted frozen fit binding is required")
+    return binding
+
+
+def verify_frozen_fit(prepared: Prepared, fit_origin: date, binding: dict | None) -> dict:
+    """Check exact reconstructed fit/draw bytes before any realized or later-state read."""
+    if prepared.inputs["origin"] != fit_origin:
+        raise ValueError("prepared fit origin differs from the numerical binding")
+    if prepared.draws is None or len(prepared.draws) != 200:
+        raise ValueError("frozen fit verification requires exactly 200 parameter draws")
+    if not np.isfinite(prepared.draws.select_dtypes("number").to_numpy()).all():
+        raise ValueError("frozen parameter draws must be finite")
+    fingerprint = frozen_fingerprint(prepared)
+    draws_sha = hashlib.sha256(canonical_bytes(_json(prepared.draws.to_dict("records")))).hexdigest()
+    if binding is not None:
+        if fingerprint != binding["fit_sha256"]:
+            raise ValueError("reconstructed fit fingerprint differs from the frozen fit binding")
+        if draws_sha != binding["draws_sha256"]:
+            raise ValueError("reconstructed parameter draws differ from the frozen fit binding")
+    return {"status": "UNBOUND_DEVELOPMENT_ONLY" if binding is None else "MATCH_" + binding["status"].upper(),
+            "fit_origin": fit_origin.isoformat(), "fit_sha256": fingerprint, "draws_sha256": draws_sha,
+            "artifact_manifest_sha256": None if binding is None else binding["artifact_manifest_sha256"],
+            "artifact_manifest_check": "declared hash; artifact bytes are verified separately during package review"}
+
+
 def cell_scores(draws, actual: float, series: pd.Series, origin: date, horizon: int) -> list[dict]:
     """Score one admitted case against every declared point and dressed benchmark."""
     scale, scale_reason = None, None
@@ -441,6 +495,9 @@ def evaluate(prepared: Prepared, *, periods: Path, monetary: Path, training: Pat
     fit_origin, event_end = request_window(fit_until, score_until, token)
     if token is not None and specification.get("status") != "frozen":
         raise ValueError("protected scoring requires a frozen scientific specification")
+    if token is not None:
+        binding = configured_fit_binding(specification, fit_origin, required=True)
+        verify_frozen_fit(prepared, fit_origin, binding)
     if prepared.inputs["origin"] != fit_origin:
         raise ValueError("prepared fit origin differs from the declared exclusive fit cut")
     fingerprint = frozen_fingerprint(prepared)
@@ -560,17 +617,23 @@ def report(result: dict) -> str:
     return "\n".join(lines)
 
 
-def score(token: Unseal | None, *, fit_until: date, score_until: date) -> dict:
-    """Single manifest entrypoint. Reconstruct the released fit once, then freeze it across origins."""
-    fit_origin, _ = request_window(fit_until, score_until, token)
+def evaluation_specification(*, protected: bool) -> dict:
+    """Read the declared design without opening data or constructing a fit."""
     specification = json.loads((ROOT / "validation/lockbox/specification.json").read_text())
     if specification.get("variant") != "v0.8.0":
         raise ValueError("this evaluation prepares released v0.8.0 only")
-    if token is not None and specification.get("status") != "frozen":
+    if protected and specification.get("status") != "frozen":
         raise ValueError("protected scoring requires a frozen scientific specification")
     if (specification["batch_seeds"] != list(range(10)) or specification["runs_per_batch"] != 20
             or specification["draw_seed"] != 0 or specification["horizons_days"] != [30, 90]):
         raise ValueError("entrypoint requires the released 10x20 keyed-stream design and declared 30/90-day horizons")
+    return specification
+
+
+def prepare_fixed_fit(specification: dict, fit_origin: date) -> tuple[Prepared, dict]:
+    """Shared pre-boundary-only preparation for scoring and the pre-marker preflight."""
+    if type(fit_origin) is not date or fit_origin >= LOCKBOX_FIRST_DAY:
+        raise ValueError("fit preparation requires a pre-boundary calendar origin")
     training = verified_inputs(ROOT, specification["training_pin"])
     scoring = verified_inputs(ROOT, specification["scoring_pin"])
     original_pin_hashes = {name: _hash_file(ROOT / specification[name]) for name in ("training_pin", "scoring_pin")}
@@ -580,14 +643,54 @@ def score(token: Unseal | None, *, fit_until: date, score_until: date) -> dict:
     pin = json.loads((ROOT / specification["training_pin"]).read_text())
     source = next(x["run"] for x in pin["runs"] if x["dataset_id"] == "derived.staking-periods")
     prepared = VARIANTS["v0.8.0"].prepare(str(training_periods), fit_origin, source, draws=200, draw_seed=0)
-    result = evaluate(prepared, periods=periods, monetary=scoring["derived.avax-monetary-daily"], training=training_periods,
-                      fit_until=fit_until, score_until=score_until, specification=specification, token=token)
-    result["training_slice_equality"] = slices
-    result["training_information"] = information
-    for name, expected in original_pin_hashes.items():
+    return prepared, {"training": training, "scoring": scoring, "information": information,
+                      "slices": slices, "pin_hashes": original_pin_hashes, "training_pin": pin}
+
+
+def verify_input_pins_unchanged(specification: dict, hashes: dict) -> None:
+    for name, expected in hashes.items():
         if _hash_file(ROOT / specification[name]) != expected:
             raise ValueError("input pin changed during the evaluation")
         verified_inputs(ROOT, specification[name])
+
+
+def preflight_fit(*, fit_until: date) -> dict:
+    """Verify an adopted fit on the runner before its one-shot marker, without a token or labels.
+
+    This reconstructs the declared pre-boundary fit once. It performs no simulation and does
+    not authorize protected scoring. Missing/unadopted bindings refuse before opening inputs.
+    """
+    if type(fit_until) is not date or fit_until > LOCKBOX_FIRST_DAY:
+        raise ValueError("fit preflight requires an exclusive pre-boundary UTC date cut")
+    fit_origin = fit_until - timedelta(days=1)
+    specification = evaluation_specification(protected=True)
+    binding = configured_fit_binding(specification, fit_origin, required=True)
+    prepared, context = prepare_fixed_fit(specification, fit_origin)
+    receipt = verify_frozen_fit(prepared, fit_origin, binding)
+    verify_input_pins_unchanged(specification, context["pin_hashes"])
+    return {"schema": "validator-fit-preflight/v1", "fit_until_exclusive": fit_until.isoformat(),
+            "fit_binding": receipt, "training_information": context["information"],
+            "training_slice_equality": context["slices"], "input_pin_hashes": context["pin_hashes"],
+            "fitting_operation": True, "protected_labels_read": False, "forecast_executed": False,
+            "entrypoint_sha256": _hash_file(Path(__file__))}
+
+
+def score(token: Unseal | None, *, fit_until: date, score_until: date) -> dict:
+    """Single manifest entrypoint. Verify the frozen fit before state or realized-label access."""
+    fit_origin, _ = request_window(fit_until, score_until, token)
+    specification = evaluation_specification(protected=token is not None)
+    binding = configured_fit_binding(specification, fit_origin, required=token is not None)
+    prepared, context = prepare_fixed_fit(specification, fit_origin)
+    fit_check = verify_frozen_fit(prepared, fit_origin, binding)
+    training_periods = context["training"]["derived.staking-periods"]
+    periods = context["scoring"]["derived.staking-periods"]
+    scoring, pin, original_pin_hashes = context["scoring"], context["training_pin"], context["pin_hashes"]
+    result = evaluate(prepared, periods=periods, monetary=scoring["derived.avax-monetary-daily"], training=training_periods,
+                      fit_until=fit_until, score_until=score_until, specification=specification, token=token)
+    result["fit_binding"] = fit_check
+    result["training_slice_equality"] = context["slices"]
+    result["training_information"] = context["information"]
+    verify_input_pins_unchanged(specification, original_pin_hashes)
     result["input_pins"] = {name: {"path": specification[name], "sha256": original_pin_hashes[name]}
                             for name in ("training_pin", "scoring_pin")}
     result["input_runs"] = {"training": pin["runs"],

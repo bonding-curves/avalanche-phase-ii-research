@@ -374,3 +374,133 @@ def test_pinned_metadata_and_bytes_must_both_match(tmp_path, periods):
     (folder / "p.parquet").write_bytes(body + b"changed")
     with pytest.raises(ValueError, match="pinned bytes"):
         subject.verified_inputs(tmp_path, "data/pins/input.json")
+
+
+@pytest.fixture
+def binding_prepared():
+    model = model_on()
+    settings = {k: v for k, v in model.param.values().items() if k not in ("name", "seed", "runs", "timesteps", "draws")}
+    return Prepared(settings, pd.DataFrame({"renewal_shift": np.zeros(200)}))
+
+
+def binding_for(prepared, status="adopted"):
+    receipt = subject.verify_frozen_fit(prepared, ORIGIN, None)
+    return {"status": status, "fit_origin": ORIGIN.isoformat(), "fit_sha256": receipt["fit_sha256"],
+            "draws_sha256": receipt["draws_sha256"], "artifact_manifest_sha256": "a" * 64}
+
+
+def test_fit_binding_verifies_exact_fit_and_draws(binding_prepared):
+    binding = binding_for(binding_prepared)
+    assert subject.verify_frozen_fit(binding_prepared, ORIGIN, binding)["status"] == "MATCH_ADOPTED"
+    binding_prepared.draws.loc[0, "renewal_shift"] = 0.01
+    with pytest.raises(ValueError, match="fit fingerprint"):
+        subject.verify_frozen_fit(binding_prepared, ORIGIN, binding)
+
+
+def test_draw_artifact_hash_is_checked_separately(binding_prepared):
+    binding = {**binding_for(binding_prepared), "draws_sha256": "0" * 64}
+    with pytest.raises(ValueError, match="parameter draws"):
+        subject.verify_frozen_fit(binding_prepared, ORIGIN, binding)
+
+
+@pytest.mark.parametrize("binding", [None, {"status": "candidate"}, {"status": "adopted", "fit_sha256": "invalid"}])
+def test_required_fit_binding_cannot_use_missing_or_invalid_identity(binding):
+    with pytest.raises(ValueError, match="binding|SHA-256"):
+        subject.configured_fit_binding({"frozen_fit": binding}, ORIGIN, required=True)
+
+
+def test_granite_binding_does_not_apply_to_an_earlier_development_rehearsal(binding_prepared):
+    binding = {**binding_for(binding_prepared), "fit_origin": "2025-11-18"}
+    assert subject.configured_fit_binding({"frozen_fit": binding}, ORIGIN, required=False) is None
+    with pytest.raises(ValueError, match="origin differs"):
+        subject.configured_fit_binding({"frozen_fit": binding}, ORIGIN, required=True)
+
+
+def test_candidate_binding_is_never_an_adopted_release(binding_prepared):
+    binding = binding_for(binding_prepared, status="candidate")
+    assert subject.configured_fit_binding({"frozen_fit": binding}, ORIGIN, required=False) == binding
+    with pytest.raises(ValueError, match="adopted"):
+        subject.configured_fit_binding({"frozen_fit": binding}, ORIGIN, required=True)
+
+
+def test_score_refuses_fit_mismatch_before_evaluate(binding_prepared, tmp_path, monkeypatch):
+    binding = {**binding_for(binding_prepared), "fit_sha256": "0" * 64}
+    monkeypatch.setattr(subject, "evaluation_specification", lambda **_: {"frozen_fit": binding})
+    context = {"training": {"derived.staking-periods": Path("periods")},
+               "scoring": {"derived.staking-periods": Path("periods"), "derived.avax-monetary-daily": Path("labels")},
+               "training_pin": {"runs": []}, "pin_hashes": {}}
+    monkeypatch.setattr(subject, "prepare_fixed_fit", lambda *_: (binding_prepared, context))
+    def forbidden(*args, **kwargs):
+        pytest.fail("evaluate must not open any labels or later state after a fit mismatch")
+    monkeypatch.setattr(subject, "evaluate", forbidden)
+    with pytest.raises(ValueError, match="fit fingerprint"):
+        subject.score(None, fit_until=ORIGIN + timedelta(days=1), score_until=ORIGIN + timedelta(days=40))
+
+
+def test_protected_evaluate_requires_binding_before_label_access(binding_prepared, monkeypatch):
+    # Isolate the numerical-binding layer. Actual token refusal has separate nonstubbed tests.
+    monkeypatch.setattr(subject, "request_window", lambda *_: (ORIGIN, datetime(2024, 5, 1, tzinfo=UTC)))
+    monkeypatch.setattr(subject, "realized_daily", lambda *_: pytest.fail("unbound protected evaluation must not read labels"))
+    with pytest.raises(ValueError, match="adopted frozen fit"):
+        subject.evaluate(binding_prepared, periods=Path("/absent"), monetary=Path("/absent"), training=Path("/absent"),
+                         fit_until=ORIGIN + timedelta(days=1), score_until=date(2024, 5, 1),
+                         specification={"status": "frozen"}, token=object())
+
+
+def test_nonfinite_parameter_draws_are_refused(binding_prepared):
+    binding_prepared.draws.loc[0, "renewal_shift"] = np.nan
+    with pytest.raises(ValueError, match="finite"):
+        subject.verify_frozen_fit(binding_prepared, ORIGIN, None)
+
+
+def test_preflight_missing_binding_refuses_before_data_or_fit(tmp_path, monkeypatch):
+    monkeypatch.setattr(subject, "evaluation_specification", lambda **_: {"status": "frozen"})
+    monkeypatch.setattr(subject, "prepare_fixed_fit", lambda *_: pytest.fail("missing binding must fail before data or fit"))
+    with pytest.raises(ValueError, match="adopted frozen fit"):
+        subject.preflight_fit(fit_until=date(2025, 11, 19))
+
+
+@pytest.mark.parametrize("cut", [date(2025, 11, 20), datetime(2025, 11, 19, tzinfo=UTC)])
+def test_preflight_rejects_protected_or_partial_fit_cut_before_config(cut, monkeypatch):
+    monkeypatch.setattr(subject, "ROOT", Path("/config-must-not-be-opened"))
+    with pytest.raises(ValueError, match="exclusive pre-boundary"):
+        subject.preflight_fit(fit_until=cut)
+
+
+def test_preflight_uses_shared_pinned_preparation_without_reading_labels(binding_prepared, periods, tmp_path, monkeypatch):
+    root = tmp_path
+    runs = []
+    for dataset, run_name, body in [("derived.staking-periods", "periods", periods.read_bytes()),
+                               ("derived.avax-monetary-daily", "labels", b"not a parquet: must never be queried")]:
+        folder = root / "data/runs" / run_name / "dataset"
+        folder.mkdir(parents=True)
+        (folder / "p.parquet").write_bytes(body)
+        (folder / "build.json").write_text(json.dumps({"dataset_id": dataset, "source_capture_id": "fixture"}))
+        (folder / "check.json").write_text('{"status":"pass"}')
+        runs.append({"dataset_id": dataset, "run": run_name, "parquet": "p.parquet", "capture_id": "fixture",
+                     "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest()})
+    pin = root / "data/pins/input.json"
+    pin.parent.mkdir(parents=True)
+    pin.write_text(json.dumps({"schema_version": "avalanche-pins/v1", "runs": runs}))
+    specification = {"variant": "v0.8.0", "status": "frozen", "batch_seeds": list(range(10)),
+                     "runs_per_batch": 20, "draw_seed": 0, "horizons_days": [30, 90],
+                     "training_pin": "data/pins/input.json", "scoring_pin": "data/pins/input.json",
+                     "frozen_fit": binding_for(binding_prepared)}
+    config = root / "validation/lockbox/specification.json"
+    config.parent.mkdir(parents=True)
+    config.write_text(json.dumps(specification))
+    calls = []
+    class FixtureVariant:
+        def prepare(self, path, origin, source, *, draws, draw_seed):
+            calls.append((origin, source, draws, draw_seed))
+            return binding_prepared
+    monkeypatch.setattr(subject, "ROOT", root)
+    monkeypatch.setattr(subject, "VARIANTS", {"v0.8.0": FixtureVariant()})
+    monkeypatch.setattr(subject, "evaluate", lambda **_: pytest.fail("preflight must not evaluate"))
+    monkeypatch.setattr(subject, "realized_daily", lambda *_: pytest.fail("preflight must not query realized labels"))
+    result = subject.preflight_fit(fit_until=ORIGIN + timedelta(days=1))
+    assert calls == [(ORIGIN, "periods", 200, 0)]
+    assert result["fit_binding"]["status"] == "MATCH_ADOPTED"
+    assert result["protected_labels_read"] is result["forecast_executed"] is False
+    assert result["training_slice_equality"]["status"] == "PASS"
+    json.dumps(result, allow_nan=False)
