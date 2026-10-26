@@ -32,6 +32,22 @@ def score(token, fit_until, score_until):
     return {"verdict": "pass", "mase_90": 0.91}
 '''
 
+PREFLIGHT = '''
+import hashlib
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+EVENTS = []
+def preflight(*, fit_until):
+    EVENTS.append("preflight")
+    assert fit_until.isoformat() == "2025-11-19"
+    return {"schema": "validator-fit-preflight/v1", "fit_until_exclusive": fit_until.isoformat(),
+            "fit_binding": {"status": "MATCH_ADOPTED", "fit_origin": "2025-11-18",
+                            "fit_sha256": "1" * 64, "draws_sha256": "2" * 64,
+                            "artifact_manifest_sha256": "3" * 64},
+            "fitting_operation": True, "protected_labels_read": False, "forecast_executed": False,
+            "entrypoint_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+'''
+
 
 def git(repo: Path, *args: str) -> None:
     subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
@@ -49,11 +65,13 @@ def setup(tmp_path):
     folder.mkdir(parents=True)
     (folder / "manifest.json").write_text(json.dumps({
         "entry_point": "lockbox_entry:score", "author": "modeling-lead", "uv_lock_sha256": sha256(b"lock\n"),
+        "fit_preflight_entry_point": "lockbox_preflight:preflight",
         "pins": ["data/pins/p7-systems-learning-weeks.json"],
         "rehearsal": {"fit_until": "2024-12-16", "score_until": "2025-11-18"}, "foundation_answer": {"default_used": True}}))
     (folder / "template.md").write_text("Verdict: {verdict}. MASE at 90 days: {mase_90}.\n")
     (repo / "src").mkdir()
     (repo / "src" / "lockbox_entry.py").write_text(ENTRY + f"REPO = {str(repo)!r}\n")
+    (repo / "src" / "lockbox_preflight.py").write_text(PREFLIGHT)
     (repo / "data" / "pins").mkdir(parents=True)
     shutil.copy(PIN, repo / "data" / "pins" / PIN.name)
     sys.modules.pop("lockbox_entry", None)
@@ -148,6 +166,8 @@ def test_two_runners_racing_with_the_same_second_score_once(setup, monkeypatch):
 
     def counting(spec, path):
         function = real_entry(spec, path)
+        if spec["entry_point"] != "lockbox_entry:score":
+            return function
         return lambda *a, **k: scored.append(path) or function(*a, **k)
 
     monkeypatch.setattr(unseal, "entry_point", counting)
@@ -316,3 +336,185 @@ def test_publication_counts_only_when_the_remote_holds_the_committed_receipt(set
     receipt = unseal.unseal(repo, args)
     stored = json.loads((repo / unseal.FOLDER / "receipt.json").read_text())
     assert not receipt["published"] and "remote receipt branch" in stored["publish_error"] and "must not run again" in stored["recovery"]
+
+
+@pytest.fixture
+def pre_marker(tmp_path, monkeypatch):
+    """Synthetic callable and spies only: no Git remote, model, token or marker."""
+    repo = tmp_path / "candidate"
+    source = repo / "src" / "synthetic_fit.py"
+    source.parent.mkdir(parents=True)
+    source.write_text(PREFLIGHT)
+    folder = repo / unseal.FOLDER
+    folder.mkdir(parents=True)
+    (folder / "manifest.json").write_text(json.dumps({
+        "entry_point": "synthetic_score:score", "fit_preflight_entry_point": "synthetic_fit:preflight"}))
+    args = unseal.argparse.Namespace(commit="a" * 40, bundle_hash=unseal.bundle_hash(folder), runner="synthetic-runner")
+    events = []
+    original_entry, original_publish = unseal.entry_point, unseal.publish
+
+    def reads_only(path, *command):
+        if command == ("rev-parse", "HEAD"):
+            return args.commit
+        if command == ("status", "--porcelain"):
+            return ""
+        raise RuntimeError("synthetic publication unavailable")
+
+    def load(spec, path):
+        if spec["entry_point"] == "synthetic_score:score":
+            events.append("entry_point")
+            return lambda *a, **k: events.append("score") or {"verdict": "synthetic"}
+        function = original_entry(spec, path)
+        function.__globals__["EVENTS"] = events
+        return function
+
+    monkeypatch.setattr(unseal, "git", reads_only)
+    monkeypatch.setattr(unseal, "guards", lambda *a: events.append("guards") or {f"G{n}": "synthetic" for n in range(1, 9)})
+    monkeypatch.setattr(unseal, "acquire", lambda *a: events.append("acquire") or "synthetic-marker")
+    monkeypatch.setattr(unseal.lockbox, "issue", lambda *a: events.append("issue") or object())
+    monkeypatch.setattr(unseal, "entry_point", load)
+    monkeypatch.setattr(unseal, "publish", lambda repo, args, receipt, results: events.append("publish") or {**receipt, "published": True})
+    return repo, args, events, source, original_publish
+
+
+def assert_no_marker(events):
+    assert not set(events) & {"acquire", "issue", "entry_point", "score", "publish"}
+
+
+def test_pre_marker_success_order_and_bound_proof(pre_marker):
+    repo, args, events, source, _ = pre_marker
+    receipt = unseal.unseal(repo, args)
+    assert events == ["guards", "preflight", "acquire", "issue", "entry_point", "score", "publish"]
+    assert receipt["fit_preflight"]["fit_binding"]["status"] == "MATCH_ADOPTED"
+    assert receipt["fit_preflight"]["entrypoint_sha256"] == sha256(source.read_bytes())
+    assert set(receipt["guards"]) == {f"G{n}" for n in range(1, 9)}
+
+
+@pytest.mark.parametrize("declaration", [None, "", "json:loads", "../outside:preflight"])
+def test_pre_marker_missing_or_invalid_callable_never_acquires(pre_marker, declaration):
+    repo, args, events, _, _ = pre_marker
+    path = repo / unseal.FOLDER / "manifest.json"
+    spec = json.loads(path.read_text())
+    spec["fit_preflight_entry_point"] = declaration
+    path.write_text(json.dumps(spec))
+    with pytest.raises(unseal.GuardFailed):
+        unseal.unseal(repo, args)
+    assert_no_marker(events)
+
+
+def test_pre_marker_fit_failure_never_acquires(pre_marker):
+    repo, args, events, source, _ = pre_marker
+    source.write_text(PREFLIGHT.replace('    EVENTS.append("preflight")', '    raise ValueError("synthetic fit mismatch")'))
+    with pytest.raises(unseal.GuardFailed, match="synthetic fit mismatch"):
+        unseal.unseal(repo, args)
+    assert_no_marker(events)
+
+
+@pytest.mark.parametrize("mutation", [
+    'result["schema"] = "wrong"',
+    'result["fit_until_exclusive"] = "2025-11-18"',
+    'result["fit_binding"]["status"] = "MATCH_CANDIDATE"',
+    'result["fit_binding"]["fit_origin"] = "2025-11-19"',
+    'result["fit_binding"]["fit_sha256"] = "bad"',
+    'result["fit_binding"]["draws_sha256"] = "bad"',
+    'result["fit_binding"]["artifact_manifest_sha256"] = "bad"',
+    'result["fitting_operation"] = False',
+    'result["protected_labels_read"] = True',
+    'result["forecast_executed"] = True',
+    'result["entrypoint_sha256"] = "0" * 64',
+    'result["not_serializable"] = object()',
+    'result["extra_diagnostic"] = float("nan")',
+    'result["extra_diagnostic"] = float("inf")',
+    'result["extra_diagnostic"] = float("-inf")',
+])
+def test_pre_marker_invalid_proof_never_acquires(pre_marker, mutation):
+    repo, args, events, source, _ = pre_marker
+    source.write_text(PREFLIGHT.replace("    return {", "    result = {") + "\n    " + mutation + "\n    return result\n")
+    with pytest.raises(unseal.GuardFailed):
+        unseal.unseal(repo, args)
+    assert_no_marker(events)
+
+
+def test_pre_marker_wrong_root_refuses_before_callable(pre_marker):
+    repo, args, events, source, _ = pre_marker
+    source.write_text(PREFLIGHT.replace('EVENTS = []', 'ROOT = ROOT.parent\nEVENTS = []'))
+    with pytest.raises(unseal.GuardFailed, match="wrong ROOT"):
+        unseal.unseal(repo, args)
+    assert events == ["guards"]
+
+
+def test_pre_marker_symlink_escape_refuses_before_import(pre_marker, tmp_path):
+    repo, args, events, source, _ = pre_marker
+    outside = tmp_path / "outside.py"
+    outside.write_text('raise AssertionError("outside module imported")')
+    source.unlink()
+    source.symlink_to(outside)
+    with pytest.raises(unseal.GuardFailed, match="outside"):
+        unseal.unseal(repo, args)
+    assert_no_marker(events)
+
+
+def test_pre_marker_reexported_callable_has_wrong_source(pre_marker, monkeypatch, tmp_path):
+    repo, args, events, source, _ = pre_marker
+    foreign = tmp_path / "foreign"
+    foreign.mkdir()
+    (foreign / "synthetic_foreign_fit.py").write_text(PREFLIGHT)
+    monkeypatch.syspath_prepend(str(foreign))
+    source.write_text("from synthetic_foreign_fit import preflight\n")
+    with pytest.raises(unseal.GuardFailed, match="wrong source"):
+        unseal.unseal(repo, args)
+    assert events == ["guards"]
+
+
+@pytest.mark.parametrize("change", ["head", "dirty", "bundle", "source"])
+def test_pre_marker_drift_refuses_before_acquire(pre_marker, monkeypatch, change):
+    repo, args, events, source, _ = pre_marker
+    if change == "source":
+        extra = 'Path(__file__).write_text(Path(__file__).read_text() + "# drift\\n")'
+        source.write_text(PREFLIGHT.replace("    return {", "    result = {") + "\n    " + extra + "\n    return result\n")
+    elif change == "bundle":
+        extra = '(ROOT / "validation/lockbox/drift.txt").write_text("drift")'
+        source.write_text(PREFLIGHT.replace("    return {", "    result = {") + "\n    " + extra + "\n    return result\n")
+    else:
+        original = unseal.git
+
+        def drift(path, *command):
+            if "preflight" in events:
+                if change == "head" and command == ("rev-parse", "HEAD"):
+                    return "b" * 40
+                if change == "dirty" and command == ("status", "--porcelain"):
+                    return " M tracked"
+            return original(path, *command)
+
+        monkeypatch.setattr(unseal, "git", drift)
+    with pytest.raises(unseal.GuardFailed):
+        unseal.unseal(repo, args)
+    assert_no_marker(events)
+
+
+def test_pre_marker_score_failure_still_reaches_publication(pre_marker, monkeypatch):
+    repo, args, events, _, _ = pre_marker
+    original = unseal.entry_point
+
+    def load(spec, path):
+        if spec["entry_point"] == "synthetic_score:score":
+            def fail(*args, **kwargs):
+                events.append("score")
+                raise RuntimeError("synthetic scorer failed")
+            return fail
+        return original(spec, path)
+
+    monkeypatch.setattr(unseal, "entry_point", load)
+    receipt = unseal.unseal(repo, args)
+    assert receipt["published"] and "synthetic scorer failed" in receipt["results"]["error"]
+    assert events.count("acquire") == events.count("issue") == events.count("publish") == 1
+
+
+def test_pre_marker_publication_failure_preserves_recovery(pre_marker, monkeypatch):
+    repo, args, events, _, original_publish = pre_marker
+    monkeypatch.setattr(unseal, "publish", original_publish)
+    receipt = unseal.unseal(repo, args)
+    stored = json.loads((repo / unseal.FOLDER / "receipt.json").read_text())
+    assert not receipt["published"] and "must not run again" in stored["recovery"]
+    assert "synthetic publication unavailable" in stored["publish_error"]
+    assert events.count("acquire") == events.count("issue") == events.count("score") == 1

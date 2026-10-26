@@ -1,4 +1,4 @@
-"""The one code path that scores the lockbox: guards, then the lock, then the score, then the receipt, then output.
+"""The one lockbox scoring path: guards, fit preflight, lock, score, receipt, output.
 
     python scripts/unseal_lockbox.py rehearse --commit C
     python scripts/unseal_lockbox.py unseal --commit C --bundle-hash H --runner NAME --witness PATH --rehearsal PATH \\
@@ -10,7 +10,8 @@ boundary and window, and the record of the Foundation's answer on what "better" 
 ``function(token, fit_until=..., score_until=...)`` and returns a JSON-serialisable mapping of result tables.
 
 ``rehearse`` fits to the rehearsal boundary and scores to its window end on development data only, with no token, and
-writes a rehearsal record. ``unseal`` checks guards G1 to G8, then pushes the annotated tag ``lockbox-unsealed`` before it
+writes a rehearsal record. ``unseal`` checks guards G1 to G8 and the declared adopted-fit preflight, then pushes the
+annotated tag ``lockbox-unsealed`` before it
 reads one lockbox row. The push is the lock: a remote that already has the tag refuses it, and a crash after it still
 counts as the unseal. Then it builds the token, calls the entry point, writes the receipt and the filled report,
 commits them to branch ``lockbox/receipt`` and pushes, and only then prints anything.
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import inspect
 import json
 import os
 import re
@@ -28,7 +30,7 @@ import socket
 import subprocess
 import sys
 from collections import defaultdict
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from avalanche_research.core import lockbox
@@ -109,11 +111,16 @@ def guards(repo: Path, args: argparse.Namespace) -> dict[str, str]:
 
 def entry_point(spec: dict, repo: Path):
     """The pre-registered callable, loaded from a file inside the checked repository, never from elsewhere on the path."""
-    module, _, function = spec["entry_point"].partition(":")
+    declaration = spec["entry_point"]
+    if not isinstance(declaration, str) or not re.fullmatch(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*:[A-Za-z_]\w*", declaration):
+        raise GuardFailed("entry point must name a repository-local module:function")
+    module, _, function = declaration.partition(":")
     relative = Path(*module.split("."))
     for base in (repo / "src", repo):
         for candidate in (base / relative.with_suffix(".py"), base / relative / "__init__.py"):
             if candidate.is_file():
+                if not candidate.resolve().is_relative_to(repo.resolve()):
+                    raise GuardFailed(f"entry point {declaration} resolves outside {repo}")
                 loaded = importlib.util.spec_from_file_location(module, candidate)
                 instance = importlib.util.module_from_spec(loaded)
                 sys.modules[module] = instance
@@ -124,6 +131,58 @@ def entry_point(spec: dict, repo: Path):
                     sys.dont_write_bytecode = writing
                 return getattr(instance, function)
     raise GuardFailed(f"entry point {spec['entry_point']} is not a file inside {repo}")
+
+
+def fit_preflight(repo: Path, args: argparse.Namespace) -> dict:
+    """Require the declared adopted-fit check before acquiring the one-shot marker.
+
+    The callable reconstructs a fit. Only an authorized runner executes it;
+    this hook neither adopts a fit nor replaces the score-side verification.
+    """
+    declaration = manifest(repo).get("fit_preflight_entry_point")
+    if not declaration:
+        raise GuardFailed("fit preflight entry point is missing")
+    try:
+        head, bundle = git(repo, "rev-parse", "HEAD"), bundle_hash(repo / FOLDER)
+        function = entry_point({"entry_point": declaration}, repo)
+        source = Path(inspect.getsourcefile(function)).resolve()
+        module_name = declaration.partition(":")[0]
+        if (function.__module__ != module_name or not source.is_relative_to(repo.resolve())
+                or source != Path(function.__globals__["__file__"]).resolve()):
+            raise GuardFailed("fit preflight callable has the wrong source")
+        root = function.__globals__.get("ROOT")
+        if not isinstance(root, (str, Path)) or Path(root).resolve() != repo.resolve():
+            raise GuardFailed("fit preflight callable has the wrong ROOT")
+        before = sha256(source.read_bytes())
+        writing, sys.dont_write_bytecode = sys.dont_write_bytecode, True
+        try:
+            result = function(fit_until=LOCKBOX_FIRST_DAY)
+        finally:
+            sys.dont_write_bytecode = writing
+        if not isinstance(result, dict):
+            raise GuardFailed("fit preflight did not return a receipt")
+        binding = result.get("fit_binding", {})
+        if (result.get("schema") != "validator-fit-preflight/v1"
+                or result.get("fit_until_exclusive") != LOCKBOX_FIRST_DAY.isoformat()
+                or not isinstance(binding, dict) or binding.get("status") != "MATCH_ADOPTED"
+                or binding.get("fit_origin") != (LOCKBOX_FIRST_DAY - timedelta(days=1)).isoformat()
+                or any(not isinstance(binding.get(key), str) or not re.fullmatch(r"[0-9a-f]{64}", binding[key])
+                       for key in ("fit_sha256", "draws_sha256", "artifact_manifest_sha256"))
+                or result.get("fitting_operation") is not True
+                or result.get("protected_labels_read") is not False
+                or result.get("forecast_executed") is not False):
+            raise GuardFailed("fit preflight did not verify an adopted pre-boundary fit")
+        if before != sha256(source.read_bytes()) or result.get("entrypoint_sha256") != before:
+            raise GuardFailed("fit preflight source hash differs")
+        if (git(repo, "rev-parse", "HEAD") != head or git(repo, "status", "--porcelain")
+                or bundle_hash(repo / FOLDER) != bundle or bundle != args.bundle_hash):
+            raise GuardFailed("G1/G2: registration changed during fit preflight")
+        json.dumps(result, allow_nan=False)  # Reject serialization errors/nonfinite diagnostics before the marker.
+        return result
+    except GuardFailed:
+        raise
+    except Exception as error:  # Any preflight failure must precede acquire/token/score.
+        raise GuardFailed(f"fit preflight failed: {type(error).__name__}: {error}") from error
 
 
 def development_window(fit_until: date, score_until: date) -> None:
@@ -258,6 +317,7 @@ def publish(repo: Path, args: argparse.Namespace, receipt: dict, results: dict) 
 
 def unseal(repo: Path, args: argparse.Namespace) -> dict:
     checked = guards(repo, args)
+    preflight = fit_preflight(repo, args)
     started = datetime.now(UTC).isoformat(timespec="seconds")
     tag_object = acquire(repo, args, started)
     # From here the unseal has happened. Every failure is recorded and published, and nothing is scored twice.
@@ -273,7 +333,7 @@ def unseal(repo: Path, args: argparse.Namespace) -> dict:
     except (TypeError, ValueError) as error:
         results, digest = {"error": f"results are not serialisable: {error}"}, ""
     receipt = {"commit": args.commit, "bundle_hash": args.bundle_hash, "runner": args.runner, "tag_object": tag_object,
-               "guards": checked, "started_at": started, "finished_at": datetime.now(UTC).isoformat(timespec="seconds"),
+               "guards": checked, "fit_preflight": preflight, "started_at": started, "finished_at": datetime.now(UTC).isoformat(timespec="seconds"),
                "fit_until": str(LOCKBOX_FIRST_DAY), "score_until": str(WINDOW_END), "results": results, "results_sha256": digest}
     return publish(repo, args, receipt, results)
 
