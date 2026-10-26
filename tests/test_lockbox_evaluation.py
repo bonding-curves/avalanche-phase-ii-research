@@ -288,6 +288,17 @@ def test_zero_predictive_mass_is_not_hidden_by_clipping():
     assert "infinite" in losses["undefined_reason"]
 
 
+def test_report_displays_measured_coverage_from_the_score_schema():
+    series = pd.Series(np.arange(301), index=pd.date_range("2023-01-01", periods=301))
+    cells = subject.cell_scores([100.0, 200.0] * 100, 150.0, series, series.index[200].date(), 30)
+    cells = [{**row, "variable": "x"} for row in cells]
+    text = subject.report({"verdict": "INCONCLUSIVE", "mode": "development", "specification_status": "draft",
+                           "primary_comparisons": [], "S": cells, "distribution_comparisons": [], "B": [],
+                           "contract_diagnostics": [], "not_measured": [], "unresolved_specification_choices": []})
+    row = next(line for line in text.splitlines() if line.startswith("| x | 30 | model |"))
+    assert [value.strip() for value in row.split("|")][-3:-1] == ["1", "1"]
+
+
 def test_duration_history_excludes_overlapping_successors(tmp_path):
     def row(tx, start, end, accepted):
         return {"role": "validator", "node_id": "a", "transaction_hash": tx, "stake_navax": 2_000 * 10**9,

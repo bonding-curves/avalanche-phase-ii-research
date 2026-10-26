@@ -534,7 +534,7 @@ def report(result: dict) -> str:
         def mean(key, rows=rows):
             values = [x[key] for x in rows if x.get(key) is not None]
             return float(np.mean(values)) if len(values) == len(rows) else None
-        lines.append(f"| {variable} | {horizon} | {forecast} | {len(rows)} | {number(mean('crps'))} | {number(mean('cov50'))} | {number(mean('cov80'))} |")
+        lines.append(f"| {variable} | {horizon} | {forecast} | {len(rows)} | {number(mean('crps'))} | {number(mean('in50'))} | {number(mean('in80'))} |")
     lines += ["", "| Series | Horizon | Dressed benchmark | CRPS skill | One-sided DM p | Qualification |",
               "| --- | --- | --- | --- | --- | --- |"]
     for row in result["distribution_comparisons"]:
