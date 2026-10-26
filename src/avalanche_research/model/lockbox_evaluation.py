@@ -105,7 +105,8 @@ def matching_training_slices(training: Path, scoring: Path, fit_origin: date) ->
     """Compare keyed public schedules using exact integers/timestamps, including accepted future starts."""
     cutoff = decided_by_us(fit_origin)
     columns = ("role, transaction_hash, node_id, epoch_us(accepted_at), epoch_us(start_time), epoch_us(end_time), "
-               "stake_navax::VARCHAR, supply_before_navax::VARCHAR")
+               f"stake_navax::VARCHAR, CASE WHEN start_time <= make_timestamp({cutoff}) "
+               "THEN supply_before_navax::VARCHAR ELSE NULL END")
     sql = (f"SELECT {columns} FROM read_parquet(?) WHERE accepted_at <= make_timestamp(?) "
            "ORDER BY role, transaction_hash")
     # Stream both sorted projections: the full pin includes millions of delegation schedules.

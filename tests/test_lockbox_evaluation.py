@@ -161,6 +161,13 @@ def test_duplicate_projection_identity_refuses_even_if_both_files_agree(tmp_path
         subject.matching_training_slices(path, path, ORIGIN)
 
 
+def test_future_start_counter_is_not_an_at_fit_projection_feature(periods, tmp_path):
+    rows = public_periods()
+    rows[-1]["supply_before_navax"] += 10**12  # Accepted schedule is known; later-start counter is not used at the fit cut.
+    later_counter = parquet(tmp_path / "later-counter.parquet", rows)
+    assert subject.matching_training_slices(periods, later_counter, ORIGIN)["status"] == "PASS"
+
+
 def test_legacy_fit_inputs_need_an_acceptance_check_separate_from_slice_equality(tmp_path):
     rows = public_periods()
     rows[0]["accepted_at"] = datetime(2024, 3, 7)  # Start precedes fit cut but acceptance is later.

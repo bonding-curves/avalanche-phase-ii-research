@@ -115,5 +115,11 @@
     ],
     "scientific_adoption": "pending",
     "power_reassessment": "pending"
+  },
+  "slice_projection": {
+    "admission": "accepted_at no later than frozen fit-origin23:59:59UTC",
+    "scheduled_fields": "role,transaction,node,acceptance,start,end,stake",
+    "supply_counter": "include only when the period started by fit cut; exclude future-start counters",
+    "identity": "unique(role,transaction_hash), compared in sorted4096-row streams"
   }
 }
