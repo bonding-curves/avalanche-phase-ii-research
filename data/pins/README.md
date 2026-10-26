@@ -28,6 +28,7 @@ A pin may also carry `code`: the full commit of this repository the results were
 | `p7-systems-learning-weeks.json` | The validator-week panel of 2026-10-06, whose reward addresses as of each week allow an operator grouping that reads no later data |
 | `p8-v0.9.5-inputs.json` | The scenario inputs for revenue-funded rewards: the monetary ledger, AVAX price, Avalanche fees and revenue, and the competing yields |
 | `p9-staking-records.json` | Frozen staking records of 2026-10-14: staking periods, daily monetary ledger, seamed validator and delegator stakes, and auto-renewed cycle history. The original ledger predates the cycle accounting repair |
+| `monetary-accounting-qualified-2026-10-26.json` | Explicit successor daily ledger and upgrade-period summary through 2026-10-25, with cycle-recognised issuance, effective cycle stake and inclusive C-EVM burn once. Records the producing code commit and receipt hashes |
 
 The qualified rebuild preserves all original point timestamps and prices. Its date label is the nearest midnight, which may follow the observation time. Use `observed_at` and an explicit availability rule for as-of decisions. A date label alone does not establish that a quote was available at the start of that date. Historical `p4` and `p8` remain unchanged.
 
@@ -52,3 +53,5 @@ uv run avalanche data pin NAME derived.staking-periods --run derived.staking-per
 ## How pins connect to the rest
 
 The runs come from the build steps in the [data guide](../README.md). The model runs for the v0.7 report, `scripts/model_v07_report_runs.py`, and the record charts, `scripts/figures/model_v07_record.py`, read their runs through `avalanche_research.pins.runs`, which maps each dataset to its pinned run, and stop on any finding. Other scripts in [`scripts/`](../../scripts/) and [`scripts/figures/`](../../scripts/figures/) name a pinned run directly. The figures they write are the ones shown on the research site.
+
+The accounting successor leaves p2, p4, p8 and p9 unchanged. Its daily ledger includes a byte-bound cycle event companion. Consumers that added restake separately must migrate that adjustment before selecting the new ledger. See the [accounting basis and archived inputs](../README.md#cycle-accounting-and-archived-inputs).

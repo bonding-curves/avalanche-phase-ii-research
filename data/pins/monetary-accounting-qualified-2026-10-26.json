@@ -1,0 +1,40 @@
+{
+  "code": {
+    "client_commit": "b3041d8d7795bdaae5499c63a77a66320518bce9"
+  },
+  "name": "monetary-accounting-qualified-2026-10-26",
+  "pinned_at": "2026-10-26T20:18:11Z",
+  "runs": [
+    {
+      "bytes": 235932,
+      "capture_id": "capture:derived:2026-10-26T20:06:18Z:d4e1d5797fb7",
+      "captured_at": "2026-10-26T20:06:18Z",
+      "check": "pass",
+      "dataset_id": "derived.avax-monetary-daily",
+      "parquet": "avax-monetary-daily.parquet",
+      "run": "avax-monetary-daily-2026-10-26-accounting-qualified",
+      "sha256": "5d08d01a7607cbe0ec5bdd075a905d240cc332226593960808031928e2030f3c",
+      "receipt_hashes": {
+        "capture/capture.json": "59f882e3efe85aa78457b3ea079b06257779f74ac4819b21458f3f65a7b8f1f5",
+        "dataset/build.json": "45f7669bcdf0d2fbcff3ff8b7a5cd2764442a98f9d0d1dcb9ca1183f205a1c59",
+        "dataset/check.json": "8741e79e7988f32bf8014eca4f7dc737e2b126ced376afc0319359aea9cdff2e"
+      }
+    },
+    {
+      "bytes": 4596,
+      "capture_id": "capture:derived:2026-10-26T20:13:35Z:be6b690885aa",
+      "captured_at": "2026-10-26T20:13:35Z",
+      "check": "pass",
+      "dataset_id": "derived.monetary-periods",
+      "parquet": "monetary-periods.parquet",
+      "run": "monetary-periods-2026-10-26-accounting-qualified",
+      "sha256": "a6512b0ca90cd6784f2703e962c3393b8a220d5e26245c54950dcc360d93b3cd",
+      "receipt_hashes": {
+        "capture/capture.json": "e8b091986268374cbde5e76934c04d5dbc51503b4553b37e25b0a9334b3be380",
+        "dataset/build.json": "fede57697794962b5183599351a14f7e31981cac1e8682a893d7ee90e8395e2c",
+        "dataset/check.json": "35dbeefbc57a9fdc5d53a300820231186af3ec360bd803fbde45f3459b447295"
+      }
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
