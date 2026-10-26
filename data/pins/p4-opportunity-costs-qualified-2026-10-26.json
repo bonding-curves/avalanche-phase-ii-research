@@ -1,0 +1,87 @@
+{
+  "name": "p4-opportunity-costs-qualified-2026-10-26",
+  "pinned_at": "2026-10-26T17:19:21Z",
+  "runs": [
+    {
+      "bytes": 543664,
+      "capture_id": "capture:derived:2026-10-26T17:19:20Z:c592aefd8f16",
+      "captured_at": "2026-10-26T17:19:20Z",
+      "check": "pass",
+      "dataset_id": "derived.opportunity-costs-daily",
+      "parquet": "opportunity-costs-daily.parquet",
+      "run": "opportunity-costs-daily-2026-10-26-qualified",
+      "sha256": "4d898f577bd5b85d9a07b8e2b287c24db1290710a4e11bea979528d216e40fad"
+    },
+    {
+      "bytes": 233543,
+      "capture_id": "capture:derived:2026-10-06T03:21:52Z:56b200c6e8f6",
+      "captured_at": "2026-10-06T03:21:52Z",
+      "check": "pass",
+      "dataset_id": "derived.avax-monetary-daily",
+      "parquet": "avax-monetary-daily.parquet",
+      "run": "avax-monetary-daily-2026-10-06",
+      "sha256": "227a841f3f00398a6519231981f6230bf72e2537e5b32f7827cd375b1249989a"
+    },
+    {
+      "bytes": 82512,
+      "capture_id": "capture:fred:2026-10-05T20:50:59Z:8b074e52777a",
+      "captured_at": "2026-10-05T20:50:59Z",
+      "check": "pass",
+      "dataset_id": "fred.tbill-3m-daily",
+      "parquet": "tbill-3m-daily.parquet",
+      "run": "tbill-3m-daily-2026-10-05",
+      "sha256": "c9f2cd72b4dfc966278da6a3f100c695b9bdd097ad88290713d3ece504f65fb4"
+    },
+    {
+      "bytes": 40605,
+      "capture_id": "capture:us-treasury:2026-10-05T20:53:16Z:8eeefbe16666",
+      "captured_at": "2026-10-05T20:53:16Z",
+      "check": "pass",
+      "dataset_id": "us-treasury.par-yield-daily",
+      "parquet": "par-yield-daily.parquet",
+      "run": "treasury-yields-2026-10-05",
+      "sha256": "2c60832227e73d0aa44a554032f474e8188f4beaf25353544ee9bce999627725"
+    },
+    {
+      "bytes": 235698,
+      "capture_id": "capture:defillama:2026-10-05T20:19:26Z:ee5dfd8b2d38",
+      "captured_at": "2026-10-05T20:19:26Z",
+      "check": "pass",
+      "dataset_id": "defillama.pool-history",
+      "parquet": "pool-history.parquet",
+      "run": "pool-history-2026-10-05",
+      "sha256": "d1c9fae0428db09ed9c18e566487be9c63574997cbc1af2d99e2bcf8a2625434"
+    },
+    {
+      "bytes": 5874,
+      "capture_id": "capture:defillama:2026-10-05T20:19:37Z:f1f3559bc24c",
+      "captured_at": "2026-10-05T20:19:37Z",
+      "check": "pass",
+      "dataset_id": "defillama.lend-borrow",
+      "parquet": "lend-borrow.parquet",
+      "run": "lend-borrow-2026-10-05",
+      "sha256": "fd5a265384ac2d74c168e79b1bdedf3777aebd632f2c19d17b5381d53fa06867"
+    },
+    {
+      "bytes": 34655,
+      "capture_id": "capture:defillama:2026-10-05T20:19:46Z:cfa050ed295f",
+      "captured_at": "2026-10-05T20:19:46Z",
+      "check": "pass",
+      "dataset_id": "defillama.pool-yields",
+      "parquet": "pool-yields.parquet",
+      "run": "pool-yields-2026-10-05",
+      "sha256": "467cf07170ee7257457101b4435cf55b5b5ad7cb533f6c64abb1a5e7e17b8e0d"
+    },
+    {
+      "bytes": 66991,
+      "capture_id": "capture:defillama:2026-10-05T20:53:21Z:6316ac2eca63",
+      "captured_at": "2026-10-05T20:53:21Z",
+      "check": "pass",
+      "dataset_id": "defillama.avax-price-daily",
+      "parquet": "avax-price-daily.parquet",
+      "run": "avax-price-2026-10-26-rebuild",
+      "sha256": "717e4427f4d18568d82fd1a86f7a52d25f7f235cde458ac2a0ba94c04805a522"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}

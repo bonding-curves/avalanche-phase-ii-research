@@ -21,11 +21,14 @@ A pin may also carry `code`: the full commit of this repository the results were
 | `p1-brief.json` | The seamed validator stakes and staking periods of 2026-10-02 |
 | `p2-model-v0.8.json` | The staking periods and daily monetary ledger of 2026-09-30, read by the model scoring and v0.7 report scripts |
 | `p3-helicon-etf.json` | Eight runs behind the Helicon and exchange-traded fund figures |
-| `p4-opportunity-costs.json` | Eight runs behind the opportunity-cost figure |
+| `p4-opportunity-costs.json` | Frozen historical inputs for the opportunity-cost figure. Native rates use a realised-supply approximation, and the saved price artifact repeats date labels |
+| `p4-opportunity-costs-qualified-2026-10-26.json` | Additive rebuild: unique nearest-midnight price dates from the original capture, with explicit native approximation basis, nominal quote time and realised supply input. Does not certify an exact protocol offer |
 | `p5-v0.7-report.json` | Four runs of 2026-09-30 behind the v0.7 research report, at commit `087484b`, tag `model-v0.7.0` |
 | `p6-v0.7-report.json` | The runs of `p5` plus the operator table, at the same commit and tag |
 | `p7-systems-learning-weeks.json` | The validator-week panel of 2026-10-06, whose reward addresses as of each week allow an operator grouping that reads no later data |
 | `p8-v0.9.5-inputs.json` | The scenario inputs for revenue-funded rewards: the monetary ledger, AVAX price, Avalanche fees and revenue, and the competing yields |
+
+The qualified rebuild preserves all original point timestamps and prices. Its date label is the nearest midnight, which may follow the observation time. Use `observed_at` and an explicit availability rule for as-of decisions. A date label alone does not establish that a quote was available at the start of that date. Historical `p4` and `p8` remain unchanged.
 
 ## Check a pin
 

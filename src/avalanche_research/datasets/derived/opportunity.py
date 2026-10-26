@@ -5,9 +5,10 @@ alternative: a dollar rate (the 3-month bill, the 1-year Treasury par yield) or 
 lending, other chains' staking). Every row carries the native rates of the same day beside it, and the spread of the
 series over each.
 
-The native rate is the protocol kernel's annualized reward rate for a 2,000 AVAX validator starting at 00:00 UTC that
-day, for 14 and 365 days, against the supply open of that day on the monetary ledger. It is gross of fees and of
-uptime, so it is what the protocol offers, not what a staker received. A day with no ledger supply has no native rate.
+The native rate is an approximation using the protocol kernel for a 2,000 AVAX validator at nominal 00:00 UTC,
+for 14 and 365 days, with that day's realised ledger opening supply. This supply is not the protocol counter,
+which also reserves potential rewards. These are neither exact protocol offers nor received rewards. Each row
+records the approximation basis, nominal quote time and supply input. Missing ledger supply means no native rate.
 An alternative appears only on the days its source reports. Gaps stay gaps.
 
 Rates are percent per year. The Treasury feed's fractions are scaled to percent. The 3-month bill is FRED's DTB3, a discount
@@ -51,6 +52,7 @@ INPUTS = {
 QUOTE_STAKE_NAVAX = 2_000 * 10**9
 NATIVE_DAYS = (14, 365)
 NAVAX_PER_WEI = 10**9
+NATIVE_SUPPLY_BASIS = "realised-ledger-opening-supply-approximation"
 # Series name, category and how its rate is read. Pool series name their pool-history label.
 POOL_SERIES = {
     "savax": "avax-liquid-staking", "ggavax": "avax-liquid-staking", "aave-wavax": "avax-lending", "benqi-avax": "avax-lending",
@@ -67,6 +69,9 @@ COLUMNS = {
     "spread_vs_14d_pp": "DOUBLE",
     "spread_vs_365d_pp": "DOUBLE",
     "source_dataset": "VARCHAR",
+    "native_supply_basis": "VARCHAR",
+    "native_quote_at": "TIMESTAMP",
+    "native_supply_navax": "DECIMAL(38,0)",
 }
 
 
@@ -112,8 +117,10 @@ def select_inputs(pinned: dict[str, str] | None, root: Path | None) -> list[dict
     return selected
 
 
-def native_rates(connection: Any) -> None:
-    """``native``: the kernel's 14-day and 365-day rates for each ledger day with a supply."""
+def native_rates(connection: Any, *, supply_basis: str = NATIVE_SUPPLY_BASIS) -> None:
+    """Approximate rates using realised ledger supply, explicitly distinct from the protocol counter."""
+    if supply_basis != NATIVE_SUPPLY_BASIS:
+        raise DataError("ledger opening supply cannot certify a protocol-counter quote")
     days = connection.execute(
         "SELECT date_utc, total_supply_open_wei::HUGEINT FROM ledger WHERE total_supply_open_wei IS NOT NULL ORDER BY date_utc"
     ).fetchall()
@@ -121,10 +128,12 @@ def native_rates(connection: Any) -> None:
     for day, supply_wei in days:
         start = datetime(day.year, day.month, day.day, tzinfo=UTC)
         supply = int(supply_wei) // NAVAX_PER_WEI
-        rows.append((day, *(annualized_reward_rate(start, length * 86_400, QUOTE_STAKE_NAVAX, supply) * 100 for length in NATIVE_DAYS)))
-    connection.execute("CREATE TABLE native(date_utc DATE, native_14d_pct DOUBLE, native_365d_pct DOUBLE)")
+        rows.append((day, *(annualized_reward_rate(start, length * 86_400, QUOTE_STAKE_NAVAX, supply) * 100 for length in NATIVE_DAYS),
+                     NATIVE_SUPPLY_BASIS, start.replace(tzinfo=None), supply))
+    connection.execute("CREATE TABLE native(date_utc DATE, native_14d_pct DOUBLE, native_365d_pct DOUBLE, "
+                       "native_supply_basis VARCHAR, native_quote_at TIMESTAMP, native_supply_navax DECIMAL(38,0))")
     if rows:
-        connection.executemany("INSERT INTO native VALUES (?, ?, ?)", rows)
+        connection.executemany("INSERT INTO native VALUES (?, ?, ?, ?, ?, ?)", rows)
 
 
 def compute(connection: Any) -> None:
@@ -157,7 +166,7 @@ def compute(connection: Any) -> None:
         SELECT {names} FROM (
           SELECT s.date_utc, s.series, s.category, s.rate_pct, n.native_14d_pct, n.native_365d_pct,
                  s.rate_pct - n.native_14d_pct AS spread_vs_14d_pp, s.rate_pct - n.native_365d_pct AS spread_vs_365d_pp,
-                 s.source_dataset
+                 s.source_dataset, n.native_supply_basis, n.native_quote_at, n.native_supply_navax
           FROM series AS s LEFT JOIN native AS n USING (date_utc)
         )
         ORDER BY date_utc, series
@@ -175,6 +184,8 @@ def summarize(connection: Any) -> dict[str, Any]:
     ).fetchone()
     return {
         "rows": rows, "distinct_keys": keys,
+        "native_supply_basis": NATIVE_SUPPLY_BASIS,
+        "native_is_exact_protocol_offer": False,
         "series": {name: {"days": days, "first": first, "last": last, "days_with_native": paired} for name, days, first, last, paired in series},
         "latest_native": {"date_utc": latest[0], "native_14d_pct": latest[1], "native_365d_pct": latest[2]},
     }
@@ -195,7 +206,8 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
     inputs = select_inputs(pinned, root)
     completed_at = now()
     records = [{key: value for key, value in item.items() if key != "path"} for item in inputs]
-    parameters = {"quote_stake_navax": QUOTE_STAKE_NAVAX, "native_days": list(NATIVE_DAYS), "pool_series": POOL_SERIES}
+    parameters = {"quote_stake_navax": QUOTE_STAKE_NAVAX, "native_days": list(NATIVE_DAYS), "pool_series": POOL_SERIES,
+                  "native_supply_basis": NATIVE_SUPPLY_BASIS, "native_quote_clock": "nominal 00:00 UTC; realised ledger opening supply"}
     identity = sha256(canonical_bytes({"completed_at": completed_at, "inputs": records, "parameters": parameters}))
     capture_receipt = {
         "schema_version": "derived-capture/v1", "capture_id": f"capture:{SOURCE_ID}:{completed_at}:{identity[:12]}",
@@ -250,6 +262,9 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
     receipt = read_capture(capture_dir)
     findings: list[str] = []
     checked = ["input run hashes", "catalog contract", "unique keys", "spreads", "rebuild"]
+    checked.append("native supply basis")
+    if receipt.get("parameters", {}).get("native_supply_basis") != NATIVE_SUPPLY_BASIS:
+        findings.append("native supply basis is missing or unsupported; legacy values use realised ledger supply, not a protocol-counter quote")
     if receipt.get("contract_sha256") != contract_hash(catalog, DATASET_ID):
         findings.append("catalog contract changed since the capture")
     paths = {}

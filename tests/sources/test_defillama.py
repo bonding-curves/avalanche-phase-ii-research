@@ -6,10 +6,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+import duckdb
 import pytest
 
-from avalanche_research.sources import coingecko, defillama
 from avalanche_research.catalog import DataError, load_catalog, source
+from avalanche_research.core.catalog import sha256
+from avalanche_research.sources import coingecko, defillama
 
 
 SERIES_START = datetime(2020, 9, 22, tzinfo=timezone.utc)
@@ -125,3 +127,40 @@ def test_a_point_stamped_just_before_midnight_is_dated_by_its_nearest_midnight(t
     defillama.capture(defillama.DATASET_ID, path, opener=opener(early=True))
     build = defillama.build(defillama.DATASET_ID, path, tmp_path / "dataset")
     assert build["summary"]["dates_with_two_observations"] == 0 and build["summary"]["skipped_dates"] == 0
+
+
+def test_check_rejects_stale_calendar_dates_even_with_matching_saved_hashes(tmp_path):
+    path = tmp_path / "capture"
+    defillama.capture(defillama.DATASET_ID, path, opener=opener(early=True))
+    output = tmp_path / "dataset"
+    defillama.build(defillama.DATASET_ID, path, output)
+    parquet = output / "avax-price-daily.parquet"
+    connection = duckdb.connect()
+    connection.execute("CREATE TABLE stale AS SELECT * REPLACE(observed_at::DATE AS observation_date) FROM read_parquet(?)", [str(parquet)])
+    connection.execute("COPY stale TO ? (FORMAT PARQUET)", [str(tmp_path / "stale.parquet")])
+    connection.close()
+    parquet.write_bytes((tmp_path / "stale.parquet").read_bytes())
+    # Keep the saved receipt internally consistent. Only replay of the original capture exposes stale date rules.
+    receipt_path = output / "build.json"
+    receipt = json.loads(receipt_path.read_text())
+    receipt["outputs"][0].update(bytes=parquet.stat().st_size, sha256=sha256(parquet.read_bytes()))
+    receipt_path.write_text(json.dumps(receipt))
+    validation = defillama.check(path, output)
+    assert validation["status"] == "attention"
+    assert "Parquet rows differ from the captured inputs" in validation["findings"]
+
+
+def test_check_flags_two_distinct_timestamps_on_one_nominal_day(tmp_path):
+    def duplicate_day(request, timeout):
+        query = parse_qs(urlparse(request.full_url).query)
+        payload = window_payload(int(query["start"][0]), int(query["span"][0]))
+        points = payload["coins"][defillama.COIN]["prices"]
+        if len(points) > 1:
+            points[1]["timestamp"] = points[0]["timestamp"] + 60
+        return Response(payload)
+
+    path = tmp_path / "capture"
+    defillama.capture(defillama.DATASET_ID, path, opener=duplicate_day)
+    validation = defillama.check(path)
+    assert validation["status"] == "attention"
+    assert "1 rows repeat a nearest-midnight date" in validation["findings"]

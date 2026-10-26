@@ -158,7 +158,7 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
     catalog = load_catalog()
     receipt, _ = read_capture(capture_dir, catalog)
     findings: list[str] = []
-    checked = ["capture hashes", "required endpoints", "response shape", "positive prices", "unique observations", "coverage gaps", "volatility window"]
+    checked = ["capture hashes", "required endpoints", "response shape", "positive prices", "unique observations", "unique dates", "coverage gaps", "volatility window"]
     connection = duckdb.connect()
     try:
         load_capture(connection, capture_dir, receipt)
@@ -178,6 +178,8 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
         labels = ("repeat an observation time", "follow a gap of more than three days", "lack a volatility value beyond the first 30 observations")
         findings.extend(f"{failed} rows {label}" for failed, label in zip(counts, labels) if failed)
         summary = summarize(connection)
+        if summary["dates_with_two_observations"]:
+            findings.append(f"{summary['dates_with_two_observations']} rows repeat a nearest-midnight date")
         if dataset_dir is not None:
             checked.extend(["build hashes", "Parquet rows"])
             try:

@@ -6143,7 +6143,7 @@
       "studies": [
         "What else could AVAX earn: outside options for validators and delegators"
       ],
-      "description": "One row per UTC day and series: the protocol's native staking rate at 14 and 365 days, or an alternative (the 3-month bill, the 1-year Treasury, AVAX liquid staking and lending, dollar lending, other chains' staking), each beside the native rates of the same day and its spread over them. The native rate is the kernel's offered rate, gross of fees and uptime. Alternatives appear only on days their source reports.",
+      "description": "One row per UTC day and series: approximate native staking rates or outside rates, with descriptive spreads. Native values evaluate the kernel using realised ledger opening supply, not the protocol counter that reserves potential rewards. They are not exact protocol offers. Each paired row records supply basis, nominal quote time and supply input. Alternatives appear only on days their source reports.",
       "input_ids": [
         "monetary-daily",
         "tbill-3m-daily",
@@ -6173,13 +6173,13 @@
           "name": "rate_pct",
           "type": "number",
           "unit": "percent per year",
-          "derivation": "native: the kernel's annualized reward rate; tbill-3m: DTB3 discount rate; treasury-1y: par yield times 100; pools: DefiLlama apy"
+          "derivation": "native: annualized kernel approximation using realised ledger opening supply, not a verified protocol offer; tbill-3m: DTB3 discount rate; treasury-1y: par yield times 100; pools: DefiLlama apy"
         },
         {
           "name": "native_14d_pct",
           "type": "number",
           "unit": "percent per year",
-          "derivation": "protocol kernel annualized_reward_rate for 2,000 AVAX staked 14 days from 00:00 UTC, against that day's supply open; null without ledger supply"
+          "derivation": "kernel approximation for 2,000 AVAX over 14 days at nominal 00:00 UTC using realised ledger opening supply; not a protocol-counter quote; null without ledger supply"
         },
         {
           "name": "native_365d_pct",
@@ -6204,6 +6204,24 @@
           "type": "string",
           "unit": "dataset id",
           "derivation": "the input dataset the rate is read from"
+        },
+        {
+          "name": "native_supply_basis",
+          "type": "string",
+          "unit": "supply semantics",
+          "derivation": "realised-ledger-opening-supply-approximation; null when no native calculation is available"
+        },
+        {
+          "name": "native_quote_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "nominal kernel evaluation time at 00:00 UTC, not a provider observation timestamp; null without a native calculation"
+        },
+        {
+          "name": "native_supply_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "realised ledger total_supply_open_wei divided by 1e9 and truncated to integer nAVAX; not the protocol counter; null without a native calculation"
         }
       ]
     },

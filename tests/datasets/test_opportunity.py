@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 import duckdb
 import pytest
 
-from avalanche_research.core.catalog import load_catalog
+from avalanche_research.core.catalog import DataError, load_catalog
 from avalanche_research.datasets.derived import opportunity
+from avalanche_research.domain.protocol import annualized_reward_rate
 
 
 def connection_with_inputs() -> duckdb.DuckDBPyConnection:
@@ -54,3 +55,29 @@ def test_each_alternative_sits_beside_the_native_rate_of_its_day():
     assert not any(series == "unknown" for _, series in rows)
     assert rows[(date(2026, 9, 29), "savax")][0] == 3.8
     assert opportunity.summarize(connection)["rows"] == len(rows)
+
+
+def test_realised_supply_approximation_is_distinct_from_protocol_counter():
+    connection = connection_with_inputs()
+    opportunity.compute(connection)
+    rate, basis, at, supply = connection.execute(
+        "SELECT native_14d_pct, native_supply_basis, native_quote_at, native_supply_navax "
+        "FROM result WHERE date_utc=DATE '2026-09-28' AND series='native-14d'"
+    ).fetchone()
+    # The protocol counter also reserves potential rewards. A larger counter changes the actual offer.
+    protocol_counter = 480_000_000 * 10**9
+    quote = annualized_reward_rate(datetime(2026, 9, 28, tzinfo=UTC), 14 * 86400,
+                                   opportunity.QUOTE_STAKE_NAVAX, protocol_counter) * 100
+    assert rate > quote
+    assert basis == "realised-ledger-opening-supply-approximation"
+    assert at == datetime(2026, 9, 28)
+    assert supply == 460_000_000 * 10**9
+    assert opportunity.summarize(connection)["native_is_exact_protocol_offer"] is False
+    # An outside observation with no ledger day cannot inherit a quote or supply from another day.
+    assert connection.execute("SELECT native_supply_basis, native_quote_at, native_supply_navax "
+                              "FROM result WHERE date_utc=DATE '2026-09-30'").fetchone() == (None, None, None)
+
+
+def test_ledger_supply_cannot_be_declared_a_protocol_counter():
+    with pytest.raises(DataError, match="cannot certify a protocol-counter quote"):
+        opportunity.native_rates(connection_with_inputs(), supply_basis="protocol-counter")
