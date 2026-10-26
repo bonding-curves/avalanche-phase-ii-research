@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
+from hashlib import md5
 from pathlib import Path
+from threading import Barrier
 
 import duckdb
 import pytest
@@ -21,6 +24,56 @@ NAVAX = 10**9
 WEI = 10**18
 BIG = f"{NAVAX}::BIGINT"
 CATALOG = load_catalog()
+
+
+def test_overlapping_accounting_connections_spill_independently_and_clean_up(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    barrier = Barrier(2)
+    count = 200_000
+
+    def spill(owner):
+        with monetary.accounting_connection() as connection:
+            scratch = Path(connection.execute("SELECT current_setting('temp_directory')").fetchone()[0])
+            assert scratch.is_absolute() and scratch.is_dir()
+            assert connection.execute("SELECT current_setting('threads'),current_setting('memory_limit')").fetchone() == (2, '3.7 GiB')
+            connection.execute("SET memory_limit='16MB'")
+            connection.execute("SET preserve_insertion_order=false")
+            connection.execute("CREATE TABLE data AS SELECT i AS id,? AS owner,repeat(md5(? || i::VARCHAR),4) AS payload FROM range(?) t(i)",
+                               [owner, owner, count])
+            barrier.wait(timeout=30)
+            spilled = sum(path.stat().st_size for path in scratch.iterdir() if path.is_file())
+            assert spilled > 0  # Both live databases must have actual disk-backed pages, not only configured paths.
+            result = connection.execute("SELECT count(*),sum(id),min(owner),max(owner),sum(length(payload)) FROM data").fetchone()
+            first = connection.execute("SELECT payload FROM data WHERE id=0").fetchone()[0]
+            assert result == (count, count*(count-1)//2, owner, owner, count*128)
+            assert first == md5((owner+'0').encode()).hexdigest()*4
+            barrier.wait(timeout=30)
+        assert not scratch.exists()
+        return scratch
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        paths = list(pool.map(spill, ['first', 'second']))
+    assert paths[0] != paths[1]
+    assert not (tmp_path / '.tmp').exists()
+
+
+@pytest.mark.parametrize('failure', ['query', 'consumer', 'connect'])
+def test_accounting_scratch_is_removed_on_errors(monkeypatch, failure):
+    paths = []
+    if failure == 'connect':
+        def refuse_connection(*args, **kwargs):
+            paths.append(Path(kwargs['config']['temp_directory']))
+            assert paths[-1].is_dir()
+            raise RuntimeError('connection refused')
+        monkeypatch.setattr(monetary.duckdb, 'connect', refuse_connection)
+    expected = duckdb.Error if failure == 'query' else RuntimeError
+    with pytest.raises(expected), monetary.accounting_connection() as connection:
+        paths.append(Path(connection.execute("SELECT current_setting('temp_directory')").fetchone()[0]))
+        if failure == 'query':
+            connection.execute('SELECT nonexistent_column')
+        else:
+            raise RuntimeError('consumer failed')
+    assert len(paths) == 1 and not paths[0].exists()
 
 
 def make_run(root: Path, name: str, dataset_id: str, table: str, sql: str, captured_at: str, capture_extra: dict | None = None) -> None:
@@ -112,7 +165,10 @@ def root(tmp_path: Path, monkeypatch) -> Path:
 def test_catalog_declares_the_ledger():
     definition = next(item for item in CATALOG["datasets"] if item["id"] == monetary.DATASET_ID)
     assert [field["name"] for field in definition["fields"]] == list(monetary.TABLE_COLUMNS)
-    assert definition["input_ids"] == [*monetary.SINGLE_INPUTS, *monetary.MANY_INPUTS]
+    assert set(definition["input_ids"]) == {
+        *monetary.SINGLE_INPUTS, *monetary.MANY_INPUTS, *monetary.CYCLE_INPUTS,
+        "seamed-burn-daily", "seamed-staking-rewards", "seamed-staking-supply", "seamed-c-evm-daily",
+    }
 
 
 def test_derive_replays_supply_until_the_first_incomplete_day(root):
@@ -343,7 +399,7 @@ def test_a_gap_after_the_api_drift_began_is_reported_not_a_finding(root):
         "Data API rewards at 2026-09-29T11:00:16 differ from the reconciliation by 9 AVAX (14.8148%); reported, not a finding, from 2026-09-20"]
 
 
-def test_an_auto_renewed_validator_stays_active_through_its_latest_cycle(root):
+def test_original_weight_extent_without_cycle_support_is_not_accepted(root):
     # From Helicon one AddAutoRenewedValidatorTx keeps one period row: end_time closes its first cycle, and
     # last_cycle_end_time the latest. A validator whose first cycle ended on 09-12 and whose latest ends on 09-14 is active on 09-13.
     earlier = root / "periods" / "dataset" / "staking-periods.parquet"
@@ -353,8 +409,353 @@ def test_an_auto_renewed_validator_stays_active_through_its_latest_cycle(root):
              "2026-09-23T18:12:30Z",
              {"inputs": [{"input_id": "validator-stakes", "captured_at": "2026-09-23T08:00:00Z"}, {"input_id": "delegator-stakes", "captured_at": "2026-09-23T08:30:00Z"}]})
     output = root / "ledger"
-    monetary.derive(monetary.DATASET_ID, output, {"derived.staking-periods": "periods-renewed"}, root)
-    relation = duckdb.sql(f"SELECT date_utc::VARCHAR, active_validators FROM read_parquet('{output / 'dataset' / 'avax-monetary-daily.parquet'}') ORDER BY 1")
-    active = dict(relation.fetchall())
-    # 09-12 counts s1, s3, and a1, and 09-13 counts s3 and a1. Under its first cycle's end a1 would have left at 09-12 12:00.
-    assert (active["2020-09-12"], active["2020-09-13"]) == (3, 2)
+    with pytest.raises(DataError, match="complete cycle histories"):
+        monetary.derive(monetary.DATASET_ID, output, {"derived.staking-periods": "periods-renewed"}, root)
+    assert not output.exists()
+
+
+def evm_revision(root, name, amount, captured_at="2026-09-23T19:00:00Z", *, seamed=False):
+    """A revised complete row, not a maximum-value selection oracle."""
+    source = root / "c-evm" / "dataset" / "c-chain-evm-burn-daily.parquet"
+    expression = "NULL::DECIMAL(38,0)" if amount is None else f"{amount}::DECIMAL(38,0)"
+    sql = (f"SELECT * REPLACE (CASE WHEN date_utc = DATE '2020-09-12' THEN {expression} ELSE burned_wei END AS burned_wei, "
+           f"first_epoch + 1 AS first_epoch) FROM read_parquet('{source}')")
+    dataset_id = "derived.seamed-c-chain-evm-burn-daily" if seamed else "snowflake.c-chain-evm-burn-daily"
+    if seamed:
+        sql = f"SELECT *, 'backup' AS source FROM ({sql})"
+    make_run(root, name, dataset_id, "c-chain-evm-burn-daily", sql, captured_at,
+             {"window": {"start": "2020-09-12", "end": "2020-09-15"}} if seamed else window("2020-09-12", "2020-09-15"))
+
+
+@pytest.mark.parametrize("amount", [6 * WEI, None])
+def test_overlaps_retain_the_whole_newest_row_and_null_state(root, amount):
+    evm_revision(root, "c-evm-corrected", amount)
+    inputs = monetary.select_inputs(None, root, CATALOG)
+    # Input list order cannot decide the winner, and a nullable field cannot come from the older row.
+    for supplied in (inputs, list(reversed(inputs))):
+        with duckdb.connect() as connection:
+            meta = monetary.load_inputs(connection, supplied)
+            selected = connection.execute("SELECT burned_wei, first_epoch, run FROM c_evm_daily WHERE date_utc=DATE '2020-09-12'").fetchall()
+            assert selected == [(amount, 1599868801, "c-evm-corrected")]
+            assert meta["selected_input_rows"]["c-evm-daily"] == [{"run": "c-evm-corrected", "rows": 3}]
+    output = root / "ledger"
+    result = monetary.derive(monetary.DATASET_ID, output, root=root)
+    assert result["capture"]["input_selection_policy"]["version"] == "monetary-whole-row/v1"
+    with duckdb.connect() as connection:
+        row = connection.execute("SELECT burned_c_evm_wei, c_evm_coverage, complete, total_supply_close_wei FROM read_parquet(?) WHERE date_utc=DATE '2020-09-12'",
+                                 [str(output / "dataset" / "avax-monetary-daily.parquet")]).fetchone()
+    if amount is None:
+        assert row == (None, "incomplete", False, None)
+    else:
+        assert row[0] == amount and row[1:3] == ("complete", True)
+
+
+def sparse_evm_inputs(root, *, hole=False, unresolved=False):
+    """The daily query emits present block dates only; gap dates are predecessor proxies."""
+    source = root / "c-evm/dataset/c-chain-evm-burn-daily.parquet"
+    # Last height 5 on the 12th is followed by first height 6 (no blocks on the 13th),
+    # or height 8 (the two missing heights are recovered with their actual 13th timestamps).
+    next_height = 8 if hole else 6
+    make_run(root, "evm-sparse", "snowflake.c-chain-evm-burn-daily", "c-chain-evm-burn-daily",
+             f"SELECT * REPLACE (CASE WHEN date_utc=DATE '2020-09-14' THEN {next_height} ELSE first_block END AS first_block, "
+             f"CASE WHEN date_utc=DATE '2020-09-14' THEN {next_height+4} ELSE last_block END AS last_block, "
+             "5 AS block_count,0 AS absent_blocks,0 AS short_blocks) FROM read_parquet('" + str(source) + "') WHERE date_utc<>DATE '2020-09-13'",
+             "2026-09-23T19:00:00Z", window("2020-09-12", "2020-09-15"))
+    gap_sql = "SELECT * FROM (VALUES (6,'absent',DATE '2020-09-12',NULL::BIGINT,NULL::BIGINT),(7,'absent',DATE '2020-09-12',NULL::BIGINT,NULL::BIGINT)) t(block_height,kind,date_utc,declared_transactions,distinct_receipts)"
+    if not hole:
+        gap_sql += " WHERE FALSE"
+    make_run(root, "sparse-gaps", "snowflake.c-chain-block-gaps", "c-chain-block-gaps", gap_sql, "2026-09-23T19:01:00Z", window("2020-09-12", "2020-09-15"))
+    pins = {"snowflake.c-chain-evm-burn-daily": "evm-sparse", "snowflake.c-chain-block-gaps": "sparse-gaps"}
+    if hole:
+        fees = root / "c-fees/dataset/c-chain-block-fees.parquet"
+        amount = "NULL::DECIMAL(38,0)" if unresolved else f"{2*WEI}::DECIMAL(38,0)"
+        make_run(root, "sparse-fees", "data-api.c-chain-block-fees", "c-chain-block-fees",
+                 f"SELECT * FROM read_parquet('{fees}') UNION ALL BY NAME SELECT 6 AS block_height,'0x6' AS block_hash, "
+                 f"TIMESTAMP '2020-09-13 00:00:00' AS block_timestamp,DATE '2020-09-13' AS date_utc,{amount} AS fees_wei",
+                 "2026-09-23T19:02:00Z")
+        pins["data-api.c-chain-block-fees"] = "sparse-fees"
+    return pins
+
+
+def test_sparse_daily_query_omits_a_genuine_no_block_day_inside_its_window(root):
+    pins = sparse_evm_inputs(root)
+    output = root / "ledger"
+    monetary.derive(monetary.DATASET_ID, output, pins, root)
+    with duckdb.connect() as c:
+        row = c.execute("SELECT burned_c_evm_wei,c_evm_coverage,complete,total_supply_close_wei IS NOT NULL FROM read_parquet(?) WHERE date_utc=DATE '2020-09-13'",
+                        [str(output / "dataset/avax-monetary-daily.parquet")]).fetchone()
+    assert row == (0, "complete", True, True)
+
+
+def test_gap_fee_with_unknown_actual_date_does_not_settle_its_proxy(root):
+    pins = sparse_evm_inputs(root, hole=True)
+    source = root / "sparse-fees/dataset/c-chain-block-fees.parquet"
+    make_run(root, "fees-without-clock", "data-api.c-chain-block-fees", "c-chain-block-fees",
+             "SELECT * REPLACE (CASE WHEN block_height=6 THEN NULL::DATE ELSE date_utc END AS date_utc, "
+             "CASE WHEN block_height=6 THEN NULL::TIMESTAMP ELSE block_timestamp END AS block_timestamp) "
+             f"FROM read_parquet('{source}')", "2026-09-23T19:03:00Z")
+    pins["data-api.c-chain-block-fees"] = "fees-without-clock"
+    output = root / "ledger"
+    monetary.derive(monetary.DATASET_ID, output, pins, root)
+    with duckdb.connect() as c:
+        row = c.execute("SELECT c_evm_coverage,complete,total_supply_close_wei IS NULL "
+                        "FROM read_parquet(?) WHERE date_utc=DATE '2020-09-12'",
+                        [str(output / "dataset/avax-monetary-daily.parquet")]).fetchone()
+    assert row == ("incomplete", False, True)
+
+
+@pytest.mark.parametrize("unresolved", [False, True])
+def test_absent_only_next_day_burn_uses_fee_clock_and_proxy_gap_settlement(root, unresolved):
+    pins = sparse_evm_inputs(root, hole=True, unresolved=unresolved)
+    output = root / "ledger"
+    monetary.derive(monetary.DATASET_ID, output, pins, root)
+    with duckdb.connect() as c:
+        rows = c.execute("SELECT date_utc,burned_c_evm_wei,burned_c_evm_gap_wei,c_evm_coverage,complete,total_supply_close_wei IS NOT NULL FROM read_parquet(?) WHERE date_utc BETWEEN DATE '2020-09-12' AND DATE '2020-09-13' ORDER BY date_utc",
+                         [str(output / "dataset/avax-monetary-daily.parquet")]).fetchall()
+    assert rows[0][1:4] == (4*WEI, 0, "incomplete" if unresolved else "repaired")
+    assert rows[1][1:4] == (WEI//2 if unresolved else 25*WEI//10, WEI//2 if unresolved else 25*WEI//10, "complete")
+    # An unresolved proxy height stops the conserved supply at the proxy day, even though the next day's known
+    # partial fee amount can be shown. No fee is shifted to that proxy day and no older non-null row is used.
+    assert rows[0][4:] == (not unresolved, not unresolved)
+    assert rows[1][5] is (not unresolved)
+
+
+@pytest.mark.parametrize("captured_at", ["2026-09-23T18:20:00Z", "2026-09-23T19:20:00+01:00"])
+def test_equal_time_conflict_refuses_until_an_exact_run_is_pinned(root, captured_at):
+    evm_revision(root, "c-evm-conflict", 6 * WEI, captured_at)
+    with duckdb.connect() as connection, pytest.raises(DataError, match="conflicting equal-priority input rows for c-evm-daily"):
+        monetary.load_inputs(connection, monetary.select_inputs(None, root, CATALOG))
+    for run, expected in [("c-evm", 4 * WEI), ("c-evm-conflict", 6 * WEI)]:
+        inputs = monetary.select_inputs({"snowflake.c-chain-evm-burn-daily": run}, root, CATALOG)
+        assert [item["run"] for item in inputs if item["input_id"] == "c-evm-daily"] == [run]
+        with duckdb.connect() as connection:
+            monetary.load_inputs(connection, inputs)
+            assert connection.execute("SELECT burned_wei, run FROM c_evm_daily WHERE date_utc=DATE '2020-09-12'").fetchone() == (expected, run)
+
+
+def test_identical_capture_time_rows_have_deterministic_run_lineage(root):
+    source = root / "c-evm" / "dataset" / "c-chain-evm-burn-daily.parquet"
+    make_run(root, "c-evm-z-identical", "snowflake.c-chain-evm-burn-daily", "c-chain-evm-burn-daily",
+             f"SELECT * FROM read_parquet('{source}')", "2026-09-23T18:20:00Z", window("2020-09-12", "2020-09-15"))
+    with duckdb.connect() as connection:
+        monetary.load_inputs(connection, monetary.select_inputs(None, root, CATALOG))
+        assert connection.execute("SELECT DISTINCT run FROM c_evm_daily").fetchall() == [("c-evm-z-identical",)]
+
+
+def test_seamed_authority_and_explicit_archival_pin_are_distinct(root):
+    evm_revision(root, "seamed-evm", 8 * WEI, "2026-09-22T18:00:00Z", seamed=True)
+    for pins, run, expected in [(None, "seamed-evm", 8 * WEI),
+                                ({"snowflake.c-chain-evm-burn-daily": "c-evm"}, "c-evm", 4 * WEI),
+                                ({"derived.seamed-c-chain-evm-burn-daily": "seamed-evm"}, "seamed-evm", 8 * WEI)]:
+        with duckdb.connect() as connection:
+            monetary.load_inputs(connection, monetary.select_inputs(pins, root, CATALOG))
+            assert connection.execute("SELECT burned_wei, run FROM c_evm_daily WHERE date_utc=DATE '2020-09-12'").fetchone() == (expected, run)
+    capture = root / "c-evm" / "capture" / "capture.json"
+    old = json.loads(capture.read_text())
+    old["contract_sha256"] = "0" * 64
+    capture.write_bytes(canonical_bytes(old))
+    selected = monetary.select_inputs({"snowflake.c-chain-evm-burn-daily": "c-evm"}, root, CATALOG)
+    assert [item["run"] for item in selected if item["input_id"] == "c-evm-daily"] == ["c-evm"]
+    with pytest.raises(DataError, match="pin only one source"):
+        monetary.select_inputs({"snowflake.c-chain-evm-burn-daily": "c-evm", "derived.seamed-c-chain-evm-burn-daily": "seamed-evm"}, root, CATALOG)
+
+
+def test_equal_time_seamed_conflict_cannot_hide_in_latest_run_lookup(root):
+    evm_revision(root, "seamed-a", 8 * WEI, seamed=True)
+    evm_revision(root, "seamed-b", 9 * WEI, seamed=True)
+    with duckdb.connect() as connection, pytest.raises(DataError, match="conflicting equal-priority input rows"):
+        monetary.load_inputs(connection, monetary.select_inputs(None, root, CATALOG))
+
+
+def test_a_required_family_can_be_supplied_by_seamed_runs_alone(root):
+    import shutil
+
+    evm_revision(root, "seamed-only", 8 * WEI, seamed=True)
+    shutil.rmtree(root / "c-evm")
+    with duckdb.connect() as connection:
+        monetary.load_inputs(connection, monetary.select_inputs(None, root, CATALOG))
+        assert connection.execute("SELECT DISTINCT run FROM c_evm_daily").fetchall() == [("seamed-only",)]
+
+
+def test_newer_null_transaction_burn_is_not_a_settled_repair(root):
+    source = root / "p-transactions" / "dataset" / "transactions.parquet"
+    make_run(root, "p-transactions-new", "p-chain-rpc.transactions", "transactions",
+             f"SELECT * REPLACE (NULL::BIGINT AS burned_navax) FROM read_parquet('{source}')", "2026-09-23T19:00:00Z")
+    output = root / "ledger"
+    monetary.derive(monetary.DATASET_ID, output, root=root)
+    with duckdb.connect() as connection:
+        row = connection.execute("SELECT p_coverage,complete,total_supply_close_wei FROM read_parquet(?) WHERE date_utc=DATE '2020-09-12'",
+                                 [str(output / "dataset" / "avax-monetary-daily.parquet")]).fetchone()
+    assert row == ("incomplete", False, None)
+
+
+@pytest.mark.parametrize("column", ["burned_c_evm_wei", "burned_p_l1_validator_fees_wei", "burned_c_evm_gap_wei"])
+def test_component_mutations_fail_even_when_total_burn_is_unchanged(root, column):
+    output = root / "ledger"
+    monetary.derive(monetary.DATASET_ID, output, root=root)
+    parquet = output / "dataset" / "avax-monetary-daily.parquet"
+    with duckdb.connect() as connection:
+        connection.execute(f"CREATE TABLE changed AS SELECT * REPLACE ({column} + {WEI}::DECIMAL(38,0) AS {column}) FROM read_parquet(?)", [str(parquet)])
+        connection.execute("COPY changed TO ? (FORMAT PARQUET)", [str(parquet)])
+    build_path = output / "dataset" / "build.json"
+    build = json.loads(build_path.read_text())
+    body = parquet.read_bytes()
+    build["outputs"][0].update(bytes=len(body), sha256=sha256(body))
+    build_path.write_bytes(canonical_bytes(build))
+    checked = monetary.check(output / "capture", output / "dataset", root=root)
+    assert checked["status"] == "attention"
+    assert any("burn component" in finding or "burn subcomponents" in finding or "gap burn" in finding for finding in checked["findings"])
+
+
+def run_reference(root, run, input_id):
+    capture = json.loads((root / run / 'capture/capture.json').read_text())
+    build = json.loads((root / run / 'dataset/build.json').read_text())
+    output = build['outputs'][0]
+    return {'input_id': input_id, 'dataset_id': build['dataset_id'], 'run': run,
+            'capture_id': capture['capture_id'], 'captured_at': capture['completed_at'],
+            'parquet': output['path'], 'bytes': output['bytes'], 'sha256': output['sha256']}
+
+
+def add_auto_cycles(root, *, passed=True):
+    """Two hand-countable cycles. First restakes 6 nAVAX, then terminal current recognition is 24 or 4."""
+    from avalanche_research.datasets.derived.pstaking import CYCLE_COLUMNS
+
+    weight = 2000 * NAVAX
+    at1, at2 = '2020-09-12 00:00:00', '2020-09-14 00:00:00'
+    epoch1 = int(monetary.datetime.fromisoformat(at1).replace(tzinfo=monetary.UTC).timestamp())
+    epoch2 = int(monetary.datetime.fromisoformat(at2).replace(tzinfo=monetary.UTC).timestamp())
+    unsigned1 = json.dumps({'txID': 'a', 'timestamp': epoch1})
+    unsigned2 = json.dumps({'txID': 'a', 'timestamp': epoch2})
+    blocksql = f"""SELECT * FROM (VALUES
+        (10,'p1','prev',TIMESTAMP '{at1}','proposal','r-auto1','RewardAutoRenewedValidatorTx','{unsigned1}'),
+        (11,'o1','p1',TIMESTAMP '{at1}','commit',NULL,NULL,'{{}}'),
+        (20,'p2','prev2',TIMESTAMP '{at2}','proposal','r-auto2','RewardAutoRenewedValidatorTx','{unsigned2}'),
+        (21,'o2','p2',TIMESTAMP '{at2}','{'commit' if passed else 'abort'}',NULL,NULL,'{{}}')
+    ) t(block_height,block_id,parent_id,block_time,block_type,transaction_hash,tx_type,unsigned_tx)"""
+    make_run(root, 'cycle-walk', 'p-chain-rpc.blocks', 'blocks', blocksql, '2026-09-23T18:30:00Z')
+    cycles = f"""SELECT * FROM (VALUES
+        ('a','node-a',1,TIMESTAMP '2020-09-10',TIMESTAMP '{at1}',{weight}::BIGINT,10,500000,172800,'r-auto1',TRUE,2,5,1,5,1),
+        ('a','node-a',2,TIMESTAMP '{at1}',TIMESTAMP '{at2}',{weight+6}::BIGINT,20,500000,0,'r-auto2',{'TRUE' if passed else 'FALSE'},4,0,0,{20 if passed else 0},4)
+    ) t({','.join(CYCLE_COLUMNS)})"""
+    make_run(root, 'cycles', 'derived.p-chain-staking-cycles', 'cycles', cycles, '2026-09-23T18:31:00Z',
+             {'inputs': [run_reference(root, 'cycle-walk', 'blocks')]})
+    original = root / 'periods/dataset/staking-periods.parquet'
+    periods = f"""SELECT *, CASE role WHEN 'validator' THEN 'AddValidatorTx' ELSE 'AddDelegatorTx' END AS tx_type,
+                       'old-'||transaction_hash AS node_id,0::BIGINT AS block_height,1 AS cycles FROM read_parquet('{original}')
+    UNION ALL BY NAME SELECT 'a' AS transaction_hash,'validator' AS role,'AddAutoRenewedValidatorTx' AS tx_type,'node-a' AS node_id,
+      TIMESTAMP '2020-09-10' AS accepted_at,TIMESTAMP '2020-09-10' AS start_time,TIMESTAMP '{at1}' AS end_time,
+      {weight}::BIGINT AS stake_navax,10::BIGINT AS potential_reward_navax,TIMESTAMP '{at2}' AS rewarded_at,
+      {'TRUE' if passed else 'FALSE'} AS rewarded,'durango' AS regime,0::BIGINT AS block_height,2 AS cycles,TIMESTAMP '{at2}' AS last_cycle_end_time
+    UNION ALL BY NAME SELECT 'ad1' AS transaction_hash,'delegator' AS role,'AddDelegatorTx' AS tx_type,'node-a' AS node_id,
+      'a' AS validator_transaction_hash,TIMESTAMP '2020-09-10' AS accepted_at,TIMESTAMP '2020-09-10' AS start_time,TIMESTAMP '{at1}' AS end_time,
+      {25*NAVAX}::BIGINT AS stake_navax,10::BIGINT AS potential_reward_navax,TIMESTAMP '{at1}' AS rewarded_at,
+      TRUE AS rewarded,'durango' AS regime,-2::BIGINT AS fee_transfer_navax,1::BIGINT AS block_height,1 AS cycles
+    UNION ALL BY NAME SELECT 'ad2' AS transaction_hash,'delegator' AS role,'AddDelegatorTx' AS tx_type,'node-a' AS node_id,
+      'a' AS validator_transaction_hash,TIMESTAMP '{at1}' AS accepted_at,TIMESTAMP '{at1}' AS start_time,TIMESTAMP '{at2}' AS end_time,
+      {25*NAVAX}::BIGINT AS stake_navax,20::BIGINT AS potential_reward_navax,TIMESTAMP '{at2}' AS rewarded_at,
+      TRUE AS rewarded,'durango' AS regime,-4::BIGINT AS fee_transfer_navax,12::BIGINT AS block_height,1 AS cycles"""
+    base_capture = json.loads((root / 'periods/capture/capture.json').read_text())
+    make_run(root, 'periods-auto', 'derived.staking-periods', 'staking-periods', periods, '2026-09-23T18:32:00Z',
+             {'inputs': base_capture['inputs'] + [run_reference(root, 'cycles', 'p-staking-cycles')]})
+    rewards = root / 'rewards/dataset/primary-staking-rewards.parquet'
+    reward_sql = f"""SELECT * FROM read_parquet('{rewards}')
+    UNION ALL BY NAME SELECT 'd-auto1' AS reward_transaction_hash,'ad1' AS staking_transaction_hash,'AddDelegatorTx' AS staking_tx_type,
+      TIMESTAMP '{at1}' AS rewarded_at,9 AS block_height,8::BIGINT AS realized_reward_navax
+    UNION ALL BY NAME SELECT 'd-auto2' AS reward_transaction_hash,'ad2' AS staking_transaction_hash,'AddDelegatorTx' AS staking_tx_type,
+      TIMESTAMP '{at2}' AS rewarded_at,19 AS block_height,16::BIGINT AS realized_reward_navax
+    UNION ALL BY NAME SELECT 'auto-cash' AS reward_transaction_hash,'a' AS staking_transaction_hash,'AddAutoRenewedValidatorTx' AS staking_tx_type,
+      TIMESTAMP '{at2}' AS rewarded_at,21 AS block_height,999::BIGINT AS realized_reward_navax"""
+    make_run(root, 'rewards-auto', 'snowflake.primary-staking-rewards', 'primary-staking-rewards', reward_sql,
+             '2026-09-23T18:33:00Z', window('2020-09-10', '2026-09-24'))
+    recognised = 60 if passed else 40
+    counter = 360000169 * NAVAX + recognised
+    make_run(root, 'supply-auto', 'snowflake.primary-staking-supply', 'primary-staking-supply',
+             f"SELECT 'last' AS transaction_hash,TIMESTAMP '{at2}' AS accepted_at,21 AS block_height,{counter}::BIGINT AS block_supply_navax",
+             '2026-09-23T18:34:00Z', window('2020-09-10', '2026-09-24'))
+    return recognised
+
+
+@pytest.mark.parametrize('passed', [True, False])
+def test_cycle_recognition_stock_and_terminal_release_reach_the_actual_ledger(root, passed):
+    recognised = add_auto_cycles(root, passed=passed)
+    output = root / 'ledger'
+    result = monetary.derive(monetary.DATASET_ID, output, root=root)
+    summary = result['build']['summary']['cycle_accounting']
+    assert summary['cycle_recognised_navax'] == (36 if passed else 16)
+    assert summary['prior_accrual_released_navax'] == 6
+    assert summary['excluded_ordinary_auto_payout_rows'] == 1 and summary['excluded_ordinary_auto_payout_navax'] == '999'
+    assert result['capture']['reward_accounting_basis'] == monetary.REWARD_ACCOUNTING_BASIS
+    assert {'staking-cycles', 'cycle-blocks'} <= {item['input_id'] for item in result['capture']['inputs']}
+    with duckdb.connect() as c:
+        ledger = str(output / 'dataset/avax-monetary-daily.parquet')
+        assert c.execute('SELECT sum(issued_rewards_wei) FROM read_parquet(?)', [ledger]).fetchone()[0] == 69 * WEI + recognised * NAVAX
+        assert c.execute("SELECT active_validator_stake_wei,active_validators FROM read_parquet(?) WHERE date_utc=DATE '2020-09-13'", [ledger]).fetchone() == ((5000 * NAVAX + 6) * NAVAX, 2)
+        assert c.execute("SELECT active_validators FROM read_parquet(?) WHERE date_utc=DATE '2020-09-14'", [ledger]).fetchone()[0] == 1
+        events = str(output / 'dataset' / monetary.CYCLE_EVENTS_FILE)
+        assert c.execute('SELECT prior_validation_release_navax,prior_delegatee_release_navax FROM read_parquet(?) WHERE cycle=2', [events]).fetchone() == (5,1)
+    assert result['build']['summary']['counter']['gap_avax'] == 0
+    checked = monetary.check(output / 'capture', output / 'dataset', root=root)
+    assert checked['status'] == 'pass', checked['findings']
+
+
+@pytest.mark.parametrize('which', ['cycles', 'blocks'])
+def test_cycle_dependency_pin_must_match_the_recorded_parent(root, which):
+    add_auto_cycles(root)
+    dataset_id = 'derived.p-chain-staking-cycles' if which == 'cycles' else 'p-chain-rpc.blocks'
+    with pytest.raises(DataError, match="pin differs"):
+        monetary.select_inputs({dataset_id: 'unrelated-run'}, root, CATALOG)
+    selected = monetary.select_inputs({'derived.p-chain-staking-cycles': 'cycles', 'p-chain-rpc.blocks': 'cycle-walk'}, root, CATALOG)
+    assert {x['run'] for x in selected if x['input_id'] in monetary.CYCLE_INPUTS} == {'cycles', 'cycle-walk'}
+
+
+@pytest.mark.parametrize('source', ['periods-auto', 'cycles'])
+def test_referenced_cycle_or_block_hash_cannot_be_replaced_by_latest(root, source):
+    add_auto_cycles(root)
+    path = root / source / 'capture/capture.json'
+    capture = json.loads(path.read_text())
+    reference = next(i for i in capture['inputs'] if i['input_id'] == ('p-staking-cycles' if source == 'periods-auto' else 'blocks'))
+    reference['sha256'] = '0' * 64
+    path.write_bytes(canonical_bytes(capture))
+    with pytest.raises(DataError, match="source differs"):
+        monetary.derive(monetary.DATASET_ID, root / 'ledger', root=root)
+    assert not (root / 'ledger').exists()
+
+
+def test_rehashed_cycle_companion_corruption_fails_semantic_replay(root):
+    add_auto_cycles(root)
+    output = root / 'ledger'
+    monetary.derive(monetary.DATASET_ID, output, root=root)
+    path = output / 'dataset' / monetary.CYCLE_EVENTS_FILE
+    with duckdb.connect() as c:
+        c.execute('CREATE TABLE changed AS SELECT * REPLACE (recognised_reward_navax+1 AS recognised_reward_navax) FROM read_parquet(?)', [str(path)])
+        c.execute('COPY changed TO ? (FORMAT PARQUET)', [str(path)])
+    build_path = output / 'dataset/build.json'
+    build = json.loads(build_path.read_text())
+    record = next(r for r in build['outputs'] if r['path'] == monetary.CYCLE_EVENTS_FILE)
+    record.update(bytes=path.stat().st_size, sha256=sha256(path.read_bytes()))
+    build_path.write_bytes(canonical_bytes(build))
+    checked = monetary.check(output / 'capture', output / 'dataset', root=root)
+    assert checked['status'] == 'attention'
+    assert 'cycle_events differs from the recorded accounting projection' in checked['findings']
+
+
+def test_cycle_diagnostics_do_not_recognise_a_proposal_before_its_option(root):
+    add_auto_cycles(root)
+    with duckdb.connect() as c:
+        meta = monetary.load_inputs(c, monetary.select_inputs(None, root, CATALOG))
+        monetary.compute(c, meta)
+        at = monetary.datetime(2020,9,12)
+        proposed = monetary._cycle_diagnostic_amounts(c,at,10)
+        committed = monetary._cycle_diagnostic_amounts(c,at,11)
+        assert proposed['recognised'] == 50*NAVAX+8 and proposed['held'] == 2
+        assert committed['recognised'] == 50*NAVAX+20 and committed['held'] == 0
+        assert proposed['pending'] == 120*NAVAX+10
+        assert committed['pending'] == 120*NAVAX+20
+        # The still-open ordinary delegator has earned one of its nine days (20/9 AVAX).
+        reconciled = monetary.rewards_reconciliation(c, at, 50 + 20e-9 + 20/9)
+        assert reconciled['basis'] == monetary.REWARD_ACCOUNTING_BASIS
+        assert reconciled['paid_avax'] is None
+        assert reconciled['held_fees_avax'] == 0
+        assert reconciled['recognised_avax'] == (50*NAVAX+20)/NAVAX
+        assert reconciled['earned_open_avax'] == pytest.approx(20/9)
+        assert reconciled['covered'] and reconciled['within']

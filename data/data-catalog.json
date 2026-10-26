@@ -1610,6 +1610,41 @@
           "id": "pool-history",
           "dataset_id": "defillama.pool-history",
           "role": "daily DeFi yields of the declared liquid staking, lending and other-chain pools"
+        },
+        {
+          "id": "seamed-validator-stakes",
+          "dataset_id": "derived.seamed-validator-stakes",
+          "role": "seamed alternative to validator-stakes; selected when available unless an explicit raw input is pinned; exact selected identity is recorded in the capture"
+        },
+        {
+          "id": "seamed-delegator-stakes",
+          "dataset_id": "derived.seamed-delegator-stakes",
+          "role": "seamed alternative to delegator-stakes; selected when available unless an explicit raw input is pinned; exact selected identity is recorded in the capture"
+        },
+        {
+          "id": "seamed-staking-supply",
+          "dataset_id": "derived.seamed-staking-supply",
+          "role": "seamed alternative to staking-supply; selected when available unless an explicit raw input is pinned; exact selected identity is recorded in the capture"
+        },
+        {
+          "id": "seamed-burn-daily",
+          "dataset_id": "derived.seamed-burn-daily",
+          "role": "seamed alternative to burn-daily; selected when available unless an explicit raw input is pinned; exact selected identity is recorded in the capture"
+        },
+        {
+          "id": "seamed-c-evm-daily",
+          "dataset_id": "derived.seamed-c-chain-evm-burn-daily",
+          "role": "seamed alternative to c-evm-daily; selected when available unless an explicit raw input is pinned; exact selected identity is recorded in the capture"
+        },
+        {
+          "id": "staking-cycles",
+          "dataset_id": "derived.p-chain-staking-cycles",
+          "role": "optional exact cycle history bound by the selected staking-periods capture"
+        },
+        {
+          "id": "cycle-blocks",
+          "dataset_id": "p-chain-rpc.blocks",
+          "role": "optional exact proposal and commit or abort block walk bound by the selected cycle capture"
         }
       ]
     },
@@ -5172,7 +5207,11 @@
         "delegator-stakes",
         "staking-rewards",
         "staking-supply",
-        "p-staking-cycles"
+        "p-staking-cycles",
+        "seamed-validator-stakes",
+        "seamed-delegator-stakes",
+        "seamed-staking-rewards",
+        "seamed-staking-supply"
       ],
       "fields": [
         {
@@ -6238,7 +6277,7 @@
         "Value Accrual as Equilibrium: How We Think About AVAX Tokenomics",
         "From Gross Chain Product to Gross Chain Income: Where the Value Goes"
       ],
-      "description": "One row per UTC date with staking rewards paid out, AVAX burned on the P-, X-, and C-Chains, the realized total supply replayed from genesis, and the validator and delegated stake active at the end of the day, every amount an integer number of wei, with a coverage state per component. Supply is written only through the last day before the first incomplete one; nothing is imputed.",
+      "description": "One row per UTC date with recognised staking reward issuance, AVAX burned on the P-, X-, and C-Chains, realised total supply replayed from genesis and stake active at the day's last second. Ordinary rewards retain net payout timing. Auto-renewed cycles recognise current self rewards and pending delegatee fees once at a verified reward event, excluding release of previously recognised restake. Cycle weights determine active stake. Amounts are integer wei, with explicit coverage. Supply stops at the first incomplete day.",
       "input_ids": [
         "burn-daily",
         "staking-rewards",
@@ -6252,7 +6291,13 @@
         "c-receipt-repairs",
         "c-atomic",
         "c-atomic-transactions",
-        "supply-checkpoints"
+        "supply-checkpoints",
+        "seamed-burn-daily",
+        "seamed-staking-rewards",
+        "seamed-staking-supply",
+        "seamed-c-evm-daily",
+        "staking-cycles",
+        "cycle-blocks"
       ],
       "fields": [
         {
@@ -6265,7 +6310,7 @@
           "name": "issued_rewards_wei",
           "type": "integer",
           "unit": "wei",
-          "derivation": "staking rewards paid out that day: realized reward UTXOs of the reward transactions accepted on the day, from snowflake.primary-staking-rewards, times 10^9; a validator's share of its delegators' fees is inside the validator's reward and counted once"
+          "derivation": "ordinary reward transaction net outputs, excluding auto-renewed parent payouts, plus current cycle self rewards and pending delegatee fees at the verified cycle proposal and matching commit or abort; prior restaked accrual released on exit is not new issuance; nAVAX times 10^9"
         },
         {
           "name": "burned_p_wei",
@@ -6331,7 +6376,7 @@
           "name": "active_validator_stake_wei",
           "type": "integer",
           "unit": "wei",
-          "derivation": "self-stake of validator periods with start_time <= 23:59:59 UTC of the day < end_time, from derived.staking-periods, times 10^9"
+          "derivation": "ordinary validator stake on [start_time, end_time), plus each auto-renewed cycle weight on its verified half-open interval, evaluated at 23:59:59 UTC; nAVAX times 10^9"
         },
         {
           "name": "active_delegated_stake_wei",
@@ -6355,7 +6400,7 @@
           "name": "rewards_coverage",
           "type": "string",
           "unit": "coverage",
-          "derivation": "'complete' when the day lies inside the reward run's window and before its capture day, else 'missing'"
+          "derivation": "complete only inside the ordinary reward source window and before its capture day, with required cycle history and reward events verified through the admitted horizon; missing outside the window; unresolved past cycle events refuse the build"
         },
         {
           "name": "p_coverage",
@@ -6478,7 +6523,7 @@
           "name": "issued_avax",
           "type": "number",
           "unit": "AVAX",
-          "derivation": "realized rewards whose reward transaction falls in the period"
+          "derivation": "recognised ordinary net reward events and current cycle reward events from the exact ledger inputs and verified cycle companion, split at activation instants; totals must reconcile to daily ledger issuance"
         },
         {
           "name": "burned_p_avax",

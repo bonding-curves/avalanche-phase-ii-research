@@ -3,7 +3,7 @@
 One row per period from genesis to the ledger's last day, each period running from one activation instant to the next.
 The daily active-stake-to-supply ratios, validators alone and validators with delegators, and the daily total supply are
 observations at each UTC day's close, so a day belongs to the period in force at its close. Issuance is split exactly at
-each activation instant from the reward transactions' own times, using the reward run the ledger itself read, so each
+each activation instant from the ledger's ordinary reward source and its authenticated cycle-only event companion, so each
 period's issuance is an exact sum in nAVAX and the periods add up to the ledger's issuance. The table reports amounts in
 AVAX as floats, so a sum of its rows can differ in the last digits. Burns are captured by UTC day only, except in narrow windows, so a
 day's burns also go to the period in force at its close; the burns of each activation day are reported apart, so their
@@ -13,6 +13,7 @@ size is visible.
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -33,6 +34,12 @@ from ...core.catalog import (
     sha256,
 )
 from ...domain.protocol import MAINNET_UPGRADES
+from . import monetary
+from .monetary import (
+    CYCLE_EVENTS_FILE,
+    REWARD_ACCOUNTING_BASIS,
+    burn_component_findings,
+)
 
 DATASET_ID = "derived.monetary-periods"
 DATASET_IDS = (DATASET_ID,)
@@ -60,33 +67,81 @@ def periods() -> list[tuple[str, str]]:
 
 
 def _inputs(pinned: dict[str, str] | None, root: Path | None) -> list[dict[str, Any]]:
-    """The ledger, and the reward run it recorded reading."""
+    """The ledger's exact ordinary source and, for the new basis, its authenticated cycle companion."""
     pinned = pinned or {}
-    if set(pinned) - {"derived.avax-monetary-daily"}:
-        raise DataError(f"the only pinnable input of {DATASET_ID} is derived.avax-monetary-daily")
+    if set(pinned) - {"derived.avax-monetary-daily", "snowflake.primary-staking-rewards", "derived.seamed-staking-rewards"}:
+        raise DataError(f"{DATASET_ID} takes a ledger and only its exact recorded reward input")
     ledger = datasets.receipt("derived.avax-monetary-daily", pinned.get("derived.avax-monetary-daily"), root)
     rewards = next(item for item in ledger["capture"]["inputs"] if item["input_id"] == "staking-rewards")
+    if any(key != rewards["dataset_id"] or value != rewards["run"] for key, value in pinned.items() if key != "derived.avax-monetary-daily"):
+        raise DataError("reward pin differs from the ledger's exact recorded input")
     selected = []
     for input_id, dataset_id, run in (("ledger", "derived.avax-monetary-daily", ledger["run"]), ("rewards", rewards["dataset_id"], rewards["run"])):
         parquet = datasets.parquet_path(dataset_id, run, root)
         body = parquet.read_bytes()
         record = datasets.receipt(dataset_id, run, root)
         selected.append({"input_id": input_id, "dataset_id": dataset_id, "run": run, "capture_id": record["capture"]["capture_id"],
-                         "parquet": parquet.name, "bytes": len(body), "sha256": sha256(body), "path": parquet})
+                         "parquet": parquet.name, "bytes": len(body), "sha256": sha256(body), "path": parquet,
+                         "capture_sha256": sha256((parquet.parent.parent / "capture" / "capture.json").read_bytes())})
     if selected[1]["sha256"] != rewards["sha256"]:
         raise DataError(f"the reward run {rewards['run']} changed since the ledger read it")
+    basis = ledger["capture"].get("reward_accounting_basis")
+    if basis is not None:
+        if basis != REWARD_ACCOUNTING_BASIS:
+            raise DataError("ledger has an unsupported reward accounting basis")
+        if any(selected[1][key] != rewards.get(key) for key in ("capture_id", "parquet", "bytes", "sha256", "capture_sha256")):
+            raise DataError("ordinary reward identity differs from the ledger's recorded source")
+        records = [item for item in ledger["build"]["outputs"] if item["path"] == CYCLE_EVENTS_FILE]
+        if len(records) != 1:
+            raise DataError("cycle-aware ledger lacks its recorded event companion")
+        companion = selected[0]["path"].parent / CYCLE_EVENTS_FILE
+        if not companion.is_file() or companion.stat().st_size != records[0]["bytes"] or sha256(companion.read_bytes()) != records[0]["sha256"]:
+            raise DataError("cycle event companion differs from the ledger build receipt")
+        selected[0]["reward_accounting_basis"] = basis
+        selected.append({"input_id": "cycle-events", "dataset_id": "derived.avax-monetary-daily", "run": ledger["run"],
+                         "capture_id": ledger["capture"]["capture_id"], "parquet": CYCLE_EVENTS_FILE,
+                         "bytes": records[0]["bytes"], "sha256": records[0]["sha256"], "path": companion})
     return selected
 
 
 def compute(inputs: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
     paths = {item["input_id"]: str(item["path"]).replace("'", "''") for item in inputs}
-    connection = duckdb.connect()
-    try:
+    basis = next(item for item in inputs if item["input_id"] == "ledger").get("reward_accounting_basis")
+    if basis is not None and (basis != REWARD_ACCOUNTING_BASIS or "cycle-events" not in paths):
+        raise DataError("cycle-aware ledger requires its supported event companion")
+    if basis is None and "cycle-events" in paths:
+        raise DataError("cycle event companion requires an explicit ledger accounting basis")
+    with monetary.accounting_connection() as connection:
         # The means average floating-point ratios. Summed across threads, their last digits depend on the order the
         # threads finish, and the check's rebuild then differs from the build. One thread makes the order fixed.
         connection.execute("SET threads TO 1")
         connection.execute(f"CREATE VIEW ledger AS SELECT * FROM read_parquet('{paths['ledger']}')")
+        failures = burn_component_findings(connection)
+        if failures:
+            raise DataError("; ".join(failures))
         connection.execute(f"CREATE VIEW rewards AS SELECT * FROM read_parquet('{paths['rewards']}')")
+        if "cycle-events" in paths:
+            columns = {row[0] for row in connection.execute("DESCRIBE rewards").fetchall()}
+            if not {"staking_transaction_hash", "staking_tx_type"} <= columns:
+                raise DataError("cycle-aware period projection lacks ordinary staking identity")
+            connection.execute(f"CREATE VIEW cycle_events AS SELECT * FROM read_parquet('{paths['cycle-events']}')")
+            connection.execute("""CREATE VIEW recognised_events AS
+                SELECT r.rewarded_at,r.realized_reward_navax::DECIMAL(38,0) AS recognised_reward_navax FROM rewards r
+                WHERE r.staking_tx_type IS DISTINCT FROM 'AddAutoRenewedValidatorTx'
+                  AND NOT EXISTS(SELECT 1 FROM cycle_events c WHERE c.validator_transaction_hash=r.staking_transaction_hash)
+                UNION ALL SELECT rewarded_at,recognised_reward_navax FROM cycle_events""")
+            mismatches = connection.execute("""
+                WITH events AS (SELECT rewarded_at::DATE AS date_utc,sum(recognised_reward_navax)*1000000000::DECIMAL(38,0) AS issued FROM recognised_events GROUP BY 1),
+                bounds AS (SELECT min(date_utc) AS first,max(date_utc) AS last FROM ledger)
+                SELECT count(*) FROM ledger l FULL JOIN events e USING(date_utc),bounds b
+                WHERE coalesce(l.date_utc,e.date_utc) BETWEEN b.first AND b.last
+                  AND l.issued_rewards_wei IS DISTINCT FROM coalesce(e.issued,0)
+            """).fetchone()[0]
+            if mismatches:
+                raise DataError("recognised event projection does not equal ledger daily issuance")
+        else:
+            # Explicit archive compatibility: former ledgers retain ordinary payout-only event timing.
+            connection.execute("CREATE VIEW recognised_events AS SELECT rewarded_at,realized_reward_navax::DECIMAL(38,0) AS recognised_reward_navax FROM rewards")
         connection.execute("CREATE TABLE starts(regime VARCHAR, starts_at TIMESTAMP)")
         connection.executemany("INSERT INTO starts VALUES (?, ?)", periods())
         last = connection.execute("SELECT max(date_utc) + INTERVAL 1 DAY FROM ledger").fetchone()[0]
@@ -100,31 +155,41 @@ def compute(inputs: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
                        (l.active_validator_stake_wei + l.active_delegated_stake_wei) / l.total_supply_close_wei AS combined_ratio
                 FROM ledger l ASOF JOIN bounds b ON (l.date_utc + INTERVAL 1 DAY)::TIMESTAMP > b.starts_at),
             issued AS (
-                SELECT b.regime, sum(r.realized_reward_navax)::DOUBLE / 1e9 AS issued_avax
-                FROM rewards r JOIN bounds b ON r.rewarded_at >= b.starts_at AND r.rewarded_at < b.ends_at
+                SELECT b.regime, sum(r.recognised_reward_navax)::DOUBLE / 1e9 AS issued_avax
+                FROM recognised_events r JOIN bounds b ON r.rewarded_at >= b.starts_at AND r.rewarded_at < b.ends_at
                 WHERE r.rewarded_at < TIMESTAMP '{last}' GROUP BY 1)
             SELECT b.regime, b.starts_at, b.ends_at, count(d.date_utc)::INTEGER,
                    date_diff('day', b.starts_at::DATE, b.ends_at::DATE)::INTEGER,
                    avg(d.validator_ratio::DOUBLE), median(d.validator_ratio::DOUBLE), avg(d.combined_ratio::DOUBLE), median(d.combined_ratio::DOUBLE),
                    avg(d.total_supply_close_wei::DOUBLE) / 1e18, coalesce(any_value(i.issued_avax), 0),
                    coalesce(sum(d.burned_p_wei), 0)::DOUBLE / 1e18, coalesce(sum(d.burned_x_wei), 0)::DOUBLE / 1e18,
-                   coalesce(sum(d.burned_c_evm_wei + d.burned_c_evm_gap_wei), 0)::DOUBLE / 1e18, coalesce(sum(d.burned_c_atomic_wei), 0)::DOUBLE / 1e18,
+                   coalesce(sum(d.burned_c_evm_wei), 0)::DOUBLE / 1e18, coalesce(sum(d.burned_c_atomic_wei), 0)::DOUBLE / 1e18,
                    coalesce(sum(d.burned_wei), 0)::DOUBLE / 1e18,
                    coalesce(sum(d.burned_wei) FILTER (WHERE d.date_utc = b.starts_at::DATE AND b.starts_at <> b.starts_at::DATE::TIMESTAMP), 0)::DOUBLE / 1e18
             FROM bounds b LEFT JOIN days d USING (regime) LEFT JOIN issued i USING (regime)
             GROUP BY b.regime, b.starts_at, b.ends_at ORDER BY b.starts_at""").fetchall()
-    finally:
-        connection.close()
+
+
+def _validate_parent_projection(inputs: list[dict[str, Any]], root: Path | None) -> None:
+    """Authenticate exact cycle event times against the recorded source walk, not only daily issuance sums."""
+    ledger = next(item for item in inputs if item["input_id"] == "ledger")
+    directory = ledger["path"].parent
+    capture = json.loads((directory.parent / "capture/capture.json").read_text(encoding="utf-8"))
+    basis = capture.get("reward_accounting_basis")
+    if basis != ledger.get("reward_accounting_basis"):
+        raise DataError("period input accounting basis differs from the parent ledger")
+    if basis is None:
+        return  # Explicit archive compatibility, without applying today's accounting projection to former ledgers.
+    result = monetary.check(directory.parent / "capture", directory, root=root)
+    if result["status"] != "pass":
+        raise DataError("parent ledger validation failed: " + "; ".join(result["findings"]))
 
 
 def _totals(inputs: list[dict[str, Any]]) -> tuple[float, float]:
     """The ledger's own issuance and burn over all its days, in AVAX."""
     path = str(next(item["path"] for item in inputs if item["input_id"] == "ledger")).replace("'", "''")
-    connection = duckdb.connect()
-    try:
+    with monetary.accounting_connection() as connection:
         return connection.execute(f"SELECT sum(issued_rewards_wei)::DOUBLE / 1e18, sum(burned_wei)::DOUBLE / 1e18 FROM read_parquet('{path}')").fetchone()
-    finally:
-        connection.close()
 
 
 def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, root: Path | None = None) -> dict[str, Any]:
@@ -134,6 +199,7 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
         raise DataError(f"output already exists: {output}")
     catalog = load_catalog()
     inputs = _inputs(pinned, root)
+    _validate_parent_projection(inputs, root)
     rows = compute(inputs)
     issued, burned = _totals(inputs)
     completed_at = now()
@@ -144,7 +210,9 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
         "source_id": SOURCE_ID, "completed_at": completed_at, "contract_sha256": contract_hash(catalog, DATASET_ID),
         "tool": f"avalanche-research@{__version__}", "inputs": records,
         "parameters": {"periods": periods(), "stock_rule": "a day's close-of-day observations belong to the period in force at its close",
-                       "issuance_rule": "reward transactions split at the activation instant", "burn_rule": "a day's burns belong to the period in force at its close"},
+                       "issuance_rule": "recognised events split at the activation instant", "burn_rule": "a day's burns belong to the period in force at its close",
+                       "reward_accounting_basis": inputs[0].get("reward_accounting_basis", "archived-ordinary-payout-only"),
+                       "event_window": "events before the UTC midnight after the ledger's last date; same daily issuance projection"},
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
@@ -153,13 +221,10 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
         (temporary / "dataset").mkdir()
         (temporary / "capture" / "capture.json").write_bytes(canonical_bytes(capture_receipt))
         parquet = temporary / "dataset" / f"{TABLE}.parquet"
-        connection = duckdb.connect()
-        try:
+        with monetary.accounting_connection() as connection:
             connection.execute(f"CREATE TABLE rows({', '.join(f'{name} {kind}' for name, kind in TABLE_COLUMNS.items())})")
             connection.executemany(f"INSERT INTO rows VALUES ({', '.join('?' for _ in TABLE_COLUMNS)})", rows)
             connection.execute("COPY rows TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(parquet)])
-        finally:
-            connection.close()
         build_receipt = {
             "schema_version": "derived-build/v1", "dataset_id": DATASET_ID, "dataset_schema": dataset(catalog, DATASET_ID)["fields"],
             "source_capture_id": capture_receipt["capture_id"], "completed_at": now(), "tool": f"avalanche-research@{__version__}",
@@ -190,16 +255,35 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
         parquet = root_dir / item["run"] / "dataset" / item["parquet"]
         if not parquet.is_file() or sha256(parquet.read_bytes()) != item["sha256"]:
             findings.append(f"input run missing or changed: {item['run']}")
+        if "capture_sha256" in item:
+            capture = root_dir / item["run"] / "capture" / "capture.json"
+            if not capture.is_file() or sha256(capture.read_bytes()) != item["capture_sha256"]:
+                findings.append(f"input capture changed: {item['run']}")
         inputs.append({**item, "path": parquet})
+    if not findings:
+        try:
+            _validate_parent_projection(inputs, root_dir)
+        except (DataError, OSError, KeyError, TypeError, ValueError, duckdb.Error) as error:
+            findings.append(str(error))
     summary: dict[str, Any] = {}
     if dataset_dir is not None and not findings:
-        built = duckdb.connect().execute("SELECT * FROM read_parquet(?) ORDER BY starts_at", [str(dataset_dir / f"{TABLE}.parquet")]).fetchall()
-        if [tuple(map(str, row)) for row in built] != [tuple(map(str, row)) for row in compute(inputs)]:
-            findings.append("a rebuild from the recorded inputs differs")
+        with monetary.accounting_connection() as connection:
+            built = connection.execute("SELECT * FROM read_parquet(?) ORDER BY starts_at", [str(dataset_dir / f"{TABLE}.parquet")]).fetchall()
+        try:
+            expected = compute(inputs)
+        except DataError as error:
+            findings.append(str(error))
+        else:
+            if [tuple(map(str, row)) for row in built] != [tuple(map(str, row)) for row in expected]:
+                findings.append("a rebuild from the recorded inputs differs")
+        # Output amounts are independently rounded DOUBLEs. Exact integer identities were checked before aggregation.
+        if any(not all(value is not None and math.isfinite(value) for value in row[11:16])
+               or abs(math.fsum(row[11:15]) - row[15]) > 8 * math.ulp(max(abs(value) for value in row[11:16])) for row in built):
+            findings.append("period burn components do not sum to total burn")
         issued, burned = _totals(inputs)
         summary = {"rows": len(built), "issued_avax": sum(row[10] for row in built), "ledger_issued_avax": issued,
                    "burned_avax": sum(row[15] for row in built), "ledger_burned_avax": burned}
         if abs(summary["issued_avax"] - issued) > 1e-6 * max(issued, 1) or abs(summary["burned_avax"] - burned) > 1e-6 * max(burned, 1):
             findings.append("the periods' issuance or burns do not sum to the ledger's")
     return {"dataset_id": DATASET_ID, "capture_id": receipt["capture_id"], "status": "pass" if not findings else "attention",
-            "checked": ["input run hashes", "rebuild from inputs", "period sums equal the ledger"], "summary": summary, "findings": findings}
+            "checked": ["input run hashes", "rebuild from inputs", "burn component conservation", "period sums equal the ledger"], "summary": summary, "findings": findings}

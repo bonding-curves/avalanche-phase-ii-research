@@ -27,6 +27,7 @@ A pin may also carry `code`: the full commit of this repository the results were
 | `p6-v0.7-report.json` | The runs of `p5` plus the operator table, at the same commit and tag |
 | `p7-systems-learning-weeks.json` | The validator-week panel of 2026-10-06, whose reward addresses as of each week allow an operator grouping that reads no later data |
 | `p8-v0.9.5-inputs.json` | The scenario inputs for revenue-funded rewards: the monetary ledger, AVAX price, Avalanche fees and revenue, and the competing yields |
+| `p9-staking-records.json` | Frozen staking records of 2026-10-14: staking periods, daily monetary ledger, seamed validator and delegator stakes, and auto-renewed cycle history. The original ledger predates the cycle accounting repair |
 
 The qualified rebuild preserves all original point timestamps and prices. Its date label is the nearest midnight, which may follow the observation time. Use `observed_at` and an explicit availability rule for as-of decisions. A date label alone does not establish that a quote was available at the start of that date. Historical `p4` and `p8` remain unchanged.
 

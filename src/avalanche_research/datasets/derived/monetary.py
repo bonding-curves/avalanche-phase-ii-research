@@ -1,7 +1,8 @@
 """The AVAX monetary daily ledger: one row per UTC date with issuance, burns by chain, realized supply, and active stake.
 
-Every amount is an integer number of wei replayed from built runs of the source datasets. Supply is the genesis
-360,000,000 AVAX plus every reward paid out minus every burn on the P-, X-, and C-Chains, and it is written for a
+Every amount is an integer number of wei replayed from built runs of the source datasets. Supply uses ordinary net
+reward payouts plus current cycle recognition, including restakes but excluding releases of earlier accrual. It is the
+genesis 360,000,000 AVAX plus those recognised rewards minus burns on the P-, X-, and C-Chains, and is written for a
 day only when that day and every day before it are complete. A component that a source cannot settle leaves the
 day incomplete; nothing is imputed. The capture receipt names every input run and its hash, so a run is
 reproducible from those runs alone.
@@ -13,6 +14,8 @@ import json
 import os
 import shutil
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -29,6 +32,7 @@ from ...core.catalog import (
     now,
     sha256,
 )
+from . import cycle_accounting as ca
 from . import seam
 from .staking_periods import PRE_CORTINA
 
@@ -88,6 +92,23 @@ MANY_INPUTS = {
     "supply-checkpoints": "data-api.avax-supply",
 }
 REQUIRED_MANY = {"c-evm-daily", "c-atomic"}
+CYCLE_INPUTS = {"staking-cycles": "derived.p-chain-staking-cycles", "cycle-blocks": "p-chain-rpc.blocks"}
+REWARD_ACCOUNTING_BASIS = "ordinary-net-payout-plus-cycle-current-recognition/v1"
+CYCLE_EVENTS_FILE = "cycle-accounting-events.parquet"
+# Natural keys and authority are part of the recorded selection policy, not file iteration order.
+MANY_KEYS = {
+    "p-transactions": "transaction_hash", "c-evm-daily": "date_utc", "c-block-gaps": "block_height",
+    "c-block-fees": "block_height", "c-block-receipt-fees": "block_height", "c-receipt-repairs": "transaction_hash",
+    "c-atomic": "transaction_hash", "c-atomic-transactions": "transaction_hash", "supply-checkpoints": "observed_at",
+}
+INPUT_SELECTION_POLICY = {
+    "version": "monetary-whole-row/v1",
+    "automatic": "seamed source before raw source, then newest UTC capture",
+    "ties": "conflicting equal-authority/equal-time rows refuse; identical rows use descending run name",
+    "pins": "an explicit raw or seamed pin selects only that run for its input family",
+    "nulls": "preserve the selected whole row, including nulls",
+    "gap_fee_sources": ["c-block-fees", "c-block-receipt-fees", "c-receipt-repairs"],
+}
 
 TABLE_COLUMNS = {
     "date_utc": "DATE",
@@ -115,6 +136,17 @@ TABLE_COLUMNS = {
     "complete": "BOOLEAN",
 }
 COVERAGE = ("complete", "repaired", "incomplete", "missing")
+
+
+@contextmanager
+def accounting_connection() -> Iterator[Any]:
+    """A bounded connection with private spill storage, closed before its scratch directory is removed."""
+    with tempfile.TemporaryDirectory(prefix="avalanche-accounting-") as scratch:
+        connection = duckdb.connect(config={"threads": "2", "memory_limit": "4GB", "temp_directory": scratch})
+        try:
+            yield connection
+        finally:
+            connection.close()
 
 
 def _reject(dataset_id: str) -> None:
@@ -148,17 +180,57 @@ def _describe(input_id: str, dataset_id: str, run: str, root: Path | None) -> di
         "capture_id": record["capture"]["capture_id"], "contract_sha256": record["capture"].get("contract_sha256"),
         "captured_at": record["capture"].get("completed_at"), "rows": record["build"].get("summary", {}).get("rows"),
         "parquet": parquet.name, "bytes": len(body), "sha256": sha256(body), "path": parquet, "capture": record["capture"],
+        "capture_sha256": sha256((parquet.parent.parent / "capture" / "capture.json").read_bytes()),
     }
+
+
+def _cycle_reference(input_id: str, reference: dict[str, Any], pinned: dict[str, str], root: Path | None) -> dict[str, Any]:
+    """Resolve the parent's exact recorded dependency, never a newest-run lookup."""
+    dataset_id = CYCLE_INPUTS[input_id]
+    required = ("run", "dataset_id", "capture_id", "parquet", "bytes", "sha256")
+    if any(key not in reference for key in required) or reference["dataset_id"] != dataset_id:
+        raise DataError(f"{input_id} reference lacks its exact source identity")
+    if dataset_id in pinned and pinned[dataset_id] != reference["run"]:
+        raise DataError(f"{input_id} pin differs from the selected parent's recorded dependency")
+    selected = _describe(input_id, dataset_id, reference["run"], root)
+    if "capture_sha256" in reference:
+        required += ("capture_sha256",)
+    if any(selected[key] != reference[key] for key in required):
+        raise DataError(f"{input_id} source differs from the selected parent's recorded dependency")
+    return selected
 
 
 def select_inputs(pinned: dict[str, str] | None, root: Path | None, catalog: dict[str, Any]) -> list[dict[str, Any]]:
     """The input runs: one per single input, every current run per many-input."""
     pinned = pinned or {}
-    unknown = sorted(set(pinned) - set(SINGLE_INPUTS.values()) - set(seam.SEAMED.values()))
+    base_ids = set(SINGLE_INPUTS.values()) | set(MANY_INPUTS.values())
+    allowed = base_ids | set(CYCLE_INPUTS.values()) | {seam.SEAMED[value] for value in base_ids if value in seam.SEAMED}
+    unknown = sorted(set(pinned) - allowed)
     if unknown:
         raise DataError(f"not a pinnable input of {DATASET_ID}: {', '.join(unknown)}")
     selected = [_describe(input_id, *seam.resolve(dataset_id, pinned, root), root) for input_id, dataset_id in SINGLE_INPUTS.items()]
+    periods = next(item for item in selected if item["input_id"] == "staking-periods")
+    references = [item for item in periods["capture"].get("inputs", []) if item.get("input_id") == "p-staking-cycles"]
+    if len(references) > 1:
+        raise DataError("staking-periods has ambiguous cycle dependencies")
+    if references:
+        cycles = _cycle_reference("staking-cycles", references[0], pinned, root)
+        blocks = [item for item in cycles["capture"].get("inputs", []) if item.get("input_id") == "blocks"]
+        if len(blocks) != 1:
+            raise DataError("cycle input needs its exact recorded block walk")
+        selected.extend([cycles, _cycle_reference("cycle-blocks", blocks[0], pinned, root)])
+    elif set(pinned) & set(CYCLE_INPUTS.values()):
+        raise DataError("cycle pins have no matching dependency in the selected staking-periods source")
     for input_id, dataset_id in MANY_INPUTS.items():
+        seamed = seam.SEAMED.get(dataset_id)
+        explicit = [value for value in (dataset_id, seamed) if value in pinned]
+        if len(explicit) > 1:
+            raise DataError(f"pin only one source for {input_id}: {', '.join(explicit)}")
+        if explicit:
+            # An archival pin is explicit even if today's catalog contract has changed.
+            source_id = explicit[0]
+            selected.append(_describe(input_id, source_id, pinned[source_id], root))
+            continue
         current = contract_hash(catalog, dataset_id)
         runs = [item for item in datasets.runs(dataset_id, root)]
         described = []
@@ -166,13 +238,15 @@ def select_inputs(pinned: dict[str, str] | None, root: Path | None, catalog: dic
             record = _describe(input_id, dataset_id, item["run"], root)
             if record["contract_sha256"] == current:
                 described.append(record)
+        described.sort(key=lambda item: (item["captured_at"] or "", item["run"]))
+        if seamed:
+            # Admit all current-contract seamed candidates too, so equal-time conflicts cannot hide in a latest lookup.
+            for item in datasets.runs(seamed, root):
+                record = _describe(input_id, seamed, item["run"], root)
+                if record["contract_sha256"] == contract_hash(catalog, seamed):
+                    described.append(record)
         if not described and input_id in REQUIRED_MANY:
             raise DataError(f"no built run of {dataset_id} carries the current contract")
-        described.sort(key=lambda item: (item["captured_at"] or "", item["run"]))
-        seamed = seam.SEAMED.get(dataset_id)
-        if seamed and datasets.runs(seamed, root):
-            # The seamed table ranks last, so its share-then-backup days win wherever it covers.
-            described.append(_describe(input_id, seamed, datasets.runs(seamed, root)[0]["run"], root))
         selected.extend(described)
     return selected
 
@@ -185,19 +259,72 @@ def _window(capture: dict[str, Any]) -> tuple[str, str]:
     return parameters["start"], parameters["end"]
 
 
+def _input_order(item: dict[str, Any]) -> tuple[int, datetime, str]:
+    try:
+        captured = datetime.fromisoformat(item["captured_at"])
+        if captured.tzinfo is None:
+            raise ValueError("missing UTC offset")
+    except (KeyError, AttributeError, TypeError, ValueError) as error:
+        raise DataError(f"input {item['run']} has no unambiguous capture time") from error
+    preferred = item["dataset_id"] == seam.SEAMED.get(MANY_INPUTS[item["input_id"]])
+    return int(preferred), captured.astimezone(UTC), item["run"]
+
+
 def load_inputs(connection: Any, inputs: list[dict[str, Any]]) -> dict[str, Any]:
-    """One view per input; many-inputs are unioned with a run rank so the newest capture wins where runs overlap."""
+    """Whole-row winners with their source runs; refuse conflicting equal-time/equal-authority rows."""
     by_input: dict[str, list[dict[str, Any]]] = {}
     for item in inputs:
         by_input.setdefault(item["input_id"], []).append(item)
-    meta: dict[str, Any] = {}
+    for parent_id, reference_id, child_id in (("staking-periods", "p-staking-cycles", "staking-cycles"),
+                                               ("staking-cycles", "blocks", "cycle-blocks")):
+        parents = by_input.get(parent_id, [])
+        refs = [r for parent in parents for r in parent["capture"].get("inputs", []) if r.get("input_id") == reference_id]
+        children = by_input.get(child_id, [])
+        if not refs and not children:
+            continue
+        if len(refs) != 1 or len(children) != 1:
+            raise DataError(f"{child_id} input does not match its parent's exact recorded dependency")
+        keys = ["run", "dataset_id", "capture_id", "parquet", "bytes", "sha256"]
+        if "capture_sha256" in refs[0]:
+            keys.append("capture_sha256")
+        if any(refs[0].get(key) != children[0].get(key) for key in keys):
+            raise DataError(f"{child_id} input does not match its parent's exact recorded dependency")
+    meta: dict[str, Any] = {"selected_input_rows": {}}
     for input_id, items in by_input.items():
         name = input_id.replace("-", "_")
         parts = []
-        for rank, item in enumerate(items):
+        many = input_id in MANY_INPUTS
+        ordered = sorted(items, key=_input_order) if many else items
+        for rank, item in enumerate(ordered):
             path = str(item["path"]).replace("'", "''")
-            parts.append(f"SELECT {rank} AS run_rank, '{item['run']}' AS run, * FROM read_parquet('{path}')")
-        connection.execute(f"CREATE OR REPLACE VIEW {name} AS {' UNION ALL BY NAME '.join(parts)}")
+            run = item["run"].replace("'", "''")
+            priority = ""
+            if many:
+                authority, captured, _ = _input_order(item)
+                priority = f", {authority} AS source_authority, TIMESTAMPTZ '{captured.isoformat()}' AS source_captured_at"
+            parts.append(f"SELECT {rank} AS run_rank, '{run}' AS run{priority}, * FROM read_parquet('{path}')")
+        raw = f"{name}_all_runs" if many else name
+        connection.execute(f"CREATE OR REPLACE VIEW {raw} AS {' UNION ALL BY NAME '.join(parts)}")
+        if many:
+            key = MANY_KEYS[input_id]
+            columns = [row[0] for row in connection.execute(f"DESCRIBE {raw}").fetchall()
+                       if row[0] not in ("run_rank", "run", "source_authority", "source_captured_at")]
+            payload = ", ".join('"' + column.replace('"', '""') + '"' for column in columns)
+            conflict = connection.execute(
+                f"SELECT {key} FROM {raw} GROUP BY {key}, source_authority, source_captured_at "
+                f"HAVING count(DISTINCT row({payload})) > 1 LIMIT 1"
+            ).fetchone()
+            if conflict is not None:
+                raise DataError(f"conflicting equal-priority input rows for {input_id} at {key}={conflict[0]}; select an explicit run")
+            connection.execute(
+                f"CREATE OR REPLACE VIEW {name} AS SELECT * EXCLUDE (source_authority, source_captured_at) FROM {raw} "
+                f"QUALIFY row_number() OVER (PARTITION BY {key} ORDER BY run_rank DESC) = 1"
+            )
+            meta["selected_input_rows"][input_id] = [
+                {"run": run, "rows": count} for run, count in connection.execute(
+                    f"SELECT run, count(*) FROM {name} GROUP BY run ORDER BY run"
+                ).fetchall()
+            ]
     windows = {"c_evm_daily": [], "c_atomic": [], "burn_daily": None, "staking_rewards": None}
     for item in by_input.get("c-evm-daily", []):
         windows["c_evm_daily"].append(_window(item["capture"]))
@@ -228,8 +355,8 @@ WITH calendar AS (
     SELECT unnest(generate_series(DATE '{genesis}', DATE '{last}', INTERVAL 1 DAY))::DATE AS date_utc
 ),
 rewards AS (
-    SELECT rewarded_at::DATE AS date_utc, sum(realized_reward_navax)::DECIMAL(38,0) * {navax} AS issued_wei
-    FROM staking_rewards GROUP BY 1
+    SELECT rewarded_at::DATE AS date_utc, sum(recognised_reward_navax)::DECIMAL(38,0) * {navax} AS issued_wei
+    FROM monetary_reward_events GROUP BY 1
 ),
 px AS (
     SELECT date_utc, chain, burned_navax, l1_validator_fees_navax, unresolved_transactions, unresolved_hashes
@@ -240,9 +367,9 @@ unresolved AS (
     FROM px WHERE unresolved_hashes IS NOT NULL
 ),
 resolutions AS (
-    SELECT u.date_utc, u.chain, count(*) AS listed, count(t.transaction_hash) AS settled,
+    SELECT u.date_utc, u.chain, count(*) AS listed, count(t.transaction_hash) FILTER (WHERE t.burned_navax IS NOT NULL) AS settled,
            coalesce(sum(t.burned_navax), 0)::DECIMAL(38,0) * {navax} AS settled_wei
-    FROM unresolved u LEFT JOIN (SELECT transaction_hash, arg_min(burned_navax, run_rank) AS burned_navax FROM p_transactions GROUP BY 1) t USING (transaction_hash)
+    FROM unresolved u LEFT JOIN p_transactions t USING (transaction_hash)
     GROUP BY 1, 2
 ),
 p AS (
@@ -261,27 +388,30 @@ x AS (
     WHERE px.chain = 'X'
 ),
 evm AS (
-    SELECT date_utc, arg_min(burned_wei, run_rank) AS burned_wei, arg_min(absent_blocks + short_blocks, run_rank) AS gap_blocks
-    FROM c_evm_daily GROUP BY 1
+    SELECT date_utc, burned_wei, absent_blocks + short_blocks AS gap_blocks FROM c_evm_daily
 ),
 gap_heights AS (
-    SELECT block_height, arg_min(date_utc, run_rank) AS date_utc FROM c_block_gaps GROUP BY 1
+    SELECT block_height, date_utc FROM c_block_gaps
 ),
 fee_records AS (
-    SELECT block_height, arg_min(date_utc, run_rank) AS date_utc, arg_min(fees_wei, run_rank) AS fees_wei FROM c_block_fees GROUP BY 1
+    SELECT 0 AS source_priority, block_height, date_utc, fees_wei FROM c_block_fees
     UNION ALL BY NAME
-    SELECT block_height, arg_min(date_utc, run_rank) AS date_utc, arg_min(fees_wei, run_rank) AS fees_wei FROM c_block_receipt_fees GROUP BY 1
+    SELECT 1 AS source_priority, block_height, date_utc, fees_wei FROM c_block_receipt_fees
     UNION ALL BY NAME
-    SELECT block_height, min(block_timestamp)::DATE AS date_utc, sum(burned_wei)::DECIMAL(38,0) AS fees_wei FROM c_receipt_repairs GROUP BY 1
+    SELECT 2 AS source_priority, block_height, min(block_timestamp)::DATE AS date_utc,
+           CASE WHEN count(*) FILTER (WHERE burned_wei IS NULL) > 0 THEN NULL ELSE sum(burned_wei)::DECIMAL(38,0) END AS fees_wei
+    FROM c_receipt_repairs GROUP BY block_height
 ),
 gap_fees AS (
-    SELECT block_height, arg_min(date_utc, ordinal) AS date_utc, arg_min(fees_wei, ordinal) AS fees_wei
-    FROM (SELECT *, row_number() OVER () AS ordinal FROM fee_records)
+    SELECT block_height, date_utc, fees_wei FROM fee_records
     WHERE block_height IN (SELECT block_height FROM gap_heights)
-    GROUP BY 1
+    QUALIFY row_number() OVER (PARTITION BY block_height ORDER BY source_priority) = 1
 ),
 gap_status AS (
-    SELECT g.date_utc, count(*) AS listed, count(f.block_height) AS settled
+    -- Gap dates can be the preceding present block's date. Settlement follows height identity,
+    -- while gap_amounts assigns the actual fees to the fee record's chain date.
+    SELECT g.date_utc, count(*) AS listed,
+           count(f.block_height) FILTER (WHERE f.fees_wei IS NOT NULL AND f.date_utc IS NOT NULL) AS settled
     FROM gap_heights g LEFT JOIN gap_fees f USING (block_height) GROUP BY 1
 ),
 gap_amounts AS (
@@ -289,10 +419,12 @@ gap_amounts AS (
 ),
 evm_days AS (
     SELECT c.date_utc,
-           coalesce(e.burned_wei, 0)::DECIMAL(38,0) AS complete_wei,
+           CASE WHEN e.date_utc IS NOT NULL THEN e.burned_wei ELSE 0 END::DECIMAL(38,0) AS complete_wei,
            coalesce(a.gap_wei, 0)::DECIMAL(38,0) AS gap_wei,
            CASE WHEN c.date_utc < DATE '{c_first}' THEN 'complete'
                 WHEN NOT EXISTS (SELECT 1 FROM windows w WHERE w.component = 'c_evm_daily' AND c.date_utc >= w.start_date AND c.date_utc < w.end_date) THEN 'missing'
+                -- This query is sparse: a covered date without a row has no present blocks, not a null-valued row.
+                WHEN e.date_utc IS NOT NULL AND (e.burned_wei IS NULL OR e.gap_blocks IS NULL) THEN 'incomplete'
                 WHEN coalesce(e.gap_blocks, 0) = 0 AND coalesce(s.listed, 0) = 0 THEN 'complete'
                 WHEN coalesce(s.settled, 0) = coalesce(s.listed, 0) AND coalesce(e.gap_blocks, 0) <= coalesce(s.listed, 0) THEN 'repaired'
                 ELSE 'incomplete' END AS coverage
@@ -302,14 +434,14 @@ evm_days AS (
     LEFT JOIN gap_amounts a USING (date_utc)
 ),
 atomic_rows AS (
-    SELECT transaction_hash, arg_min(accepted_at, run_rank) AS accepted_at, arg_min(burned_navax, run_rank) AS burned_navax FROM c_atomic GROUP BY 1
+    SELECT transaction_hash, accepted_at, burned_navax FROM c_atomic
 ),
 atomic AS (
     -- An import the Data API leaves unsettled (null burn) takes the node's burn from its signed transaction.
     SELECT a.accepted_at::DATE AS date_utc, sum(coalesce(a.burned_navax, t.burned_navax))::DECIMAL(38,0) * {navax} AS burned_wei,
            count(*) FILTER (WHERE a.burned_navax IS NULL) AS unsettled,
            count(*) FILTER (WHERE a.burned_navax IS NULL AND t.burned_navax IS NOT NULL) AS settled
-    FROM atomic_rows a LEFT JOIN (SELECT transaction_hash, arg_min(burned_navax, run_rank) AS burned_navax FROM c_atomic_transactions GROUP BY 1) t USING (transaction_hash)
+    FROM atomic_rows a LEFT JOIN c_atomic_transactions t USING (transaction_hash)
     GROUP BY 1
 ),
 atomic_days AS (
@@ -328,10 +460,8 @@ stake AS (
            count(*) FILTER (WHERE p.role = 'validator') AS validators,
            count(*) FILTER (WHERE p.role = 'delegator') AS delegations
     FROM calendar c
-    -- An auto-renewed validator (from Helicon) keeps one row whose end_time closes its first cycle; it stays active to the
-    -- end of its latest cycle.
-    LEFT JOIN staking_periods p ON p.start_time <= c.date_utc + INTERVAL '{instant}'
-         AND greatest(p.end_time, coalesce(p.last_cycle_end_time, p.end_time)) > c.date_utc + INTERVAL '{instant}'
+    LEFT JOIN effective_stake_intervals p ON p.start_time <= c.date_utc + INTERVAL '{instant}'
+         AND p.end_time > c.date_utc + INTERVAL '{instant}'
     GROUP BY 1
 ),
 days AS (
@@ -402,8 +532,20 @@ def compute(connection: Any, meta: dict[str, Any]) -> None:
                 "supply_checkpoints": "SELECT 0 AS run_rank, '' AS run, TIMESTAMP '2020-01-01' AS observed_at WHERE FALSE",
             }[name]
             connection.execute(f"CREATE OR REPLACE VIEW {name} AS {empty}")
-    start, end = meta["windows"]["burn_daily"]
+    _start, end = meta["windows"]["burn_daily"]
     last = (date.fromisoformat(end) - timedelta(days=1)).isoformat()
+    meta["complete_through"] = last
+    meta["cycle_accounting"] = ca.prepare(connection, last)
+    if meta["cycle_accounting"]["basis"] != REWARD_ACCOUNTING_BASIS:
+        raise DataError("cycle accounting helper has an unsupported recognition basis")
+    if "staking_transaction_hash" in ca.columns(connection, "staking_rewards"):
+        count, amount = connection.execute("""
+            SELECT count(*), coalesce(sum(r.realized_reward_navax),0)::VARCHAR FROM staking_rewards r
+            JOIN cycle_parents p ON p.transaction_hash=r.staking_transaction_hash
+        """).fetchone()
+    else:
+        count, amount = 0, "0"
+    meta["cycle_accounting"].update(excluded_ordinary_auto_payout_rows=count, excluded_ordinary_auto_payout_navax=amount)
     rewards_start, rewards_end = meta["windows"]["staking_rewards"]
     sql = LEDGER_SQL.format(
         genesis=GENESIS_DATE.isoformat(), last=last, navax=WEI_PER_NAVAX, c_first=C_CHAIN_FIRST_DATE.isoformat(),
@@ -414,6 +556,29 @@ def compute(connection: Any, meta: dict[str, Any]) -> None:
         connection.execute(sql)
     except duckdb.Error as error:
         raise DataError(f"input datasets do not match the declared shape: {error}") from error
+
+
+def burn_component_findings(connection: Any, *, p_detail: bool = False) -> list[str]:
+    """Integer identities on the ledger. Gap repairs are an included subset of C-EVM, not another chain."""
+    total, gap = connection.execute("""
+        SELECT count(*) FILTER (WHERE burned_wei IS DISTINCT FROM
+                   burned_p_wei + burned_x_wei + burned_c_evm_wei + burned_c_atomic_wei),
+               count(*) FILTER (WHERE burned_c_evm_gap_wei < 0 OR burned_c_evm_gap_wei > burned_c_evm_wei)
+        FROM ledger
+    """).fetchone()
+    findings = []
+    if total:
+        findings.append(f"{total} days have burn components that do not sum to total burn")
+    if gap:
+        findings.append(f"{gap} days have gap burn outside the inclusive C-EVM amount")
+    if p_detail:
+        p = connection.execute("""
+            SELECT count(*) FILTER (WHERE burned_p_wei IS DISTINCT FROM
+                       burned_p_transactions_wei + burned_p_l1_validator_fees_wei) FROM ledger
+        """).fetchone()[0]
+        if p:
+            findings.append(f"{p} days have P-Chain burn subcomponents that do not sum to P burn")
+    return findings
 
 
 SUMMARY_SQL = """
@@ -452,9 +617,8 @@ def summarize(connection: Any) -> dict[str, Any]:
 def gap_fee_agreement(connection: Any) -> dict[str, int]:
     """Gap blocks whose fees both the Data API record and a node's receipts give, and how many of those differ."""
     shared, differing = connection.execute("""
-        SELECT count(*), count(*) FILTER (WHERE a.fees_wei <> b.fees_wei OR a.date_utc <> b.date_utc)
-        FROM (SELECT block_height, arg_min(fees_wei, run_rank) AS fees_wei, arg_min(date_utc, run_rank) AS date_utc FROM c_block_fees GROUP BY 1) a
-        JOIN (SELECT block_height, arg_min(fees_wei, run_rank) AS fees_wei, arg_min(date_utc, run_rank) AS date_utc FROM c_block_receipt_fees GROUP BY 1) b USING (block_height)
+        SELECT count(*), count(*) FILTER (WHERE a.fees_wei IS DISTINCT FROM b.fees_wei OR a.date_utc IS DISTINCT FROM b.date_utc)
+        FROM c_block_fees a JOIN c_block_receipt_fees b USING (block_height)
     """).fetchone()
     return {"shared_blocks": int(shared), "differing_blocks": int(differing)}
 
@@ -503,11 +667,67 @@ def checkpoints(connection: Any) -> list[dict[str, Any]]:
     return results
 
 
+def _cycle_diagnostic_amounts(connection: Any, instant: Any, height: int | None = None) -> dict[str, Any] | None:
+    """Time/height-bounded recognition, held fees and current reservations. None retains the ordinary-only path."""
+    if not ca.exists(connection, "cycle_parents") or not connection.execute("SELECT count(*) FROM cycle_parents").fetchone()[0]:
+        return None
+    required = {"staking_transaction_hash", "block_height", "rewarded_at"}
+    if not required <= ca.columns(connection, "staking_rewards") or not {"accepted_at", "block_height"} <= ca.columns(connection, "staking_periods"):
+        return {"limit": "cycle-aware diagnostic lacks ordinary reward or acceptance block identity"}
+    params = {"t": instant, "h": height}
+    row = connection.execute(f"""
+        WITH r AS (SELECT * FROM staking_rewards WHERE rewarded_at <= $t AND ($h IS NULL OR block_height <= $h)),
+        e AS (SELECT * FROM cycle_events WHERE rewarded_at <= $t AND ($h IS NULL OR option_height <= $h)),
+        ordinary_open AS (
+            SELECT p.* FROM staking_periods p WHERE p.accepted_at <= $t AND ($h IS NULL OR p.block_height <= $h)
+            AND NOT EXISTS (SELECT 1 FROM cycle_parents cp WHERE cp.transaction_hash=p.transaction_hash)
+            AND NOT EXISTS (SELECT 1 FROM r WHERE r.staking_transaction_hash=p.transaction_hash)),
+        cycle_open AS (
+            SELECT c.* FROM staking_cycles c JOIN staking_periods p ON p.transaction_hash=c.validator_transaction_hash
+            WHERE p.accepted_at <= $t AND ($h IS NULL OR p.block_height <= $h) AND c.start_time <= $t
+            AND (c.cycle=1 OR EXISTS (SELECT 1 FROM e WHERE e.validator_transaction_hash=c.validator_transaction_hash AND e.cycle=c.cycle-1))
+            AND NOT EXISTS (SELECT 1 FROM e WHERE e.validator_transaction_hash=c.validator_transaction_hash AND e.cycle=c.cycle)),
+        held AS (
+            SELECT d.fee_transfer_navax FROM staking_periods d
+            JOIN staking_periods v ON v.transaction_hash=d.validator_transaction_hash AND v.role='validator'
+            JOIN r ON r.staking_transaction_hash=d.transaction_hash
+            WHERE d.role='delegator' AND d.rewarded
+              AND v.regime NOT IN ({', '.join(f"'{name}'" for name in PRE_CORTINA)})
+              AND ((EXISTS (SELECT 1 FROM cycle_parents cp WHERE cp.transaction_hash=v.transaction_hash)
+                    AND NOT EXISTS (SELECT 1 FROM e WHERE e.validator_transaction_hash=v.transaction_hash AND e.proposal_height>=r.block_height))
+                   OR (NOT EXISTS (SELECT 1 FROM cycle_parents cp WHERE cp.transaction_hash=v.transaction_hash)
+                       AND NOT EXISTS (SELECT 1 FROM r vr WHERE vr.staking_transaction_hash=v.transaction_hash))))
+        SELECT
+          (SELECT coalesce(sum(realized_reward_navax),0) FROM r WHERE NOT EXISTS
+             (SELECT 1 FROM cycle_parents cp WHERE cp.transaction_hash=r.staking_transaction_hash))
+             + (SELECT coalesce(sum(recognised_reward_navax),0) FROM e),
+          (SELECT coalesce(sum(-fee_transfer_navax),0) FROM held),
+          (SELECT coalesce(sum(potential_reward_navax),0) FROM ordinary_open)
+             + (SELECT coalesce(sum(potential_reward_navax),0) FROM cycle_open),
+          (SELECT coalesce(sum(potential_reward_navax * least(1.0, epoch($t-start_time)/epoch(end_time-start_time))),0)
+             FROM ordinary_open WHERE start_time<=$t AND end_time>start_time)
+             + (SELECT coalesce(sum(potential_reward_navax * least(1.0, epoch($t-start_time)/epoch(end_time-start_time))),0)
+                FROM cycle_open),
+          (SELECT max(rewarded_at)>=$t FROM monetary_reward_events)
+             AND (SELECT max(block_time)>=$t FROM cycle_blocks)
+    """, params).fetchone()
+    return dict(zip(("recognised", "held", "pending", "earned", "covered"), row))
+
+
 def rewards_reconciliation(connection: Any, instant: Any, api_rewards: Any) -> dict[str, Any]:
-    """The Data API's totalRewards at one instant against rewards paid, held delegation fees, and earned open shares.
+    """The API against recognised rewards, held delegation fees and earned current open shares.
+
+    On the ordinary-only path recognised rewards are payouts. The cycle-aware diagnostic is not a cash-payment
+    reconstruction, so its former paid_avax field is null rather than relabeling restaked recognition as payment.
     Not compared when the reward input ends before the instant: the periods come from the same walk and end with it."""
-    covered = connection.execute("SELECT max(rewarded_at) >= ? FROM staking_rewards", [instant]).fetchone()[0]
-    paid, held, earned = connection.execute(
+    cycle = _cycle_diagnostic_amounts(connection, instant)
+    if cycle is not None and cycle.get("limit"):
+        return {"basis": REWARD_ACCOUNTING_BASIS, "limit": cycle["limit"], "covered": False, "within": None}
+    if cycle is not None:
+        paid, held, earned, covered = cycle["recognised"], cycle["held"], cycle["earned"], cycle["covered"]
+    else:
+        covered = connection.execute("SELECT max(rewarded_at) >= ? FROM staking_rewards", [instant]).fetchone()[0]
+        paid, held, earned = connection.execute(
         f"""
         SELECT (SELECT coalesce(sum(realized_reward_navax), 0) FROM staking_rewards WHERE rewarded_at <= $t),
                (SELECT coalesce(sum(-d.fee_transfer_navax), 0) FROM staking_periods d
@@ -520,7 +740,9 @@ def rewards_reconciliation(connection: Any, instant: Any, api_rewards: Any) -> d
     model = (int(paid) + int(held) + float(earned)) / 1e9
     api = float(api_rewards)
     gap = api - model
-    return {"paid_avax": int(paid) / 1e9, "held_fees_avax": int(held) / 1e9, "earned_open_avax": float(earned) / 1e9, "model_avax": model,
+    return {"basis": REWARD_ACCOUNTING_BASIS if cycle is not None else "ordinary-payout-held-fees-earned-open/v1",
+            "paid_avax": int(paid) / 1e9 if cycle is None else None,
+            "recognised_avax": int(paid) / 1e9, "held_fees_avax": int(held) / 1e9, "earned_open_avax": float(earned) / 1e9, "model_avax": model,
             "api_avax": api, "gap_avax": round(gap, 3), "gap_share": gap / api if api else None, "covered": bool(covered),
             "within": abs(gap) <= REWARDS_RECONCILIATION_TOLERANCE * api if covered else None}
 
@@ -553,21 +775,31 @@ def _bracket(api_avax: Any, before_wei: Any, after_wei: Any, name: str = "") -> 
 
 
 def counter_check(connection: Any) -> dict[str, Any]:
-    """The P-Chain supply counter at its last reading against genesis plus rewards paid plus open potential rewards."""
+    """The last counter against genesis, recognised rewards, held fees and current reward reservations."""
     row = connection.execute(
         """
-        WITH last AS (SELECT accepted_at, block_supply_navax FROM staking_supply WHERE block_supply_navax IS NOT NULL ORDER BY accepted_at DESC, block_height DESC LIMIT 1)
-        SELECT last.accepted_at, last.block_supply_navax,
-               (SELECT sum(realized_reward_navax) FROM staking_rewards WHERE rewarded_at <= last.accepted_at),
-               (SELECT sum(potential_reward_navax) FROM staking_periods WHERE accepted_at <= last.accepted_at AND (rewarded_at IS NULL OR rewarded_at > last.accepted_at))
-        FROM last
+        SELECT accepted_at, block_supply_navax, block_height FROM staking_supply
+        WHERE block_supply_navax IS NOT NULL ORDER BY accepted_at DESC, block_height DESC LIMIT 1
         """
     ).fetchone()
     if row is None:
         return {"counter_read_at": None}
-    read_at, counter, realized, pending = row
-    expected = 360_000_000 * WEI_PER_NAVAX + int(realized or 0) + int(pending or 0)
+    read_at, counter, height = row
+    cycle = _cycle_diagnostic_amounts(connection, read_at, height)
+    if cycle is not None and cycle.get("limit"):
+        return {"counter_read_at": _plain(read_at), "basis": REWARD_ACCOUNTING_BASIS, "limit": cycle["limit"], "gap_share": None}
+    held = 0
+    if cycle is not None:
+        realized, pending, held = cycle["recognised"], cycle["pending"], cycle["held"]
+    else:
+        realized, pending = connection.execute("""
+            SELECT (SELECT sum(realized_reward_navax) FROM staking_rewards WHERE rewarded_at <= $t),
+                   (SELECT sum(potential_reward_navax) FROM staking_periods WHERE accepted_at <= $t AND (rewarded_at IS NULL OR rewarded_at > $t))
+        """, {"t": read_at}).fetchone()
+    expected = 360_000_000 * WEI_PER_NAVAX + int(realized or 0) + int(pending or 0) + int(held or 0)
     return {"counter_read_at": _plain(read_at), "counter_avax": int(counter) / 1e9, "genesis_rewards_open_potential_avax": expected / 1e9,
+            "basis": REWARD_ACCOUNTING_BASIS if cycle is not None else "ordinary-payout-plus-open-potential/v1",
+            "recognised_navax": str(realized or 0), "pending_navax": str(pending or 0), "held_fees_navax": str(held or 0),
             "gap_avax": (int(counter) - expected) / 1e9, "gap_share": (int(counter) - expected) / int(counter)}
 
 
@@ -591,6 +823,7 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
         "tool": f"avalanche-research@{__version__}",
         "genesis_supply_wei": str(GENESIS_SUPPLY_WEI),
         "stake_instant_utc": STAKE_INSTANT,
+        "input_selection_policy": INPUT_SELECTION_POLICY,
         "inputs": records,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -598,19 +831,27 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
     try:
         (temporary / "capture").mkdir()
         (temporary / "dataset").mkdir()
-        (temporary / "capture" / "capture.json").write_bytes(canonical_bytes(capture_receipt))
         parquet_path = temporary / "dataset" / f"{TABLE}.parquet"
-        connection = duckdb.connect()
-        try:
+        events_path = temporary / "dataset" / CYCLE_EVENTS_FILE
+        with accounting_connection() as connection:
             meta = load_inputs(connection, inputs)
             compute(connection, meta)
             connection.execute("COPY (SELECT * FROM ledger ORDER BY date_utc) TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(parquet_path)])
+            connection.execute("COPY (SELECT * FROM cycle_events ORDER BY validator_transaction_hash,cycle) TO ? (FORMAT PARQUET, COMPRESSION ZSTD)", [str(events_path)])
             summary = summarize(connection)
             summary["checkpoints"] = checkpoints(connection)
             summary["counter"] = counter_check(connection)
             summary["gap_fee_sources"] = gap_fee_agreement(connection)
-        finally:
-            connection.close()
+            summary["selected_input_rows"] = meta["selected_input_rows"]
+            summary["cycle_accounting"] = meta["cycle_accounting"]
+        capture_receipt["reward_accounting_basis"] = meta["cycle_accounting"]["basis"]
+        capture_receipt["accounting_projection"] = {
+            "complete_through": meta["complete_through"], "cycle_events": CYCLE_EVENTS_FILE,
+            "event_time": "verified equal proposal/option chain timestamp",
+            "stock": "ordinary intervals plus effective cycle weights, half-open intervals",
+            "cycle_output_window": "complete selected source history, filtered by ledger UTC dates on consumption",
+        }
+        (temporary / "capture" / "capture.json").write_bytes(canonical_bytes(capture_receipt))
         build_receipt = {
             "schema_version": "derived-build/v1",
             "dataset_id": dataset_id,
@@ -619,7 +860,7 @@ def derive(dataset_id: str, output: Path, pinned: dict[str, str] | None = None, 
             "completed_at": now(),
             "tool": f"avalanche-research@{__version__}",
             "summary": summary,
-            "outputs": [{"path": parquet_path.name, "bytes": parquet_path.stat().st_size, "sha256": sha256(parquet_path.read_bytes())}],
+            "outputs": [{"path": path.name, "bytes": path.stat().st_size, "sha256": sha256(path.read_bytes())} for path in (parquet_path, events_path)],
         }
         (temporary / "dataset" / "build.json").write_bytes(canonical_bytes(build_receipt))
         os.replace(temporary, output)
@@ -637,6 +878,36 @@ def read_capture(capture_dir: Path) -> dict[str, Any]:
     if receipt.get("schema_version") != "derived-capture/v1" or receipt.get("dataset_id") != DATASET_ID:
         raise DataError(f"not a {DATASET_ID} capture: {capture_dir}")
     return receipt
+
+
+def _check_cycle_projection(receipt: dict[str, Any], build: dict[str, Any], dataset_dir: Path, root: Path) -> list[str]:
+    """Replay only recorded inputs and compare both published projections, without any newest-run resolution."""
+    basis = receipt.get("reward_accounting_basis")
+    if basis is None:
+        return []  # An archived payout-only ledger retains its original producer contract.
+    if basis != REWARD_ACCOUNTING_BASIS:
+        return ["unsupported reward accounting basis"]
+    if sum(item["path"] == CYCLE_EVENTS_FILE for item in build["outputs"]) != 1:
+        return ["cycle accounting companion is missing from the build outputs"]
+    inputs = []
+    for item in receipt["inputs"]:
+        capture = json.loads((root / item["run"] / "capture" / "capture.json").read_text())
+        inputs.append({**item, "path": root / item["run"] / "dataset" / item["parquet"], "capture": capture})
+    with accounting_connection() as proof:
+        meta = load_inputs(proof, inputs)
+        compute(proof, meta)
+        findings = []
+        for table, path in (("ledger", dataset_dir / f"{TABLE}.parquet"), ("cycle_events", dataset_dir / CYCLE_EVENTS_FILE)):
+            differences = proof.execute(
+                f"SELECT (SELECT count(*) FROM (SELECT * FROM {table} EXCEPT ALL SELECT * FROM read_parquet(?))) "
+                f"+ (SELECT count(*) FROM (SELECT * FROM read_parquet(?) EXCEPT ALL SELECT * FROM {table}))",
+                [str(path), str(path)],
+            ).fetchone()[0]
+            if differences:
+                findings.append(f"{table} differs from the recorded accounting projection")
+        if build.get("summary", {}).get("cycle_accounting") != meta["cycle_accounting"]:
+            findings.append("cycle accounting summary differs from the recorded inputs")
+        return findings
 
 
 def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | None = None, root: Path | None = None) -> dict[str, Any]:
@@ -658,9 +929,13 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
         body = parquet.read_bytes()
         if len(body) != item["bytes"] or sha256(body) != item["sha256"]:
             findings.append(f"input run differs from the capture receipt: {item['run']}")
+        if "capture_sha256" in item:
+            capture_path = root_dir / item["run"] / "capture" / "capture.json"
+            if not capture_path.is_file() or sha256(capture_path.read_bytes()) != item["capture_sha256"]:
+                findings.append(f"input capture differs from the recorded lineage: {item['run']}")
     summary: dict[str, Any] = {"inputs": len(receipt.get("inputs", []))}
     if dataset_dir is not None:
-        checked.extend(["build hashes", "columns", "daily conservation", "supply continuity", "coverage values", "Data API checkpoints", "P-Chain supply counter"])
+        checked.extend(["build hashes", "columns", "daily conservation", "burn component conservation", "supply continuity", "coverage values", "Data API checkpoints", "P-Chain supply counter"])
         try:
             build_receipt = json.loads((dataset_dir / "build.json").read_text(encoding="utf-8"))
             if build_receipt.get("source_capture_id") != receipt.get("capture_id"):
@@ -669,8 +944,9 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                 body = (dataset_dir / item["path"]).read_bytes()
                 if len(body) != item["bytes"] or sha256(body) != item["sha256"]:
                     findings.append(f"output hash or size differs: {item['path']}")
-            connection = duckdb.connect()
-            try:
+            if not findings:
+                findings.extend(_check_cycle_projection(receipt, build_receipt, dataset_dir, root_dir))
+            with accounting_connection() as connection:
                 parquet = str(dataset_dir / f"{TABLE}.parquet").replace("'", "''")
                 connection.execute(f"CREATE VIEW ledger AS SELECT * FROM read_parquet('{parquet}')")
                 columns = [row[0] for row in connection.execute("DESCRIBE ledger").fetchall()]
@@ -697,9 +973,12 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                     findings.append(f"{bad_coverage} days carry an unknown coverage or lack a supply while complete")
                 if negative:
                     findings.append(f"{negative} days carry a negative flow")
+                findings.extend(burn_component_findings(connection, p_detail=True))
                 summary.update({key: value for key, value in build_receipt.get("summary", {}).items()})
                 for point in summary.get("checkpoints", []):
                     reconciled = point.get("rewards_reconciliation")
+                    if reconciled and reconciled.get("limit"):
+                        findings.append(reconciled["limit"])
                     # With the reconciliation, rewards and total supply are compared on the API's earned basis, not bracketed.
                     for name in ("p_burned", "x_burned", "c_burned") + (() if reconciled else ("rewards", "total_supply")):
                         result = point[name] = judge_checkpoint(name, point[name])
@@ -719,11 +998,11 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
                 if sources.get("differing_blocks"):
                     findings.append(f"{sources['differing_blocks']} of {sources['shared_blocks']} gap blocks carry different fees from the Data API and the node's receipts")
                 counter = summary.get("counter", {})
+                if counter.get("limit"):
+                    findings.append(counter["limit"])
                 if counter.get("gap_share") is not None and abs(counter["gap_share"]) > COUNTER_TOLERANCE:
                     findings.append(f"the P-Chain supply counter differs from genesis plus rewards paid plus open potential rewards by {counter['gap_avax']:,.0f} AVAX")
-            finally:
-                connection.close()
-        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError, duckdb.Error) as error:
+        except (OSError, KeyError, TypeError, ValueError, DataError, json.JSONDecodeError, duckdb.Error) as error:
             findings.append(f"invalid dataset output: {error}")
     return {
         "dataset_id": DATASET_ID,
