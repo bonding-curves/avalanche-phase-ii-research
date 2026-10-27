@@ -1,5 +1,5 @@
 {
-  "status": "draft-not-preregistered",
+  "status": "scientific-freeze-pending-final-review-and-operations",
   "entry_point": "avalanche_research.model.lockbox_evaluation:score",
   "author": "modeling-lead",
   "uv_lock_sha256": "cf1a9b244db3bc80054164763314b9c4ea60df921486427ca2b065af32c0f4e2",
@@ -12,18 +12,25 @@
   },
   "foundation_answer": {
     "recorded": false,
-    "default_used": false,
-    "status": "unresolved; candidate scientific rule is not Foundation acceptance"
+    "default_used": true,
+    "status": "Adopted scientific team default; no Foundation acceptance claimed. Scoped no-new-answer readback and final source/tree/bundle commitment are retained externally.",
+    "scientific_default": {
+      "primary_series": "active_validator_stake_navax",
+      "population": "validator own/self principal, excludes delegated principal",
+      "horizon_days": 90,
+      "origin_count": 8,
+      "overlap_horizon": 4,
+      "rule": "Unrounded ensemble-mean MASE strictly below N1/N2/N3 and one-sided HLN-corrected DM p_less < 0.05 against each; preserve FAIL/INCONCLUSIVE rules.",
+      "scope_disposition": "specification.json:scope_disposition"
+    },
+    "contract_acceptance": "UNRESOLVED_NOT_CLAIMED"
   },
-  "registration_commit": null,
-  "registration_tree": null,
-  "witness": null,
-  "runner": null,
   "released_model": {
     "tag": "model-v0.8.0",
     "commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc"
   },
-  "purpose": "development configuration only; final witnessed registration not delivered",
+  "purpose": "Adopted scientific object for independent final review. Not a completed witnessed preregistration or protected-execution clearance.",
   "fit_preflight_entry_point": "avalanche_research.model.lockbox_evaluation:preflight_fit",
-  "fit_preflight_status": "requires adopted frozen numerical binding; no protected labels, token or marker"
+  "fit_preflight_status": "Required actual adopted exact-fit reconstruction before marker, then score-side recheck before labels. No actual preflight is claimed by this freeze.",
+  "external_commitment": "Final registration commit/tree, canonical bundle-map bytes/hash, registry, witness proof, rehearsal and named runner are bound outside this hashed folder to avoid self-reference."
 }

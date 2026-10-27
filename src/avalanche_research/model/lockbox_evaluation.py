@@ -705,10 +705,15 @@ def score(token: Unseal | None, *, fit_until: date, score_until: date) -> dict:
                             "scoring": json.loads((ROOT / specification["scoring_pin"]).read_text())["runs"]}
     fit_model = VARIANTS["v0.8.0"].simulation(prepared, seed=0, timesteps=1, runs=20,
                                             draws=prepared.draws.iloc[:20].reset_index(drop=True))
+    adopted = fit_check["status"] == "MATCH_ADOPTED"
     result["fit_provenance"] = _json({
         "fitting_operation": True, "fit_origin": fit_origin, "fit_until_exclusive": fit_until,
-        "purpose": "development reconstruction of released fitting law; not final coefficient adoption",
-        "parameter_identity_to_released_values": "not verified against stored released parameter values",
+        "evaluation_mode": "development" if token is None else "protected",
+        "purpose": ("exact reconstruction of the adopted FIT-O2 numerical realization of the released fitting law"
+                    if adopted else "development reconstruction of released fitting law; not final coefficient adoption"),
+        "parameter_identity_to_released_values": (
+            "distinct adopted numerical realization; historical point mismatch retained; forecast equivalence unknown"
+            if adopted else "not verified against stored released parameter values"),
         "draw_seed": 0, "batch_seeds": list(range(10)), "runs_per_batch": 20,
         "model_specification": fit_model.specification(), "parameter_draws": prepared.draws.to_dict("records"),
         "tau": prepared.tau, "tau_source": prepared.tau_source,

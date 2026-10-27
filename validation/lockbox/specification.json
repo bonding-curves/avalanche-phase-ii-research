@@ -1,6 +1,6 @@
 {
   "schema": "validator-evaluation-specification/v1",
-  "status": "draft",
+  "status": "frozen",
   "variant": "v0.8.0",
   "released_model": {
     "tag": "model-v0.8.0",
@@ -34,7 +34,7 @@
     "active_validators"
   ],
   "primary_rule": {
-    "source": "Candidate rule for scientific review; final disposition pending",
+    "source": "Scientific default adopted by Modeling Lead at this freeze; Foundation acceptance remains unresolved.",
     "horizon_days": 90,
     "benchmarks": [
       "N1",
@@ -44,14 +44,15 @@
     "loss": "mean absolute scaled error of ensemble mean",
     "comparison": "unrounded MASE strictly below every benchmark",
     "test": "one-sided HLN-corrected Diebold-Mariano",
-    "lag": "one plus maximum later origins inside forecast window, as existing evaluation.dm_horizon",
+    "lag": "HLN horizon 4 at 90 days, comprising 3 autocovariance lags, from maximum actual origin overlap; no independent-origin or calibrated-power claim.",
     "alpha": 0.05,
-    "pass": "point-better on all primary comparisons and every p_less<0.05",
+    "pass": "point-better on all primary comparisons and every p_less < 0.05",
     "fail": "any primary point MASE at or above its benchmark",
-    "inconclusive": "point-better but insufficient or undefined inference"
+    "inconclusive": "point-better but insufficient or undefined inference",
+    "inventory": "Exactly 8 primary 90-day origins. Missing or duplicated required comparison rows produce INCONCLUSIVE; missing realized-data support fails execution."
   },
   "origins": "fit origin plus month starts with complete horizon support",
-  "fitting": "reconstruct released estimators once at day before exclusive fit cut; keep blocks/tables/draws immutable",
+  "fitting": "Reconstruct released estimators once at day before exclusive fit cut, compare exact adopted fit and ordered draw identities before labels, then keep blocks/tables/draws immutable across origins. Any mismatch refuses; no tolerance, seed or runtime search.",
   "state_clock": "23:59:59 UTC at each origin; accepted_at must be no later than that instant",
   "daily_window": "before exclusive score_until; exclude all Granite start day from fitting and Helicon partial day from daily score",
   "event_window": "Granite16:00UTC to Helicon15:00UTC for protected labels; exact maturity by target",
@@ -77,11 +78,11 @@
   ],
   "behaviour_table": "frozen point renewal/return blocks and conditional duration tables; prior/history/persistence frozen before fit cut; separate from system ensemble verdict",
   "unresolved": [
-    "Final primary-series/origin/decision-rule adoption before a witnessed scientific freeze",
-    "Foundation answer or explicit G8 team-default definition and remaining contractual acceptance gap",
-    "Total-bonded and staking-ratio scope: released validator model supplies no delegation forecast",
-    "Final source/window fitness, scientific registration review, witness and independent runner",
-    "Specification-changing exposure/development-record reconciliation after2October"
+    "Foundation definition/acceptance of the signed correlation/population/window requirement; scientific default does not amend the contract.",
+    "Total bonded, staking ratio, contiguous contract path and active-pattern missing measurements remain unavailable under this selected scope.",
+    "Final-source independent review, actual matching development rehearsal and actual exact-fit preflight on the named runner.",
+    "Complete historical scientific-trial and specification-changing exposure reconciliation is not asserted; known history and unknowns are disclosed in development-record.json.",
+    "External registration commitment, substantive witness, remote/history checks, independent runner eligibility and PM final-gate handoff."
   ],
   "behaviour_targets": {
     "renewal_7d": "Ended validator commitments with full7-day follow-up strictly before event end; same-node successor in[end,end+7days].",
@@ -113,8 +114,8 @@
       "2026-01-01",
       "2026-02-01"
     ],
-    "scientific_adoption": "pending",
-    "power_reassessment": "pending"
+    "scientific_adoption": "ADOPTED_HORIZON4_FROM_DECLARED_ORIGIN_OVERLAP",
+    "power_reassessment": "No calibrated power or minimum detectable effect is claimed for these 8 overlapping primary origins. Earlier 11.1% and 12.4% figures apply to another design and are not transferred. Low power can yield INCONCLUSIVE; no threshold adaptation."
   },
   "slice_projection": {
     "admission": "accepted_at no later than frozen fit-origin23:59:59UTC",
@@ -122,9 +123,95 @@
     "supply_counter": "include only when the period started by fit cut; exclude future-start counters",
     "identity": "unique(role,transaction_hash), compared in sorted4096-row streams"
   },
-  "frozen_fit": null,
-  "frozen_fit_binding_status": "Unadopted. Protected scoring and pre-marker numerical preflight require adopted origin, exact fit/draw SHA256 and artifact-manifest SHA256.",
-  "active_requirements_status": "Declared active scope with explicit measurement limits; scientific dispositions pending. No missing row is a pass.",
+  "frozen_fit": {
+    "status": "adopted",
+    "objective": "FIT-O2",
+    "fit_origin": "2025-11-18",
+    "fit_sha256": "744922e83724698212846197a6342e0e55fa134478e162385dcbcdd327515fc3",
+    "draws_sha256": "999c788cee1a2c73990cb5018c6e650e7bf226bc05a5137ab7dfa13285a4fc08",
+    "artifact_manifest_sha256": "61f497009774f20739d46f685d8511a29242cf0c41cb76227da56f28b87a81d8",
+    "prepared_pickle_sha256": "700ae56ce61160b9f72d86cb110b72cb46f778bd1274f4ba4371b38206ce8935",
+    "artifact_inventory": [
+      {
+        "path": "historical-comparison.json",
+        "bytes": 386322,
+        "sha256": "77ebbc3a405f6b8a08b538067457b9155f2b1d571ffff5d6215a23040f7f5313"
+      },
+      {
+        "path": "model-point-specification.json",
+        "bytes": 1344546,
+        "sha256": "d76e8be450ec242aa78d0d3233730bf2886d7f87ce2a3c1720d736072066dec7"
+      },
+      {
+        "path": "parameter-draws.json",
+        "bytes": 267339,
+        "sha256": "999c788cee1a2c73990cb5018c6e650e7bf226bc05a5137ab7dfa13285a4fc08"
+      },
+      {
+        "path": "parameter-draws.pickle",
+        "bytes": 47807,
+        "sha256": "beb0dd7d1c0488c8b4c4308eb2f9387463763344009091c88c0ca0d8c3b78615"
+      },
+      {
+        "path": "point-inputs.json",
+        "bytes": 4805,
+        "sha256": "3127e00103ecc4b41f4b36364311ae8d56a50bc9bfc44ae090e8dd7edd6cc9f8"
+      },
+      {
+        "path": "prepared.pickle",
+        "bytes": 1714924,
+        "sha256": "700ae56ce61160b9f72d86cb110b72cb46f778bd1274f4ba4371b38206ce8935"
+      },
+      {
+        "path": "tables/first_commitments.pickle",
+        "bytes": 34799,
+        "sha256": "6db424736fd1400322a122da46ed5eb4a7e50dc685f9a0f0c9b877be549a1f01"
+      },
+      {
+        "path": "tables/initial.pickle",
+        "bytes": 35291,
+        "sha256": "1a1997e9396af6f2fe21445a1a2da08962573f18d77d1105a984c7bdc814058b"
+      },
+      {
+        "path": "tables/moves.pickle",
+        "bytes": 512354,
+        "sha256": "b6cfd5440fe1e59858caf2d22b2c6477ed4a1280e3b03687ffeac330868adb6b"
+      },
+      {
+        "path": "tables/out_of_set.pickle",
+        "bytes": 90560,
+        "sha256": "a15fe7c277237a0b56d277075f8592c3c46b639e1f7905a9b6a8e88d89ee2327"
+      },
+      {
+        "path": "tables/scheduled.pickle",
+        "bytes": 872,
+        "sha256": "15fdfccd55af81adad1718a74a73ee65f674703c833d62722ebf388e214b6cc1"
+      }
+    ],
+    "draw_order": "Entire saved 200-row, 29-column table in original order, draw_seed 0. For batch seed b = 0..9 use rows 20*b through 20*b+19, preserving order. No sweep-bank subset, sorting or recentering.",
+    "runtime": {
+      "python": "3.13.14",
+      "compiler": "Clang 22.1.3",
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "pandas": "2.3.3",
+      "blas": "OpenBLAS 0.3.34.106.0 SkylakeX",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1"
+    },
+    "runtime_condition": "Recorded producer environment is provenance, not a guarantee of future equality. Actual runner reconstruction must match exact fit and draw hashes before marker, and again before scoring labels.",
+    "historical_comparison": {
+      "exact_point_and_stake": false,
+      "mismatched_fields": 1222,
+      "comparison_sha256": "77ebbc3a405f6b8a08b538067457b9155f2b1d571ffff5d6215a23040f7f5313",
+      "historical_receipt_sha256": "4b845dc0616409adfaf1e6d12867964d1b3ed0b0d830030ac94469080ebf8fc7",
+      "difference_cause": "UNPROVEN",
+      "forecast_or_score_equivalence": "UNKNOWN"
+    },
+    "artifact_verification": "Full 11-artifact SHA256 inventory verified separately during package review. Runtime guard checks exact fit and ordered draws; it does not open/authenticate a saved pickle or the artifact-manifest bytes."
+  },
+  "frozen_fit_binding_status": "ADOPTED distinct FIT-O2 object. Exact pre-marker and score-side guards remain required. No protected execution or historical identity follows from adoption.",
+  "active_requirements_status": "All 13 requirements retained as active. No unavailable measurement is a pass. Existing model-scope and trace/population gaps are explicitly NOT_MEASURED; AM2 loss evidence is partial only. No new analogue, actor attribution, numerical band or model extension is adopted.",
   "active_requirements": [
     {
       "id": "U1",
@@ -138,20 +225,22 @@
       "measured": false,
       "current_output": "Current S paths and B next-duration loss do not contain first-ever-versus-renewal minimum shares.",
       "limitation": "Keep original R1 result outside this protected claim. A proposed whole-R3 contrast preserves the concept/band but needs explicit pre-outcome restatement adoption; do not invent a passing analogue.",
-      "next_action": "Freeze analogue population/minimum rule and event/cohort trace or emit NOT_MEASURED with the original-window reason.",
-      "primary_verdict_role": "reported secondary only"
+      "next_action": "Report original R1 OUTSIDE_WINDOW and current analogue NOT_IMPLEMENTED. No whole-R3 analogue is adopted in this freeze.",
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "U2",
-      "population": "Active validator count and own stake outside named agents; original August2025 decline, excluding dated operator flags.",
+      "population": "Active validator count and own stake outside named agents; original August 2025 decline, excluding dated operator flags.",
       "clock_and_window": "Original compares31July2025 to31August2025 at origins before1August2025, hence outside current protected window.",
       "fixed_band": null,
       "measurement_status": "NOT_MEASURED_WINDOW_AND_ACTOR_SCOPE",
       "measured": false,
       "current_output": "Aggregate count/stake diagnostics do not implement named-operator exclusions.",
       "limitation": "Do not silently move August to2026 or treat node IDs as operators. Literal original pattern is out-of-window; any in-window analogue, actor evidence cutoff and still-unfixed band require owner disposition before freeze.",
-      "next_action": "Record OUTSIDE_WINDOW/NOT_MEASURED now. Final report needs the explicit scope decision; no new operator model or arbitrary band is introduced by this matrix.",
-      "primary_verdict_role": "reported secondary only"
+      "next_action": "Report original August 2025 OUTSIDE_WINDOW and actor/band scope unsupported. No year shift or invented band is adopted.",
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "U3",
@@ -168,7 +257,8 @@
       "current_output": "Released model has no delegated-principal forecast; validator-only path is not this ratio.",
       "limitation": "Retain active row and band, report NOT_MEASURED; never substitute validator stake.",
       "next_action": "Report typed missing-target row/reason. A delegation-capable model would be a separate adopted scope, not an automatic requirement to build it now.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "U4",
@@ -181,8 +271,9 @@
       "measured": false,
       "current_output": "No simulated delegated holdings/ranks in v0.8.0.",
       "limitation": "Report NOT_MEASURED with delegation limitation; any quarter restatement remains explicit.",
-      "next_action": "Typed missing-target row and declared dates if adopted. Do not substitute validator self-stake concentration.",
-      "primary_verdict_role": "reported secondary only"
+      "next_action": "Report NOT_MEASURED for model scope and original out-of-window dates. No in-window analogue is adopted.",
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "U5",
@@ -199,7 +290,8 @@
       "current_output": "B next-duration loss is an ending-successor cohort, not this all-commitment weighted median ratio. S scalar paths do not contain the needed joint duration/stake rows.",
       "limitation": "Retain fixed band and state NOT_MEASURED until joint period traces and timing/population alignment are bound. No band adaptation from outcomes.",
       "next_action": "Bounded simulated event trace or sufficient joint summary, weighted-median/tie convention and typed pattern result. No new fitted law is needed.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "U6",
@@ -213,7 +305,8 @@
       "current_output": "No delegated-flow forecast or price process in v0.8.0; active DE price-clock successors not adopted here.",
       "limitation": "Retain row and NOT_MEASURED; no inference from zero assumed response or historical correlation.",
       "next_action": "Typed missing-target row. Any price/flow scope addition needs its own adopted model/input contract, not a substitute metric.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "AM1",
@@ -225,7 +318,8 @@
       "current_output": "Current B categorical next-duration loss covers nonoverlapping successors of ending commitments, not all accepted validator commitments.",
       "limitation": "Report AM1 NOT_MEASURED until full all-acceptance population and model trace are supplied. Multinomial/week-clustered error is described by source, but no new numerical pass band is invented.",
       "next_action": "Add declared bins/median, observed/model moments and miss with appropriate uncertainty, or explicit missing row. Generated decision versus chain acceptance clock must be disclosed.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "AM2",
@@ -237,7 +331,8 @@
       "current_output": "B renewal_7d provides log/Brier losses for frozen point blocks. It does not expose the AM2 observed fraction/model mean probability/miss or14day sensitivity.",
       "limitation": "Retain current loss table as partial evidence, not AM2 completion. No fixed AM2 numerical band recovered.",
       "next_action": "Bounded typed moment row with observed rate/expected rate/miss and14day sensitivity; clarify point-block versus simulated-ensemble quantity and uncertainty.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_PARTIAL_LOSS_ONLY_NOT_FULL_MOMENT_MEASUREMENT"
     },
     {
       "id": "AM3",
@@ -249,7 +344,8 @@
       "current_output": "Model first-ever arrivals alone are not all nonrenewal starts. Default zero entry_response is an assumption, not a measured spread-response coefficient.",
       "limitation": "Separate level from response. Do not label first-ever arrival mean as this AM3 level or estimate a response from protected data.",
       "next_action": "If level is supported, add return/entry tags and weekly aggregation; report response NOT_ESTIMATED under this fixed model. No new regression or fit requested.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "AM4",
@@ -261,7 +357,8 @@
       "current_output": "B return_8_90d conditional loss is not this14day exit hazard/exposure table. v0.8.0 does not authenticate operator-group strata/exclusions.",
       "limitation": "Retain NOT_MEASURED with population/exposure reason; do not substitute node hazard or permanent-exit claim.",
       "next_action": "Bind actor/type/exposure support or keep explicit unsupported row. No automatic new type fit or named-agent intervention.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "AM5",
@@ -273,7 +370,8 @@
       "current_output": "No delegated-principal forecast, hence no simulated total staking ratio.",
       "limitation": "Retain NOT_MEASURED; own-stake diagnostics are separate.",
       "next_action": "Typed missing-target row. No denominator/population substitution.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "AM6",
@@ -285,7 +383,8 @@
       "current_output": "No delegator choice model or BENQI allocation forecast in v0.8.0.",
       "limitation": "Retain NOT_MEASURED and distinguish all-delegation reported stratum from fit targets.",
       "next_action": "Typed missing-target row; no new choice fit or actor attribution added here.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     },
     {
       "id": "AM7",
@@ -297,7 +396,170 @@
       "current_output": "Nakamoto count and aggregate own-stake paths do not equal top-decile share. Stake-law fit inputs are not a held-back entrant-spread result.",
       "limitation": "Report NOT_MEASURED until correctly scoped active-rank and entrant summaries are bound. Do not claim operator heterogeneity from node outputs.",
       "next_action": "Bounded active-stake and entrant trace summaries, rank/tie conventions, grouping limitation and typed observed/model/miss rows; otherwise explicit unsupported status.",
-      "primary_verdict_role": "reported secondary only"
+      "primary_verdict_role": "reported secondary only",
+      "scientific_disposition": "RETAIN_ACTIVE_NOT_MEASURED_AT_FREEZE"
     }
-  ]
+  ],
+  "scientific_adoption": {
+    "adopted": true,
+    "owner": "Modeling Lead",
+    "at_UTC": "2026-10-27T04:11:05.931626+00:00",
+    "objective": "FIT-O2: evaluate the complete saved distinct reconstructed numerical realization of released v0.8.0 at the Granite cut.",
+    "protected_execution_authorized": false,
+    "independent_final_review": "pending",
+    "historical_identity_claimed": false,
+    "forecast_equivalence_claimed": false
+  },
+  "protected_fit_until": "2025-11-19",
+  "protected_score_until": "2026-09-22",
+  "protected_cases": [
+    {
+      "origin": "2025-11-18",
+      "horizon_days": 30,
+      "endpoint": "2025-12-18",
+      "origin_state_through_utc": "2025-11-18T23:59:59Z"
+    },
+    {
+      "origin": "2025-11-18",
+      "horizon_days": 90,
+      "endpoint": "2026-02-16",
+      "origin_state_through_utc": "2025-11-18T23:59:59Z"
+    },
+    {
+      "origin": "2025-12-01",
+      "horizon_days": 30,
+      "endpoint": "2025-12-31",
+      "origin_state_through_utc": "2025-12-01T23:59:59Z"
+    },
+    {
+      "origin": "2025-12-01",
+      "horizon_days": 90,
+      "endpoint": "2026-03-01",
+      "origin_state_through_utc": "2025-12-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-01-01",
+      "horizon_days": 30,
+      "endpoint": "2026-01-31",
+      "origin_state_through_utc": "2026-01-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-01-01",
+      "horizon_days": 90,
+      "endpoint": "2026-04-01",
+      "origin_state_through_utc": "2026-01-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-02-01",
+      "horizon_days": 30,
+      "endpoint": "2026-03-03",
+      "origin_state_through_utc": "2026-02-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-02-01",
+      "horizon_days": 90,
+      "endpoint": "2026-05-02",
+      "origin_state_through_utc": "2026-02-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-03-01",
+      "horizon_days": 30,
+      "endpoint": "2026-03-31",
+      "origin_state_through_utc": "2026-03-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-03-01",
+      "horizon_days": 90,
+      "endpoint": "2026-05-30",
+      "origin_state_through_utc": "2026-03-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-04-01",
+      "horizon_days": 30,
+      "endpoint": "2026-05-01",
+      "origin_state_through_utc": "2026-04-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-04-01",
+      "horizon_days": 90,
+      "endpoint": "2026-06-30",
+      "origin_state_through_utc": "2026-04-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-05-01",
+      "horizon_days": 30,
+      "endpoint": "2026-05-31",
+      "origin_state_through_utc": "2026-05-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-05-01",
+      "horizon_days": 90,
+      "endpoint": "2026-07-30",
+      "origin_state_through_utc": "2026-05-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-06-01",
+      "horizon_days": 30,
+      "endpoint": "2026-07-01",
+      "origin_state_through_utc": "2026-06-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-06-01",
+      "horizon_days": 90,
+      "endpoint": "2026-08-30",
+      "origin_state_through_utc": "2026-06-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-07-01",
+      "horizon_days": 30,
+      "endpoint": "2026-07-31",
+      "origin_state_through_utc": "2026-07-01T23:59:59Z"
+    },
+    {
+      "origin": "2026-08-01",
+      "horizon_days": 30,
+      "endpoint": "2026-08-31",
+      "origin_state_through_utc": "2026-08-01T23:59:59Z"
+    }
+  ],
+  "expected_system_rows": 216,
+  "default_settings": {
+    "renewal_response": 0.0,
+    "entry_response": 0.0,
+    "outside_yield_pp": null,
+    "fitted_outside_yield_pp": null,
+    "stake_point_estimate": true,
+    "large_holder_intervention": false,
+    "stake_uncertainty": "Stake hurdle/choice remains a point estimate and is not resampled by the 200-draw design."
+  },
+  "scope_disposition": {
+    "scientific_primary": "Validator own/self principal only, excluding delegated principal ; 90-day ensemble-mean MASE/DM rule. Active validator count and 30-day endpoints are reported.",
+    "total_bonded_avax": "NOT_MEASURED: selected released model has no delegated-principal forecast.",
+    "staking_ratio": "NOT_MEASURED: validator-only stake is not total bonded stake over supply.",
+    "contiguous_contract_path": "NOT_MEASURED: 30/90-day paths that reset state at each origin do not constitute a contiguous no-reset Granite-to-Helicon total-bonded path.",
+    "contract_correlation": "UNRESOLVED: Pearson diagnostic levels/first differences do not establish the signed greater-than90percent correlation requirement or its series/window.",
+    "foundation_acceptance": "UNRESOLVED_NOT_CLAIMED",
+    "new_moments_or_model_upgrade": "Not included in this freeze. Gaps remain active and visible."
+  },
+  "input_identity": {
+    "pin_sha256": "47a6f4af2b7bab7d2b2aae45b2a62c7c67ed5ca26c9123151132742b208d4dee",
+    "uv_lock_sha256": "cf1a9b244db3bc80054164763314b9c4ea60df921486427ca2b065af32c0f4e2",
+    "datasets": [
+      {
+        "dataset_id": "derived.staking-periods",
+        "run": "staking-periods-2026-09-30",
+        "parquet": "staking-periods.parquet",
+        "bytes": 692906576,
+        "sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8"
+      },
+      {
+        "dataset_id": "derived.avax-monetary-daily",
+        "run": "avax-monetary-daily-2026-09-30",
+        "parquet": "avax-monetary-daily.parquet",
+        "bytes": 233039,
+        "sha256": "838a3df7e74bec49cdc198c1432d39654a529a3dac9f20909be0ee37236dfe3e"
+      }
+    ],
+    "fitness_disposition": "Original p2 pair retained for this study. No accounting/price successor is adopted by this freeze; prior source-quality qualifications remain."
+  }
 }

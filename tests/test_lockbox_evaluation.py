@@ -451,6 +451,40 @@ def test_score_refuses_fit_mismatch_before_evaluate(binding_prepared, tmp_path, 
         subject.score(None, fit_until=ORIGIN + timedelta(days=1), score_until=ORIGIN + timedelta(days=40))
 
 
+@pytest.mark.parametrize(("adopted", "protected"), [(False, False), (True, False), (True, True)])
+def test_score_provenance_distinguishes_development_from_adopted_object(
+        binding_prepared, tmp_path, monkeypatch, adopted, protected):
+    specification = {"training_pin": "pin.json", "scoring_pin": "pin.json"}
+    if adopted:
+        specification["frozen_fit"] = binding_for(binding_prepared)
+    (tmp_path / "pin.json").write_text('{"runs":[]}')
+    context = {"training": {"derived.staking-periods": Path("periods")},
+               "scoring": {"derived.staking-periods": Path("periods"), "derived.avax-monetary-daily": Path("labels")},
+               "training_pin": {"runs": []}, "pin_hashes": {k: "a" * 64 for k in ("training_pin", "scoring_pin")},
+               "slices": {}, "information": {}}
+    monkeypatch.setattr(subject, "ROOT", tmp_path)
+    monkeypatch.setattr(subject, "evaluation_specification", lambda **_: specification)
+    monkeypatch.setattr(subject, "prepare_fixed_fit", lambda *_: (binding_prepared, context))
+    monkeypatch.setattr(subject, "evaluate", lambda *_, **__: {})
+    monkeypatch.setattr(subject, "verify_input_pins_unchanged", lambda *_: None)
+    # A synthetic mode marker exercises reporting only. No actual Unseal is issued.
+    if protected:
+        monkeypatch.setattr(subject, "request_window", lambda *_: (ORIGIN, None))
+    result = subject.score(object() if protected else None,
+                           fit_until=ORIGIN + timedelta(days=1), score_until=ORIGIN + timedelta(days=40))
+    provenance = result["fit_provenance"]
+    assert provenance["evaluation_mode"] == ("protected" if protected else "development")
+    if adopted:
+        assert result["fit_binding"]["status"] == "MATCH_ADOPTED"
+        assert "adopted FIT-O2 numerical realization" in provenance["purpose"]
+        assert "historical point mismatch retained" in provenance["parameter_identity_to_released_values"]
+        assert "forecast equivalence unknown" in provenance["parameter_identity_to_released_values"]
+    else:
+        assert result["fit_binding"]["status"] == "UNBOUND_DEVELOPMENT_ONLY"
+        assert "not final coefficient adoption" in provenance["purpose"]
+        assert provenance["parameter_identity_to_released_values"] == "not verified against stored released parameter values"
+
+
 def test_protected_evaluate_requires_binding_before_label_access(binding_prepared, monkeypatch):
     # Isolate the numerical-binding layer. Actual token refusal has separate nonstubbed tests.
     monkeypatch.setattr(subject, "request_window", lambda *_: (ORIGIN, datetime(2024, 5, 1, tzinfo=UTC)))

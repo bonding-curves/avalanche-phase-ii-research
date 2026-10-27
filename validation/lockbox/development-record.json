@@ -1,5 +1,5 @@
 {
-  "status": "draft",
+  "status": "frozen-disposition-with-declared-history-limits",
   "released_model": {
     "tag": "model-v0.8.0",
     "commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc"
@@ -15,7 +15,7 @@
   "specifications_tried": null,
   "contamination_record_complete": false,
   "reviewed_scientific_registration": false,
-  "note": "No final count or exposure closure is inferred from software implementation. Model selection evidence is preserved.",
+  "note": "Scientific freeze discloses incomplete historical trial/exposure recovery. It does not establish a blind test, complete trial count, multiplicity-controlled significance or readiness.",
   "pre_outcome_overlap_check": {
     "origins": [
       "2025-11-18",
@@ -38,7 +38,55 @@
       "2026-01-01",
       "2026-02-01"
     ],
-    "scientific_adoption": "pending",
-    "power_reassessment": "pending"
+    "scientific_adoption": "ADOPTED_HORIZON4_FROM_DECLARED_ORIGIN_OVERLAP",
+    "power_reassessment": "No calibrated power or minimum detectable effect is claimed for these 8 overlapping primary origins. Earlier 11.1% and 12.4% figures apply to another design and are not transferred. Low power can yield INCONCLUSIVE; no threshold adaptation."
+  },
+  "scientific_trial_count": {
+    "global_count": null,
+    "global_count_complete": false,
+    "selection_batch_specifications": 380,
+    "selection_batch_interpretation": "2 model labels x 19 origins x 10 seeds. Batch hashes are execution specifications, not scientific trial count.",
+    "recovered_earlier_batch_log": {
+      "batch_specifications": 570,
+      "model_labels": 3,
+      "interpretation": "Recovered historical execution log only; not a complete model-search count."
+    },
+    "known_26October_scientific_candidate_configurations": 1,
+    "known_completed_26October_development_scoring_executions": 2,
+    "failed_native_scoring_attempts": 1,
+    "Granite_candidate_preparations": 1,
+    "Granite_candidate_forecasts": 0,
+    "protected_scores_by_this_implementation": 0
+  },
+  "exposure_disposition": {
+    "historical_known_rows": [
+      "CR1",
+      "CR2",
+      "CR3",
+      "CR4",
+      "CR5",
+      "CR6",
+      "CR7",
+      "CR8",
+      "CR9",
+      "CR10",
+      "CR11",
+      "CR12",
+      "CR13",
+      "CR14",
+      "CR15"
+    ],
+    "policy_since_2October": "Record analyses of post-boundary data that changed model specification. Descriptive viewing alone does not require a new row.",
+    "known_historical_exposures": "Duration distributions, post-boundary renewal/outcome shares, node lifelines, stakeholder concentration and regime summaries were already viewed. This evaluation is not blind.",
+    "post_2October_modeling_disposition": "The 26 October scoring design was declared before its development scores. Source fixes implement clocks, fit binding, input eligibility, resource isolation and reporting; no post-result model/rule retuning is claimed for that bounded implementation. FIT-O2 chooses an explicitly distinct saved artifact by declared objective, without a difference-size threshold.",
+    "global_completeness": false,
+    "global_absence_of_other_specification_changes_claimed": false,
+    "owner_action": "PM scientific registration review must assess disclosed coverage/unknowns and retain qualifications before any protected execution."
+  },
+  "scientific_registration_disposition": {
+    "scientific_object_adopted": true,
+    "final_independent_registration_review_complete": false,
+    "protected_execution_ready": false,
+    "inference_qualification": "Nominal tests describe this frozen design. Historical exposures, incomplete scientific-trial recovery and 8 overlapping primary cases limit confirmatory interpretation. No multiplicity adjustment or calibrated-power guarantee is invented."
   }
 }
