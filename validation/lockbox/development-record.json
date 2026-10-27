@@ -39,7 +39,7 @@
       "2026-02-01"
     ],
     "scientific_adoption": "ADOPTED_HORIZON4_FROM_DECLARED_ORIGIN_OVERLAP",
-    "power_reassessment": "No calibrated power or minimum detectable effect is claimed for these 8 overlapping primary origins. Earlier 11.1% and 12.4% figures apply to another design and are not transferred. Low power can yield INCONCLUSIVE; no threshold adaptation."
+    "power_reassessment": "No calibrated power or minimum detectable effect is claimed for these 8 overlapping primary origins. Earlier detectable-difference estimates use scaled forecast-loss units and a different design and are not transferred. Low power can yield INCONCLUSIVE; no threshold adaptation."
   },
   "scientific_trial_count": {
     "global_count": null,
