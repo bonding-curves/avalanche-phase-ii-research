@@ -63,6 +63,8 @@ class RunSettings:
     entry_response: float
     mechanism: RewardMechanism
     scheduled: dict[str, np.ndarray]
+    market_renewal_shift: float = 0.0
+    market_entry_shift: float = 0.0
 
 
 @dataclass(frozen=True, eq=False)
@@ -140,3 +142,11 @@ def assembly_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dic
         **earlier["rewards"],
         "yield_gap_pp": float(day.renewal_gap),
     }
+
+
+def bounded_days(days: np.ndarray, mechanism: RewardMechanism | None) -> np.ndarray:
+    """Durations moved to the nearer of the mechanism's bounds, or unchanged when it sets none or there is none."""
+    bounds = None if mechanism is None else mechanism.duration_bounds()
+    if bounds is None:
+        return days
+    return np.clip(days, bounds[0], bounds[1]).astype(np.int64)

@@ -226,7 +226,7 @@ def renewal_stage(state, day, earlier) -> dict:
     decision_inputs = {
         "done": ended["done"], "after_return": ended["after_return"], "days": ended["days"],
         "stake_navax": ended["stakes"], "returns": ended["returns"],
-        "shift": settings.renewal_response * day.renewal_gap + blocks.renewal_shift,
+        "shift": settings.renewal_response * day.renewal_gap + blocks.renewal_shift + settings.market_renewal_shift,
     }
     renews = day.draw.uniforms("renewal", ended["node_key"], ended["done"]) < blocks.renewal.probability(decision_inputs)
     if settings.large_navax is not None:

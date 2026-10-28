@@ -102,6 +102,6 @@ def arrivals_stage(state, day, earlier) -> dict:
     """The daily arrivals stage: the count of first-ever nodes today, from one uniform keyed by the day with the entry
     response to the yield gap, and their node keys."""
     count = day.blocks.arrivals.count_from_uniform(
-        float(day.draw.uniforms("arrivals", day.t)[0]), float(np.exp(day.settings.entry_response * day.entry_gap)),
+        float(day.draw.uniforms("arrivals", day.t)[0]), float(np.exp(day.settings.entry_response * day.entry_gap + day.settings.market_entry_shift)),
     )
     return {"count": count, "node_key": node_keys(KIND_ARRIVAL, day.t, np.arange(count))}

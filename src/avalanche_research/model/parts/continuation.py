@@ -9,6 +9,7 @@ import numpy as np
 
 from avalanche_research.model.parts.base import AVAX, DURATION_EDGES
 from avalanche_research.model.parts.returns import RETURN_STAKE_EDGES
+from avalanche_research.model.parts.stages import bounded_days
 
 # Log-spaced from 2,100 to 2,000,000 AVAX: the stake bands within which a moving node draws its stake ratio.
 MOVE_STAKE_EDGES = tuple(float(x) for x in np.exp(np.linspace(np.log(2_100), np.log(2_000_000), 9)))
@@ -122,11 +123,11 @@ def continuation_stage(state, day, earlier) -> dict:
             continuation.stakes_from_uniforms(state["out_stakes"][comes_back], draw.uniforms("return_stake", back_key, back_done)),
             pick(blocks.first_stakes, "first_stake"),
         ]),
-        "days": np.concatenate([
+        "days": bounded_days(np.concatenate([
             next_days(ended["days"][renews], draw.uniforms("renew_days", renewed_key, renewed_done)),
             next_days(state["out_last_days"][comes_back], draw.uniforms("return_days", back_key, back_done)),
             pick(blocks.first_days, "first_days"),
-        ]),
+        ]), getattr(day.settings, "mechanism", None)),
         "node_key": np.concatenate([renewed_key, back_key, new_key]),
         "done": np.concatenate([ended["done"][renews] + 1, state["out_done"][comes_back], np.zeros(n_new, dtype=np.int64)]),
         "after_return": np.concatenate([np.zeros(int(renews.sum()), bool), np.ones(int(comes_back.sum()), bool), np.zeros(n_new, bool)]),
