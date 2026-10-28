@@ -4,7 +4,7 @@
     uv run --group model python scripts/model_v081_selection.py OUT_DIR --pin PIN [--workers W] [--batches B] [--origins NAME ...]
 
 The rule is the one v0.8.0 was chosen by (``scripts/model_v080_selection.py``, ``evaluation.adoption_verdict``): 200
-runs per origin as ten 20-run batches with base seeds 0 to 9, one parameter draw per run, scored as distributions at
+runs per origin, each its own simulation under seed 20b + r - 1 for run r of batch b, one parameter draw per run, scored as distributions at
 30, 90 and 180 days for active validators and validator stake, the mean worsening of the scaled CRPS of validator
 stake at 90 days below 2.2, and no cell of the six clearly worse by a one-sided Diebold-Mariano test at 0.05/6. Both
 models read the same seeds and draws at each origin. The candidate is prepared from the staking periods and the seamed
@@ -65,14 +65,20 @@ def model_runs(task: tuple[str, date, str, str, str, str, int]) -> tuple[pd.Data
     tables = {"delegations": candidate_tables(periods, delegators, origin)} if model == CHALLENGER else {}
     prepared = variant.prepare(periods, origin, run_name, BATCH_RUNS * len(BATCH_SEEDS), DRAW_SEED, **tables)
     parts, specifications = [], []
-    for seed in list(BATCH_SEEDS)[:batches]:
-        simulation = variant.simulation(prepared, seed=seed, timesteps=max(HORIZONS), runs=BATCH_RUNS, draws=batch_draws(prepared.draws, seed))
-        specifications.append({"origin": name, "model": model, "batch_seed": seed, "specification": simulation.specification_hash()})
-        t = run(simulation)
-        t = t[t.timestep.isin(HORIZONS) & t.variable.isin(VARIABLES)]
-        parts.append(pd.DataFrame({"origin": name, "model": model, "batch_seed": seed, "run": t.run.to_numpy(),
-                                   "variable": t.variable.to_numpy(), "horizon_days": t.timestep.to_numpy(),
-                                   "value": t.value.astype(float).to_numpy()}))
+    # One run per simulation: a 20-run batch of the candidate would hold every run's daily delegation arrays until the
+    # batch ends, tens of gigabytes at an origin with 150,000 open delegations. Run r of batch b runs under seed
+    # 20b + r - 1 and reads draw row 20b + r - 1, the row the batch design gave it, for both models alike.
+    for batch in list(BATCH_SEEDS)[:batches]:
+        draws = batch_draws(prepared.draws, batch)
+        for r in range(1, BATCH_RUNS + 1):
+            seed = BATCH_RUNS * batch + r - 1
+            simulation = variant.simulation(prepared, seed=seed, timesteps=max(HORIZONS), runs=1, draws=draws.iloc[[r - 1]].reset_index(drop=True))
+            specifications.append({"origin": name, "model": model, "batch_seed": batch, "run": r, "seed": seed, "specification": simulation.specification_hash()})
+            t = run(simulation)
+            t = t[t.timestep.isin(HORIZONS) & t.variable.isin(VARIABLES)]
+            parts.append(pd.DataFrame({"origin": name, "model": model, "batch_seed": batch, "run": r,
+                                       "variable": t.variable.to_numpy(), "horizon_days": t.timestep.to_numpy(),
+                                       "value": t.value.astype(float).to_numpy()}))
     print(f"{name} {model}: done", flush=True)
     return pd.concat(parts, ignore_index=True), pd.DataFrame(specifications)
 
