@@ -604,3 +604,26 @@ def test_sweep_sidecars_follow_design_location_and_relocate_without_changing_ide
     assert records[0]["sweep"]["design_hash"] == records[1]["sweep"]["design_hash"]
     if kind != "absolute":
         assert designs_written[0] == designs_written[1]
+
+
+def _simulate_or_break(row):
+    if row["renewal_probability"] == 0.8:
+        raise runner.InvariantError("invariant stake within supply fails at timestep 3")
+    return _simulate_unbroken(row)
+
+
+def test_a_row_that_breaks_an_invariant_is_recorded_as_failed_and_the_sweep_continues(tmp_path, monkeypatch):
+    global _simulate_unbroken
+    _simulate_unbroken = runner._simulate
+    monkeypatch.setattr(runner, "_simulate", _simulate_or_break)
+    rows = list(designs.cartesian({"renewal_probability": [0.2, 0.8, 0.5]}))
+    first = runner.run_sweep(base(), rows, tmp_path, VARIABLES, workers=1)
+    assert first["written"] == 2 and first["failed"] == 1 and first["skipped_failed"] == 0
+    failed = runner.read_failed(tmp_path)
+    assert len(failed) == 1
+    record = next(iter(failed.values()))
+    assert record["error"] == "InvariantError: invariant stake within supply fails at timestep 3"
+    assert record["index"] == rows[1]["index"] and record["row_id"] in runner.failed_ids(tmp_path)
+    assert len(list(tmp_path.glob("*.parquet"))) == 2 and record["row_id"] not in runner.finished_ids(tmp_path)
+    second = runner.run_sweep(base(), rows, tmp_path, VARIABLES, workers=1)
+    assert second["skipped"] == 2 and second["skipped_failed"] == 1 and second["written"] == 0 and second["failed"] == 0

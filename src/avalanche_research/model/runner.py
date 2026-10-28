@@ -12,6 +12,10 @@ parent never holds the inputs a model fits and stays small however large they ar
 A row's file is written to a temporary name and renamed, so a stopped sweep never leaves a file that resume would trust.
 On a second start, rows whose ids already have a file are skipped, so an interrupted and resumed sweep writes the same
 files as an uninterrupted one. At most ``in_flight`` rows are submitted and not yet written.
+
+A row whose simulation breaks a model invariant is recorded as failed, in ``<row_id>.failed.json`` with the reason,
+and the sweep continues. A resumed sweep skips a recorded failure, so the receipt can count every planned row as
+written, failed or skipped.
 """
 
 from __future__ import annotations
@@ -34,7 +38,7 @@ import duckdb
 import pandas as pd
 
 from .designs import check_cardinality, check_origins, design_hash, row_id, settings
-from .engine import SimulationModel, run
+from .engine import InvariantError, SimulationModel, run
 
 _BASE: SimulationModel | None = None
 _VARIABLES: tuple[str, ...] = ()
@@ -147,6 +151,28 @@ def _write(frame: pd.DataFrame, out: Path) -> Path:
     return final
 
 
+def failed_ids(out: Path) -> set[str]:
+    """Row ids recorded as failed under ``out``, each by its ``<row_id>.failed.json``."""
+    return {path.name[: -len(".failed.json")] for path in out.glob("*.failed.json")}
+
+
+def read_failed(out: Path) -> dict[str, dict]:
+    """Every recorded failure under ``out`` by row id: the row's index and design, the error and the time."""
+    return {path.name[: -len(".failed.json")]: json.loads(path.read_text()) for path in sorted(out.glob("*.failed.json"))}
+
+
+def _write_failed(row: Mapping, error: Exception, out: Path) -> Path:
+    """Record a row whose simulation broke an invariant, so the sweep continues and a resume does not retry it."""
+    final = out / f"{row['row_id']}.failed.json"
+    record = {"row_id": row["row_id"], "index": row.get("index"), "design": row.get("design"),
+              "error": f"{type(error).__name__}: {error}", "failed_at": datetime.now().astimezone().isoformat(timespec="seconds")}
+    with tempfile.NamedTemporaryFile(dir=out, prefix=f".{row['row_id']}.failed.", delete=False, mode="w") as stream:
+        stream.write(json.dumps(record, indent=1, sort_keys=True) + "\n")
+        tmp = Path(stream.name)
+    os.replace(tmp, final)
+    return final
+
+
 def _build_child(build_base: Callable[[object, str], SimulationModel], origin: object, model: str, base_path: str) -> None:
     base = build_base(origin, model)
     Path(base_path).write_bytes(pickle.dumps(base))
@@ -186,14 +212,23 @@ def _run_pickled(base_path: Path, base_hash: str, rows: Iterable[Mapping], out: 
     for stale in out.glob(".*.parquet.tmp"):
         stale.unlink()
     done = finished_ids(out)
+    failed_before = failed_ids(out)
     in_flight = in_flight or 2 * workers
-    stats = {"base_specification": base_hash, "skipped": 0, "written": 0, "stopped": False}
+    stats = {"base_specification": base_hash, "skipped": 0, "written": 0, "failed": 0, "skipped_failed": 0, "stopped": False}
     started = time.perf_counter()
     pending: set = set()
+    submitted: dict = {}
 
     def drain(futures) -> None:
         for future in futures:
-            _write(future.result(), out)
+            row = submitted.pop(future)
+            try:
+                frame = future.result()
+            except InvariantError as error:
+                _write_failed(row, error, out)
+                stats["failed"] += 1
+                continue
+            _write(frame, out)
             stats["written"] += 1
 
     with ProcessPoolExecutor(workers, initializer=_init, initargs=(str(base_path), tuple(variables), reducer)) as pool:
@@ -202,13 +237,18 @@ def _run_pickled(base_path: Path, base_hash: str, rows: Iterable[Mapping], out: 
             if row["row_id"] in done:
                 stats["skipped"] += 1
                 continue
+            if row["row_id"] in failed_before:
+                stats["skipped_failed"] += 1
+                continue
             while len(pending) >= in_flight:
                 finished, pending = wait(pending, return_when=FIRST_COMPLETED)
                 drain(finished)
             if stop_after is not None and stats["written"] >= stop_after:
                 stats["stopped"] = True
                 break
-            pending.add(pool.submit(_simulate, row))
+            future = pool.submit(_simulate, row)
+            pending.add(future)
+            submitted[future] = row
         if stats["stopped"]:
             for future in pending:
                 future.cancel()
@@ -259,6 +299,8 @@ def _run_groups(groups: dict, bases: dict, rows: list[dict], out: Path, variable
                              in_flight=options.get("in_flight"), stop_after=options.get("stop_after"), reducer=options.get("reducer"))
         totals["skipped"] += stats["skipped"]
         totals["written"] += stats["written"]
+        totals["failed"] = totals.get("failed", 0) + stats.get("failed", 0)
+        totals["skipped_failed"] = totals.get("skipped_failed", 0) + stats.get("skipped_failed", 0)
         totals["seconds"] = round(totals["seconds"] + stats["seconds"], 3)
         totals["parent_peak_mib"] = max(totals.get("parent_peak_mib", 0), stats["parent_peak_mib"])
         if stats["stopped"]:

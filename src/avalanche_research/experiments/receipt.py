@@ -111,6 +111,13 @@ def _file_hashes(out: Path) -> dict[str, str]:
     return {path.stem: row_file_sha256(path) for path in sorted(out.glob("*.parquet"))}
 
 
+def _failed_rows(out: Path) -> dict[str, str]:
+    """Rows the runner recorded as failed under ``out``, by row id, with the error each raised."""
+    from ..model.runner import read_failed
+
+    return {row: record["error"] for row, record in read_failed(out).items()}
+
+
 def build_sweep(out: Path, base_specifications: list[dict[str, Any]], design_hash: str, rows_planned: int, stats: dict[str, Any],
                 pin_file: Path, seeds: list[int], started_at: str, finished_at: str, code: dict[str, Any] | None = None) -> dict[str, Any]:
     """The receipt of a sweep whose rows the runner wrote under ``out``, one Parquet file per row. It lists every base
@@ -121,6 +128,7 @@ def build_sweep(out: Path, base_specifications: list[dict[str, Any]], design_has
     base_specifications = [json.loads(json.dumps(item, sort_keys=True, default=str)) for item in base_specifications]
     pinned = pins.read(pin_file)
     files = _file_hashes(out)
+    failed = _failed_rows(out)
     rows = duckdb.execute(f"SELECT count(*) FROM read_parquet('{out}/*.parquet')").fetchone()[0] if files else 0
     receipt = {
         "schema_version": SCHEMA,
@@ -134,7 +142,8 @@ def build_sweep(out: Path, base_specifications: list[dict[str, Any]], design_has
         "conservation": [],
         "output": {"path": str(out), "rows": int(rows), "sha256": sha256(canonical_bytes(files))},
         "sweep": {"design_hash": design_hash, "rows_planned": rows_planned, "rows_written": stats.get("written", 0),
-                  "rows_skipped": stats.get("skipped", 0), "complete": len(files) == rows_planned, "files": files},
+                  "rows_skipped": stats.get("skipped", 0), "rows_failed": len(failed),
+                  "complete": len(files) + len(failed) == rows_planned, "files": files, "failed": failed},
         "timings": {"started_at": started_at, "finished_at": finished_at, "seconds": stats.get("seconds")},
     }
     receipt["receipt_id"] = sha256(canonical_bytes(receipt))[:16]
