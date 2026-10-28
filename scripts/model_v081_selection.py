@@ -27,6 +27,7 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import date
 from pathlib import Path
 
+import duckdb
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -47,6 +48,13 @@ from avalanche_research.model.engine import run
 from avalanche_research.model.variants import VARIANTS
 
 INCUMBENT, CHALLENGER = "v0.8.0", "v0.8.1 candidate"
+
+
+def worker_setup(memory_limit: str = "1500MB", threads: int = 2) -> None:
+    """Cap the worker's DuckDB connection, which the model's input queries share, so a pool of workers beside other
+    jobs on one machine stays within its memory: the default limit is 80% of the machine's memory per connection."""
+    duckdb.execute(f"SET memory_limit='{memory_limit}'")
+    duckdb.execute(f"SET threads={threads}")
 
 
 def model_runs(task: tuple[str, date, str, str, str, str, int]) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -107,7 +115,7 @@ def main() -> None:
         origins = {name: origins[name] for name in args.origins}
     if not args.score_only:
         tasks = [(n, o, m, run_name, periods, delegators, args.batches) for n, o in origins.items() for m in (INCUMBENT, CHALLENGER)]
-        with ProcessPoolExecutor(args.workers) as pool:
+        with ProcessPoolExecutor(args.workers, initializer=worker_setup) as pool:
             results = list(pool.map(model_runs, tasks))
         pd.concat([r for r, _ in results], ignore_index=True).to_csv(args.out / "development-runs.csv.gz", index=False,
                                                                      compression={"method": "gzip", "mtime": 0})
