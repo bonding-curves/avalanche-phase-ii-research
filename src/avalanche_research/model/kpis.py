@@ -206,6 +206,15 @@ def _rows(daily: pd.DataFrame, first, last, columns: Iterable[str], complete: bo
     return rows
 
 
+def _window_sum(series: pd.Series):
+    """A window's sum as a Python number. A whole-number column is summed in Python integers, because a 64-bit sum of
+    nAVAX passes 2**63 within a few years of a run and wraps. Where the 64-bit sum fits, the value is the same."""
+    if pd.api.types.is_integer_dtype(series.dtype):
+        return int(series.astype(object).sum())
+    total = series.sum()
+    return int(total) if isinstance(total, (int, np.integer)) else float(total)
+
+
 def _run(daily: pd.DataFrame, origin, horizon: int, columns: Iterable[str], complete: bool = True) -> pd.DataFrame:
     """Days 1 to ``horizon`` after the origin."""
     if horizon < 1:
@@ -379,15 +388,12 @@ def nakamoto_coefficient(daily: pd.DataFrame, origin, horizon: int) -> int:
 def earned_rate(daily: pd.DataFrame, origin, horizon: int) -> float:
     """The annual reward rate on the commitments started in the run: 365 times issuance over stake-days."""
     rows = _run(daily, origin, horizon, ["issued_navax", "started_stake_days_navax"])
-    issued, stake_days = rows["issued_navax"].sum(), rows["started_stake_days_navax"].sum()
+    issued, stake_days = _window_sum(rows["issued_navax"]), _window_sum(rows["started_stake_days_navax"])
     if stake_days <= 0:
         raise ValueError("no commitment starts in the run")
-    if isinstance(issued, np.integer):
-        # 365 times about four years of issuance in nAVAX passes 2**63, where a 64-bit product wraps. The product is
-        # taken in Python and converted to a float once, which is the value numpy's own product converts to whenever
-        # it fits in 64 bits, so every horizon within a run's first four years is unchanged.
-        return float(365 * int(issued)) / float(stake_days)
-    return float(365 * issued / stake_days)
+    # 365 times about four years of issuance in nAVAX passes 2**63, where a 64-bit product wraps. The product is taken
+    # in Python and converted to a float once, which is the value a 64-bit product converts to whenever it fits.
+    return float(365 * issued) / float(stake_days)
 
 
 def return_margin(daily: pd.DataFrame, origin, horizon: int, competing_yield: float, operating_cost: float) -> float:
@@ -398,10 +404,10 @@ def return_margin(daily: pd.DataFrame, origin, horizon: int, competing_yield: fl
 def stake_weighted_duration(daily: pd.DataFrame, origin, horizon: int) -> float:
     """Committed days of the commitments started in the run, weighted by stake."""
     rows = _run(daily, origin, horizon, ["started_stake_navax", "started_stake_days_navax"])
-    stake = rows["started_stake_navax"].sum()
+    stake = _window_sum(rows["started_stake_navax"])
     if stake <= 0:
         raise ValueError("no commitment starts in the run")
-    return float(rows["started_stake_days_navax"].sum() / stake)
+    return float(_window_sum(rows["started_stake_days_navax"])) / float(stake)
 
 
 def reward_rate_volatility(daily: pd.DataFrame, origin, horizon: int) -> float:

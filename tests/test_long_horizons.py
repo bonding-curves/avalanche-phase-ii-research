@@ -114,3 +114,14 @@ def test_the_earned_rate_does_not_wrap_when_365_times_the_issuance_passes_2_to_t
     # Within four years the value is the one the 64-bit product converts to.
     short = kpis.earned_rate(daily, ORIGIN, 365)
     assert short == float(np.int64(365) * np.int64(issued_per_day * 365) / np.int64(stake_days_per_day * 365))
+
+
+def test_the_stake_weighted_duration_does_not_wrap_when_ten_years_of_started_stake_pass_2_to_the_63():
+    days = 3660
+    started = 3_000_000 * AVAX  # 3e15 nAVAX a day: ten years of it is 1.1e19, past 2**63
+    daily = table(ORIGIN, {"started_stake_navax": [started] * (days + 1), "started_stake_days_navax": [started * 40] * (days + 1)})
+    assert daily["started_stake_navax"].dtype == np.int64 and started * 3650 > 2**63
+    assert kpis.stake_weighted_duration(daily, ORIGIN, 3650) == pytest.approx(40.0, rel=1e-12)
+    # Where the 64-bit sums fit, the value is the one they convert to.
+    assert kpis.stake_weighted_duration(daily, ORIGIN, 30) == float(np.int64(started * 40 * 30) / np.int64(started * 30))
+
