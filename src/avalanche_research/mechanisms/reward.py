@@ -16,12 +16,18 @@ and rounded down to the nAVAX. Each offers:
 - ``potential_reward_navax``: the rule for one stake, in nAVAX.
 - ``curve``: annual rate by duration, a table ready to plot.
 - ``issuance_navax``: what the rule mints for a set of stakes, the cost every comparison scores.
+- ``funding``: how one priced reward splits between minting and a revenue pool. The chain mints all of it.
 - ``check``: the properties the rule must keep, returned as a list of failures.
+
+A funding rule reads a :class:`RewardContext`, the day's counter, pool and stake, and returns a :class:`Funding`:
+the nAVAX minted, the nAVAX paid from the pool and the nAVAX of the revenue share the pool could not pay. For every
+rule ``minted + revenue + unpaid`` equals the reward the rule priced.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime
 from itertools import pairwise
 
@@ -47,6 +53,33 @@ AVAX = 10**9
 CURVE_STAKE_NAVAX = 10**6 * AVAX
 DEFAULT_DURATIONS_DAYS = (2, 7, 14, 21, 30, 60, 90, 120, 180, 270, 365)
 STAKE_COLUMNS = ("stake_navax", "duration_seconds", "start")
+SHARE_DENOMINATOR = 10**6
+"""A revenue share is applied to the millionth, in integer arithmetic, so a reward splits the same on every machine."""
+
+
+@dataclass(frozen=True)
+class RewardContext:
+    """What a funding rule reads on the day a reward is priced: the day, the P-Chain reward counter the formula read,
+    the revenue pool left before this reward, and the validator stake open at the start of the day, all in nAVAX."""
+
+    day: datetime
+    supply_navax: int
+    pool_navax: int
+    validator_stake_navax: int
+
+
+@dataclass(frozen=True)
+class Funding:
+    """How one priced reward is paid: minted, paid from the revenue pool, and the revenue share left unpaid."""
+
+    minted_navax: int
+    revenue_navax: int
+    unpaid_navax: int = 0
+
+    @property
+    def received_navax(self) -> int:
+        """What the validator receives: the minted part plus the part the pool paid."""
+        return self.minted_navax + self.revenue_navax
 
 
 class RewardMechanism(param.Parameterized):
@@ -54,9 +87,16 @@ class RewardMechanism(param.Parameterized):
 
     label = param.String(default="Chain today", doc="Name shown in tables and legends")
 
+    funds_from_revenue = False
+    """Whether the rule pays any part of a reward from the revenue pool. A plain class attribute, not a setting."""
+
     def config(self, start: datetime) -> RewardConfig:
         """The rate configuration a stake starting at ``start`` is priced with."""
         return reward_config_for_stake_start(start, MAINNET_REWARD, MAINNET_UPGRADES)
+
+    def funding(self, reward_navax: int, context: RewardContext) -> Funding:
+        """How a reward of ``reward_navax`` is paid. The chain mints all of it and reads nothing from the context."""
+        return Funding(minted_navax=int(reward_navax), revenue_navax=0)
 
     def numerator(self, config: RewardConfig, duration_ns: int) -> int:
         """rate(d) * T in millionths times nanoseconds, the chain's linear rate."""
@@ -234,3 +274,50 @@ class QuadraticReward(RewardMechanism):
         designed = QuadraticReward(exponent=self.exponent, acp285=self.acp285).issuance_navax(stakes, supply_navax)
         return QuadraticReward(exponent=self.exponent, scale=chain / designed if designed else 1.0, acp285=self.acp285,
                                label=f"{self.label}, equal issuance")
+
+
+TOP_UP = "top_up"
+CUT = "cut"
+
+
+class RevenueFunded(RewardMechanism):
+    """The chain's reward, a share of it paid from a revenue pool instead of minted: the Foundation's proposal to fund
+    half of validator rewards from revenue so that emission falls by half.
+
+    Each commitment is priced by the chain's rule, ACP-285 included. A share ``revenue_share`` of the reward, taken
+    to the millionth, is the revenue part. The pool pays as much of it as it holds. What the pool cannot pay follows
+    the ``shortfall`` rule: under ``top_up`` emission pays it and the validator receives the chain's reward, under
+    ``cut`` the validator receives less. The rest is minted. At a share of zero the rule is the chain's.
+
+    The pool itself is a model state, filled by the run's revenue setting, so the rule reads the pool from its context
+    and never holds one. The rate the rule offers, which the responses read, is the chain's rate: under ``cut`` a
+    validator's receipt can fall below it, and that fall does not yet reach behaviour.
+    """
+
+    label = param.String(default="Revenue funded")
+    revenue_share = param.Number(default=0.0, bounds=(0.0, 1.0), step=0.05, doc="Share of each reward paid from the revenue pool. 0 is the chain, 0.5 the Foundation's proposal")
+    shortfall = param.Selector(default=TOP_UP, objects=[TOP_UP, CUT], doc="What happens to the revenue share the pool cannot pay: top_up mints it, cut leaves it unpaid")
+    acp285 = param.Boolean(
+        default=True,
+        doc="Price stakes from Helicon with ACP-285's ramp, as the chain does. False holds the rule before ACP-285 for every stake",
+    )
+
+    funds_from_revenue = True
+
+    def config(self, start: datetime) -> RewardConfig:
+        return super().config(start) if self.acp285 else MAINNET_REWARD
+
+    def revenue_part_navax(self, reward_navax: int) -> int:
+        """The revenue share of a reward, in whole nAVAX, the share taken to the millionth."""
+        return int(reward_navax) * round(self.revenue_share * SHARE_DENOMINATOR) // SHARE_DENOMINATOR
+
+    def funding(self, reward_navax: int, context: RewardContext) -> Funding:
+        reward = int(reward_navax)
+        if reward < 0 or context.pool_navax < 0:
+            raise ValueError("a reward and the revenue pool are never negative")
+        want = self.revenue_part_navax(reward)
+        paid = min(want, int(context.pool_navax))
+        unpaid = want - paid
+        if self.shortfall == TOP_UP:
+            return Funding(minted_navax=reward - paid, revenue_navax=paid)
+        return Funding(minted_navax=reward - want, revenue_navax=paid, unpaid_navax=unpaid)

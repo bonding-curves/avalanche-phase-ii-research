@@ -71,6 +71,11 @@ COMMITMENT = ("stakes", "days_left", "done", "after_return", "days", "handed_on"
 OUT = ("out_stakes", "out_days", "out_done", "out_last_days", "out_returns")
 
 
+AVAX_NAVAX = 10**9
+REVENUE_VARIABLES = ("revenue_paid_navax", "unpaid_need_navax", "revenue_pool_navax")
+"""The revenue funding outputs that are state when a run carries revenue funding (``FittedLifecycle.funded``)."""
+
+
 def _array(value, dtype=np.int64) -> np.ndarray:
     return np.asarray(value if value is not None else [], dtype=dtype)
 
@@ -166,6 +171,22 @@ class FittedLifecycle(SimulationModel):
             "of being staked for the first time, so arrivals stop as the unstaked pool empties. 0 is model v0.8.0",
     )
 
+    # Revenue funding for deliverable 2.8, left out of the specification at its defaults in the same way. The stream
+    # is a scenario: AVAX a year paid into the revenue pool that a funding rule such as RevenueFunded pays rewards
+    # from. The counter switch keeps the chain's rate path by adding the revenue-paid part of each reward to the
+    # P-Chain reward counter as well as the minted part.
+    revenue_avax_pa = param.Number(
+        default=0.0, bounds=(0.0, None), metadata={"omit_at_default": True, "source": "scenario"},
+        doc="An outside revenue stream paid into the reward pool, in AVAX a year, added each day as one 365th. 0 is "
+            "every version to v0.8.1: the pool never fills, and a rule that mints everything never reads it",
+    )
+    count_revenue_in_supply = param.Boolean(
+        default=False, metadata={"omit_at_default": True},
+        doc="Add the revenue-paid part of each reward to the P-Chain reward counter as well as the minted part, so "
+            "the formula follows the chain's rate path. False adds only what is minted, so the formula pays slightly "
+            "more later in the run",
+    )
+
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
     # specification and its hash do not record it.
     stages = (
@@ -181,7 +202,18 @@ class FittedLifecycle(SimulationModel):
     # leaves them out (tests/test_parts_split.py).
     def state_variables(self):
         return ["active_validators", "active_validator_stake_navax", "returning_nodes", "supply_navax", "issued_navax",
-                "started_stake_navax", "nakamoto_third_nodes"]
+                "started_stake_navax", "nakamoto_third_nodes", *(REVENUE_VARIABLES if self.funded else ())]
+
+    @property
+    def funded(self) -> bool:
+        """Whether the run carries revenue funding: a rule that pays from the pool, a revenue stream, or the counter
+        switch. Only then are the pool, the revenue paid and the unpaid need state, so every other run keeps its table."""
+        return bool(self.mechanism.funds_from_revenue or self.revenue_avax_pa > 0 or self.count_revenue_in_supply)
+
+    @property
+    def revenue_inflow_navax(self) -> int:
+        """The nAVAX the revenue stream adds to the pool each day: one 365th of the year's AVAX, to the nAVAX."""
+        return round(self.revenue_avax_pa * AVAX_NAVAX / 365)
 
     def float_variables(self):
         return ["yield_gap_pp", "started_stake_days_navax", "offered_rate_30d"]
@@ -211,6 +243,7 @@ class FittedLifecycle(SimulationModel):
             "issued_navax": 0,
             "started_stake_navax": 0,
             "nakamoto_third_nodes": nakamoto_third_nodes(state["stakes"], state["node_key"]),
+            **({name: 0 for name in REVENUE_VARIABLES} if self.funded else {}),
             "yield_gap_pp": 0.0,
             "started_stake_days_navax": 0.0,
             # The rate at the counter of the day before the origin, which the model does not hold.
@@ -288,6 +321,8 @@ class FittedLifecycle(SimulationModel):
             mechanism=self.mechanism,
             participation_elasticity=float(self.participation_elasticity),
             unstaked_share0=unstaked_share(self.initial_state()),
+            revenue_inflow_navax=self.revenue_inflow_navax,
+            count_revenue_in_supply=bool(self.count_revenue_in_supply),
             scheduled={
                 "start_day": sched_day, "stakes": _array(sched["stakes"]), "days": _array(sched["days"]),
                 "done": _array(sched["done"]), "after_return": _array(sched["after_return"], bool),
@@ -320,16 +355,20 @@ class FittedLifecycle(SimulationModel):
         def s_supply(params, substep, history, state, signal):
             return "supply_navax", state["supply_navax"] + signal["issued_navax"]
 
+        def s_supply_with_revenue(params, substep, history, state, signal):
+            return "supply_navax", state["supply_navax"] + signal["issued_navax"] + signal["revenue_paid_navax"]
+
         def s_nakamoto(params, substep, history, state, signal):
             return "nakamoto_third_nodes", nakamoto_third_nodes(signal["stakes"], signal["node_key"])
 
         copied = (*COMMITMENT, *OUT, "node_key", "out_node_key", "issued_navax", "yield_gap_pp",
-                  "started_stake_navax", "started_stake_days_navax", "offered_rate_30d")
+                  "started_stake_navax", "started_stake_days_navax", "offered_rate_30d",
+                  *(REVENUE_VARIABLES if self.funded else ()))
         return [{
             "policies": {"lifecycle": p_lifecycle},
             "variables": {
                 **{name: s_copy(name) for name in copied},
-                "supply_navax": s_supply,
+                "supply_navax": s_supply_with_revenue if self.count_revenue_in_supply else s_supply,
                 "active_validators": s_count,
                 "active_validator_stake_navax": s_stake,
                 "returning_nodes": s_out,
@@ -344,6 +383,7 @@ class FittedLifecycle(SimulationModel):
             ("nodes out of the set at most 365 days", lambda s: bool((s["out_days"] <= RETURN_DAYS).all())),
             ("supply within the cap", lambda s: s["supply_navax"] <= 720_000_000 * 10**9),
             ("stake within supply", lambda s: s["active_validator_stake_navax"] <= s["supply_navax"]),
+            *([("revenue pool never negative", lambda s: s["revenue_pool_navax"] >= 0)] if self.funded else []),
         ]
 
 

@@ -340,7 +340,12 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
         placed_days = np.minimum(new_days[order], validator_days[rows])
 
     validator_issued = int(validators["issued_navax"])
-    opening = int(state["supply_navax"]) + validator_issued
+    # The counter the delegator rewards are priced on: today's validator rewards minted, plus the part paid from
+    # revenue when the counter counts it. Delegator rewards are minted in full.
+    counted = validator_issued
+    if "revenue_pool_navax" in state and day.settings.count_revenue_in_supply:
+        counted += int(validators["revenue_paid_navax"])
+    opening = int(state["supply_navax"]) + counted
     supply = opening
     mechanism = day.settings.mechanism
     rewards = np.zeros(len(order), dtype=np.int64)

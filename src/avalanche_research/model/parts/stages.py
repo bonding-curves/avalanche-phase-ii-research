@@ -18,12 +18,13 @@ continue, then those started today (renewed, returned, arrived), then the schedu
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import numpy as np
 
+from avalanche_research.mechanisms.reward import RewardContext
 from avalanche_research.model.parts.base import RETURN_DAYS
 
 if TYPE_CHECKING:
@@ -67,6 +68,11 @@ class RunSettings:
     # and that share at the origin, which the scale is one at.
     participation_elasticity: float = 0.0
     unstaked_share0: float = 1.0
+    # Revenue funding: the nAVAX the outside revenue stream adds to the pool each day, and whether the supply counter
+    # adds the revenue-paid part of each reward as well as the minted part (the chain's rate path). Both at their
+    # defaults, with a rule that mints everything, leave every run as recorded.
+    revenue_inflow_navax: int = 0
+    count_revenue_in_supply: bool = False
 
 
 @dataclass(frozen=True, eq=False)
@@ -98,18 +104,36 @@ OFFERED_RATE_DAYS = 30
 def rewards_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> dict:
     """The rewards minted for every commitment started today, priced by the reward rule at the day's supply, with the
     started commitments' stake and stake-days and the annual rate the rule offers a 30-day stake with no tenure at that
-    supply. The scheduled commitments due today are not started here, so none of these counts them."""
+    supply. The scheduled commitments due today are not started here, so none of these counts them.
+
+    Each priced reward is split by the rule's ``funding``: ``issued_navax`` is the part minted, ``revenue_paid_navax``
+    the part paid from the revenue pool, ``unpaid_need_navax`` the revenue share the pool could not pay, and
+    ``revenue_pool_navax`` the pool after today's inflow and payments. The pool fills before it pays. Under the
+    chain's rule everything is minted, the pool only fills, and the three revenue outputs are not state unless the
+    model carries revenue funding."""
     started = earlier["continuation"]["started"]
     mechanism = day.settings.mechanism
-    issued = sum(
-        mechanism.potential_reward_navax(int(stake), int(d) * 86_400, state["supply_navax"], day.start, int(periods))
-        for stake, d, periods in zip(started["stakes"], started["days"], started["done"])
-    )
+    supply = int(state["supply_navax"])
+    # The pool is state only in a run that carries revenue funding, and only such a run reads the stream.
+    pool = int(state["revenue_pool_navax"]) + int(day.settings.revenue_inflow_navax) if "revenue_pool_navax" in state else 0
+    context = RewardContext(day=day.start, supply_navax=supply, pool_navax=pool,
+                            validator_stake_navax=int(state["active_validator_stake_navax"]))
+    minted = paid = unpaid = 0
+    for stake, d, periods in zip(started["stakes"], started["days"], started["done"]):
+        reward = mechanism.potential_reward_navax(int(stake), int(d) * 86_400, supply, day.start, int(periods))
+        funding = mechanism.funding(reward, replace(context, pool_navax=pool) if pool != context.pool_navax else context)
+        minted += funding.minted_navax
+        paid += funding.revenue_navax
+        unpaid += funding.unpaid_navax
+        pool -= funding.revenue_navax
     return {
-        "issued_navax": int(issued),
+        "issued_navax": int(minted),
+        "revenue_paid_navax": int(paid),
+        "unpaid_need_navax": int(unpaid),
+        "revenue_pool_navax": int(pool),
         "started_stake_navax": int(sum(int(stake) for stake in started["stakes"])),
         "started_stake_days_navax": float(sum(int(stake) * int(d) for stake, d in zip(started["stakes"], started["days"]))),
-        "offered_rate_30d": float(mechanism.annual_rate(OFFERED_RATE_DAYS, int(state["supply_navax"]), day.start)),
+        "offered_rate_30d": float(mechanism.annual_rate(OFFERED_RATE_DAYS, supply, day.start)),
     }
 
 

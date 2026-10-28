@@ -337,6 +337,9 @@ BLOCK_NODES = {
     # The participation feedback: its elasticity is a setting a run compares, and the origin's unstaked share is read
     # from the initial state before the step, as the gaps are.
     "settings.participation_elasticity": "responses", "settings.unstaked_share0": None,
+    # Revenue funding: the stream and the counter switch are read only by a run that carries the revenue pool, and
+    # both are scenario settings rather than blocks, so neither is drawn as a node.
+    "settings.revenue_inflow_navax": None, "settings.count_revenue_in_supply": None,
     # The day's yield gaps come from the mechanism and outside_yield_pp before the step; the responses decide what
     # they do, so the drawing joins the responses to the stages that read them and not to the gaps.
     "day.renewal_gap": None, "day.entry_gap": None, "day.t": None, "day.start": None, "day.draw": None,
