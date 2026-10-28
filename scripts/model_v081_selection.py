@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing
 import subprocess
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -115,7 +116,8 @@ def main() -> None:
         origins = {name: origins[name] for name in args.origins}
     if not args.score_only:
         tasks = [(n, o, m, run_name, periods, delegators, args.batches) for n, o in origins.items() for m in (INCUMBENT, CHALLENGER)]
-        with ProcessPoolExecutor(args.workers, initializer=worker_setup) as pool:
+        # Workers start afresh rather than forked: a forked copy of the parent's DuckDB connection deadlocks on its first query.
+        with ProcessPoolExecutor(args.workers, mp_context=multiprocessing.get_context("spawn"), initializer=worker_setup) as pool:
             results = list(pool.map(model_runs, tasks))
         pd.concat([r for r, _ in results], ignore_index=True).to_csv(args.out / "development-runs.csv.gz", index=False,
                                                                      compression={"method": "gzip", "mtime": 0})
