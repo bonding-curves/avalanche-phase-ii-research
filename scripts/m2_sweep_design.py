@@ -1,8 +1,10 @@
 """The Milestone 2 sweep design: every row, its labels, the table of parameter draws, and the sweep's design file.
 
-    python scripts/m2_sweep_design.py <variant> <out dir>
+    python scripts/m2_sweep_design.py <variant> <out dir> [--timesteps 365] [--horizons 365,180]
 
-``variant`` names a model variant of ``avalanche_research.model.variants``, such as ``v0.8.0`` or ``v0.8-a``. Every
+``--timesteps`` is the days each run simulates and ``--horizons`` the days after the origin at which every KPI is
+measured, each at most the timesteps. Both default to the Milestone 2 values, and the files written at the defaults
+are the Milestone 2 files byte for byte. ``variant`` names a model variant of ``avalanche_research.model.variants``, such as ``v0.8.0`` or ``v0.8-a``. Every
 row runs that variant with one parameter draw per trajectory: a release such as ``v0.8.0`` reads draws under its own
 name, and any other variant is run by the registry name with ``u`` added (``v0.8-a u``). The script writes five files
 to ``out dir``:
@@ -541,8 +543,34 @@ def counts(labels: list[dict]) -> dict[str, int]:
     return table
 
 
+def horizon_settings(argv: list[str]) -> tuple[list[str], int, list[int]]:
+    """The positional arguments, the timesteps and the KPI horizons from ``argv``: ``--timesteps N`` and
+    ``--horizons a,b,...``, each optional, the defaults the Milestone 2 values. Every horizon must be at most the
+    timesteps, and a run of N days then reports every KPI at each listed horizon."""
+    positional, timesteps, horizons = [], TIMESTEPS, list(HORIZONS)
+    rest = list(argv)
+    while rest:
+        flag = rest.pop(0)
+        if flag in ("--timesteps", "--horizons"):
+            if not rest:
+                raise ValueError(f"{flag} needs a value")
+            value = rest.pop(0)
+            if flag == "--timesteps":
+                timesteps = int(value)
+            else:
+                horizons = [int(h) for h in value.split(",") if h.strip()]
+        else:
+            positional.append(flag)
+    if timesteps < 1 or not horizons or any(h < 1 for h in horizons) or len(set(horizons)) != len(horizons):
+        raise ValueError("timesteps and each horizon must be whole days of at least one, with no horizon repeated")
+    if max(horizons) > timesteps:
+        raise ValueError(f"a KPI horizon of {max(horizons)} days is past the run's {timesteps} timesteps")
+    return positional, timesteps, horizons
+
+
 def readme(variant: str, base: str, fitted: tuple[float, int, str], periods_run: str, key_count: int, tau: float,
-           tau_source: str, labels: list[dict], hashes: dict[str, str], draw_columns: list[str]) -> str:
+           tau_source: str, labels: list[dict], hashes: dict[str, str], draw_columns: list[str],
+           timesteps: int = TIMESTEPS, horizons: list[int] = HORIZONS) -> str:
     fitted_yield, bill_days, bill_run = fitted
     blocks = counts(labels)
     per_family = "\n".join(
@@ -566,7 +594,7 @@ Written by `scripts/m2_sweep_design.py {base} <out dir>`. Running it again write
 
 - Model: `{variant}`, {"the released model, which reads one parameter draw per trajectory under its own name" if variant == base
   else f"the variant `{base}` with one parameter draw per trajectory. Its base `{base}` builds its moves and first-commitment tables without node codes, so it refuses a draw table with resample seeds. The variant `{variant}` keeps them"}.
-- Origin 2025-11-18, 365 timesteps, one run per row. KPI horizons 365 and 180 days.
+- Origin 2025-11-18, {timesteps} timesteps, one run per row. KPI horizons {" and ".join(f"{h}" for h in horizons)} days.
 - Staking periods and monetary ledger: pin `{PIN}`, staking periods run `{periods_run}`.
 - Fitting window's outside yield: {fitted_yield!r}% a year, the mean of FRED's 3-month bill rate (DTB3, a discount rate)
   over the {bill_days} days with a value from 2024-11-19 to 2025-11-18, run `{bill_run}` of pin `{BILL_PIN}`.
@@ -652,10 +680,11 @@ def main(argv: list[str]) -> int:
 
     from avalanche_research.model.variants import VARIANTS
 
-    if len(argv) != 2:
+    positional, timesteps, horizons = horizon_settings(argv)
+    if len(positional) != 2:
         print(__doc__.split("\n\n")[1], file=sys.stderr)
         return 2
-    base, out = argv[0], Path(argv[1])
+    base, out = positional[0], Path(positional[1])
     variant = model_variant(base)
     fitted = bill_mean(Path(BILL_PIN))
     periods, periods_run = pinned_periods(Path(PIN))
@@ -672,10 +701,10 @@ def main(argv: list[str]) -> int:
         "name": DESIGN_NAME, "generator": "explicit",
         **file_fields(out),
         "origins": [ORIGIN.isoformat()], "models": [variant], "rows": TOTAL_ROWS, "pin": PIN,
-        "runs": 1, "timesteps": TIMESTEPS, "workers": "auto",
+        "runs": 1, "timesteps": timesteps, "workers": "auto",
         # Every row sets its own outside yield, which the reducer reads as its competing yield. The return margin is
         # linear in the operating cost, so it is kept at a cost of zero and any cost level is subtracted afterwards.
-        "reducer": {"kind": "kpis", "horizons": HORIZONS, "competing_yield": fitted[0] / 100, "operating_costs": {"zero": 0.0}},
+        "reducer": {"kind": "kpis", "horizons": horizons, "competing_yield": fitted[0] / 100, "operating_costs": {"zero": 0.0}},
         "provenance": {
             "variant": base, "fitted_outside_yield_pp": fitted[0], "fitted_outside_yield_days": fitted[1],
             "fitted_outside_yield_run": fitted[2], "fitted_outside_yield_pin": BILL_PIN, "draw_seed": DRAW_SEED,
@@ -686,7 +715,7 @@ def main(argv: list[str]) -> int:
     (out / "design.json").write_text(json.dumps(design, indent=1, sort_keys=True) + "\n")
     hashes = {name: sha256(out / name) for name in ("rows.json", "labels.csv", "draws.parquet", "design.json")}
     (out / "README.md").write_text(readme(variant, base, fitted, periods_run, key_count, prepared.tau, prepared.tau_source,
-                                          labels, hashes, list(draws.columns)))
+                                          labels, hashes, list(draws.columns), timesteps, horizons))
     print(json.dumps({"rows": len(rows), "keys": key_count, "fitted_outside_yield_pp": fitted[0], **hashes}, indent=1))
     return 0
 

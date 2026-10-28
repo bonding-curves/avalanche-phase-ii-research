@@ -379,10 +379,15 @@ def nakamoto_coefficient(daily: pd.DataFrame, origin, horizon: int) -> int:
 def earned_rate(daily: pd.DataFrame, origin, horizon: int) -> float:
     """The annual reward rate on the commitments started in the run: 365 times issuance over stake-days."""
     rows = _run(daily, origin, horizon, ["issued_navax", "started_stake_days_navax"])
-    stake_days = rows["started_stake_days_navax"].sum()
+    issued, stake_days = rows["issued_navax"].sum(), rows["started_stake_days_navax"].sum()
     if stake_days <= 0:
         raise ValueError("no commitment starts in the run")
-    return float(365 * rows["issued_navax"].sum() / stake_days)
+    if isinstance(issued, np.integer):
+        # 365 times about four years of issuance in nAVAX passes 2**63, where a 64-bit product wraps. The product is
+        # taken in Python and converted to a float once, which is the value numpy's own product converts to whenever
+        # it fits in 64 bits, so every horizon within a run's first four years is unchanged.
+        return float(365 * int(issued)) / float(stake_days)
+    return float(365 * issued / stake_days)
 
 
 def return_margin(daily: pd.DataFrame, origin, horizon: int, competing_yield: float, operating_cost: float) -> float:
