@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""The v0.8.1 candidate's system test against v0.8.0 at the 19 development origins, under the variant rule.
+
+    uv run --group model python scripts/model_v081_selection.py OUT_DIR --pin PIN [--workers W] [--batches B] [--origins NAME ...]
+
+The rule is the one v0.8.0 was chosen by (``scripts/model_v080_selection.py``, ``evaluation.adoption_verdict``): 200
+runs per origin as ten 20-run batches with base seeds 0 to 9, one parameter draw per run, scored as distributions at
+30, 90 and 180 days for active validators and validator stake, the mean worsening of the scaled CRPS of validator
+stake at 90 days below 2.2, and no cell of the six clearly worse by a one-sided Diebold-Mariano test at 0.05/6. Both
+models read the same seeds and draws at each origin. The candidate is prepared from the staking periods and the seamed
+delegator stakes the pin names, as ``scripts/model_v081_origins.py`` does, so its delegations are the origin's own.
+
+Writes ``development-runs.csv.gz`` and ``development-specifications.csv`` in the form of
+``scripts/model_development_scores.py``, then scores them with ``scripts/model_distribution_scores.py`` into
+``development-distribution.csv`` and its summary, and applies the rule into ``verdict.json``. The verdict's event-test
+field is left open: the delegation blocks' own held-out tests are data science's, recorded with the frozen laws, and
+this script does not restate them. ``--batches`` below ten is a rehearsal, not a score.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from concurrent.futures import ProcessPoolExecutor
+from datetime import date
+from pathlib import Path
+
+import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from model_development_scores import (
+    BATCH_RUNS,
+    BATCH_SEEDS,
+    DRAW_SEED,
+    HORIZONS,
+    QUARTERS,
+    UPGRADES,
+    VARIABLES,
+    batch_draws,
+)
+
+from avalanche_research.experiments.v081_inputs import candidate_tables, pinned_inputs
+from avalanche_research.model import evaluation
+from avalanche_research.model.engine import run
+from avalanche_research.model.variants import VARIANTS
+
+INCUMBENT, CHALLENGER = "v0.8.0", "v0.8.1 candidate"
+
+
+def model_runs(task: tuple[str, date, str, str, str, str, int]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Every run's value at each horizon for one origin and model, and each batch's specification hash."""
+    name, origin, model, run_name, periods, delegators, batches = task
+    variant = VARIANTS[model]
+    tables = {"delegations": candidate_tables(periods, delegators, origin)} if model == CHALLENGER else {}
+    prepared = variant.prepare(periods, origin, run_name, BATCH_RUNS * len(BATCH_SEEDS), DRAW_SEED, **tables)
+    parts, specifications = [], []
+    for seed in list(BATCH_SEEDS)[:batches]:
+        simulation = variant.simulation(prepared, seed=seed, timesteps=max(HORIZONS), runs=BATCH_RUNS, draws=batch_draws(prepared.draws, seed))
+        specifications.append({"origin": name, "model": model, "batch_seed": seed, "specification": simulation.specification_hash()})
+        t = run(simulation)
+        t = t[t.timestep.isin(HORIZONS) & t.variable.isin(VARIABLES)]
+        parts.append(pd.DataFrame({"origin": name, "model": model, "batch_seed": seed, "run": t.run.to_numpy(),
+                                   "variable": t.variable.to_numpy(), "horizon_days": t.timestep.to_numpy(),
+                                   "value": t.value.astype(float).to_numpy()}))
+    print(f"{name} {model}: done", flush=True)
+    return pd.concat(parts, ignore_index=True), pd.DataFrame(specifications)
+
+
+def verdict(folder: Path) -> dict:
+    """The rule applied to ``development-distribution.csv`` in ``folder``, with the system figures of every cell."""
+    scores = pd.read_csv(folder / "development-distribution.csv")
+    dates = {**UPGRADES, **QUARTERS}
+    rows = []
+    for (origin, variable, horizon), group in scores.groupby(["origin", "variable", "horizon_days"]):
+        crps = group.set_index("forecast")["crps"]
+        rows.append({"origin": origin, "date": pd.Timestamp(dates[origin]), "variable": variable, "horizon": int(horizon),
+                     "challenger": float(crps[CHALLENGER]), "incumbent": float(crps[INCUMBENT])})
+    table = pd.DataFrame(rows)
+    origins = sorted({dates[o] for o in table.origin.unique()})
+    result = evaluation.adoption_verdict({"event_test": None, "calibration": True, "origin_available": None}, table, origins)
+    cells = {f"{variable} {horizon}": {"mean_difference": round(cell["mean_difference"], 3), "p_worse": round(cell["p_worse"], 4)}
+             for (variable, horizon), cell in result["cells"].items()}
+    system_pass = (result["primary_mean_difference"] < evaluation.ADOPTION_MARGIN
+                   and all(cell["p_worse"] >= evaluation.ADOPTION_CELL_ALPHA for cell in result["cells"].values()))
+    return {"challenger": CHALLENGER, "incumbent": INCUMBENT, "origins": int(table.origin.nunique()),
+            "verdict": result["verdict"], "reasons": result.get("reasons", []),
+            "system_test": "pass" if system_pass else "fail",
+            "stake_90_day_difference": round(result["primary_mean_difference"], 4), "cells": cells}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("out", type=Path)
+    parser.add_argument("--pin", type=Path, required=True)
+    parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument("--batches", type=int, default=len(BATCH_SEEDS))
+    parser.add_argument("--origins", nargs="*", default=None)
+    parser.add_argument("--score-only", action="store_true", help="skip the runs and score the folder's development-runs.csv.gz")
+    args = parser.parse_args()
+    args.out.mkdir(parents=True, exist_ok=True)
+    inputs = pinned_inputs(args.pin)
+    periods, delegators, run_name = str(inputs.periods), str(inputs.delegators), inputs.periods_run
+    origins = {**UPGRADES, **QUARTERS}
+    if args.origins:
+        origins = {name: origins[name] for name in args.origins}
+    if not args.score_only:
+        tasks = [(n, o, m, run_name, periods, delegators, args.batches) for n, o in origins.items() for m in (INCUMBENT, CHALLENGER)]
+        with ProcessPoolExecutor(args.workers) as pool:
+            results = list(pool.map(model_runs, tasks))
+        pd.concat([r for r, _ in results], ignore_index=True).to_csv(args.out / "development-runs.csv.gz", index=False,
+                                                                     compression={"method": "gzip", "mtime": 0})
+        pd.concat([s for _, s in results], ignore_index=True).to_csv(args.out / "development-specifications.csv", index=False)
+    full = len(origins) == len({**UPGRADES, **QUARTERS}) and args.batches == len(BATCH_SEEDS)
+    # The scorer's summary needs three origins for its test, so a rehearsal keeps its per-cell scores and may lose the summary.
+    subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "model_distribution_scores.py"), str(args.out)], check=full)
+    if full:
+        result = verdict(args.out)
+        (args.out / "verdict.json").write_text(json.dumps(result, indent=2) + "\n")
+        print(json.dumps(result, indent=2))
+    else:
+        print("rehearsal: fewer origins or batches than the rule, so no verdict is written")
+
+
+if __name__ == "__main__":
+    main()
