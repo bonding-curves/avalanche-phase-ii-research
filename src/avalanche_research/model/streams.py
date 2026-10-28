@@ -39,6 +39,7 @@ PURPOSES = {
     "delegation_terms": "a new delegation's stake and duration",
     "delegator_choice": "the validator a delegator other than BENQI chooses",
     "benqi_allocation": "the validator BENQI delegates to",
+    "holder_days": "the duration of a fund's validator commitment, within the fund's band",
 }
 
 KIND_OPEN, KIND_OUT, KIND_SCHEDULED, KIND_ARRIVAL = 0, 1, 2, 3

@@ -15,6 +15,9 @@ A daily table has one row per UTC day, indexed by date (a ``DatetimeIndex``), wi
 ``burned_navax``                    AVAX burned on all chains, on complete days
 ``total_supply_navax``              realized total supply: minted less burned
 ``active_delegated_stake_navax``    delegated stake, for the chain-side comparison
+``liquid_staking_stake_navax``      the liquid staking provider's delegated stake, from the holder layer
+``nakamoto_third_operators``        fewest operators whose weight, own stake plus delegations, exceeds one third
+``effective_operators``             one over the Herfindahl index of operator weights
 ==================================  ==========================================================================
 
 For a run the table is the engine's long table of one run, pivoted (``run_daily_table``). Before the origin a run's
@@ -77,6 +80,9 @@ DAILY_COLUMNS = (
     "total_supply_navax",
     "active_delegated_stake_navax",
 )
+CONCENTRATION_COLUMNS = ("liquid_staking_stake_navax", "nakamoto_third_operators", "effective_operators")
+"""Written by the holder layer (model v0.9) and read by the three concentration measures. A run's daily table carries
+them when the run writes them; the chain's table has none, so a table without them gets no concentration measure."""
 STARTED_COLUMNS = frozenset({
     "issued_navax", "issued_all_roles_navax", "started_stake_navax", "started_stake_days_navax", "started_validators",
 })
@@ -144,6 +150,16 @@ KPIS: dict[str, Kpi] = {
     "burn_to_issuance": Kpi(
         "Burn-to-issuance ratio", "share", "higher", "issuance saved", "chain only", REPORTED),
 }
+CONCENTRATION_KPIS: dict[str, Kpi] = {
+    "liquid_staking_share": Kpi(
+        "Liquid-staking share of stake", "share", "lower", "decentralisation", "365 and 180 days", REPORTED),
+    "nakamoto_operators": Kpi(
+        "Nakamoto coefficient by operator", "count", "higher", "decentralisation", "365 and 180 days", REPORTED),
+    "effective_operators": Kpi(
+        "Effective number of operators", "count", "higher", "decentralisation", "365 and 180 days", REPORTED),
+}
+"""The three measures a run with the holder layer (model v0.9) adds, read from CONCENTRATION_COLUMNS. A table without
+those columns, such as the chain's or a v0.8 run's, gets none of them, so KPIS alone is every table's set."""
 
 
 # Reading the table.
@@ -376,6 +392,25 @@ def nakamoto_coefficient(daily: pd.DataFrame, origin, horizon: int) -> int:
     return int(_at_horizon(daily, origin, horizon, "nakamoto_third_nodes"))
 
 
+def liquid_staking_share(daily: pd.DataFrame, origin, horizon: int) -> float:
+    """The liquid staking provider's delegated stake over all stake, validators' and delegated, at the horizon."""
+    columns = ["liquid_staking_stake_navax", "active_validator_stake_navax", "active_delegated_stake_navax"]
+    row = _run(daily, origin, horizon, columns).iloc[-1]
+    total = _nonzero(row["active_validator_stake_navax"] + row["active_delegated_stake_navax"], "all stake", origin, horizon)
+    return float(row["liquid_staking_stake_navax"] / total)
+
+
+def nakamoto_operators(daily: pd.DataFrame, origin, horizon: int) -> int:
+    """The fewest operators whose weight, own stake plus the delegations on their validators, exceeds one third of all
+    weight, at the horizon. A fund's model-made validators count as one operator."""
+    return int(_at_horizon(daily, origin, horizon, "nakamoto_third_operators"))
+
+
+def effective_operators(daily: pd.DataFrame, origin, horizon: int) -> float:
+    """One over the Herfindahl index of operator weights at the horizon."""
+    return float(_at_horizon(daily, origin, horizon, "effective_operators"))
+
+
 def earned_rate(daily: pd.DataFrame, origin, horizon: int) -> float:
     """The annual reward rate on the commitments started in the run: 365 times issuance over stake-days."""
     rows = _run(daily, origin, horizon, ["issued_navax", "started_stake_days_navax"])
@@ -496,6 +531,10 @@ def kpi_table(daily: pd.DataFrame, origin, horizons: Iterable[int] = HORIZONS, *
         if "active_delegated_stake_navax" in daily.columns:
             add("staking_ratio_with_delegations", h, validator_staking_ratio, daily, origin, h, with_delegations=True)
         add("nakamoto_coefficient", h, nakamoto_coefficient, daily, origin, h)
+        if all(column in daily.columns for column in CONCENTRATION_COLUMNS):
+            add("liquid_staking_share", h, liquid_staking_share, daily, origin, h)
+            add("nakamoto_operators", h, nakamoto_operators, daily, origin, h)
+            add("effective_operators", h, effective_operators, daily, origin, h)
         add("earned_rate", h, earned_rate, daily, origin, h)
         for level, cost in operating_costs.items():
             add("return_margin", h, return_margin, daily, origin, h, competing_yield, cost, cost_level=level)
@@ -536,7 +575,7 @@ def run_daily_table(table: pd.DataFrame, origin, chain: pd.DataFrame | None = No
         first = repeated.iloc[0]
         raise ValueError(f"the long table has more than one {first['variable']} at timestep {first['timestep']}")
     wide = table.pivot_table(index="timestep", columns="variable", values="value", aggfunc="first")
-    for column in DAILY_COLUMNS:
+    for column in (*DAILY_COLUMNS, *CONCENTRATION_COLUMNS):
         if column in table.columns:
             values = table.groupby("timestep")[column]
             conflicting = values.nunique(dropna=False) > 1

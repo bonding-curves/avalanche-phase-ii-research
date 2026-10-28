@@ -54,6 +54,7 @@ from avalanche_research.domain.protocol import (
     SECONDS_PER_DAY,
     delegation_weight_limit_navax,
 )
+from avalanche_research.model.parts.holders import lst_gap, lst_starts, lst_target_next
 from avalanche_research.model.parts.participation import delegation_pool, within_pool
 
 if TYPE_CHECKING:
@@ -94,6 +95,9 @@ class DelegationSetup:
     benqi_operator: int = -1
     closes_days: np.ndarray = field(default_factory=lambda: np.zeros(0))
     rule: str = "reserved room"
+    # The holder layer (parts.holders): when set, BENQI's count follows its target stock and the other delegators' flow
+    # responds to the yield gap. None is v0.8.1.
+    holders: Any = None
 
 
 def limits(stakes: np.ndarray, chain_time: datetime, multiplier: int) -> np.ndarray:
@@ -285,9 +289,23 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
             - stake_on(n_validators, on_validators(keys, starting["delegation_validator"]), starting["delegation_stakes"])
             - stake_on(n_validators, on_validators(keys, waiting["scheduled_validator"]), waiting["scheduled_stakes"]))
 
-    n = flow.count_from_uniform(float(draw.uniforms("delegations", t)[0]))
-    index = np.arange(n)
-    is_benqi = flow.benqi_from_uniforms(draw.uniforms("delegation_benqi", t, index))
+    holders = setup.holders
+    if holders is None:
+        n = flow.count_from_uniform(float(draw.uniforms("delegations", t)[0]))
+        index = np.arange(n)
+        is_benqi = flow.benqi_from_uniforms(draw.uniforms("delegation_benqi", t, index))
+    else:
+        # The other delegators' flow is the fitted flow less BENQI's share, scaled by their response to the yield gap.
+        # BENQI starts what brings its aged stock up to its target (parts.holders).
+        scale = (1.0 - flow.benqi_share) * float(np.exp(holders.settings.delegators["response"] * day.entry_gap))
+        n_other = flow.count_from_uniform(float(draw.uniforms("delegations", t)[0]), scale)
+        gap = lst_gap(day.settings.mechanism, int(state["supply_navax"]), day.start, holders.settings)
+        target = lst_target_next(float(state["lst_target_navax"]), gap, holders)
+        aged = int(kept["delegation_stakes"][kept["delegation_benqi"]].sum()) + int(starting["delegation_stakes"][starting["delegation_benqi"]].sum())
+        n_benqi = lst_starts(target, aged, holders.benqi_stake_per_start_navax)
+        n = n_other + n_benqi
+        index = np.arange(n)
+        is_benqi = np.concatenate([np.zeros(n_other, dtype=bool), np.ones(n_benqi, dtype=bool)])
     u_terms = draw.uniforms("delegation_terms", t, index)
     new_stakes = np.zeros(n, dtype=np.int64)
     new_days = np.zeros(n, dtype=np.int64)
@@ -300,6 +318,9 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
             new_stakes[mine], new_days[mine] = term_stakes[pick], term_days[pick]
             drawn = term_owners[pick]
             owner[mine] = setup.benqi_operator if kind else np.where(drawn == setup.benqi_operator, -1, drawn)
+            if kind and holders is not None:
+                # BENQI's stake per start is the mean of its starts over the 28 days before the origin, not the year's draw.
+                new_stakes[mine] = holders.benqi_stake_per_start_navax
     # From its closing day, a named operator makes none of the new delegations it would own.
     if len(setup.closes_days) and (owner >= 0).any():
         made = ~((owner >= 0) & (setup.closes_days[np.maximum(owner, 0)] <= t + 1))
@@ -360,4 +381,5 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
         "delegator_issued_navax": supply - opening,
         "issued_navax": validator_issued + supply - opening,
         "unplaced_delegations": int((chosen < 0).sum()),
+        **({"lst_target_navax": target} if holders is not None else {}),
     }
