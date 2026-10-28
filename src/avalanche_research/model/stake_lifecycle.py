@@ -24,6 +24,7 @@ from avalanche_research.model.fitted_lifecycle import (
     stake_decisions,
     training_events,
 )
+from avalanche_research.model.parts.participation import cap_started
 from avalanche_research.model.parts.stake_choice import (
     CONTEXTS,
     StakeChoice,
@@ -155,7 +156,8 @@ class StakeLifecycle(FittedLifecycle):
         return super().blocks()
 
     def _stake_continuation(self, state, day, earlier):
-        """Draw duration first, then stake on the same keyed uniforms as before."""
+        """Draw duration first, then stake on the same keyed uniforms as before, then fund the stakes from the
+        unstaked supply (parts.participation)."""
         blocks, draw = day.blocks, day.draw
         renewal, returns, arrivals = earlier["renewal"], earlier["returns"], earlier["arrivals"]
         ended, renews, comes_back = renewal["ended"], renewal["renews"], returns["comes_back"]
@@ -184,7 +186,7 @@ class StakeLifecycle(FittedLifecycle):
             "after_return": np.concatenate([np.zeros(int(renews.sum()), bool), np.ones(int(comes_back.sum()), bool), np.zeros(n_new, bool)]),
             "returns": np.concatenate([ended["returns"][renews], state["out_returns"][comes_back] + 1, np.zeros(n_new, dtype=np.int64)]),
         }
-        return {"started": started}
+        return cap_started(state, day, earlier, started, int(renews.sum()), int(comes_back.sum()))
 
 
 def build_stake_candidate(periods: str, origin: date, run: str, draws: int = 0, draw_seed: int = 0) -> Prepared:

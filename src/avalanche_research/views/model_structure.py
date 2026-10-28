@@ -334,11 +334,14 @@ BLOCK_NODES = {
     "blocks.first_stakes": "first_stakes", "model.stake_choice": "stake",
     "settings.mechanism": "mechanism", "settings.renewal_response": "responses", "settings.entry_response": "responses",
     "settings.large_navax": "renewal_large", "settings.scheduled": "scheduled",
+    # The participation feedback: its elasticity is a setting a run compares, and the origin's unstaked share is read
+    # from the initial state before the step, as the gaps are.
+    "settings.participation_elasticity": "responses", "settings.unstaked_share0": None,
     # The day's yield gaps come from the mechanism and outside_yield_pp before the step; the responses decide what
     # they do, so the drawing joins the responses to the stages that read them and not to the gaps.
     "day.renewal_gap": None, "day.entry_gap": None, "day.t": None, "day.start": None, "day.draw": None,
 }
-SWEPT = ("renewal_response", "entry_response", "outside_yield_pp")
+SWEPT = ("renewal_response", "entry_response", "outside_yield_pp", "participation_elasticity")
 
 
 def _wrapped(items: list[str], per_line: int) -> str:

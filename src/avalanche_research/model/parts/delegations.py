@@ -11,7 +11,8 @@ chosen by the delegator choice block or, for BENQI, by the BENQI allocation bloc
 A validator is eligible for a delegation of stake ``s`` when it has at least 14 days left and its reserved room is at
 least ``s``. The reserved room is the validator's weight limit, less its own stake, less its open delegations, less
 the delegations accepted by the origin that have not yet started. A delegation lasts the requested days or its
-validator's days left, if fewer. One with no eligible validator is not made and is counted as unplaced.
+validator's days left, if fewer. One with no eligible validator is not made and is counted as unplaced, as is one the
+unstaked supply does not cover (:mod:`~avalanche_research.model.parts.participation`).
 
 Placement runs in batches of ``batch`` delegations in draw order. Within a batch, each delegation chooses on the room
 at the batch's start: the eligible validators are those with room for its stake, and it inverts its uniform over
@@ -53,6 +54,7 @@ from avalanche_research.domain.protocol import (
     SECONDS_PER_DAY,
     delegation_weight_limit_navax,
 )
+from avalanche_research.model.parts.participation import delegation_pool, within_pool
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -319,15 +321,22 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
         chosen = place_contained(new_stakes, new_days, is_benqi, u_choice, u_benqi, load, limits(stakes, day.start, setup.multiplier) - stakes,
                                  validator_days, stakes, prior_use, prior_stakes, setup)
         order = np.flatnonzero(chosen >= 0)
-        rows = chosen[order]
-        placed_stakes, placed_days = new_stakes[order], new_days[order]
-        use = _next_benqi_use(state, keys, use_rows, t, keys[rows], placed_stakes, placed_days, is_benqi[order],
-                              day.settings.scheduled["node_key"][day.settings.scheduled["start_day"] > t + 1])
     else:
         order, chosen = place(new_stakes, is_benqi, u_choice, u_benqi, room, validator_days >= MIN_DELEGATION_DAYS,
                               np.isin(keys, setup.benqi_keys), setup)
-        rows = chosen[order]
-        placed_stakes = new_stakes[order]
+    # A delegation is placed only while the unstaked supply covers its stake (parts.participation); the rest are unplaced.
+    pool = delegation_pool(state, validators, int(kept["delegation_stakes"].sum()) + int(starting["delegation_stakes"].sum()))
+    fits = within_pool(order, new_stakes, pool)
+    if len(fits) < len(order):
+        chosen[np.setdiff1d(order, fits)] = -1
+        order = fits
+    rows = chosen[order]
+    placed_stakes = new_stakes[order]
+    if setup.rule == "containment":
+        placed_days = new_days[order]
+        use = _next_benqi_use(state, keys, use_rows, t, keys[rows], placed_stakes, placed_days, is_benqi[order],
+                              day.settings.scheduled["node_key"][day.settings.scheduled["start_day"] > t + 1])
+    else:
         placed_days = np.minimum(new_days[order], validator_days[rows])
 
     validator_issued = int(validators["issued_navax"])

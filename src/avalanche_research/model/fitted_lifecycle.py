@@ -42,6 +42,7 @@ from avalanche_research.model.parts.duration_transition import (
     DurationTransition,
     fit_moves,
 )
+from avalanche_research.model.parts.participation import unstaked_share
 from avalanche_research.model.parts.renewal import renewal_stage
 from avalanche_research.model.parts.return_hazard import ReturnLogitHazard
 from avalanche_research.model.parts.returns import returns_stage
@@ -154,6 +155,15 @@ class FittedLifecycle(SimulationModel):
             "the continuation table would read. Its exact day comes from the run's own moves table, so the block holds "
             "no day record. With a resample_seed in the draws, each run refits it on its own resample of the moves. "
             "None draws the duration from the continuation table",
+    )
+
+    # A fourth switch, left out of the specification at its default in the same way. At zero the arrival rate does not
+    # read participation, as every run recorded before it existed; the supply limit of parts.participation holds either way.
+    participation_elasticity = param.Number(
+        default=0.0, bounds=(0.0, 2.0), metadata={"omit_at_default": True, "source": "bounded", "evidence": "Record 2021-07 to 2025-09: log arrivals on log unstaked share, slope 1.03 over 17 quarters, confounded with age and price"},
+        doc="Elasticity of the first-ever arrival rate to the unstaked share of supply, relative to the origin's share: "
+            "the rate is scaled by ((1 - r_t) / (1 - r_0)) ** elasticity. 1 gives every unstaked AVAX the same hazard "
+            "of being staked for the first time, so arrivals stop as the unstaked pool empties. 0 is model v0.8.0",
     )
 
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
@@ -276,6 +286,8 @@ class FittedLifecycle(SimulationModel):
         settings = RunSettings(
             large_navax=large_navax, renewal_response=self.renewal_response, entry_response=self.entry_response,
             mechanism=self.mechanism,
+            participation_elasticity=float(self.participation_elasticity),
+            unstaked_share0=unstaked_share(self.initial_state()),
             scheduled={
                 "start_day": sched_day, "stakes": _array(sched["stakes"]), "days": _array(sched["days"]),
                 "done": _array(sched["done"]), "after_return": _array(sched["after_return"], bool),

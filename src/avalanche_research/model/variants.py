@@ -303,6 +303,8 @@ def _delegated_candidate(periods: str, origin: date, run: str, draws: int, draw_
         "placement_rule": CONTAINMENT,
         "placement_batch": 1,
         "operator_types": ClassShift(),
+        # Every unstaked AVAX carries the same hazard of being staked for the first time (parts.participation).
+        "participation_elasticity": 1.0,
     }
     return Prepared(inputs, base.draws, base.tau, base.tau_source)
 
@@ -362,7 +364,8 @@ VARIANTS: dict[str, Variant] = {
                 "v0.8.1 stub with the named operators known at the origin, their delegations tracked and their closures scheduled",
                 _delegated_events),
         Variant("v0.8.1 candidate", DelegatedStakeLifecycle,
-                "v0.8.0 with delegations under the frozen v0.8.1 laws, the named operators known at the origin and one operator type",
+                "v0.8.0 with delegations under the frozen v0.8.1 laws, the named operators known at the origin, one operator type "
+                "and the arrival rate in proportion to the unstaked share of supply",
                 _delegated_candidate),
     )
 }

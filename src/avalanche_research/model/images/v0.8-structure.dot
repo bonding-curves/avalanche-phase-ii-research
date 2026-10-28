@@ -13,7 +13,7 @@ digraph fitted_lifecycle {
   }
   subgraph cluster_settings { label=<<B>Settings a run compares</B>>; fontname="DejaVu Sans"; color="#b84055"; style="rounded,dashed";
   "block:mechanism" [label=<Reward mechanism: Chain today<BR/><FONT POINT-SIZE='10' COLOR='#7a7f87'>the design input, or<BR/>ACP-285 settings, Quadratic curve<BR/>Tenure boost</FONT>>, shape=box, style="rounded,filled", color="#b84055", fillcolor="#ffffff", penwidth=2, fontname="DejaVu Sans", fontsize=13, fontcolor="#2b2b2b", margin="0.18,0.08"];
-  "block:responses" [label=<Yield-gap responses<BR/><FONT POINT-SIZE='10' COLOR='#7a7f87'>swept, not fitted<BR/>renewal_response 0.0<BR/>entry_response 0.0<BR/>outside_yield_pp none</FONT>>, shape=box, style="rounded,dashed,filled", color="#b84055", fillcolor="#ffffff", penwidth=2, fontname="DejaVu Sans", fontsize=13, fontcolor="#2b2b2b", margin="0.18,0.08"];
+  "block:responses" [label=<Yield-gap responses<BR/><FONT POINT-SIZE='10' COLOR='#7a7f87'>swept, not fitted<BR/>renewal_response 0.0<BR/>entry_response 0.0<BR/>outside_yield_pp none<BR/>participation_elasticity 0.0</FONT>>, shape=box, style="rounded,dashed,filled", color="#b84055", fillcolor="#ffffff", penwidth=2, fontname="DejaVu Sans", fontsize=13, fontcolor="#2b2b2b", margin="0.18,0.08"];
   }
   "step" [shape=plain, label=<<TABLE BORDER="0" CELLBORDER="2" CELLSPACING="7"><TR><TD BORDER="0"><B>Each day, in this order</B></TD></TR><TR><TD PORT="renewal" STYLE="rounded" BGCOLOR="#f4f5f7" COLOR="#2b2b2b" CELLPADDING="7"><B>1. renewal</B><BR/><FONT POINT-SIZE='10' COLOR='#7a7f87'>each commitment ending today renews on the<BR/>same node or leaves the set</FONT></TD></TR><TR><TD PORT="returns" STYLE="rounded" BGCOLOR="#f4f5f7" COLOR="#2b2b2b" CELLPADDING="7"><B>2. returns</B><BR/><FONT POINT-SIZE='10' COLOR='#7a7f87'>each node out of the set for<BR/>up to 365 days may come back</FONT></TD></TR><TR><TD PORT="arrivals" STYLE="rounded" BGCOLOR="#f4f5f7" COLOR="#2b2b2b" CELLPADDING="7"><B>3. arrivals</B><BR/><FONT POINT-SIZE='10' COLOR='#7a7f87'>how many nodes make<BR/>their first-ever commitment today</FONT></TD></TR><TR><TD PORT="continuation" STYLE="rounded" BGCOLOR="#f4f5f7" COLOR="#2b2b2b" CELLPADDING="7"><B>4. continuation</B><BR/><FONT POINT-SIZE='10' COLOR='#7a7f87'>each renewed, returned or new commitment<BR/>draws its duration, then its stake</FONT></TD></TR><TR><TD PORT="rewards" STYLE="rounded" BGCOLOR="#f4f5f7" COLOR="#2b2b2b" CELLPADDING="7"><B>5. rewards</B><BR/><FONT POINT-SIZE='10' COLOR='#7a7f87'>the reward mechanism prices each commitment<BR/>started today at today's supply</FONT></TD></TR><TR><TD PORT="assembly" STYLE="rounded" BGCOLOR="#f4f5f7" COLOR="#2b2b2b" CELLPADDING="7"><B>6. assembly</B><BR/><FONT POINT-SIZE='10' COLOR='#7a7f87'>open commitments that go on, then today's new<BR/>ones, then the scheduled ones due today</FONT></TD></TR></TABLE>>, fontname="DejaVu Sans", fontsize=13, fontcolor="#2b2b2b"];
   subgraph cluster_state { label=<<B>State</B><BR/><FONT POINT-SIZE="10" COLOR="#7a7f87">from the chain at the origin, carried day to day</FONT>>; labelloc=b; fontname="DejaVu Sans"; color="#237a57"; style=rounded;
@@ -35,12 +35,16 @@ digraph fitted_lifecycle {
   "block:returns" -> "step":"returns":w [color="#3566a3", penwidth=1.6, arrowsize=0.7, style=solid];
   "block:arrivals" -> "step":"arrivals":w [color="#3566a3", penwidth=1.6, arrowsize=0.7, style=solid];
   "block:durations" -> "step":"continuation":w [color="#3566a3", penwidth=1.6, arrowsize=0.7, style=solid];
+  "step":"continuation":e -> "state:scheduled" [color="#237a57", penwidth=1.4, arrowsize=0.7, style=dashed, dir=back];
+  "step":"assembly":e -> "state:scheduled" [color="#237a57", penwidth=1.4, arrowsize=0.7, style=dashed, dir=back];
   "block:stake" -> "step":"continuation":w [color="#3566a3", penwidth=1.6, arrowsize=0.7, style=solid];
   "block:mechanism" -> "step":"rewards":w [color="#b84055", penwidth=1.6, arrowsize=0.7, style=solid];
-  "step":"assembly":e -> "state:scheduled" [color="#237a57", penwidth=1.4, arrowsize=0.7, style=dashed, dir=back];
   "step":"renewal":e -> "state:open" [color="#237a57", penwidth=1.4, arrowsize=0.7, style=dashed, dir=back];
   "step":"returns":e -> "state:out" [color="#237a57", penwidth=1.4, arrowsize=0.7, style=dashed, dir=back];
+  "step":"arrivals":e -> "state:supply" [color="#237a57", penwidth=1.4, arrowsize=0.7, style=dashed, dir=back];
+  "step":"continuation":e -> "state:open" [color="#237a57", penwidth=1.4, arrowsize=0.7, style=dashed, dir=back];
   "step":"continuation":e -> "state:out" [color="#237a57", penwidth=1.4, arrowsize=0.7, style=dashed, dir=back];
+  "step":"continuation":e -> "state:supply" [color="#237a57", penwidth=1.4, arrowsize=0.7, style=dashed, dir=back];
   "step":"rewards":e -> "state:supply" [color="#237a57", penwidth=1.8, arrowsize=0.7, dir=both];
   "step":"assembly":e -> "state:open" [color="#237a57", penwidth=1.8, arrowsize=0.7, dir=both];
   "step":"assembly":e -> "state:out" [color="#237a57", penwidth=1.8, arrowsize=0.7, dir=both];

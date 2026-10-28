@@ -8,6 +8,7 @@ from __future__ import annotations
 import numpy as np
 
 from avalanche_research.model.parts.base import AVAX, DURATION_EDGES
+from avalanche_research.model.parts.participation import cap_started
 from avalanche_research.model.parts.returns import RETURN_STAKE_EDGES
 
 # Log-spaced from 2,100 to 2,000,000 AVAX: the stake bands within which a moving node draws its stake ratio.
@@ -100,6 +101,8 @@ def continuation_stage(state, day, earlier) -> dict:
     A renewed or returned node draws its next duration and stake from the continuation table, a first-ever node from
     the first-ever commitments, each by one uniform keyed by the node and its decision count. When the run has a
     duration transition, a renewed or returned node draws its next duration from it on the same uniforms instead.
+    The started commitments then take their stake from the unstaked supply (parts.participation), which returns the
+    renewal and return decisions the supply limit changed beside them.
     """
     blocks, draw = day.blocks, day.draw
     renewal, returns, arrivals = earlier["renewal"], earlier["returns"], earlier["arrivals"]
@@ -132,4 +135,4 @@ def continuation_stage(state, day, earlier) -> dict:
         "after_return": np.concatenate([np.zeros(int(renews.sum()), bool), np.ones(int(comes_back.sum()), bool), np.zeros(n_new, bool)]),
         "returns": np.concatenate([ended["returns"][renews], state["out_returns"][comes_back] + 1, np.zeros(n_new, dtype=np.int64)]),
     }
-    return {"started": started}
+    return cap_started(state, day, earlier, started, int(renews.sum()), int(comes_back.sum()))

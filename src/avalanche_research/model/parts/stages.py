@@ -63,6 +63,10 @@ class RunSettings:
     entry_response: float
     mechanism: RewardMechanism
     scheduled: dict[str, np.ndarray]
+    # The participation feedback (parts.participation): the arrival rate's elasticity to the unstaked share of supply,
+    # and that share at the origin, which the scale is one at.
+    participation_elasticity: float = 0.0
+    unstaked_share0: float = 1.0
 
 
 @dataclass(frozen=True, eq=False)
@@ -112,11 +116,14 @@ def rewards_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict
 def assembly_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> dict:
     """The next state's commitments and nodes out of the set. Open commitments that do not end today stay, followed by
     those started today and the scheduled ones due today. A node out of the set stays out until it returns or its 365
-    days pass, followed by the nodes whose commitment ended today without renewal. The rewards stage's outputs pass
-    through."""
-    renewal, returns, started = earlier["renewal"], earlier["returns"], earlier["continuation"]["started"]
-    days_left, ending, ended, renews = renewal["days_left"], renewal["ending"], renewal["ended"], renewal["renews"]
-    out_days, comes_back = returns["out_days"], returns["comes_back"]
+    days pass, followed by the nodes whose commitment ended today without renewal, or whose renewal the supply limit
+    did not fund. The rewards stage's outputs pass through."""
+    renewal, returns, continuation = earlier["renewal"], earlier["returns"], earlier["continuation"]
+    started = continuation["started"]
+    days_left, ending, ended = renewal["days_left"], renewal["ending"], renewal["ended"]
+    # The supply limit can turn a renewal into a leave and a return into a stay (parts.participation).
+    renews = continuation.get("renews", renewal["renews"])
+    out_days, comes_back = returns["out_days"], continuation.get("comes_back", returns["comes_back"])
     sched = day.settings.scheduled
     stay_out = ~comes_back & (out_days <= RETURN_DAYS)
     left = ~renews

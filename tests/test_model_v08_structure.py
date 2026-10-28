@@ -33,7 +33,7 @@ def test_the_trace_reads_the_released_blocks():
     assert [s for s in stages] == [name for name, _stage in model.stages]
     assert stages["continuation"].reads_model == ["stake_choice"]
     assert stages["renewal"].reads_settings == ["renewal_response"]
-    assert stages["arrivals"].reads_settings == ["entry_response"]
+    assert stages["arrivals"].reads_settings == ["entry_response", "unstaked_share0", "participation_elasticity"]
     assert stages["rewards"].reads_settings == ["mechanism"]
     assert stages["assembly"].reads_settings == ["scheduled"]
     # The model's stages are restored after the trace.

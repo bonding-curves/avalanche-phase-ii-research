@@ -544,7 +544,10 @@ def test_with_no_new_delegations_the_candidate_equals_variant_v080_exactly_at_a_
     theirs = released.prepare(periods, origin, run_name, draws=2, draw_seed=0)
     pd.testing.assert_frame_equal(ours.draws, theirs.draws)
     assert ours.tau == theirs.tau
-    still = Prepared({**ours.inputs, "delegation_flow": DelegationFlow()}, ours.draws, ours.tau, ours.tau_source)
+    # The candidate's arrival rate reads participation; at zero elasticity and no flow it is the released build.
+    assert ours.inputs["participation_elasticity"] == 1.0
+    still = Prepared({**ours.inputs, "delegation_flow": DelegationFlow(), "participation_elasticity": 0.0},
+                     ours.draws, ours.tau, ours.tau_source)
     mine = run(candidate.simulation(still, seed=0, timesteps=20, runs=2, draws=still.draws))
     base = run(released.simulation(theirs, seed=0, timesteps=20, runs=2, draws=theirs.draws))
     pd.testing.assert_frame_equal(pick(mine), pick(base))

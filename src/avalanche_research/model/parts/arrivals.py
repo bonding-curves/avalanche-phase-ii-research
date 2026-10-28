@@ -15,6 +15,10 @@ from avalanche_research.model.parts.base import (
     BehaviourBlock,
     behavioural,
 )
+from avalanche_research.model.parts.participation import (
+    participation_scale,
+    unstaked_share,
+)
 from avalanche_research.model.streams import KIND_ARRIVAL, node_keys
 
 
@@ -100,8 +104,9 @@ def _negative_binomial_log_prob(counts: np.ndarray, mean: float, k: float) -> fl
 
 def arrivals_stage(state, day, earlier) -> dict:
     """The daily arrivals stage: the count of first-ever nodes today, from one uniform keyed by the day with the entry
-    response to the yield gap, and their node keys."""
-    count = day.blocks.arrivals.count_from_uniform(
-        float(day.draw.uniforms("arrivals", day.t)[0]), float(np.exp(day.settings.entry_response * day.entry_gap)),
-    )
+    response to the yield gap and the participation feedback on the unstaked share of supply, and their node keys."""
+    settings = day.settings
+    scale = float(np.exp(settings.entry_response * day.entry_gap))
+    scale *= participation_scale(unstaked_share(state), settings.unstaked_share0, settings.participation_elasticity)
+    count = day.blocks.arrivals.count_from_uniform(float(day.draw.uniforms("arrivals", day.t)[0]), scale)
     return {"count": count, "node_key": node_keys(KIND_ARRIVAL, day.t, np.arange(count))}
