@@ -37,6 +37,11 @@ model = [
   "param>=2.4,<3",
   "scipy>=1.14,<2",
 ]
+report = [
+  "matplotlib>=3.9,<4",
+  "numpy>=2,<3",
+  "scikit-learn>=1.5,<2",
+]
 notebook = [
   "bokeh>=3.9,<4",
   "holoviews>=1.23,<2",

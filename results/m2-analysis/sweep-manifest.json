@@ -1,0 +1,223 @@
+{
+ "schema": "sweep-manifest/v1",
+ "sweep": "Milestone 2 paired reward-design sweep, wide table of 14 October 2026",
+ "status": "Roles checked by hand on 27 October 2026 against the sweep design in scripts/m2_sweep_design.py.",
+ "family_column": "family",
+ "horizon_column": "horizon_days",
+ "block_column": "block",
+ "split_group": "seed",
+ "pair": {
+  "row": "row_id",
+  "baseline_row": "baseline_row_id"
+ },
+ "baseline": {
+  "families": [
+   "chain"
+  ],
+  "blocks": [
+   "baseline"
+  ]
+ },
+ "analysis_blocks": [
+  "A",
+  "B"
+ ],
+ "columns": [
+  {
+   "name": "index",
+   "role": "id"
+  },
+  {
+   "name": "horizon_days",
+   "role": "id"
+  },
+  {
+   "name": "active_validators",
+   "role": "kpi"
+  },
+  {
+   "name": "earned_rate",
+   "role": "kpi"
+  },
+  {
+   "name": "issuance_half_life",
+   "role": "kpi"
+  },
+  {
+   "name": "issued_navax",
+   "role": "kpi"
+  },
+  {
+   "name": "lowest_validator_stake_navax",
+   "role": "kpi"
+  },
+  {
+   "name": "nakamoto_coefficient",
+   "role": "kpi"
+  },
+  {
+   "name": "net_inflation",
+   "role": "kpi"
+  },
+  {
+   "name": "return_margin",
+   "role": "kpi"
+  },
+  {
+   "name": "reward_rate_volatility",
+   "role": "kpi"
+  },
+  {
+   "name": "stake_volatility",
+   "role": "kpi"
+  },
+  {
+   "name": "stake_weighted_duration",
+   "role": "kpi"
+  },
+  {
+   "name": "validator_stake_navax",
+   "role": "kpi"
+  },
+  {
+   "name": "validator_staking_ratio",
+   "role": "kpi"
+  },
+  {
+   "name": "worst_30_day_stake_fall",
+   "role": "kpi"
+  },
+  {
+   "name": "active_validators_retained",
+   "role": "kpi"
+  },
+  {
+   "name": "issuance_saved",
+   "role": "kpi"
+  },
+  {
+   "name": "validator_stake_retained",
+   "role": "kpi"
+  },
+  {
+   "name": "family",
+   "role": "id"
+  },
+  {
+   "name": "yield_pp",
+   "role": "scenario"
+  },
+  {
+   "name": "block",
+   "role": "id"
+  },
+  {
+   "name": "i",
+   "role": "id"
+  },
+  {
+   "name": "j",
+   "role": "id"
+  },
+  {
+   "name": "u1",
+   "role": "id"
+  },
+  {
+   "name": "u2",
+   "role": "id"
+  },
+  {
+   "name": "u3",
+   "role": "id"
+  },
+  {
+   "name": "baseline",
+   "role": "id"
+  },
+  {
+   "name": "seed",
+   "role": "id"
+  },
+  {
+   "name": "draw",
+   "role": "id"
+  },
+  {
+   "name": "renewal_response",
+   "role": "behaviour"
+  },
+  {
+   "name": "entry_response",
+   "role": "behaviour"
+  },
+  {
+   "name": "model",
+   "role": "id"
+  },
+  {
+   "name": "origin",
+   "role": "id"
+  },
+  {
+   "name": "target_min_rate",
+   "role": "setting"
+  },
+  {
+   "name": "boost_max",
+   "role": "setting"
+  },
+  {
+   "name": "exponent",
+   "role": "setting"
+  },
+  {
+   "name": "renewal_band",
+   "role": "id"
+  },
+  {
+   "name": "entry_band",
+   "role": "id"
+  },
+  {
+   "name": "unit_id",
+   "role": "id"
+  },
+  {
+   "name": "row_id",
+   "role": "id"
+  },
+  {
+   "name": "baseline_row_id",
+   "role": "id"
+  },
+  {
+   "name": "horizon",
+   "role": "id"
+  },
+  {
+   "name": "return_margin_low",
+   "role": "kpi"
+  },
+  {
+   "name": "return_margin_low_fitting_price",
+   "role": "kpi"
+  },
+  {
+   "name": "return_margin_mid",
+   "role": "kpi"
+  },
+  {
+   "name": "return_margin_mid_fitting_price",
+   "role": "kpi"
+  },
+  {
+   "name": "return_margin_high",
+   "role": "kpi"
+  },
+  {
+   "name": "return_margin_high_fitting_price",
+   "role": "kpi"
+  }
+ ]
+}

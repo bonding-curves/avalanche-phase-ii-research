@@ -31,6 +31,10 @@ ALLOWED = {
         "explicitly seeded statistical bootstrap, never a simulator or design draw",
     (Path("src/avalanche_research/analysis/sobol.py"), "numpy.random.PCG64", "seed_other"):
         "explicitly seeded statistical bootstrap, never a simulator or design draw",
+    (Path("src/avalanche_research/report/recommend.py"), "numpy.random.default_rng", "seed_other"):
+        "explicitly seeded resample of scored runs for report confidence, never a simulator or design draw",
+    (Path("src/avalanche_research/report/trees.py"), "numpy.random.default_rng", "seed_other"):
+        "explicitly seeded permutation for held-out tree importance, never a simulator or design draw",
 }
 # The one form a script may use: a generator seeded from one integer literal.
 SCRIPT_SEEDED = {"numpy.random.default_rng", "numpy.random.SeedSequence"}

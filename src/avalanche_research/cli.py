@@ -478,6 +478,88 @@ def check_model(validators: Path, delegators: Path, supply: Path, as_json: bool)
     finish(result, as_json)
 
 
+@cli.group()
+def report() -> None:
+    """Standard outputs of a sweep: PSuU scoring, heat maps, trees, grids and recommendation tables.
+
+    These commands need the report dependency group: uv sync --group report."""
+
+
+SWEEP_OPTIONS = [
+    click.option("--wide", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path),
+                 help="The sweep's wide table, one row per run and horizon, as Parquet."),
+    click.option("--manifest", "manifest_path", required=True,
+                 type=click.Path(exists=True, dir_okay=False, path_type=Path),
+                 help="The sweep manifest that gives every column of the wide table its role."),
+    click.option("--spec", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path),
+                 help="The goal and utility specification."),
+    click.option("--out", required=True, type=click.Path(file_okay=False, path_type=Path), help="Output folder."),
+    click.option("--trees", type=click.IntRange(min=1), default=300, show_default=True,
+                 help="Trees in each random forest."),
+    click.option("--repeats", type=click.IntRange(min=1), default=10, show_default=True,
+                 help="Permutation repeats of each forest importance."),
+    click.option("--jobs", type=click.IntRange(min=1), default=8, show_default=True,
+                 help="Parallel jobs for fitting forests."),
+    click.option("--seed", type=click.IntRange(min=0), default=20261027, show_default=True,
+                 help="Seed of every split, sample and resample."),
+    click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON."),
+]
+
+
+def sweep_options(function):
+    for option in reversed(SWEEP_OPTIONS):
+        function = option(function)
+    return function
+
+
+@report.command("manifest")
+@click.option("--wide", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path),
+              help="The sweep's wide table, as Parquet.")
+@click.option("--out", required=True, type=click.Path(dir_okay=False, path_type=Path),
+              help="Where to write the drafted sweep-manifest.json.")
+@click.option("as_json", "--json", is_flag=True, help="Emit the complete result as JSON.")
+def report_manifest(wide: Path, out: Path, as_json: bool) -> None:
+    """Draft a sweep manifest from a wide table's column names and types. Check every role before use."""
+    from .report import manifest as sweep_manifest
+
+    drafted = sweep_manifest.draft(wide)
+    sweep_manifest.write(drafted, out)
+    roles = {role: sweep_manifest.names(drafted, role) for role in sweep_manifest.ROLES}
+    items = [f"{role}: {', '.join(names) or 'none'}" for role, names in roles.items() if role != "id"]
+    finish(envelope("report manifest", "pass", {"text": f"drafted {out}; check every role"}, items=items,
+                    manifest=drafted), as_json)
+
+
+@report.command("psuu")
+@sweep_options
+def report_psuu(wide: Path, manifest_path: Path, spec: Path, out: Path, trees: int, repeats: int, jobs: int, seed: int,
+                as_json: bool) -> None:
+    """Score a sweep against a utility specification and write the PSuU tables and figures."""
+    from .report import psuu
+
+    scored = psuu.load_scored(wide, manifest_path, spec, log=lambda text: click.echo(text, err=True))
+    made = psuu.run(scored, out, trees, repeats, jobs, seed, log=lambda text: click.echo(text, err=True))
+    text = f"{len(scored.runs):,} runs scored, {len(made['titles'])} figures in {out}"
+    finish(envelope("report psuu", "pass", {"text": text}, items=list(made["titles"].values())), as_json)
+
+
+@report.command("pack")
+@sweep_options
+@click.option("--model-version", "version", help="The model version the sweep ran, named on the index page.")
+@click.option("--sample", type=click.IntRange(min=10), default=600, show_default=True,
+              help="Runs drawn as points per design in the parameter grids.")
+def report_pack(wide: Path, manifest_path: Path, spec: Path, out: Path, trees: int, repeats: int, jobs: int, seed: int,
+                as_json: bool, version: str | None, sample: int) -> None:
+    """Write the whole output pack of a sweep into one folder: PSuU tables and figures, heat maps, trees, parameter
+    grids and recommendation tables, with an index.md that lists each output."""
+    from .report import pack
+
+    receipt = pack.build(wide, manifest_path, spec, out, version, trees, repeats, jobs, seed, sample,
+                         log=lambda text: click.echo(text, err=True))
+    text = f"{len(receipt['figures'])} figures and the index in {out}, {receipt['seconds']} s"
+    finish(envelope("report pack", "pass", {"text": text}, receipt=receipt), as_json)
+
+
 def main() -> int:
     try:
         code = cli(standalone_mode=False)
