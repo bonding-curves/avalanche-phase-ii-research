@@ -11,8 +11,8 @@ Bull and bear markets, shocks, and how volatility changes choices.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [2.2 Simulation Execution](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | BCRG |  | More than 50,000 simulated trajectories across the space of governance settings and environments. |
-| [2.6 Risk Surface Map](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | BCRG |  | The regions of parameter space where staking incentives fail. |
+| [2.2 Simulation Execution](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | BCRG |  | 132,800 simulated trajectories across four reward designs, four outside yields and the full range of validator response. |
+| [2.6 Risk Surface Map](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | BCRG |  | The regions of input space where staking incentives fail, confirmed on held-out runs for 197 of 384 failure conditions. |
 | [3.2 Scenario Playbook](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) | BCRG |  | Guidance of the form: if a given market condition holds, adjust a given parameter this way. |
 
 ## Essential Readings

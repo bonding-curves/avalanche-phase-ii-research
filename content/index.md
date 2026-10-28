@@ -1,7 +1,7 @@
 ---
 title: Avalanche Phase II Research
 description: "Research on Avalanche staking economics for the Avalanche Foundation: every contract deliverable, its status, and the data, code, and notebooks behind each result."
-date: 2026-10-14
+date: 2026-10-28
 ---
 
 This site holds the research BCRG is carrying out for the Avalanche Foundation under the Phase II agreement. The question is how validator and delegator behaviour, the reward design, and protocol changes such as Helicon together determine the network's economic security. Every page of the site maps to a deliverable in the agreement, so the site shows at a glance what is delivered and what is still to come.
@@ -10,11 +10,11 @@ This site holds the research BCRG is carrying out for the Avalanche Foundation u
 
 The research follows the schedule of proposal v2.5. The Foundation accepted Milestone 1 in August 2026. After the research restarted in September, its deliverables were rebuilt from the chain up and published again on 8 October.
 
-| Milestone | Period | Deliverables | Status on 14 October 2026 |
+| Milestone | Working period | Deliverables | Status on 28 October 2026 |
 | --- | --- | --- | --- |
 | [Milestone 0](/Phase-II/Milestones/Milestone-0/) | Upfront | Signed agreement and proposal v2.5 | Delivered |
 | [Milestone 1](/Phase-II/Milestones/Milestone-1/) | June 15 to August 14, 2026 | 1.1 to 1.4, and the Preliminary Validation Report | Accepted in August 2026. Rebuilt on the staking model v0.7 and published again on 8 October |
-| [Milestone 2](/Phase-II/Milestones/Milestone-2/) | August 15 to October 14, 2026 | 2.1 to 2.8 | In progress. The staking model v0.8.0 was released on 13 October and its full parameter sweep ran on 13 and 14 October. The Sensitivity Analysis Report follows from it |
+| [Milestone 2](/Phase-II/Milestones/Milestone-2/) | August 15 to October 14, 2026, with the report delivered on 28 October and Workshop 1 on 13 November 2026 | 2.1 to 2.8 | The [Sensitivity Analysis Report](/Phase-II/Milestones/Milestone-2/Sensitivity-Analysis-Report/) was delivered on 28 October, from the staking model v0.8.0 and its sweep of 132,800 runs. Six deliverables are delivered, the held-back test is presented at Workshop 1, and the first timed mechanism evaluation runs from 2 to 6 November |
 | [Milestone 3](/Phase-II/Milestones/Milestone-3/) | October 15 to December 14, 2026 | 3.1 to 3.4 | Not started |
 
 The [Phase II overview](/Phase-II/) lists every deliverable with its own status.

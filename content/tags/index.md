@@ -29,8 +29,8 @@ Every content page on the site is filed under one to four topics, shown under it
 | Topic | What it covers | Pages |
 | --- | --- | ---: |
 | [structural estimation](/tags/structural-estimation) | Recovering preferences from observed choices and fitting a model to data. | 9 |
-| [model structure](/tags/model-structure) | Specifying an economic system as states, actions, and update rules. *For whether a model can be trusted, see model validation.* | 5 |
-| [model validation](/tags/model-validation) | Tests that decide whether a model can be trusted for policy. *For how a model is specified, see model structure.* | 8 |
-| [sensitivity analysis](/tags/sensitivity-analysis) | Which parameters and inputs drive each result. | 4 |
+| [model structure](/tags/model-structure) | Specifying an economic system as states, actions, and update rules. *For whether a model can be trusted, see model validation.* | 6 |
+| [model validation](/tags/model-validation) | Tests that decide whether a model can be trusted for policy. *For how a model is specified, see model structure.* | 9 |
+| [sensitivity analysis](/tags/sensitivity-analysis) | Which parameters and inputs drive each result. | 6 |
 | [KPIs and goals](/tags/kpis-and-goals) | Indicators of success, their thresholds, and the goals that group them. | 6 |
-| [parameter selection under uncertainty](/tags/parameter-selection-under-uncertainty) | Choosing parameters and policies that perform well across futures that cannot be predicted. | 11 |
+| [parameter selection under uncertainty](/tags/parameter-selection-under-uncertainty) | Choosing parameters and policies that perform well across futures that cannot be predicted. | 13 |

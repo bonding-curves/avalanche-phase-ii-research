@@ -1,7 +1,7 @@
 ---
 title: Phase II
 description: "The Phase II agreement's milestones and deliverables, the proposal v2.5 schedule, and the status of every deliverable."
-date: 2026-09-28
+date: 2026-10-28
 ---
 
 Phase II builds a calibrated model of Avalanche staking and uses it to test reward parameters and mechanisms before the Foundation changes them. The agreement names sixteen deliverables across three milestones, plus the governing documents of Milestone 0. This page lists each one with its status. Each deliverable has its own page with the contract's wording, its status, its result, and how the result was built.
@@ -22,21 +22,21 @@ The Foundation accepted Milestone 1 in August 2026. In September the research wa
 
 Status is one of not started, in progress, delivered, or accepted by Avalanche.
 
-| ID | Deliverable | Status on 14 October 2026 |
+| ID | Deliverable | Status on 28 October 2026 |
 | --- | --- | --- |
 | [1.1](/Phase-II/Milestones/Milestone-1/1-1-Data-Ingestion/) | Data Ingestion | Accepted by Avalanche |
 | [1.2](/Phase-II/Milestones/Milestone-1/1-2-Data-Manifest/) | Data Manifest | Accepted by Avalanche |
 | [1.3](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/) | Staking Model Spec | Accepted by Avalanche |
 | [1.4](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) | Behavioral Calibration | Accepted by Avalanche |
 | [M1](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/) | Preliminary Validation Report | Accepted by Avalanche |
-| [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/) | PSUU Infrastructure | In progress |
-| [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | Simulation Execution | In progress |
-| [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/) | KPI Computation | In progress |
-| [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) | Validation Confirmation | In progress |
-| [2.5](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) | Sensitivity Analysis | In progress |
-| [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | Risk Surface Map | In progress |
-| [2.7](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/) | Workshop 1 | Not started |
-| [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) | Collaborative Mechanism Design | Not started |
+| [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/) | PSUU Infrastructure | Delivered |
+| [2.2](/Phase-II/Milestones/Milestone-2/2-2-Simulation-Execution/) | Simulation Execution | Delivered. A second sweep adds market conditions from 2 November |
+| [2.3](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/) | KPI Computation | Delivered |
+| [2.4](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) | Validation Confirmation | In progress. The standard and the model selection scores are delivered. The held-back test result is presented at Workshop 1 on 13 November |
+| [2.5](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) | Sensitivity Analysis | Delivered. The goal-level results follow |
+| [2.6](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | Risk Surface Map | Delivered. The region where every goal passes follows |
+| [2.7](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/) | Workshop 1 | Scheduled. The overview on 30 October and Workshop 1 on 13 November 2026 |
+| [2.8](/Phase-II/Milestones/Milestone-2/2-8-Collaborative-Mechanism-Design/) | Collaborative Mechanism Design | In progress. The interface is delivered. The first timed evaluation runs from 2 to 6 November |
 | [3.1](/Phase-II/Milestones/Milestone-3/3-1-Parameter-Recommendation-Report/) | Parameter Recommendation Report | Not started |
 | [3.2](/Phase-II/Milestones/Milestone-3/3-2-Scenario-Playbook/) | Scenario Playbook | Not started |
 | [3.3](/Phase-II/Milestones/Milestone-3/3-3-Open-Source-Release/) | Open Source Release | Not started |

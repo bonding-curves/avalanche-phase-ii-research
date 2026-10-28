@@ -1,7 +1,7 @@
 ---
 title: "2.5 Sensitivity Analysis"
-description: "Decision trees and correlation matrices that show which parameters drive each KPI."
-status: not started
+description: "Rank correlations, variance shares, decision trees and forests that show which inputs decide each measure and goal."
+status: delivered
 source: signed-grant-agreement
 tags: ["sensitivity-analysis", "kpis-and-goals"]
 ---
@@ -18,12 +18,18 @@ Quoted from the [Signed Grant Agreement](/Phase-II/Milestones/Milestone-0/Signed
 
 ## Status
 
-Not started as of 2026-09-28.
+Delivered on 28 October 2026. The findings of the [Sensitivity Analysis Report](/Phase-II/Milestones/Milestone-2/Sensitivity-Analysis-Report/) give rank correlations with resampled intervals, variance shares, classification trees and forests for every measure and goal. The goal-level results follow as the report's findings are completed.
 
 ## Result
 
-When delivered, this page will show a decision tree for each goal and a matrix of correlations between each governance parameter and each KPI, then explain which parameters decide which outcomes. The proposal groups the KPIs under three goals: incentive alignment, participation distribution, and network security. This page is the Sensitivity Analysis Report that Milestone 2's success criterion names.
+The sensitivity analysis asks which inputs decide each outcome. Rank correlations between each input and each outcome, with intervals from resampling, give the direction and strength of each relationship. Variance shares, computed with Saltelli's method on the Sobol arrangement of deliverable [2.1](/Phase-II/Milestones/Milestone-2/2-1-PSUU-Infrastructure/), say how much of an outcome's spread each input explains. Classification trees and forests learn which inputs decide whether a goal is met, and rank them by importance.
 
-## How it was built
+The design's own setting decides issuance. Under ACP-285's ramp, the floor's rank correlation with issuance saved is −0.98 at every outside yield, and the floor explains about 96% of its variance where that estimate converged.
 
-Added when the result is delivered.
+A design moves stake only through validators' response to the reward. With no response the ramp keeps all of the chain rule's stake. Around that, the spread in stake kept comes from the floor, the response and chance, which includes the uncertainty in the model's fitted parameters, in shares of about a third, a sixth and a half.
+
+Each relationship carries a confidence rating. A relationship is rated High when its sign holds, with an interval that excludes zero, in every band of validator response. The ramp floor's relationships with issuance saved and with stake kept are rated High at every outside yield.
+
+## Next step
+
+The report adds forests and response curves for each of the five goals, the region of settings where every goal holds, and the second sweep's results across bear, neutral and bull markets, which leave the ranking of designs unchanged.

@@ -11,9 +11,9 @@ Indicators of success, their thresholds, and the goals that group them.
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [2.3 KPI Computation](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/) | BCRG |  | Automated computation of every KPI for every simulated trajectory. |
-| [2.5 Sensitivity Analysis](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) | BCRG |  | Decision trees and correlation matrices that show which parameters drive each KPI. |
-| [2.6 Risk Surface Map](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | BCRG |  | The regions of parameter space where staking incentives fail. |
+| [2.3 KPI Computation](/Phase-II/Milestones/Milestone-2/2-3-KPI-Computation/) | BCRG |  | Every simulated trajectory reduced to its measures and scored against five goals, with no value missing. |
+| [2.5 Sensitivity Analysis](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) | BCRG |  | Rank correlations, variance shares, decision trees and forests that show which inputs decide each measure and goal. |
+| [2.6 Risk Surface Map](/Phase-II/Milestones/Milestone-2/2-6-Risk-Surface-Map/) | BCRG |  | The regions of input space where staking incentives fail, confirmed on held-out runs for 197 of 384 failure conditions. |
 | [3.1 Parameter Recommendation Report](/Phase-II/Milestones/Milestone-3/3-1-Parameter-Recommendation-Report/) | BCRG |  | Actionable parameter guidance, with the decision framework behind it. |
 
 ## Research papers
