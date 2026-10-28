@@ -11,6 +11,7 @@ from .reward import (
     GovernanceReward,
     QuadraticReward,
     RewardMechanism,
+    StakeDependentReward,
     TenureBoost,
 )
 
@@ -23,5 +24,6 @@ __all__ = [
     "GovernanceReward",
     "QuadraticReward",
     "RewardMechanism",
+    "StakeDependentReward",
     "TenureBoost",
 ]

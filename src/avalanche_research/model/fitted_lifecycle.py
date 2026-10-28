@@ -176,6 +176,37 @@ class FittedLifecycle(SimulationModel):
             "of being staked for the first time, so arrivals stop as the unstaked pool empties. 0 is model v0.8.0",
     )
 
+    # The v0.9 settings, each left out of the specification at its default in the same way, so every run recorded
+    # before them keeps its hash and table.
+    yield_gap_at = param.Selector(
+        default="origin", objects=["origin", "live"], metadata={"omit_at_default": True},
+        doc="Where each day's yield gap is priced: at the origin's supply counter and staked share on every day, as "
+            "every version to v0.8.1 did, or at the day's own counter and staked share, which lets issuance and "
+            "participation feed back into renewal and entry through the rate",
+    )
+    price0_usd = param.Number(
+        default=None, allow_None=True, bounds=(0.0, None), inclusive_bounds=(False, True), metadata={"omit_at_default": True},
+        doc="The AVAX price at the origin, in US dollars. With price_drift_pa and price_volatility_pa it starts the "
+            "run's seeded price path, the float variable price_usd, which the dollar measures of security read. None "
+            "runs without a price",
+    )
+    price_drift_pa = param.Number(
+        default=None, allow_None=True, bounds=(-10.0, 10.0),
+        metadata={"omit_at_default": True, "source": "bounded",
+                  "evidence": "DefiLlama daily price to 2025-11-18 by regime: bull windows 3.39 to 6.40, range -2.00 to "
+                              "0.16, bear -6.18 to -2.26 a year (model.price)"},
+        doc="Drift of the log AVAX price a year over the run. model.price.scenario_price gives the bull, neutral and "
+            "bear scenarios' values at a strength",
+    )
+    price_volatility_pa = param.Number(
+        default=None, allow_None=True, bounds=(0.0, 3.0),
+        metadata={"omit_at_default": True, "source": "bounded",
+                  "evidence": "DefiLlama daily price to 2025-11-18 by regime: bull windows 1.00 to 1.51, range 0.69 to "
+                              "1.01, bear 0.98 to 1.18 a year (model.price)"},
+        doc="Volatility of the log AVAX price a year over the run, the standard deviation of daily log returns times "
+            "the square root of 365",
+    )
+
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
     # specification and its hash do not record it.
     stages = (
@@ -194,7 +225,13 @@ class FittedLifecycle(SimulationModel):
                 "started_stake_navax", "nakamoto_third_nodes"]
 
     def float_variables(self):
-        return ["yield_gap_pp", "started_stake_days_navax", "offered_rate_30d"]
+        # price_usd was added in v0.9 and appears only when the run carries a price path, so a run without one keeps
+        # the columns every earlier run had.
+        return ["yield_gap_pp", "started_stake_days_navax", "offered_rate_30d", *(["price_usd"] if self.has_price() else [])]
+
+    def has_price(self) -> bool:
+        """Whether the run carries a price path: the origin price, drift and volatility are all given."""
+        return self.price0_usd is not None
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -204,6 +241,9 @@ class FittedLifecycle(SimulationModel):
             raise ValueError("give the outside yield and its level over the fitting window together, or neither")
         if self.durations is not None and self.durations.day_record is not None:
             raise ValueError("the duration transition draws its exact day from the moves table, so give it without a day record")
+        price = (self.price0_usd, self.price_drift_pa, self.price_volatility_pa)
+        if any(v is None for v in price) and any(v is not None for v in price):
+            raise ValueError("give the origin price, its drift and its volatility together, or none of them")
 
     def initial_state(self):
         initial = self.initial if self.initial is not None else pd.DataFrame(columns=COMMITMENT)
@@ -225,17 +265,38 @@ class FittedLifecycle(SimulationModel):
             "started_stake_days_navax": 0.0,
             # The rate at the counter of the day before the origin, which the model does not hold.
             "offered_rate_30d": float("nan"),
+            **({"price_usd": float(self.price0_usd)} if self.has_price() else {}),
         }
 
-    def yield_gap_pp(self, day: date, completed_periods: int) -> float:
+    def yield_gap_pp(self, day: date, completed_periods: int, supply_navax: int | None = None,
+                     staked_share: float | None = None) -> float:
         """The mechanism's annual rate above the fitted menu's rate, less the outside yield's change from its
-        fitting-window level, in percentage points, for a 30-day stake started on ``day`` (model.response).
+        fitting-window level, in percentage points, for a 30-day stake started on ``day`` (model.response), priced at
+        the origin's supply counter and staked share unless a day's own are given.
 
         Before Helicon the fitted menu is the chain's rule, so with no outside yield this is the mechanism's rate minus
         the chain's. From Helicon the chain's own rule carries ACP-285's change in the rate.
         """
-        return response_gap_pp(self.mechanism, self.fitted_menu, day, self.supply0_navax, completed_periods,
-                               self.outside_yield_pp, self.fitted_outside_yield_pp)
+        supply = self.supply0_navax if supply_navax is None else supply_navax
+        share = 1.0 - unstaked_share(self.initial_state()) if staked_share is None else staked_share
+        return response_gap_pp(self.mechanism, self.fitted_menu, day, supply, completed_periods,
+                               self.outside_yield_pp, self.fitted_outside_yield_pp, staked_share=share)
+
+    def _price_by_run(self):
+        """A function from run number to that run's price path, one price per day after the origin, drawn once per
+        run from the run's keyed ``price`` stream (model.price)."""
+        from avalanche_research.model.price import price_path
+
+        price0, drift, volatility = float(self.price0_usd), float(self.price_drift_pa), float(self.price_volatility_pa)
+        seed, timesteps = self.seed, self.timesteps
+        paths: dict[int, np.ndarray] = {}
+
+        def path_for(run: int) -> np.ndarray:
+            if run not in paths:
+                paths[run] = price_path(price0, drift, volatility, timesteps, Streams(seed, run).generator("price"))
+            return paths[run]
+
+        return path_for
 
     def _blocks_by_run(self):
         """A function from run number to that run's :class:`RunBlocks`: its renewal, large-holder renewal, arrival and
@@ -287,7 +348,9 @@ class FittedLifecycle(SimulationModel):
 
     def blocks(self):
         days = [self.origin + timedelta(days=t + 1) for t in range(self.timesteps)]
-        gaps = [(self.yield_gap_pp(day, self.renewal_tenure), self.yield_gap_pp(day, 0)) for day in days]
+        share0 = 1.0 - unstaked_share(self.initial_state())
+        gaps = [(self.yield_gap_pp(day, self.renewal_tenure, staked_share=share0), self.yield_gap_pp(day, 0, staked_share=share0))
+                for day in days]
         blocks_for = self._blocks_by_run()
         large_navax = None if self.renewal_large is None or self.large_above_avax is None else int(self.large_above_avax * 10**9)
         seed, origin, stages = self.seed, self.origin, self.stages
@@ -298,7 +361,7 @@ class FittedLifecycle(SimulationModel):
             mechanism=self.mechanism, market_renewal_shift=self.market_renewal_shift,
             market_entry_shift=self.market_entry_shift,
             participation_elasticity=float(self.participation_elasticity),
-            unstaked_share0=unstaked_share(self.initial_state()),
+            unstaked_share0=1.0 - share0,
             scheduled={
                 "start_day": sched_day, "stakes": _array(sched["stakes"]), "days": _array(sched["days"]),
                 "done": _array(sched["done"]), "after_return": _array(sched["after_return"], bool),
@@ -306,15 +369,28 @@ class FittedLifecycle(SimulationModel):
             },
         )
 
+        live = self.yield_gap_at == "live"
+        tenure = self.renewal_tenure
+        price_for = self._price_by_run() if self.has_price() else None
+
         def p_lifecycle(params, substep, history, state):
             t = state["timestep"]
             run = int(state["run"])
-            renewal_gap, entry_gap = gaps[t]
+            if live:
+                # The day's gap at the day's own counter and staked share, so issuance and participation reach behaviour.
+                supply, share = int(state["supply_navax"]), 1.0 - unstaked_share(state)
+                renewal_gap = self.yield_gap_pp(days[t], tenure, supply, share)
+                entry_gap = self.yield_gap_pp(days[t], 0, supply, share)
+            else:
+                renewal_gap, entry_gap = gaps[t]
             day = Day(
                 t=t, start=datetime.combine(origin + timedelta(days=t + 1), time(12), tzinfo=UTC), draw=Streams(seed, run),
                 blocks=blocks_for(run), renewal_gap=renewal_gap, entry_gap=entry_gap, settings=settings,
             )
-            return run_stages(stages, state, day)
+            signal = run_stages(stages, state, day)
+            if price_for is not None:
+                signal["price_usd"] = float(price_for(run)[t])
+            return signal
 
         def s_copy(name):
             return lambda params, substep, history, state, signal: (name, signal[name])
@@ -335,7 +411,8 @@ class FittedLifecycle(SimulationModel):
             return "nakamoto_third_nodes", nakamoto_third_nodes(signal["stakes"], signal["node_key"])
 
         copied = (*COMMITMENT, *OUT, "node_key", "out_node_key", "issued_navax", "yield_gap_pp",
-                  "started_stake_navax", "started_stake_days_navax", "offered_rate_30d")
+                  "started_stake_navax", "started_stake_days_navax", "offered_rate_30d",
+                  *(["price_usd"] if price_for is not None else []))
         return [{
             "policies": {"lifecycle": p_lifecycle},
             "variables": {
@@ -355,6 +432,7 @@ class FittedLifecycle(SimulationModel):
             ("nodes out of the set at most 365 days", lambda s: bool((s["out_days"] <= RETURN_DAYS).all())),
             ("supply within the cap", lambda s: s["supply_navax"] <= 720_000_000 * 10**9),
             ("stake within supply", lambda s: s["active_validator_stake_navax"] <= s["supply_navax"]),
+            *([("price positive and finite", lambda s: 0.0 < s["price_usd"] < float("inf"))] if self.has_price() else []),
         ]
 
 

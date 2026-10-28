@@ -337,11 +337,14 @@ BLOCK_NODES = {
     # The participation feedback: its elasticity is a setting a run compares, and the origin's unstaked share is read
     # from the initial state before the step, as the gaps are.
     "settings.participation_elasticity": "responses", "settings.unstaked_share0": None,
+    # The market condition's shifts in renewal log-odds and in log arrivals, settings a run compares as the responses are.
+    "settings.market_renewal_shift": "responses", "settings.market_entry_shift": "responses",
     # The day's yield gaps come from the mechanism and outside_yield_pp before the step; the responses decide what
     # they do, so the drawing joins the responses to the stages that read them and not to the gaps.
     "day.renewal_gap": None, "day.entry_gap": None, "day.t": None, "day.start": None, "day.draw": None,
 }
-SWEPT = ("renewal_response", "entry_response", "outside_yield_pp", "participation_elasticity")
+SWEPT = ("renewal_response", "entry_response", "outside_yield_pp", "participation_elasticity", "market_renewal_shift",
+         "market_entry_shift")
 
 
 def _wrapped(items: list[str], per_line: int) -> str:

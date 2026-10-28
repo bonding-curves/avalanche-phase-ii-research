@@ -77,6 +77,9 @@ DAILY_COLUMNS = (
     "total_supply_navax",
     "active_delegated_stake_navax",
 )
+RUN_COLUMNS = ("price_usd",)
+"""Daily-table columns only a run produces, never the chain: the AVAX price of a v0.9 run's price path, in US dollars at
+the end of the day, which the dollar measures of security read."""
 STARTED_COLUMNS = frozenset({
     "issued_navax", "issued_all_roles_navax", "started_stake_navax", "started_stake_days_navax", "started_validators",
 })
@@ -390,6 +393,45 @@ def return_margin(daily: pd.DataFrame, origin, horizon: int, competing_yield: fl
     return earned_rate(daily, origin, horizon) - competing_yield - operating_cost
 
 
+def price_usd(daily: pd.DataFrame, origin, horizon: int) -> float:
+    """The AVAX price in US dollars at the horizon, from the run's price path."""
+    return float(_at_horizon(daily, origin, horizon, "price_usd"))
+
+
+def _staked_navax(row: pd.Series) -> float:
+    """The validator stake and, when the table carries it, the delegated stake, the weight an attacker must match."""
+    return float(row["active_validator_stake_navax"] + (row["active_delegated_stake_navax"] if "active_delegated_stake_navax" in row.index else 0))
+
+
+def cost_of_attack_usd(daily: pd.DataFrame, origin, horizon: int, share: float) -> float:
+    """The dollars of fresh stake an attacker needs to hold ``share`` of all stake at the horizon, at that day's price:
+    for honest stake S the attacker adds S * share / (1 - share), half of S for a third and twice S for two thirds.
+    Delegated stake counts when the table carries it, since it carries weight."""
+    if not 0.0 < share < 1.0:
+        raise ValueError("the attacker's share must be strictly between 0 and 1")
+    columns = ["active_validator_stake_navax", "price_usd"] + (["active_delegated_stake_navax"] if "active_delegated_stake_navax" in daily.columns else [])
+    row = _run(daily, origin, horizon, columns).iloc[-1]
+    return _staked_navax(row) * share / (1.0 - share) / WEI_PER_NAVAX * float(row["price_usd"])
+
+
+def cost_of_attack_third_usd(daily: pd.DataFrame, origin, horizon: int) -> float:
+    """The dollars of fresh stake that reach a third of all stake, enough to halt the chain, at the horizon's price."""
+    return cost_of_attack_usd(daily, origin, horizon, 1 / 3)
+
+
+def cost_of_attack_two_thirds_usd(daily: pd.DataFrame, origin, horizon: int) -> float:
+    """The dollars of fresh stake that reach two thirds of all stake, enough to finalize at will, at the horizon's price."""
+    return cost_of_attack_usd(daily, origin, horizon, 2 / 3)
+
+
+def security_cover(daily: pd.DataFrame, origin, horizon: int, secured_value_usd: float) -> float:
+    """The cost of a one-third attack over the dollar value the stake is asked to secure, a parameter of the design:
+    above one, an attack costs more than it could take."""
+    if not (secured_value_usd > 0 and math.isfinite(secured_value_usd)):
+        raise ValueError("the secured value must be a positive, finite number of dollars")
+    return cost_of_attack_third_usd(daily, origin, horizon) / secured_value_usd
+
+
 def stake_weighted_duration(daily: pd.DataFrame, origin, horizon: int) -> float:
     """Committed days of the commitments started in the run, weighted by stake."""
     rows = _run(daily, origin, horizon, ["started_stake_navax", "started_stake_days_navax"])
@@ -454,7 +496,7 @@ def burn_to_issuance(daily: pd.DataFrame, origin, horizon: int) -> float:
 def kpi_table(daily: pd.DataFrame, origin, horizons: Iterable[int] = HORIZONS, *, competing_yield: float,
               operating_costs: Mapping[str, float], baseline: pd.DataFrame | None = None,
               starting_supply_navax: float | None = None, burn_navax_per_day: float | None = None,
-              missing: str = "raise") -> pd.DataFrame:
+              missing: str = "raise", secured_value_usd: float | None = None) -> pd.DataFrame:
     """Every KPI at each horizon, one row per measure, horizon and cost level.
 
     The measures relative to a baseline need ``baseline``, the same run under the chain's rule. Issuance in nAVAX is
@@ -462,7 +504,9 @@ def kpi_table(daily: pd.DataFrame, origin, horizons: Iterable[int] = HORIZONS, *
     baseline row's is issuance saved exactly. The return margin has
     one row per entry of ``operating_costs``. The chain's rewards paid, when the table has them, add net inflation on
     rewards paid and the burn-to-issuance ratio. Delegated stake, when present, adds the staking ratio with
-    delegations. ``missing="skip"`` leaves out a measure whose column the table lacks instead of raising.
+    delegations. A price path, when present, adds the price and the cost of attack at a third and two thirds of
+    stake in dollars, and with ``secured_value_usd`` the security cover against that value. ``missing="skip"`` leaves
+    out a measure whose column the table lacks instead of raising.
     """
     if missing not in ("raise", "skip"):
         raise ValueError("missing is 'raise' or 'skip'")
@@ -506,6 +550,12 @@ def kpi_table(daily: pd.DataFrame, origin, horizons: Iterable[int] = HORIZONS, *
         add("issuance_half_life", h, issuance_half_life, daily, origin, h)
         if paid:
             add("burn_to_issuance", h, burn_to_issuance, daily, origin, h)
+        if "price_usd" in daily.columns:
+            add("price_usd", h, price_usd, daily, origin, h)
+            add("cost_of_attack_third_usd", h, cost_of_attack_third_usd, daily, origin, h)
+            add("cost_of_attack_two_thirds_usd", h, cost_of_attack_two_thirds_usd, daily, origin, h)
+            if secured_value_usd is not None:
+                add("security_cover", h, security_cover, daily, origin, h, secured_value_usd)
     return pd.DataFrame(rows, columns=["measure", "horizon_days", "cost_level", "value"])
 
 
@@ -536,7 +586,7 @@ def run_daily_table(table: pd.DataFrame, origin, chain: pd.DataFrame | None = No
         first = repeated.iloc[0]
         raise ValueError(f"the long table has more than one {first['variable']} at timestep {first['timestep']}")
     wide = table.pivot_table(index="timestep", columns="variable", values="value", aggfunc="first")
-    for column in DAILY_COLUMNS:
+    for column in (*DAILY_COLUMNS, *RUN_COLUMNS):
         if column in table.columns:
             values = table.groupby("timestep")[column]
             conflicting = values.nunique(dropna=False) > 1
@@ -555,6 +605,7 @@ def run_daily_table(table: pd.DataFrame, origin, chain: pd.DataFrame | None = No
     # The chain supplies the days up to the origin in the columns the run continues after it, and burn and realized
     # supply, which the measures rebuild after the origin. Any other chain column would be empty after the origin.
     kept = [c for c in chain.columns if c in DAILY_COLUMNS and (c in wide.columns or c in CHAIN_REBUILT_COLUMNS)]
+    # A run-only column, such as the price, has no chain value before the origin and is left empty there.
     before = chain.loc[chain.index <= _day(origin), kept]
     return pd.concat([before, wide.loc[wide.index > _day(origin)]])
 
