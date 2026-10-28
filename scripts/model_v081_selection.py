@@ -20,6 +20,7 @@ this script does not restate them. ``--batches`` below ten is a rehearsal, not a
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import multiprocessing
 import subprocess
@@ -51,16 +52,27 @@ from avalanche_research.model.variants import VARIANTS
 INCUMBENT, CHALLENGER = "v0.8.0", "v0.8.1 candidate"
 
 
-def worker_setup(memory_limit: str = "1500MB", threads: int = 2) -> None:
+def worker_setup(memory_limit: str = "1000MB", threads: int = 2) -> None:
     """Cap the worker's DuckDB connection, which the model's input queries share, so a pool of workers beside other
     jobs on one machine stays within its memory: the default limit is 80% of the machine's memory per connection."""
     duckdb.execute(f"SET memory_limit='{memory_limit}'")
     duckdb.execute(f"SET threads={threads}")
 
 
-def model_runs(task: tuple[str, date, str, str, str, str, int]) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Every run's value at each horizon for one origin and model, and each batch's specification hash."""
-    name, origin, model, run_name, periods, delegators, batches = task
+def task_files(out: Path, name: str, model: str) -> tuple[Path, Path]:
+    """Where one origin and model's runs and specification hashes are checkpointed."""
+    stem = f"{name}_{model.replace(' ', '-').replace('.', '')}"
+    return out / "tasks" / f"{stem}-runs.csv.gz", out / "tasks" / f"{stem}-specifications.csv"
+
+
+def model_runs(task: tuple[str, date, str, str, str, str, int, Path]) -> tuple[Path, Path]:
+    """Every run's value at each horizon for one origin and model, and each run's specification hash, written to the
+    task's own files so a stopped run resumes from the tasks already done."""
+    name, origin, model, run_name, periods, delegators, batches, out = task
+    runs_file, spec_file = task_files(out, name, model)
+    if runs_file.exists() and spec_file.exists():
+        print(f"{name} {model}: already done", flush=True)
+        return runs_file, spec_file
     variant = VARIANTS[model]
     tables = {"delegations": candidate_tables(periods, delegators, origin)} if model == CHALLENGER else {}
     prepared = variant.prepare(periods, origin, run_name, BATCH_RUNS * len(BATCH_SEEDS), DRAW_SEED, **tables)
@@ -79,8 +91,13 @@ def model_runs(task: tuple[str, date, str, str, str, str, int]) -> tuple[pd.Data
             parts.append(pd.DataFrame({"origin": name, "model": model, "batch_seed": batch, "run": r,
                                        "variable": t.variable.to_numpy(), "horizon_days": t.timestep.to_numpy(),
                                        "value": t.value.astype(float).to_numpy()}))
+            del t, simulation
+            gc.collect()
+    runs_file.parent.mkdir(parents=True, exist_ok=True)
+    pd.concat(parts, ignore_index=True).to_csv(runs_file, index=False, compression={"method": "gzip", "mtime": 0})
+    pd.DataFrame(specifications).to_csv(spec_file, index=False)
     print(f"{name} {model}: done", flush=True)
-    return pd.concat(parts, ignore_index=True), pd.DataFrame(specifications)
+    return runs_file, spec_file
 
 
 def verdict(folder: Path) -> dict:
@@ -121,13 +138,17 @@ def main() -> None:
     if args.origins:
         origins = {name: origins[name] for name in args.origins}
     if not args.score_only:
-        tasks = [(n, o, m, run_name, periods, delegators, args.batches) for n, o in origins.items() for m in (INCUMBENT, CHALLENGER)]
-        # Workers start afresh rather than forked: a forked copy of the parent's DuckDB connection deadlocks on its first query.
-        with ProcessPoolExecutor(args.workers, mp_context=multiprocessing.get_context("spawn"), initializer=worker_setup) as pool:
+        # The released model at every origin first, then the candidate from the earliest origin, so the largest origins come last.
+        by_date = sorted(origins.items(), key=lambda item: item[1])
+        tasks = [(n, o, m, run_name, periods, delegators, args.batches, args.out) for m in (INCUMBENT, CHALLENGER) for n, o in by_date]
+        # Workers start afresh rather than forked, since a forked copy of the parent's DuckDB connection deadlocks on its
+        # first query, and each serves one task, so the memory a task grew is returned to the machine when it ends.
+        with ProcessPoolExecutor(args.workers, mp_context=multiprocessing.get_context("spawn"), initializer=worker_setup,
+                                 max_tasks_per_child=1) as pool:
             results = list(pool.map(model_runs, tasks))
-        pd.concat([r for r, _ in results], ignore_index=True).to_csv(args.out / "development-runs.csv.gz", index=False,
-                                                                     compression={"method": "gzip", "mtime": 0})
-        pd.concat([s for _, s in results], ignore_index=True).to_csv(args.out / "development-specifications.csv", index=False)
+        pd.concat([pd.read_csv(r) for r, _ in results], ignore_index=True).to_csv(args.out / "development-runs.csv.gz", index=False,
+                                                                                  compression={"method": "gzip", "mtime": 0})
+        pd.concat([pd.read_csv(s) for _, s in results], ignore_index=True).to_csv(args.out / "development-specifications.csv", index=False)
     full = len(origins) == len({**UPGRADES, **QUARTERS}) and args.batches == len(BATCH_SEEDS)
     # The scorer's summary needs three origins for its test, so a rehearsal keeps its per-cell scores and may lose the summary.
     subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "model_distribution_scores.py"), str(args.out)], check=full)
