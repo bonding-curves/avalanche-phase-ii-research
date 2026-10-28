@@ -130,6 +130,16 @@ class FittedLifecycle(SimulationModel):
             "less the outside yield's change from its fitting-window level, for a 30-day stake with no tenure",
     )
     renewal_tenure = param.Integer(default=4, bounds=(0, 100), doc="Completed commitments at which the renewal response prices the yield gap")
+    market_renewal_shift = param.Number(
+        default=0.0, bounds=(-5.0, 5.0), metadata={"omit_at_default": True, "source": "assumed"},
+        doc="A market condition's shift in the log-odds of every renewal decision, held for the whole run. 0 is the "
+            "fitting window's market",
+    )
+    market_entry_shift = param.Number(
+        default=0.0, bounds=(-5.0, 5.0), metadata={"omit_at_default": True, "source": "assumed"},
+        doc="A market condition's shift in the log of the first-ever arrival rate, held for the whole run. 0 is the "
+            "fitting window's market",
+    )
     draws = param.DataFrame(
         default=None, allow_None=True, precedence=-1,
         doc="One row per run of drawn block parameters: renewal.<name>, renewal_large.<name>, returns.<name>, "
@@ -285,7 +295,8 @@ class FittedLifecycle(SimulationModel):
         sched_day = _array(sched["start_day"])
         settings = RunSettings(
             large_navax=large_navax, renewal_response=self.renewal_response, entry_response=self.entry_response,
-            mechanism=self.mechanism,
+            mechanism=self.mechanism, market_renewal_shift=self.market_renewal_shift,
+            market_entry_shift=self.market_entry_shift,
             participation_elasticity=float(self.participation_elasticity),
             unstaked_share0=unstaked_share(self.initial_state()),
             scheduled={

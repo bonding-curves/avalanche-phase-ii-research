@@ -68,6 +68,11 @@ class RewardMechanism(param.Parameterized):
         """A factor applied to the reward. One for the chain."""
         return 1.0
 
+    def duration_bounds(self) -> tuple[int, int] | None:
+        """The shortest and longest commitment, in whole days, that the rule admits, or None for the durations a model
+        draws as they are. Only :class:`GovernanceReward` sets bounds."""
+        return None
+
     def potential_reward_navax(
         self, stake_navax: int, duration_seconds: int, supply_navax: int, start: datetime, completed_periods: int = 0
     ) -> int:
@@ -234,3 +239,45 @@ class QuadraticReward(RewardMechanism):
         designed = QuadraticReward(exponent=self.exponent, acp285=self.acp285).issuance_navax(stakes, supply_navax)
         return QuadraticReward(exponent=self.exponent, scale=chain / designed if designed else 1.0, acp285=self.acp285,
                                label=f"{self.label}, equal issuance")
+
+
+class GovernanceReward(RewardMechanism):
+    """The chain's linear rate with the four governance settings of the grant proposal: the minimum and maximum
+    consumption rates (Y_min and Y_max as the protocol holds them) and the shortest and longest commitment (t_min and
+    t_max).
+
+    The rate is ``min + (max - min) * min(d, t_max) / t_max``, so it reaches the maximum at ``t_max``, as the proposal's
+    C(t) does. With ``t_max`` at one year it is the chain's integer formula exactly, and at 10%, 12%, 14 and 365 days it
+    is the rule before ACP-285. Every stake is priced with these rates whatever its start, so ACP-285 does not apply.
+    A model that reads :meth:`duration_bounds` moves each new commitment's duration to the nearer bound before its stake
+    is drawn.
+    """
+
+    label = param.String(default="Governance settings")
+    min_rate = param.Number(default=0.10, bounds=(0.0, 1.0), doc="Minimum consumption rate, as a fraction. Before ACP-285: 0.10")
+    max_rate = param.Number(default=0.12, bounds=(0.0, 1.0), doc="Maximum consumption rate, as a fraction. Mainnet: 0.12")
+    min_days = param.Integer(default=14, bounds=(1, 365), doc="Shortest commitment, days. Mainnet: 14")
+    max_days = param.Integer(default=365, bounds=(1, 365), doc="Longest commitment and the duration at which the rate is the maximum, days. Mainnet: 365")
+
+    def __init__(self, **params):
+        super().__init__(**params)
+        if self.max_rate < self.min_rate:
+            raise ValueError(f"the maximum rate {self.max_rate} is below the minimum {self.min_rate}")
+        if self.max_days < self.min_days:
+            raise ValueError(f"the longest commitment {self.max_days} days is shorter than the shortest {self.min_days}")
+
+    def config(self, start: datetime) -> RewardConfig:
+        base = MAINNET_REWARD
+        return RewardConfig(round(self.max_rate * PERCENT_DENOMINATOR), round(self.min_rate * PERCENT_DENOMINATOR),
+                            base.minting_period_seconds, base.supply_cap_navax)
+
+    def numerator(self, config: RewardConfig, duration_ns: int) -> int:
+        period_ns = config.minting_period_nanoseconds
+        top_ns = self.max_days * SECONDS_PER_DAY * NANOSECONDS_PER_SECOND
+        if top_ns == period_ns:
+            return super().numerator(config, duration_ns)
+        span = config.max_consumption_rate - config.min_consumption_rate
+        return span * min(duration_ns, top_ns) * period_ns // top_ns + config.min_consumption_rate * period_ns
+
+    def duration_bounds(self) -> tuple[int, int]:
+        return self.min_days, self.max_days

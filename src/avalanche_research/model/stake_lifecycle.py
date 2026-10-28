@@ -25,6 +25,7 @@ from avalanche_research.model.fitted_lifecycle import (
     training_events,
 )
 from avalanche_research.model.parts.participation import cap_started
+from avalanche_research.model.parts.stages import bounded_days
 from avalanche_research.model.parts.stake_choice import (
     CONTEXTS,
     StakeChoice,
@@ -169,10 +170,12 @@ class StakeLifecycle(FittedLifecycle):
         entry_u = draw.uniforms("first_days", new_key)
         entry_days = blocks.first_days[np.minimum((entry_u * len(blocks.first_days)).astype(np.int64),
                                                    len(blocks.first_days) - 1)] if n_new else np.zeros(0, dtype=np.int64)
+        # A mechanism with duration bounds moves each duration to the nearer bound before its stake is drawn.
+        mechanism = day.settings.mechanism
         durations = (
-            next_days(ended["days"][renews], draw.uniforms("renew_days", renewed_key, renewed_done)),
-            next_days(state["out_last_days"][comes_back], draw.uniforms("return_days", back_key, back_done)),
-            entry_days,
+            bounded_days(next_days(ended["days"][renews], draw.uniforms("renew_days", renewed_key, renewed_done)), mechanism),
+            bounded_days(next_days(state["out_last_days"][comes_back], draw.uniforms("return_days", back_key, back_done)), mechanism),
+            bounded_days(entry_days, mechanism),
         )
         previous = (ended["stakes"][renews], state["out_stakes"][comes_back], np.zeros(n_new, dtype=np.int64))
         uniforms = (draw.uniforms("renew_stake", renewed_key, renewed_done),
