@@ -35,6 +35,7 @@ model = [
   "cadCAD==0.5.3",
   "numpy>=2,<3",
   "param>=2.4,<3",
+  "scikit-learn>=1.9,<2",
   "scipy>=1.14,<2",
 ]
 notebook = [

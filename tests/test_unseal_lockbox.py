@@ -3,24 +3,23 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import duckdb
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import unseal_lockbox as unseal
 
+from avalanche_research import datasets
 from avalanche_research.core import lockbox
 from avalanche_research.core.clock import LOCKBOX_START
 from avalanche_research.core.errors import ModelError
 from avalanche_research.core.hashing import sha256
-
-PIN = Path(__file__).resolve().parents[1] / "data" / "pins" / "p7-systems-learning-weeks.json"
 
 ENTRY = '''
 from avalanche_research.core import lockbox
@@ -54,7 +53,7 @@ def git(repo: Path, *args: str) -> None:
 
 
 @pytest.fixture
-def setup(tmp_path):
+def setup(tmp_path, monkeypatch):
     remote, repo = tmp_path / "remote.git", tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
@@ -66,14 +65,29 @@ def setup(tmp_path):
     (folder / "manifest.json").write_text(json.dumps({
         "entry_point": "lockbox_entry:score", "author": "modeling-lead", "uv_lock_sha256": sha256(b"lock\n"),
         "fit_preflight_entry_point": "lockbox_preflight:preflight",
-        "pins": ["data/pins/p7-systems-learning-weeks.json"],
+        "pins": ["data/pins/fixture.json"],
         "rehearsal": {"fit_until": "2024-12-16", "score_until": "2025-11-18"}, "foundation_answer": {"default_used": True}}))
     (folder / "template.md").write_text("Verdict: {verdict}. MASE at 90 days: {mase_90}.\n")
     (repo / "src").mkdir()
     (repo / "src" / "lockbox_entry.py").write_text(ENTRY + f"REPO = {str(repo)!r}\n")
     (repo / "src" / "lockbox_preflight.py").write_text(PREFLIGHT)
     (repo / "data" / "pins").mkdir(parents=True)
-    shutil.copy(PIN, repo / "data" / "pins" / PIN.name)
+    # The guard verifies real bytes and receipts without depending on a local research run.
+    runs = tmp_path / "runs"
+    monkeypatch.setattr(datasets, "RUNS", runs)
+    output = runs / "fixture" / "dataset"
+    output.mkdir(parents=True)
+    parquet = output / "fixture.parquet"
+    with duckdb.connect() as connection:
+        connection.execute("COPY (SELECT DATE '2024-01-01' AS date_utc, 1 AS value) TO ? (FORMAT PARQUET)", [str(parquet)])
+    (output / "build.json").write_text(json.dumps({"dataset_id": "fixture.public", "source_capture_id": "fixture"}))
+    (output / "check.json").write_text(json.dumps({"status": "pass"}))
+    (repo / "data" / "pins" / "fixture.json").write_text(json.dumps({
+        "schema_version": "avalanche-pins/v1", "runs": [{
+            "dataset_id": "fixture.public", "run": "fixture", "capture_id": "fixture", "parquet": parquet.name,
+            "bytes": parquet.stat().st_size, "sha256": sha256(parquet.read_bytes()), "check": "pass",
+        }],
+    }))
     sys.modules.pop("lockbox_entry", None)
     git(repo, "add", ".")
     git(repo, "commit", "-q", "-m", "pre-registration")
@@ -252,6 +266,18 @@ def test_g3_refuses_a_manifest_without_pins(setup):
     git(repo, "push", "-q", "origin", "main")
     args.commit = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
     args.bundle_hash = unseal.bundle_hash(repo / unseal.FOLDER)
+    with pytest.raises(unseal.GuardFailed, match="^G3"):
+        unseal.guards(repo, args)
+
+
+@pytest.mark.parametrize("missing", [False, True])
+def test_g3_refuses_changed_or_missing_pinned_bytes(setup, missing):
+    repo, args = setup
+    parquet = datasets.RUNS / "fixture" / "dataset" / "fixture.parquet"
+    if missing:
+        parquet.unlink()
+    else:
+        parquet.write_bytes(parquet.read_bytes() + b"changed")
     with pytest.raises(unseal.GuardFailed, match="^G3"):
         unseal.guards(repo, args)
 

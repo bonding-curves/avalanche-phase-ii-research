@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -21,7 +21,7 @@ NAVAX = 10**9
 
 
 def reward(start: str, days: int, stake: int) -> int:
-    begin = datetime.fromisoformat(start).replace(tzinfo=timezone.utc)
+    begin = datetime.fromisoformat(start).replace(tzinfo=UTC)
     return primary_network_reward(begin, days * 86_400, stake, SUPPLY)
 
 
@@ -95,7 +95,11 @@ def root(tmp_path: Path) -> Path:
 def test_catalog_declares_the_staking_period_log():
     definition = next(item for item in load_catalog()["datasets"] if item["id"] == derived.DATASET_ID)
     assert [field["name"] for field in definition["fields"]] == list(derived.TABLE_COLUMNS)
-    assert definition["input_ids"] == [*derived.INPUTS, *derived.OPTIONAL_INPUTS]
+    seamed_inputs = [
+        derived.seam.table_name(derived.seam.SEAMED[dataset_id])
+        for dataset_id in derived.INPUTS.values()
+    ]
+    assert definition["input_ids"] == [*derived.INPUTS, *derived.OPTIONAL_INPUTS, *seamed_inputs]
 
 
 def test_derive_joins_regimes_and_kernel(root):
