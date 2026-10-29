@@ -1,0 +1,216 @@
+{
+  "name": "m2-goals-2026-10-27",
+  "status": "BCRG working preferences, not confirmed Foundation criteria",
+  "source_specification_sha256": "e5d472932a74c59d17387a34f90cdb7e68a68a6661bbfad2900ffb4c73bff19f",
+  "how_to_read": {
+    "expr": "A pandas expression over the sweep's wide table. A name prefixed baseline__ reads the same column on the paired baseline run, joined on baseline_row_id and the horizon.",
+    "threshold": "The pass line. op is one of >=, >, <=, < with a number in value, or 'between' with [low, high] in value.",
+    "utility.linear": "0 at floor, 1 at target, straight between them and clipped to 0 and 1. A floor above the target means lower is better.",
+    "utility.step": "1 when the metric passes its threshold, otherwise 0.",
+    "utility.band": "1 inside [low, high], falling straight to 0 at low_floor below and high_floor above.",
+    "goal.utility": "The weighted mean of its metrics' utilities.",
+    "goal.pass_rule": "all_metrics: the goal passes when every metric passes its threshold. utility_at_least: the goal passes when its utility reaches pass_utility.",
+    "combine": "The combined utility is the weighted mean of the goal utilities. Weights are normalised, so they need not sum to 1.",
+    "regions": "The highest-utility region holds the setting cells whose mean combined utility is within utility_tolerance of the best cell. The all-goal region holds the cells where at least pass_share of runs pass every goal. A cell needs min_runs_per_cell runs."
+  },
+  "goals": [
+    {
+      "id": "G1",
+      "name": "Security holds",
+      "intent": "Validators' own stake stays close to what the chain's rule keeps, and does not fall faster in a bad month.",
+      "weight": 1,
+      "pass_rule": "all_metrics",
+      "metrics": [
+        {
+          "id": "G1.stake_retained",
+          "label": "Validator stake retained against the chain's rule",
+          "expr": "validator_stake_retained",
+          "unit": "share of the chain rule's stake",
+          "direction": "higher",
+          "threshold": {
+            "op": ">=",
+            "value": 0.95
+          },
+          "utility": {
+            "type": "linear",
+            "floor": 0.85,
+            "target": 1.0
+          },
+          "weight": 2
+        },
+        {
+          "id": "G1.worst_month",
+          "label": "Worst 30-day stake fall against the chain's rule",
+          "expr": "worst_30_day_stake_fall - baseline__worst_30_day_stake_fall",
+          "unit": "share of stake",
+          "direction": "higher",
+          "threshold": {
+            "op": ">=",
+            "value": -0.02
+          },
+          "utility": {
+            "type": "linear",
+            "floor": -0.05,
+            "target": 0.0
+          },
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "G2",
+      "name": "Validators stay and stay spread",
+      "intent": "The validator set keeps its size and its spread, and a validator's margin over its outside return is not cut sharply.",
+      "weight": 1,
+      "pass_rule": "all_metrics",
+      "metrics": [
+        {
+          "id": "G2.validators_retained",
+          "label": "Active validators retained against the chain's rule",
+          "expr": "active_validators_retained",
+          "unit": "share of the chain rule's count",
+          "direction": "higher",
+          "threshold": {
+            "op": ">=",
+            "value": 0.95
+          },
+          "utility": {
+            "type": "linear",
+            "floor": 0.85,
+            "target": 1.0
+          },
+          "weight": 1
+        },
+        {
+          "id": "G2.nakamoto",
+          "label": "Nakamoto coefficient against the chain's rule",
+          "expr": "nakamoto_coefficient - baseline__nakamoto_coefficient",
+          "unit": "nodes",
+          "direction": "higher",
+          "threshold": {
+            "op": ">=",
+            "value": -1
+          },
+          "utility": {
+            "type": "linear",
+            "floor": -3,
+            "target": 0
+          },
+          "weight": 1
+        },
+        {
+          "id": "G2.margin",
+          "label": "Return margin against the chain's rule, at a 1.5% operating cost",
+          "expr": "return_margin_mid - baseline__return_margin_mid",
+          "unit": "share of stake a year",
+          "direction": "higher",
+          "threshold": {
+            "op": ">=",
+            "value": -0.01
+          },
+          "utility": {
+            "type": "linear",
+            "floor": -0.03,
+            "target": 0.0
+          },
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "G3",
+      "name": "Holders pay less",
+      "intent": "The design issues less AVAX than the chain's rule and net inflation stays under the Foundation's 5% line.",
+      "weight": 1,
+      "pass_rule": "all_metrics",
+      "metrics": [
+        {
+          "id": "G3.issuance_saved",
+          "label": "Issuance saved against the chain's rule",
+          "expr": "issuance_saved",
+          "unit": "share of the chain rule's issuance",
+          "direction": "higher",
+          "threshold": {
+            "op": ">",
+            "value": 0.0
+          },
+          "utility": {
+            "type": "linear",
+            "floor": 0.0,
+            "target": 0.2
+          },
+          "weight": 2
+        },
+        {
+          "id": "G3.net_inflation",
+          "label": "Net inflation on total supply",
+          "expr": "net_inflation",
+          "unit": "share a year",
+          "direction": "lower",
+          "threshold": {
+            "op": "<=",
+            "value": 0.05
+          },
+          "utility": {
+            "type": "linear",
+            "floor": 0.05,
+            "target": 0.0
+          },
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "G4",
+      "name": "Security per AVAX issued",
+      "intent": "Each AVAX the design issues holds at least as much validator stake as under the chain's rule.",
+      "weight": 1,
+      "pass_rule": "all_metrics",
+      "metrics": [
+        {
+          "id": "G4.efficiency",
+          "label": "Validator stake per AVAX issued, against the chain's rule",
+          "expr": "validator_stake_retained / (1 - issuance_saved)",
+          "unit": "ratio to the chain's rule",
+          "direction": "higher",
+          "threshold": {
+            "op": ">=",
+            "value": 1.0
+          },
+          "utility": {
+            "type": "linear",
+            "floor": 0.95,
+            "target": 1.15
+          },
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "G5",
+      "name": "Longer commitments",
+      "intent": "Validators commit stake for longer than under the chain's rule.",
+      "weight": 0.5,
+      "pass_rule": "all_metrics",
+      "metrics": [
+        {
+          "id": "G5.duration",
+          "label": "Stake-weighted committed duration against the chain's rule",
+          "expr": "stake_weighted_duration / baseline__stake_weighted_duration",
+          "unit": "ratio to the chain's rule",
+          "direction": "higher",
+          "threshold": {
+            "op": ">=",
+            "value": 0.99
+          },
+          "utility": {
+            "type": "linear",
+            "floor": 0.98,
+            "target": 1.05
+          },
+          "weight": 1
+        }
+      ]
+    }
+  ]
+}
