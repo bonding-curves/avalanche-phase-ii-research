@@ -10,7 +10,7 @@ The Foundation's thresholds, the least outcome it accepts on each goal, choose A
 
 ## 1. Validators held more stake and renewed at the same rate after Helicon
 
-The Helicon upgrade of 22 September 2026 allowed commitments of 48 hours and activated ACP-285. ACP-285 lowers the minimum consumption rate from 10% to 7.5% over 90 days, which at the supply counter of 26 October cuts a 48-hour stake's yield from about 5.1% to 3.9% of stake a year.
+The Helicon upgrade of 22 September 2026 allowed commitments of 48 hours and activated ACP-285. ACP-285 lowers the minimum consumption rate from 10% to 7.5% over 90 days, which at the supply counter of 26 October cuts a 48-hour stake's annualized reward rate from about 5.1% to 3.9% of stake a year.
 
 Validators' own stake closed 26 October at 170.26M AVAX, 4.27M AVAX above its Helicon-day close, held by 590 active validators against 606.
 
@@ -41,7 +41,7 @@ Bitwise's BAVA exchange-traded fund started 25 validator commitments after Helic
 
 Model v0.8.0 simulates validators' own stake daily from 18 November 2025 with exact reward arithmetic and leaves out delegations, 20.8% of all stake at that origin.
 
-The measured responses, 0.025 for renewal and 0.04 for entry, are the rises in the log-odds of renewing within 7 days and in the log arrival rate of new validators per percentage point of yield gained against the rule before ACP-285. They treat a 1% rise in dollar reward from the AVAX price like one from the rate, which market sentiment specific to AVAX most threatens. Holding the Bitcoin or the Ether price fixed gives renewal 0.035 to 0.057 or 0.09 to 0.11, so the central 0.025 puts a design's stake cost at the low end.
+The measured responses, 0.025 for renewal and 0.04 for entry, are the rises in the log-odds of renewing within 7 days and in the log arrival rate of new validators per percentage point of annualized reward rate gained against the rule before ACP-285. They treat a 1% rise in dollar reward from the AVAX price like one from the rate, which market sentiment specific to AVAX most threatens. Holding the Bitcoin or the Ether price fixed gives renewal 0.035 to 0.057 or 0.09 to 0.11, so the central 0.025 puts a design's stake cost at the low end.
 
 1. At the measured responses and an outside yield of 5% a year, starting ACP-285's ramp on 18 November 2025 saves a median 12.8% of validators' one-year issuance and keeps 98.7% of their stake against a twin on the same draws under the chain's rule. The 10th to 90th percentiles over 50 paired runs are 11.6% to 15.4% saved and 95.3% to 99.9% kept, and the shares change little between runs whose twin's stake ends high and low ([2.6](/Phase-II/Milestones/Milestone-2/Sensitivity-Analysis-Report/#26-risk-surface-map)).
 2. The minimum rate explains about 96% of the variance in issuance saved, and each percentage point it falls trades about 5.5 points of issuance saved for 1.3 points of stake ([2.5](/Phase-II/Milestones/Milestone-2/Sensitivity-Analysis-Report/#25-sensitivity-analysis)).
