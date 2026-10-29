@@ -26,7 +26,9 @@ Suggested caption: **New validator commitments before and after Helicon.** Each 
 
 ![Before and after Helicon, shown as adjacent AVAX-day weighted density plots with the same axes and marginal histograms.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-kde.png)
 
-Suggested caption: **Where scheduled AVAX-days concentrate.** Density is weighted by AVAX-days and normalised separately within each era, with common smoothing and logarithmically spaced colour levels. Both axes are logarithmic. Smoothing uses days and log stake. Contours describe a smoothed distribution, including tails beyond observed commitments.
+Suggested caption: **Where scheduled AVAX-days concentrate.** Density is weighted by AVAX-days, with the same smoothing widths of 1.5 days and 0.12 log₁₀-AVAX in both eras and 16 logarithmically spaced colour bands. Both axes are logarithmic. No pre-Helicon commitment lasted less than 14 days. Smoothing below 14 days before Helicon and 2 days after is hidden. Marginal bars show exact AVAX-day shares.
+
+The KDE is calculated in days and log stake and normalised to 100% per era before the display mask. Hidden tails are not redistributed, so the visible density integrates to less than 100%. Other smoothed tails can extend beyond observed commitments.
 
 Both pairs compare equal 34-day, 9-hour windows around 22 September 2026, 15:00 UTC, through 26 October. These are gross scheduled commitments, including future days and potentially repeated capital. The comparison does not establish a causal effect. See the [data, definitions and methods](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/) for exact windows and exclusions.
 

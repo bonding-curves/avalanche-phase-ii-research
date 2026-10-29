@@ -25,6 +25,9 @@ from matplotlib.ticker import FixedLocator, FuncFormatter
 
 MM = 1 / 25.4
 PRINT_MAX_AREA = 60.0
+CONTOUR_BANDS = 16
+DISPLAY_MIN_DAYS = {"Before Helicon": 14.0, "After Helicon": 2.0}
+PRINT_BANDWIDTH = (1.5, 0.12)
 
 
 def draw(frame, grids, histograms, mode):
@@ -34,7 +37,7 @@ def draw(frame, grids, histograms, mode):
     )
     max_weight = bubble_weight(frame.stake_avax, frame.duration_days).max()
     max_density = max(np.max(grid[2]) for grid in grids)
-    levels = np.r_[0, np.geomspace(max_density * 1e-5, max_density, 26)]
+    levels = np.r_[0, np.geomspace(max_density * 1e-5, max_density, CONTOUR_BANDS)]
     duration_max = max(max(h[0]["share"]) for h in histograms) * 1.1
     stake_max = max(max(h[1]["share"]) for h in histograms) * 1.1
     fig.text(
@@ -95,9 +98,10 @@ def draw(frame, grids, histograms, mode):
         else:
             rgb = np.array([int(colour[i : i + 2], 16) for i in (1, 3, 5)])
             palette = [
-                tuple((255 + (rgb - 255) * t) / 255) for t in np.linspace(0.04, 1, 26)
+                tuple((255 + (rgb - 255) * t) / 255)
+                for t in np.linspace(0.04, 1, CONTOUR_BANDS)
             ]
-            positive = grid[0] >= 1.8
+            positive = grid[0] >= DISPLAY_MIN_DAYS[cohort]
             ax.contourf(
                 grid[0][positive],
                 grid[1],
@@ -105,6 +109,19 @@ def draw(frame, grids, histograms, mode):
                 levels=levels,
                 colors=palette,
             )
+            ax.axvline(
+                DISPLAY_MIN_DAYS[cohort], color=colour, linewidth=0.6, linestyle=":"
+            )
+            if cohort == "Before Helicon":
+                ax.text(
+                    5.0,
+                    2e5,
+                    "None below\n14 days",
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color=colour,
+                )
             cax = fig.add_axes([0.08 if column == 0 else 0.59, 0.13, 0.30, 0.014])
             bar = fig.colorbar(
                 matplotlib.cm.ScalarMappable(
@@ -206,13 +223,13 @@ def draw(frame, grids, histograms, mode):
         fig.text(
             0.04,
             0.18,
-            "AVAX-day weighted density · common log-spaced colour levels",
+            "AVAX-day weighted density · 16 bands · smoothing: 1.5 days / 0.12 stake dex",
             fontsize=7.5,
         )
         fig.text(
             0.04,
             0.065,
-            "Density units: % of era AVAX-days per day × log₁₀-AVAX. Each era totals 100%.",
+            "Density: % of era AVAX-days per day × log₁₀-AVAX. Tails below 14 days before / 2 days after hidden.",
             fontsize=7,
         )
     fig.text(
@@ -240,7 +257,7 @@ def main():
         raise ValueError("Extract hash mismatch")
     frame = pd.read_csv(args.input / "commitments.csv")
     groups = [frame[frame.cohort.eq(c)] for c in COLOURS]
-    grids = [density(g) for g in groups]
+    grids = [density(g, bandwidth=PRINT_BANDWIDTH) for g in groups]
     histograms = [marginals(g) for g in groups]
     out = args.input / "report-exports"
     out.mkdir(exist_ok=True)
@@ -282,24 +299,35 @@ def main():
                         for key in [
                             "weights",
                             "coordinates",
-                            "bandwidth",
                             "normalization",
                             "boundary",
-                            "contour_levels",
-                            "contour_spacing",
                             "duration_bin_edges_days",
                             "stake_bin_edges_avax",
                         ]
+                    },
+                    "bandwidth": {
+                        "days": PRINT_BANDWIDTH[0],
+                        "log10_avax": PRINT_BANDWIDTH[1],
                     },
                     "grid_integrals_percent": [grid[3] for grid in grids],
                     "display_domain": {
                         "duration_days": [1.8, 410],
                         "stake_avax": [1600, 7000000],
                     },
-                    "display_note": "Log positioning only; density remains per linear day and log10 AVAX. Tails below 1.8 days are clipped.",
+                    "contour_levels": np.r_[
+                        0,
+                        np.geomspace(
+                            max(np.max(grid[2]) for grid in grids) * 1e-5,
+                            max(np.max(grid[2]) for grid in grids),
+                            CONTOUR_BANDS,
+                        ),
+                    ].tolist(),
+                    "contour_spacing": "16 bands from zero plus log-spaced positive levels spanning 1e-5 of common maximum to maximum",
+                    "display_min_duration_days": DISPLAY_MIN_DAYS,
+                    "display_note": "Log positioning; density per linear day and log10 AVAX. Smoothing below 14 days before Helicon and 2 days after is hidden, not redistributed. The full unmasked KDE integrates to 100% per era.",
                     "marginal_visibility": "Nonempty bins outlined at 0.45 points; exact heights unchanged; empty bins omitted",
                     "era_colours": COLOURS,
-                    "colour_interpolation": "26 common bands, white blended with era colour at fractions 0.04 to 1",
+                    "colour_interpolation": "16 common bands, white blended with era colour at fractions 0.04 to 1",
                 },
                 "print_max_bubble_area_pt2": PRINT_MAX_AREA,
             },

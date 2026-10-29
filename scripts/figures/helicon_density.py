@@ -8,7 +8,7 @@ DURATION_EDGES = np.unique(np.r_[np.arange(0, 411, 7), 2, 14, 30, 90, 180, 365, 
 STAKE_EDGES = np.geomspace(2000, 7e6, 25)
 
 
-def density(frame):
+def density(frame, bandwidth=BANDWIDTH):
     """Product Gaussian KDE in days and log10 AVAX over the displayed domain.
 
     Each transaction contributes its full AVAX-days as weight. Both eras use the
@@ -20,7 +20,7 @@ def density(frame):
     log_y = np.unique(
         np.r_[np.linspace(np.log10(1600), np.log10(7e6), 181), np.log10(2000)]
     )
-    hx, hy = BANDWIDTH
+    hx, hy = bandwidth
     u, v = (
         frame.duration_days.to_numpy(),
         np.log10(frame.stake_avax.to_numpy()),
