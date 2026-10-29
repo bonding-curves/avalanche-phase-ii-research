@@ -106,6 +106,17 @@
     "post_first_cycle_count": 514,
     "membership_stake_duration_and_dates_match": true
   },
-  "size": "Bubble area in points squared = 14 * log10(AVAX-days / 1 AVAX-day). Not radius or raw AVAX-days.",
+  "size": {
+    "mapping": "area_pt2 = 12 + 408 * log10(AVAX-days / minimum) / log10(maximum / minimum)",
+    "domain_avax_days": [
+      4000.0,
+      458596271.5878937
+    ],
+    "area_range_pt2": [
+      12.0,
+      420.0
+    ],
+    "shared_across": "Both cohorts, the static figure and the interactive figure"
+  },
   "interpretation": "Gross scheduled AVAX-days include future time and repeat capital across transactions. This is not realized exposure or a causal effect."
 }

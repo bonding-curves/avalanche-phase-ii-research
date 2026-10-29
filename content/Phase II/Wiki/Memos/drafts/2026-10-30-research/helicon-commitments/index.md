@@ -26,7 +26,7 @@ The median commitment is shorter after activation, while the stake-weighted mean
 
 ## Reading the comparison
 
-Both axes use logarithmic scales. Bubble **area**, rather than radius, is proportional to the base-10 logarithm of AVAX-days. AVAX-days equal stake multiplied by scheduled duration. Exact overlapping points remain in place, so visible circles understate the number of commitments. Hover details report overlaps within each cohort.
+Both axes use logarithmic scales. Bubble **area** uses a shared logarithmic scale, with the smallest observed commitment drawn at 12 square points and the largest at 420 square points. This normalisation makes the size differences visible. AVAX-days equal stake multiplied by scheduled duration. The size legend shows reference values, and the provenance file gives the exact mapping. Exact overlapping points remain in place, so visible circles understate the number of commitments. Hover details report overlaps within each cohort.
 
 The windows are **19 August 06:00–22 September 15:00 UTC** and **22 September 15:00–27 October 00:00 UTC**, each 34 days and 9 hours. A window includes its start and excludes its end. Cohorts use commitment start time, rather than transaction acceptance time.
 
