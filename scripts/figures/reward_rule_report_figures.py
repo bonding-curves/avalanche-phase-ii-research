@@ -39,7 +39,7 @@ def main():
     )
     frame = frame.sort_values(["family_order", "setting_order"])
     prefixes = {
-        "before": "Pre-ACP-285 rule",
+        "before": "Pre-ACP-285 formula",
         "ramp": "Ramp minimum consumption rate",
         "quadratic": "Duration exponent",
         "tenure": "Full-tenure boost",
@@ -169,7 +169,7 @@ def main():
     ax.xaxis.tick_top()
     ax.set_yticks(
         range(4),
-        labels=["Pre-ACP-285 rule", "ACP-285 ramp", "Duration curve", "Tenure boost"],
+        labels=["Pre-ACP-285 formula", "ACP-285 ramp", "Duration curve", "Tenure boost"],
     )
     ax.tick_params(length=0, labelsize=10, pad=8)
     for i, row in enumerate(values):

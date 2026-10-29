@@ -12,7 +12,7 @@ The numerical exhibits below support the [methodology memo](/Phase-II/Wiki/Memos
 
 ## Central case
 
-The central result uses model v0.8.0, origin 18 November 2025, horizon 365 days, a 90-day ramp to a 7.5% minimum consumption rate, renewal response 0.025, entry response 0.04 and an annual outside yield of 5%. Each of 50 design runs shares its seed and fitted-parameter draw with its chain-rule twin.
+The central result uses model v0.8.0, origin 18 November 2025, horizon 365 days, a 90-day ramp to a 7.5% minimum consumption rate, renewal response 0.025, entry response 0.04 and an annual outside yield of 5%. Each of 50 design runs shares its seed and fitted-parameter draw with its twin using the chain’s formula.
 
 The twin follows the historical protocol schedule. ACP-285 starts on day 308, and its 90-day ramp ends after the one-year horizon. The proposed design begins its ramp on the origin. These results describe an early-start comparison.
 
@@ -116,10 +116,10 @@ The economic interpretation follows ACP-285's stated objectives. The simulation 
 | [Helicon upgrade documentation](https://docs.avax.network/docs/primary-network/helicon-upgrade) | Activation and validator-duration changes |
 | [Model v0.8.0](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/model-v0.8.0) | Release commit b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc |
 | [Model-selection results](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/model-v0.8.0/results/model-v0.8.0-selection) | Development forecasts and adoption verdict |
-| [Gneiting and Raftery 2007](https://sites.stat.washington.edu/people/raftery/Research/PDF/Gneiting2007jasa.pdf) | Proper scoring rules and CRPS |
+| [Gneiting and Raftery 2007](https://sites.stat.washington.edu/people/raftery/Research/PDF/Gneiting2007jasa.pdf) | Proper scoring formulas and CRPS |
 | [Grant agreement](/Phase-II/Milestones/Milestone-0/Signed-Grant-Agreement) | The eight Milestone 2 deliverables |
 
-The [figure manifest](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json) identifies the reused image bytes. The [goal-utility manifest](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json) records the frozen aggregates used for the detailed and summary heatmaps. The central trajectory figure omits delegated issuance. The trade-off plot separates the original response sweep from the fixed working-response case. Its black marker represents simulated outcomes under preliminary settings.
+The [figure manifest](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json) identifies the image bytes and terminology edits. Edited figures include their SVG sources and rendering commands. The [goal-utility manifest](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json) records the frozen aggregates used for the detailed and summary heatmaps. The central trajectory figure omits delegated issuance. The trade-off plot separates the original response sweep from the fixed working-response case. Its black marker represents simulated outcomes under preliminary settings.
 
 ## Notation
 

@@ -1,13 +1,13 @@
 ---
 title: "Modeling Avalanche's staking economy"
-description: "How the staking simulation represents validators, computes rewards, learns from the record and evaluates alternative reward rules."
+description: "How the staking simulation represents validators, computes rewards, learns from the record and evaluates alternative reward formulas."
 date: 2026-10-29
 status: draft
 aliases:
   - Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/index
 kind: report
 reader: "Avalanche Foundation and Ava Labs researchers and decision makers"
-question: "How can a staking simulation support the design and evaluation of Avalanche's reward rules?"
+question: "How can a staking simulation support the design and evaluation of Avalanche's reward formulas?"
 ---
 
 Date: 29 October 2026\
@@ -17,13 +17,13 @@ Subject: Modeling Avalanche's staking economy
 
 ## Introduction
 
-Avalanche rewards its Primary Network validators with newly minted AVAX from a finite supply budget. Its reward rule determines how quickly that budget is used and how the return varies with staking duration. [ACP-285](https://github.com/avalanche-foundation/ACPs/blob/b80ea34682b419603f0241f114560dea5d61e03a/ACPs/285-reduce-minimum-consumption-rate/README.md) changes that rule to reduce inflation, extend the issuance budget and encourage longer commitments. The network-wide effects unfold as validators complete their existing commitments and choose what to do next.
+Avalanche rewards its Primary Network validators with newly minted AVAX from a finite supply budget. Its reward formula determines how quickly that budget is used and how the return varies with staking duration. [ACP-285](https://github.com/avalanche-foundation/ACPs/blob/b80ea34682b419603f0241f114560dea5d61e03a/ACPs/285-reduce-minimum-consumption-rate/README.md) changes that formula to reduce inflation, extend the issuance budget and encourage longer commitments. The network-wide effects unfold as validators complete their existing commitments and choose what to do next.
 
-A staking simulation makes those choices explicit. It follows individual validator staking periods, computes their rewards with the protocol's arithmetic and compares alternative rules under the same conditions. The resulting differences show how a design could change issuance, participation and staking duration. Repeating the comparison across uncertain behaviour makes clear which conclusions depend on validators' responses.
+A staking simulation makes those choices explicit. It follows individual validator staking periods, computes their rewards with the protocol's arithmetic and compares alternative formulas under the same conditions. The resulting differences show how a design could change issuance, participation and staking duration. Repeating the comparison across uncertain behaviour makes clear which conclusions depend on validators' responses.
 
-Bonding Curve Research Group's system combines a checked chain record, a model of validator decisions and an experiment pipeline. New reward rules can reuse the data, fitted behaviour and evaluation criteria. Model v0.8.0 is the implementation used in the [Milestone 2 results](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results). Its own-stake population covers the AVAX validators lock themselves. Delegated AVAX is outside its simulated population.
+Bonding Curve Research Group's system combines a checked chain record, a model of validator decisions and an experiment pipeline. New reward formulas can reuse the data, fitted behaviour and evaluation criteria. Model v0.8.0 is the implementation used in the [Milestone 2 results](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results). Its own-stake population covers the AVAX validators lock themselves. Delegated AVAX is outside its simulated population.
 
-## 1. The reward rule links duration to the issuance budget
+## 1. The reward formula links duration to the issuance budget
 
 A validator commits an amount of AVAX for a chosen period. The protocol promises a reward when that period starts, conditional on meeting its eligibility requirements. The reward increases with the stake, its duration and the rate parameters set by the protocol.
 
@@ -108,7 +108,7 @@ Most fitting windows cover the preceding year. Returns use two years of endings 
 
 ## 4. The response to reward is separate from habitual behaviour
 
-Historical renewal, entry and duration patterns describe what validators did under the incentives they faced. Comparing a different reward rule requires an additional assumption about how behaviour changes when its return changes.
+Historical renewal, entry and duration patterns describe what validators did under the incentives they faced. Comparing a different reward formula requires an additional assumption about how behaviour changes when its return changes.
 
 The model represents two explicit responses. The **renewal response** $\beta_R$ changes renewal log-odds per percentage point of annual yield gained. The **entry response** $\beta_E$ changes the log arrival rate on the same basis. A one-percentage-point yield gain multiplies renewal odds by $\exp(\beta_R)$ and the arrival mean by $\exp(\beta_E)$, with arrivals capped at 100 new nodes a day.
 
@@ -118,9 +118,9 @@ For example, if a validator renews with probability 80%, its odds are four to on
 
 BCRG's preliminary working values, 0.025 for renewal and 0.04 for entry, use historical AVAX price variation to study changes in dollar rewards. Translating that evidence into an annualized reward-yield response assumes validators respond similarly to the two sources of dollar-reward changes. Market sentiment can affect both AVAX's price and staking decisions, so these are specification-dependent estimates. The experiments vary the responses to test the dependence on these central values. The [evidence notes](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#response-estimates) give the alternative estimates.
 
-## 5. A paired simulation follows each rule through the same decisions
+## 5. A paired simulation follows each formula through the same decisions
 
-Each proposed rule runs beside a **twin**, a simulation under the chain's rule using the same origin, fitted-parameter draw, outside conditions and keyed random numbers. The pairing reduces variation caused by unrelated random choices. Model error can still affect both paths and their difference.
+Each proposed formula runs beside a **twin**, a simulation under the chain's formula using the same origin, fitted-parameter draw, outside conditions and keyed random numbers. The pairing reduces variation caused by unrelated random choices. Model error can still affect both paths and their difference.
 
 Figure 2 shows the order of one simulated day. The first four stages determine who starts a new period and what they commit. The reward stage prices those periods, then assembly constructs the next day's state.
 
@@ -144,7 +144,7 @@ Fitted behaviour is drawn once for a run and then used through its simulated day
 
 A plausible explanation of past choices can still make poor predictions. Each candidate therefore forecasts from historical origins using only earlier data. Its outcomes are compared with the chain's realized stake and validator count.
 
-The **continuous ranked probability score**, or CRPS, evaluates the whole forecast distribution. For equally weighted runs, it is the average distance from a run to the realized outcome, less half the average distance between two runs. This [proper scoring rule](https://sites.stat.washington.edu/people/raftery/Research/PDF/Gneiting2007jasa.pdf) rewards accurate distributions and penalizes misleading certainty or excessive spread.
+The **continuous ranked probability score**, or CRPS, evaluates the whole forecast distribution. For equally weighted runs, it is the average distance from a run to the realized outcome, less half the average distance between two runs. This [proper scoring formula](https://sites.stat.washington.edu/people/raftery/Research/PDF/Gneiting2007jasa.pdf) rewards accurate distributions and penalizes misleading certainty or excessive spread.
 
 Consider 200 illustrative runs, half predicting 100 million AVAX of stake and half 120 million, with a realized 110 million. The distance from a run to the outcome averages 10 million. Distances between all ordered pairs of runs also average 10 million. The CRPS is therefore 10 − 10/2 = 5 million AVAX. The model evaluation scales this score by the mean absolute daily change before the origin, making performance comparable across origins.
 
@@ -155,27 +155,27 @@ Consider 200 illustrative runs, half predicting 100 million AVAX of stake and ha
 | Interval coverage | Does a stated forecast interval include outcomes as often as it should? |
 | A separate held-back period | Does a model selected in development generalize to later data? |
 
-The benchmarks include holding the last value, extending recent drift, a weekly autoregression, distributional versions of the first two, and a local-level statistical model. Candidate adoption follows a rule specified before the development scores. The [selection evidence](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/model-v0.8.0/results/model-v0.8.0-selection) records the outcomes.
+The benchmarks include holding the last value, extending recent drift, a weekly autoregression, distributional versions of the first two, and a local-level statistical model. Candidate adoption follows a criterion specified before the development scores. The [selection evidence](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/model-v0.8.0/results/model-v0.8.0-selection) records the outcomes.
 
 The period from 19 November 2025 to Helicon on 22 September 2026 is reserved for a separate evaluation. No completed held-back verdict is reported here. Forecast skill on stake levels also provides a different test from the validity of a consumption-rate counterfactual. Both forms of evidence matter.
 
 ## 7. Experiments turn trajectories into design comparisons
 
-**Parameter selection under uncertainty**, or PSUU, compares reward settings across behaviour and outside conditions the Foundation cannot choose. A **sweep** runs many such settings. Each design is paired with the historical chain rule, which adopts ACP-285 at Helicon. The experiments distinguish changing the reward rule from changing the conditions under which it operates.
+**Parameter selection under uncertainty**, or PSUU, compares reward settings across behaviour and outside conditions the Foundation cannot choose. A **sweep** runs many such settings. Each design is paired with the historical chain formula, which adopts ACP-285 at Helicon. The experiments distinguish changing the reward formula from changing the conditions under which it operates.
 
 ### 7.1 The run families test different mechanisms and horizons
 
-The first two one-year sweeps contain 199,887 recorded runs, including reference runs. The first compares the ACP-285 ramp, a constant pre-ACP-285 rule, an alternative duration curve and a boost for completed staking periods. The second adds broader protocol settings. Their run counts describe coverage, rather than independent confirmations of a policy effect.
+The first two one-year sweeps contain 199,887 recorded runs, including reference runs. The first compares the ACP-285 ramp, a constant pre-ACP-285 formula, an alternative duration curve and a boost for completed staking periods. The second adds broader protocol settings. Their run counts describe coverage, rather than independent confirmations of a policy effect.
 
 | Experiment | Size | What varies and what it tests |
 | --- | ---: | --- |
 | First one-year sweep | 132,800 runs | Four design families, annual outside yields of 3%, 5%, 7% and 10%, and behavioural responses. Identifies which inputs drive issuance and participation |
 | Second one-year sweep | 67,087 runs | Minimum and maximum consumption rates, duration limits and bear, neutral and bull conditions. Examines interactions and available-supply constraints |
-| Central comparisons | 50 pairs per design | Random draws at fixed working responses and 5% annual outside yield. Quantifies variation for a specific rule comparison |
+| Central comparisons | 50 pairs per design | Random draws at fixed working responses and 5% annual outside yield. Quantifies variation for a specific formula comparison |
 | Five-year experiment | 4,096 pairs | Ramp settings, responses and outside yields. Examines how an early-start advantage changes over time |
 | Ten-year experiment | 8,192 pairs | Ramp and duration-curve scenarios. Explores longer-run implications without forecast validation at that horizon |
 
-A pair contains a design run and its reference. Shared references and repeated runs must be reconciled before combining counts. The second sweep records one failed available-supply check. The [experiment results](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#22-simulation-execution) distinguish these populations and report the conditional findings. Revenue-funded rewards are a proposed next evaluation, requiring a specified funding source and shortfall rule.
+A pair contains a design run and its reference. Shared references and repeated runs must be reconciled before combining counts. The second sweep records one failed available-supply check. The [experiment results](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#22-simulation-execution) distinguish these populations and report the conditional findings. Revenue-funded rewards are a proposed next evaluation, requiring a specified funding source and shortfall formula.
 
 ### 7.2 Goals guide which outcomes the experiments measure
 
@@ -191,7 +191,7 @@ A **KPI**, or key performance indicator, is a measurable outcome. The five worki
 | G4 Stake per AVAX issued | Retained own stake per unit of issuance relative to the reference, measuring reward efficiency |
 | G5 Commitment duration | Stake-weighted duration relative to the reference. Individual duration choices do not respond to incentives in v0.8.0, so changes reflect the mix of participating validators |
 
-Cumulative issuance also measures budget use over a stated horizon. A longer budget lifetime remains a projection dependent on the future reward rule and participation. Measuring an outcome does not establish that it must be an acceptance condition. The [working goal definitions](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#23-kpi-computation) specify the existing thresholds.
+Cumulative issuance also measures budget use over a stated horizon. A longer budget lifetime remains a projection dependent on the future reward formula and participation. Measuring an outcome does not establish that it must be an acceptance condition. The [working goal definitions](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#23-kpi-computation) specify the existing thresholds.
 
 ### 7.3 Utilities make the scoring choices explicit
 
@@ -213,14 +213,14 @@ The summary weights setting-cell means by their run counts. Both figures reuse s
 
 ## 8. Separate components make the system reusable
 
-A new question can often reuse most of the system. The [reward interface](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/model-v0.8.0/src/avalanche_research/mechanisms/reward.py) separates the rate configuration, the duration curve and the multiplier for completed periods. Released alternatives have neutral-setting tests against the chain's rule.
+A new question can often reuse most of the system. The [reward interface](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/model-v0.8.0/src/avalanche_research/mechanisms/reward.py) separates the rate configuration, the duration curve and the multiplier for completed periods. Released alternatives have neutral-setting tests against the chain's formula.
 
 | Change | What can be reused |
 | --- | --- |
 | A new reward formula | Fitted behaviour, experiment conditions and existing measures |
 | Different thresholds or weights | Stored measures, when all required columns were retained |
 | New historical inputs | Reward implementations and experiment structure after refitting |
-| A better behavioural component | Data interfaces, reward rules and analysis after evaluation |
+| A better behavioural component | Data interfaces, reward formulas and analysis after evaluation |
 
 The next extensions address specific economic questions. Delegations and available-supply feedback broaden the simulated population. Price and holder types add feedback absent from v0.8.0. A duration choice that responds to rewards is needed to test ACP-285's hoped-for shift toward longer commitments. Revenue-funded rewards require a separate funding component, being developed alongside the released interface.
 

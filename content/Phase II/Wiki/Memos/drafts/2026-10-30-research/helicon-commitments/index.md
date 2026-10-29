@@ -38,7 +38,7 @@ Delegations and later automatic renewal cycles are excluded. The same node, and 
 
 ## Data and reproduction
 
-[Download all 954 plotted records](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/commitments.csv), [exact aggregates](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/summary.json), [source identities and rules](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/provenance.json), or the [SVG](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/f1.svg).
+[Download all 954 plotted records](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/commitments.csv), [exact aggregates](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/summary.json), [source identities and definitions](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/provenance.json), or the [SVG](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/f1.svg).
 
 The frozen `staking-periods-2026-10-27` run supplies the transaction records. Every post-window transaction agrees exactly with its first cycle in `helicon-commitments-2026-10-27`, including node, dates, stake and duration. Input hashes and the extract hash are recorded in the provenance file.
 

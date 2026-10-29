@@ -15,11 +15,11 @@ Subject: Milestone 2 simulation and analysis
 
 ## Introduction
 
-Starting ACP-285's ramp before Helicon reduces issuance in the central one-year experiment. The comparison follows the proposed early start beside a reference rule that adopts ACP-285 on its historical date. The reduction serves the Foundation's aims of lowering inflation and extending Avalanche's finite issuance budget. Its participation effect depends on how validators respond.
+Starting ACP-285's ramp before Helicon reduces issuance in the central one-year experiment. The comparison follows the proposed early start beside a reference formula that adopts ACP-285 on its historical date. The reduction serves the Foundation's aims of lowering inflation and extending Avalanche's finite issuance budget. Its participation effect depends on how validators respond.
 
 [ACP-285](https://github.com/avalanche-foundation/ACPs/blob/b80ea34682b419603f0241f114560dea5d61e03a/ACPs/285-reduce-minimum-consumption-rate/README.md) lowers the minimum consumption rate from 10% to 7.5% while keeping the maximum at 12%. These are parameters of the reward formula. At the experiment's starting supply counter, a 48-hour stake earns about 4.1% of stake a year at the 7.5% minimum, compared with about 5.5% at 10%. The [methodology memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology) explains the formula, the statistical model and the evaluation methods.
 
-Milestone 2 compares rules through paired simulations of validators' own stake. A **twin** uses the chain's rule under the same conditions and random draws. Issuance saved is the percentage reduction in cumulative rewards promised to validator stake, relative to that twin. Stake retained is the design's own stake at the horizon as a percentage of the twin's. Delegations are outside the model.
+Milestone 2 compares formulas through paired simulations of validators' own stake. A **twin** uses the chain's formula under the same conditions and random draws. Issuance saved is the percentage reduction in cumulative rewards promised to validator stake, relative to that twin. Stake retained is the design's own stake at the horizon as a percentage of the twin's. Delegations are outside the model.
 
 The [grant agreement](/Phase-II/Milestones/Milestone-0/Signed-Grant-Agreement) calls for a Sensitivity Analysis Report covering all key parameters. Quantitative findings use BCRG's working assumptions and goals. The Foundation can use them to choose its own criteria at the workshop.
 
@@ -29,7 +29,7 @@ The experiment pipeline makes comparisons repeatable by binding a design, its in
 
 | Pipeline component | Role |
 | --- | --- |
-| Experiment specification | Names the rules, input ranges, horizons and repeated runs |
+| Experiment specification | Names the formulas, input ranges, horizons and repeated runs |
 | Pinned data | Fixes the historical input copies by byte hash |
 | Paired runner | Simulates each design beside its twin |
 | Analysis | Computes measures, utilities and sensitivity results |
@@ -51,9 +51,9 @@ Two one-year sweeps produced 199,887 runs, including their chain-reference runs.
 | Five-year sweep | 4,096 pairs | Ramp settings, response uncertainty and outside yields |
 | Ten-year sweep | 8,192 pairs | Ramp and duration-curve scenarios |
 
-The first sweep compares ACP-285's ramp, the pre-ACP-285 rule, an alternative duration curve and a tenure boost against separate historical chain references. The second adds independently chosen rates and duration limits. A duration curve changes how rewards rise with commitment length, while a tenure boost rewards repeated completed periods.
+The first sweep compares ACP-285's ramp, the pre-ACP-285 formula, an alternative duration curve and a tenure boost against separate historical chain references. The second adds independently chosen rates and duration limits. A duration curve changes how rewards rise with commitment length, while a tenure boost rewards repeated completed periods.
 
-The central comparison starts on 18 November 2025, ten months before Helicon. Its proposed rule begins ACP-285's 90-day ramp immediately. Its twin follows the historical protocol schedule, adopting ACP-285 on 22 September 2026. The result measures the effect of an early start over one year, rather than ACP-285 against a permanently unchanged rule.
+The central comparison starts on 18 November 2025, ten months before Helicon. Its proposed formula begins ACP-285's 90-day ramp immediately. Its twin follows the historical protocol schedule, adopting ACP-285 on 22 September 2026. The result measures the effect of an early start over one year, rather than ACP-285 against a permanently unchanged formula.
 
 At working renewal and entry responses of 0.025 and 0.04, and an outside yield of 5% a year, the central comparison gives:
 
@@ -131,11 +131,16 @@ Figure 3 compares the mechanism settings across all five working goals and their
 Figure 4 expresses the ramp's trade-off in the original outcome units. Saving more issuance generally accompanies lower retained stake across the sampled settings. The fixed working-response comparison sits above the wider sweep's average stake retention near the same minimum rate.
 
 ![Issuance saved against validator stake retained across ramp settings.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png)
-*Figure 4. First-sweep ramp results at one year. Teal points are half-point minimum-rate bin means, with shaded 10th to 90th percentiles of stake retained. The black point and error bars show simulated medians and marginal 10th to 90th percentiles across 50 pairs at the preliminary working responses and 5% annual outside yield. Both comparisons use the historical chain-rule reference and an early ramp start. Source: the existing sweep and central-case artifacts.*
+*Figure 4. First-sweep ramp results at one year. Teal points are half-point minimum-rate bin means, with shaded 10th to 90th percentiles of stake retained. The black point and error bars show simulated medians and marginal 10th to 90th percentiles across 50 pairs at the preliminary working responses and 5% annual outside yield. Both comparisons use the historical reward formula as the reference and an early ramp start. Source: the existing sweep and central-case artifacts.*
+
+Figure 5 shows which combinations of minimum rate and renewal response are associated with meeting every working goal. Follow each yes-or-no branch to a group of runs. The pass share at the end describes that group under BCRG's thresholds. The splits summarize the sampled simulations and are not exact policy boundaries.
+
+![Decision tree showing where sampled runs meet every working goal.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png)
+*Figure 5. Classification tree for 4,096 independent one-year ramp runs from the first sweep, pooling four outside yields and renewal and entry responses from 0 to 0.1. Minimum consumption rate supplies most splits. One lower-rate branch also splits on renewal response at 0.041. Boxes show run counts and the share meeting every working threshold. Leaf shares differ from shares pooled over all responses. The marked response estimate is preliminary. Source: the [included figure manifest](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json).*
 
 ## 2.6 Risk Surface Map
 
-The range meeting every working threshold depends on the response sample and the comparison rule. The table below uses half-percentage-point minimum-rate bands and pools all four outside yields.
+The range meeting every working threshold depends on the response sample and the comparison formula. The table below uses half-percentage-point minimum-rate bands and pools all four outside yields.
 
 | Response sample | Minimum-rate band | Runs meeting every working threshold |
 | --- | --- | ---: |
@@ -146,11 +151,11 @@ The range meeting every working threshold depends on the response sample and the
 
 The near-central sample uses renewal responses from 0.01 to 0.04 and entry responses from 0.02 to 0.06. The wider sample uses renewal from 0.01 to 0.06 and the full entry range from 0 to 0.1. These are slices of the original sweep, with about 50 or 200 runs per band respectively. They are not experiments at an exact minimum rate. The [full count tables](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#conditional-goal-regions) preserve their denominators.
 
-Above 9.5%, the pass rate falls because the twin starts lowering its own minimum at Helicon. A higher-rate proposed rule can then issue more than its twin and fail the issuance-saving goal. This upper boundary explains why “from 8.5%” would be misleading.
+Above 9.5%, the pass rate falls because the twin starts lowering its own minimum at Helicon. A higher-rate proposed formula can then issue more than its twin and fail the issuance-saving goal. This upper boundary explains why “from 8.5%” would be misleading.
 
 The preliminary response estimates remain an important source of uncertainty. Bitcoin-controlled renewal estimates span about 0.035–0.057 and Ether-controlled alternatives reach 0.09–0.11. Some specifications' uncertainty intervals include zero. The 0.01–0.06 working range is not a confidence interval, and the original 0–0.1 sweep does not cover every alternative estimate.
 
-Longer horizons ask a different question because both central rules eventually adopt ACP-285. The early-start advantage diminishes after adoption. Exploratory comparisons with near-unchanged floors of 9.75%–10% suggest cumulative issuance reductions of about 14% over five years and 16% over ten, alongside lower retained stake. These approximate-comparator scenarios have no long-horizon forecast validation and do not establish the lifetime of the remaining issuance budget.
+Longer horizons ask a different question because both central formulas eventually adopt ACP-285. The early-start advantage diminishes after adoption. Exploratory comparisons with near-unchanged floors of 9.75%–10% suggest cumulative issuance reductions of about 14% over five years and 16% over ten, alongside lower retained stake. These approximate-comparator scenarios have no long-horizon forecast validation and do not establish the lifetime of the remaining issuance budget.
 
 The broader governance sweep also encounters available-supply constraints. One run stopped when stake reached the supply counter, and 11,957 runs exceeded half of that counter. Recommendations for those regions require a model with participation and available-supply feedback.
 
@@ -169,7 +174,7 @@ The sequence matters. Choosing weights first can make a high average score appea
 
 ## 2.8 Collaborative Mechanism Design
 
-The released reward interface supports changes to rate schedules, duration curves and completed-period multipliers. Those components allow a new rule to reuse the lifecycle simulation and analysis. Neutral-setting tests check that the released alternatives reproduce the chain's rule on the tested inputs.
+The released reward interface supports changes to rate schedules, duration curves and completed-period multipliers. Those components allow a new formula to reuse the lifecycle simulation and analysis. Neutral-setting tests check that the released alternatives reproduce the chain's formula on the tested inputs.
 
 | Proposal | Evaluation question |
 | --- | --- |
@@ -178,7 +183,7 @@ The released reward interface supports changes to rate schedules, duration curve
 | Node-tenure weighting | What issuance pays for repeated participation? |
 | Revenue-funded rewards | What changes when part of the reward comes from revenue rather than minting? |
 
-Revenue funding is a development extension, separate from the released interface. Its evaluation needs a specified revenue stream and a rule for periods when revenue is insufficient. The agreement's under-five-business-day turnaround remains an operational target to demonstrate through an end-to-end proposal evaluation.
+Revenue funding is a development extension, separate from the released interface. Its evaluation needs a specified revenue stream and a formula for periods when revenue is insufficient. The agreement's under-five-business-day turnaround remains an operational target to demonstrate through an end-to-end proposal evaluation.
 
 ## Next steps
 

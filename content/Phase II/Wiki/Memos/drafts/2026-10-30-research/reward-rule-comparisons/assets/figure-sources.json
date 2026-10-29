@@ -28,5 +28,10 @@
       "mechanism-utilities.png",
       "mechanism-utilities.svg"
     ]
+  },
+  "display_terminology": {
+    "change": "Readable labels use reward formula. Numerical mappings and frozen aggregate scores are unchanged.",
+    "utility_mapping_file": "utility-mappings.json",
+    "utility_mapping_sha256": "84fb9ac22885a6ae5e674abe12df6e88164a5dcc4f659210ef8ac2d4581be25b"
   }
 }

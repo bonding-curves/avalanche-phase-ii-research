@@ -13,7 +13,7 @@ To: Avalanche Foundation and Ava Labs\
 From: Bonding Curve Research Group\
 Subject: Reward-design research and the next evaluation priorities
 
-Avalanche's reward-design research can now connect proposed rules to explicit estimates of issuance and validator participation. The discussion brings the post-Helicon record together with the modeling system and its first comparisons. The decisions concern which outcomes matter most, what evidence is needed next and how to organize the workshops.
+Avalanche's reward-design research can now connect proposed formulas to explicit estimates of issuance and validator participation. The discussion brings the post-Helicon record together with the modeling system and its first comparisons. The decisions concern which outcomes matter most, what evidence is needed next and how to organize the workshops.
 
 The [methodology memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology) explains the system. The [Sensitivity Analysis Report](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results) develops the results and their conditions.
 
@@ -25,9 +25,9 @@ Commitments shorter than seven days made about 26%–27% of weekly new validator
 
 Renewal within fourteen days was 86.2% for 320 nodes ending between Helicon and 12 October, compared with 85.6% of 1,235 endings in the preceding 90 days, using the same fourteen-day follow-up. These descriptive observations do not isolate the upgrade's effect. The model uses a separate seven-day renewal definition. [Data and definitions](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#post-helicon-observations).
 
-## 2. The model compares reward rules on issuance and stake
+## 2. The model compares reward formulas on issuance and stake
 
-Each reward design runs beside the historical chain rule under the same conditions and random draws. The heatmap summarizes four designs across the five working goals. The ramp scores better on issuance, while the alternatives score better on participation. The combined score expresses their balance under BCRG's working weights.
+Each reward design runs beside the historical chain formula under the same conditions and random draws. The heatmap summarizes four designs across the five working goals. The ramp scores better on issuance, while the alternatives score better on participation. The combined score expresses their balance under BCRG's working weights.
 
 ![Mean utilities for four reward designs across five goals and the combined score.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/mechanism-utilities.png)
 *Figure 1. Run-weighted mean utilities at one year across 16,384 design runs. Outside yields and behavioural responses are pooled. Combined weights are equal for the first four goals and half for duration. A high combined score does not guarantee that every goal passes. [Mechanisms, KPIs and experiments](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#7-experiments-turn-trajectories-into-design-comparisons).*
@@ -44,6 +44,6 @@ The proposed 13 November workshop will review the system, its results and the cr
 
 The proposed sequence develops recommendations and a scenario playbook during 1–11 December and 4–15 January, with Workshop 2 proposed for 8 January and final delivery targeted for 15 January 2027. These are working targets to confirm.
 
-Revenue-funded rewards are a useful next mechanism because they directly address the transition from issuance to protocol revenue. Their evaluation needs an explicit funding source and a rule for revenue shortfalls.
+Revenue-funded rewards are a useful next mechanism because they directly address the transition from issuance to protocol revenue. Their evaluation needs an explicit funding source and a formula for revenue shortfalls.
 
-**Q3.** Should revenue-funded rewards be the next mechanism evaluated? If so, the preparation will specify the revenue stream, the shortfall rule and a Foundation reviewer. The delivery schedule and the person running the model also need confirmation.
+**Q3.** Should revenue-funded rewards be the next mechanism evaluated? If so, the preparation will specify the revenue stream, the shortfall formula and a Foundation reviewer. The delivery schedule and the person running the model also need confirmation.

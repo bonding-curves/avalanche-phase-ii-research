@@ -1,0 +1,799 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="518.4pt" height="760.045578pt" viewBox="0 0 518.4 760.045578" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-29T01:08:11.013063</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.9, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 760.045578 
+L 518.4 760.045578 
+L 518.4 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 9.72 529.109797 
+L 508.68 529.109797 
+L 508.68 145.061797 
+L 9.72 145.061797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #f5f6f7"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 241.56 122.381797 
+Q 241.56 144.053797 241.56 164.272353 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #1b1b1b; stroke-width: 1.3; stroke-linecap: round"/>
+    <path d="M 245.06 157.272353 
+L 241.56 164.272353 
+L 238.06 157.272353 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #1b1b1b; stroke: #1b1b1b; stroke-width: 1.3; stroke-linecap: round"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 135.72 194.453797 
+Q 149.58 194.453797 162.210163 194.453797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #0e7c86; stroke-width: 1.1; stroke-linecap: round"/>
+    <path d="M 157.210163 191.953797 
+L 162.210163 194.453797 
+L 157.210163 196.953797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #0e7c86; stroke: #0e7c86; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_1">
+    <path d="M 319.68 194.453797 
+L 344.88 194.453797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #c9ccd1; stroke-width: 0.9"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 241.56 222.173797 
+Q 241.56 225.197797 241.56 227.103763 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #1b1b1b; stroke-linecap: round"/>
+    <path d="M 243.56 223.103763 
+L 241.56 227.103763 
+L 239.56 223.103763 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #1b1b1b; stroke: #1b1b1b; stroke-linecap: round"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 135.72 255.941797 
+Q 149.58 255.941797 162.210163 255.941797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #0e7c86; stroke-width: 1.1; stroke-linecap: round"/>
+    <path d="M 157.210163 253.441797 
+L 162.210163 255.941797 
+L 157.210163 258.441797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #0e7c86; stroke: #0e7c86; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 319.68 255.941797 
+L 344.88 255.941797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #c9ccd1; stroke-width: 0.9"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 241.56 283.661797 
+Q 241.56 286.685797 241.56 288.591763 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #1b1b1b; stroke-linecap: round"/>
+    <path d="M 243.56 284.591763 
+L 241.56 288.591763 
+L 239.56 284.591763 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #1b1b1b; stroke: #1b1b1b; stroke-linecap: round"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 135.72 317.429797 
+Q 149.58 317.429797 162.210163 317.429797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #0e7c86; stroke-width: 1.1; stroke-linecap: round"/>
+    <path d="M 157.210163 314.929797 
+L 162.210163 317.429797 
+L 157.210163 319.929797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #0e7c86; stroke: #0e7c86; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_3">
+    <path d="M 319.68 317.429797 
+L 344.88 317.429797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #c9ccd1; stroke-width: 0.9"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 241.56 345.149797 
+Q 241.56 348.173797 241.56 350.079763 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #1b1b1b; stroke-linecap: round"/>
+    <path d="M 243.56 346.079763 
+L 241.56 350.079763 
+L 239.56 346.079763 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #1b1b1b; stroke: #1b1b1b; stroke-linecap: round"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 135.72 378.917797 
+Q 149.58 378.917797 162.210163 378.917797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #0e7c86; stroke-width: 1.1; stroke-linecap: round"/>
+    <path d="M 157.210163 376.417797 
+L 162.210163 378.917797 
+L 157.210163 381.417797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #0e7c86; stroke: #0e7c86; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_4">
+    <path d="M 319.68 378.917797 
+L 344.88 378.917797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #c9ccd1; stroke-width: 0.9"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 241.56 406.637797 
+Q 241.56 409.661797 241.56 411.567763 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #1b1b1b; stroke-linecap: round"/>
+    <path d="M 243.56 407.567763 
+L 241.56 411.567763 
+L 239.56 407.567763 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #1b1b1b; stroke: #1b1b1b; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_5">
+    <path d="M 319.68 440.405797 
+L 344.88 440.405797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #c9ccd1; stroke-width: 0.9"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 241.56 468.125797 
+Q 241.56 471.149797 241.56 473.055763 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #1b1b1b; stroke-linecap: round"/>
+    <path d="M 243.56 469.055763 
+L 241.56 473.055763 
+L 239.56 469.055763 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #1b1b1b; stroke: #1b1b1b; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_6">
+    <path d="M 319.68 501.893797 
+L 344.88 501.893797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #c9ccd1; stroke-width: 0.9"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 241.56 529.109797 
+Q 241.56 533.645797 241.56 536.728353 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #1b1b1b; stroke-width: 1.3; stroke-linecap: round"/>
+    <path d="M 245.06 529.728353 
+L 241.56 536.728353 
+L 238.06 529.728353 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #1b1b1b; stroke: #1b1b1b; stroke-width: 1.3; stroke-linecap: round"/>
+   </g>
+   <g id="patch_14">
+    <path d="M 193.68 588.581797 
+Q 193.68 594.881797 193.68 599.728353 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #1b1b1b; stroke-width: 1.3; stroke-linecap: round"/>
+    <path d="M 197.18 592.728353 
+L 193.68 599.728353 
+L 190.18 592.728353 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #1b1b1b; stroke: #1b1b1b; stroke-width: 1.3; stroke-linecap: round"/>
+   </g>
+   <g id="patch_15">
+    <path d="M 354.96 631.421797 
+Q 365.04 631.421797 373.666556 631.421797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #b84055; stroke-width: 1.3; stroke-linecap: round"/>
+    <path d="M 366.666556 627.921797 
+L 373.666556 631.421797 
+L 366.666556 634.921797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #b84055; stroke: #b84055; stroke-width: 1.3; stroke-linecap: round"/>
+   </g>
+   <g id="patch_16">
+    <path d="M 193.68 661.661797 
+Q 193.68 669.221797 193.68 675.328353 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #1b1b1b; stroke-width: 1.3; stroke-linecap: round"/>
+    <path d="M 197.18 668.328353 
+L 193.68 675.328353 
+L 190.18 668.328353 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #1b1b1b; stroke: #1b1b1b; stroke-width: 1.3; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_7">
+    <path d="M 420.48 696.941797 
+L 503.64 696.941797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #4f545c"/>
+   </g>
+   <g id="line2d_8">
+    <path d="M 503.64 696.941797 
+L 503.64 94.661797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #4f545c"/>
+   </g>
+   <g id="patch_17">
+    <path d="M 503.64 94.661797 
+Q 462.06 94.661797 421.598034 94.661797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #4f545c; stroke-linecap: round"/>
+    <path d="M 426.598034 97.161797 
+L 421.598034 94.661797 
+L 426.598034 92.161797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #4f545c; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #4f545c; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_9">
+    <path d="M 347.4 734.237797 
+L 358.488 734.237797 
+" clip-path="url(#pfcf61a75df)" style="fill: none; stroke: #0e7c86; stroke-width: 2"/>
+   </g>
+   <g id="patch_18">
+    <path d="M 106.992 122.381797 
+L 416.448 122.381797 
+Q 420.48 122.381797 420.48 118.349797 
+L 420.48 70.973797 
+Q 420.48 66.941797 416.448 66.941797 
+L 106.992 66.941797 
+Q 102.96 66.941797 102.96 70.973797 
+L 102.96 118.349797 
+Q 102.96 122.381797 106.992 122.381797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #dfe2e6; stroke: #1b1b1b; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_19">
+    <path d="M 18.792 122.381797 
+L 91.368 122.381797 
+Q 95.4 122.381797 95.4 118.349797 
+L 95.4 70.973797 
+Q 95.4 66.941797 91.368 66.941797 
+L 18.792 66.941797 
+Q 14.76 66.941797 14.76 70.973797 
+L 14.76 118.349797 
+Q 14.76 122.381797 18.792 122.381797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #e7f2f3; stroke: #0e7c86; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_20">
+    <path d="M 167.472 222.173797 
+L 315.648 222.173797 
+Q 319.68 222.173797 319.68 218.141797 
+L 319.68 170.765797 
+Q 319.68 166.733797 315.648 166.733797 
+L 167.472 166.733797 
+Q 163.44 166.733797 163.44 170.765797 
+L 163.44 218.141797 
+Q 163.44 222.173797 167.472 222.173797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #e5efeb; stroke: #237a57; stroke-width: 1.3; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_21">
+    <path d="M 18.792 217.637797 
+L 131.688 217.637797 
+Q 135.72 217.637797 135.72 213.605797 
+L 135.72 175.301797 
+Q 135.72 171.269797 131.688 171.269797 
+L 18.792 171.269797 
+Q 14.76 171.269797 14.76 175.301797 
+L 14.76 213.605797 
+Q 14.76 217.637797 18.792 217.637797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #0e7c86; stroke-width: 0.9; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_22">
+    <path d="M 348.912 220.157797 
+L 494.568 220.157797 
+Q 498.6 220.157797 498.6 216.125797 
+L 498.6 172.781797 
+Q 498.6 168.749797 494.568 168.749797 
+L 348.912 168.749797 
+Q 344.88 168.749797 344.88 172.781797 
+L 344.88 216.125797 
+Q 344.88 220.157797 348.912 220.157797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #c9ccd1; stroke-width: 0.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_23">
+    <path d="M 167.472 283.661797 
+L 315.648 283.661797 
+Q 319.68 283.661797 319.68 279.629797 
+L 319.68 232.253797 
+Q 319.68 228.221797 315.648 228.221797 
+L 167.472 228.221797 
+Q 163.44 228.221797 163.44 232.253797 
+L 163.44 279.629797 
+Q 163.44 283.661797 167.472 283.661797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #e5efeb; stroke: #237a57; stroke-width: 1.3; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_24">
+    <path d="M 18.792 279.125797 
+L 131.688 279.125797 
+Q 135.72 279.125797 135.72 275.093797 
+L 135.72 236.789797 
+Q 135.72 232.757797 131.688 232.757797 
+L 18.792 232.757797 
+Q 14.76 232.757797 14.76 236.789797 
+L 14.76 275.093797 
+Q 14.76 279.125797 18.792 279.125797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #0e7c86; stroke-width: 0.9; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_25">
+    <path d="M 348.912 281.645797 
+L 494.568 281.645797 
+Q 498.6 281.645797 498.6 277.613797 
+L 498.6 234.269797 
+Q 498.6 230.237797 494.568 230.237797 
+L 348.912 230.237797 
+Q 344.88 230.237797 344.88 234.269797 
+L 344.88 277.613797 
+Q 344.88 281.645797 348.912 281.645797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #c9ccd1; stroke-width: 0.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_26">
+    <path d="M 167.472 345.149797 
+L 315.648 345.149797 
+Q 319.68 345.149797 319.68 341.117797 
+L 319.68 293.741797 
+Q 319.68 289.709797 315.648 289.709797 
+L 167.472 289.709797 
+Q 163.44 289.709797 163.44 293.741797 
+L 163.44 341.117797 
+Q 163.44 345.149797 167.472 345.149797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #e5efeb; stroke: #237a57; stroke-width: 1.3; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_27">
+    <path d="M 18.792 340.613797 
+L 131.688 340.613797 
+Q 135.72 340.613797 135.72 336.581797 
+L 135.72 298.277797 
+Q 135.72 294.245797 131.688 294.245797 
+L 18.792 294.245797 
+Q 14.76 294.245797 14.76 298.277797 
+L 14.76 336.581797 
+Q 14.76 340.613797 18.792 340.613797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #0e7c86; stroke-width: 0.9; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_28">
+    <path d="M 348.912 343.133797 
+L 494.568 343.133797 
+Q 498.6 343.133797 498.6 339.101797 
+L 498.6 295.757797 
+Q 498.6 291.725797 494.568 291.725797 
+L 348.912 291.725797 
+Q 344.88 291.725797 344.88 295.757797 
+L 344.88 339.101797 
+Q 344.88 343.133797 348.912 343.133797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #c9ccd1; stroke-width: 0.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_29">
+    <path d="M 167.472 406.637797 
+L 315.648 406.637797 
+Q 319.68 406.637797 319.68 402.605797 
+L 319.68 355.229797 
+Q 319.68 351.197797 315.648 351.197797 
+L 167.472 351.197797 
+Q 163.44 351.197797 163.44 355.229797 
+L 163.44 402.605797 
+Q 163.44 406.637797 167.472 406.637797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #e5efeb; stroke: #237a57; stroke-width: 1.3; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_30">
+    <path d="M 18.792 402.101797 
+L 131.688 402.101797 
+Q 135.72 402.101797 135.72 398.069797 
+L 135.72 359.765797 
+Q 135.72 355.733797 131.688 355.733797 
+L 18.792 355.733797 
+Q 14.76 355.733797 14.76 359.765797 
+L 14.76 398.069797 
+Q 14.76 402.101797 18.792 402.101797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #0e7c86; stroke-width: 0.9; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_31">
+    <path d="M 348.912 404.621797 
+L 494.568 404.621797 
+Q 498.6 404.621797 498.6 400.589797 
+L 498.6 357.245797 
+Q 498.6 353.213797 494.568 353.213797 
+L 348.912 353.213797 
+Q 344.88 353.213797 344.88 357.245797 
+L 344.88 400.589797 
+Q 344.88 404.621797 348.912 404.621797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #c9ccd1; stroke-width: 0.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_32">
+    <path d="M 167.472 468.125797 
+L 315.648 468.125797 
+Q 319.68 468.125797 319.68 464.093797 
+L 319.68 416.717797 
+Q 319.68 412.685797 315.648 412.685797 
+L 167.472 412.685797 
+Q 163.44 412.685797 163.44 416.717797 
+L 163.44 464.093797 
+Q 163.44 468.125797 167.472 468.125797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #edeeef; stroke: #6b7079; stroke-width: 1.3; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_33">
+    <path d="M 18.792 463.589797 
+L 131.688 463.589797 
+Q 135.72 463.589797 135.72 459.557797 
+L 135.72 421.253797 
+Q 135.72 417.221797 131.688 417.221797 
+L 18.792 417.221797 
+Q 14.76 417.221797 14.76 421.253797 
+L 14.76 459.557797 
+Q 14.76 463.589797 18.792 463.589797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #f5f6f7; stroke-dasharray: 2.7,1.8; stroke-dashoffset: 0; stroke: #6b7079; stroke-width: 0.9; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_34">
+    <path d="M 348.912 466.109797 
+L 494.568 466.109797 
+Q 498.6 466.109797 498.6 462.077797 
+L 498.6 418.733797 
+Q 498.6 414.701797 494.568 414.701797 
+L 348.912 414.701797 
+Q 344.88 414.701797 344.88 418.733797 
+L 344.88 462.077797 
+Q 344.88 466.109797 348.912 466.109797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #c9ccd1; stroke-width: 0.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_35">
+    <path d="M 167.472 529.613797 
+L 315.648 529.613797 
+Q 319.68 529.613797 319.68 525.581797 
+L 319.68 478.205797 
+Q 319.68 474.173797 315.648 474.173797 
+L 167.472 474.173797 
+Q 163.44 474.173797 163.44 478.205797 
+L 163.44 525.581797 
+Q 163.44 529.613797 167.472 529.613797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #edeeef; stroke: #6b7079; stroke-width: 1.3; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_36">
+    <path d="M 18.792 525.077797 
+L 131.688 525.077797 
+Q 135.72 525.077797 135.72 521.045797 
+L 135.72 482.741797 
+Q 135.72 478.709797 131.688 478.709797 
+L 18.792 478.709797 
+Q 14.76 478.709797 14.76 482.741797 
+L 14.76 521.045797 
+Q 14.76 525.077797 18.792 525.077797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #f5f6f7; stroke-dasharray: 2.7,1.8; stroke-dashoffset: 0; stroke: #6b7079; stroke-width: 0.9; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_37">
+    <path d="M 348.912 527.597797 
+L 494.568 527.597797 
+Q 498.6 527.597797 498.6 523.565797 
+L 498.6 480.221797 
+Q 498.6 476.189797 494.568 476.189797 
+L 348.912 476.189797 
+Q 344.88 476.189797 344.88 480.221797 
+L 344.88 523.565797 
+Q 344.88 527.597797 348.912 527.597797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #c9ccd1; stroke-width: 0.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_38">
+    <path d="M 36.432 588.581797 
+L 481.968 588.581797 
+Q 486 588.581797 486 584.549797 
+L 486 542.213797 
+Q 486 538.181797 481.968 538.181797 
+L 36.432 538.181797 
+Q 32.4 538.181797 32.4 542.213797 
+L 32.4 584.549797 
+Q 32.4 588.581797 36.432 588.581797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #1b1b1b; stroke-width: 1.1; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_39">
+    <path d="M 36.432 661.661797 
+L 350.928 661.661797 
+Q 354.96 661.661797 354.96 657.629797 
+L 354.96 605.213797 
+Q 354.96 601.181797 350.928 601.181797 
+L 36.432 601.181797 
+Q 32.4 601.181797 32.4 605.213797 
+L 32.4 657.629797 
+Q 32.4 661.661797 36.432 661.661797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #f8ecee; stroke: #b84055; stroke-width: 1.3; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_40">
+    <path d="M 379.152 659.141797 
+L 481.968 659.141797 
+Q 486 659.141797 486 655.109797 
+L 486 607.733797 
+Q 486 603.701797 481.968 603.701797 
+L 379.152 603.701797 
+Q 375.12 603.701797 375.12 607.733797 
+L 375.12 655.109797 
+Q 375.12 659.141797 379.152 659.141797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #ffffff; stroke: #b84055; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_41">
+    <path d="M 106.992 717.101797 
+L 416.448 717.101797 
+Q 420.48 717.101797 420.48 713.069797 
+L 420.48 680.813797 
+Q 420.48 676.781797 416.448 676.781797 
+L 106.992 676.781797 
+Q 102.96 676.781797 102.96 680.813797 
+L 102.96 713.069797 
+Q 102.96 717.101797 106.992 717.101797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #dfe2e6; stroke: #1b1b1b; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #1b1b1b" x="261.72" y="78.746781" transform="rotate(-0 261.72 78.746781)">State at the start of day t</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(143.422031 92.003203)">Every open staking period, every node out of the set, the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(230.396484 102.034617)">supply counter</text>
+   </g>
+   <g id="text_3">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #0e7c86" x="55.08" y="78.746781" transform="rotate(-0 55.08 78.746781)">Before day 1</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(26.137969 91.955391)">Once per run:</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(26.303203 101.972742)">resample and</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(46.459688 111.990094)">refit</text>
+   </g>
+   <g id="text_5">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #237a57" x="241.56" y="178.488312" transform="rotate(-0 241.56 178.488312)">1. Renewal</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(185.087109 191.747391)">Each staking period ending</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(174.167578 201.774586)">today renews on the same node</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(206.074688 211.806)">or leaves the set.</text>
+   </g>
+   <g id="text_7">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #237a57" x="241.56" y="239.976312" transform="rotate(-0 241.56 239.976312)">2. Return</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(183.363047 253.235391)">Each node out of the set for</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(186.236719 263.252742)">up to 365 days may start a</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(216.718594 273.284156)">new period.</text>
+   </g>
+   <g id="text_9">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #237a57" x="241.56" y="301.464312" transform="rotate(-0 241.56 301.464312)">3. Arrivals</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(183.240703 314.723391)">How many nodes start their</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(193.677188 324.809789)">first-ever period today.</text>
+   </g>
+   <g id="text_11">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #237a57" x="241.56" y="362.952312" transform="rotate(-0 241.56 362.952312)">4. Duration, then stake</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(175.452188 376.211391)">Each renewed, returned or new</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(187.502344 386.228742)">period draws its duration,</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(212.364141 396.246094)">then its stake.</text>
+   </g>
+   <g id="text_13">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #6b7079" x="241.56" y="424.440312" transform="rotate(-0 241.56 424.440312)">5. Reward and supply</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(186.910313 437.699391)">Prices each period started</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(190.922344 447.771727)">today at the start-of-day</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(209.054531 457.803141)">supply counter.</text>
+   </g>
+   <g id="text_15">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #6b7079" x="241.56" y="485.928312" transform="rotate(-0 241.56 485.928312)">6. Assembly</text>
+   </g>
+   <g id="text_16">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(187.936875 499.187391)">Builds tomorrow's arrays:</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(196.247109 509.218805)">continuing, new, then</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(179.632969 519.246)">scheduled periods due today.</text>
+   </g>
+   <g id="text_17">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #1b1b1b" x="259.2" y="549.986781" transform="rotate(-0 259.2 549.986781)">State update functions of block 1</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(71.751797 563.195391)">Copy the assembled arrays. Supply counter plus today's issuance. Count validators, stake,</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(85.876875 573.281789)">nodes out and the Nakamoto coefficient, the fewest nodes holding a third of stake.</text>
+   </g>
+   <g id="text_19">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #b84055" x="193.68" y="612.936312" transform="rotate(-0 193.68 612.936312)">Block 2. Invariant check</text>
+   </g>
+   <g id="text_20">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(66.680156 626.195391)">Stakes within 2,000 to 3,000,000 AVAX. Stake total equals the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(64.126406 636.267727)">sum of periods. At most 365 days out. Supply within the 720M</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(130.108359 646.299141)">AVAX cap. Stake within supply.</text>
+   </g>
+   <g id="text_21">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #b84055" x="430.56" y="615.506781" transform="rotate(-0 430.56 615.506781)">Any check fails</text>
+   </g>
+   <g id="text_22">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(391.587891 628.715391)">The run stops with</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(389.77875 638.732742)">an error. Nothing is</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(411.385781 648.759937)">clamped.</text>
+   </g>
+   <g id="text_23">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #1b1b1b" x="261.72" y="688.586781" transform="rotate(-0 261.72 688.586781)">State at the start of day t + 1</text>
+   </g>
+   <g id="text_24">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #1b1b1b" x="261.72" y="701.795391" transform="rotate(-0 261.72 701.795391)">The next day starts here. A one-year run has 365 days.</text>
+   </g>
+   <g id="patch_42">
+    <path d="M 16.272 737.261797 
+L 24.336 737.261797 
+Q 25.848 737.261797 25.848 735.749797 
+L 25.848 732.725797 
+Q 25.848 731.213797 24.336 731.213797 
+L 16.272 731.213797 
+Q 14.76 731.213797 14.76 732.725797 
+L 14.76 735.749797 
+Q 14.76 737.261797 16.272 737.261797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #d7e7e1; stroke: #237a57; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_43">
+    <path d="M 182.592 737.261797 
+L 190.656 737.261797 
+Q 192.168 737.261797 192.168 735.749797 
+L 192.168 732.725797 
+Q 192.168 731.213797 190.656 731.213797 
+L 182.592 731.213797 
+Q 181.08 731.213797 181.08 732.725797 
+L 181.08 735.749797 
+Q 181.08 737.261797 182.592 737.261797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #e4e5e7; stroke: #6b7079; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_44">
+    <path d="M 16.272 751.373797 
+L 24.336 751.373797 
+Q 25.848 751.373797 25.848 749.861797 
+L 25.848 746.837797 
+Q 25.848 745.325797 24.336 745.325797 
+L 16.272 745.325797 
+Q 14.76 745.325797 14.76 746.837797 
+L 14.76 749.861797 
+Q 14.76 751.373797 16.272 751.373797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #d6d6d6; stroke: #1b1b1b; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_45">
+    <path d="M 182.592 751.373797 
+L 190.656 751.373797 
+Q 192.168 751.373797 192.168 749.861797 
+L 192.168 746.837797 
+Q 192.168 745.325797 190.656 745.325797 
+L 182.592 745.325797 
+Q 181.08 745.325797 181.08 746.837797 
+L 181.08 749.861797 
+Q 181.08 751.373797 182.592 751.373797 
+z
+" clip-path="url(#pfcf61a75df)" style="fill: #f2dde0; stroke: #b84055; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_25">
+    <text style="font-weight: 600; font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #4f545c" x="14.256" y="154.924391" transform="rotate(-0 14.256 154.924391)">BLOCK 1. POLICY: SIX STAGES, IN ORDER</text>
+   </g>
+   <g id="text_26">
+    <text style="font-weight: 600; font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #0e7c86" x="75.24" y="167.055687" transform="rotate(-0 75.24 167.055687)">Keyed random numbers</text>
+   </g>
+   <g id="text_27">
+    <text style="font-weight: 600; font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #4f545c" x="421.74" y="167.0585" transform="rotate(-0 421.74 167.0585)">Reads, then returns</text>
+   </g>
+   <g id="text_28">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(24.640313 186.767305)">One number per ending</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(28.669922 196.7945)">period, keyed by node</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(26.696953 206.825914)">and periods completed</text>
+   </g>
+   <g id="text_29">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(362.986172 181.789566)">Reads ending periods, fitted</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(362.927813 191.816762)">odds, the run's shift and the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(361.859766 201.834113)">response to the reward rate.</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(377.569687 211.851465)">Returns who renews.</text>
+   </g>
+   <g id="text_30">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(28.272656 248.253195)">One number per node</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(26.133047 258.270547)">out, keyed by node and</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(67.732031 268.301961)">day</text>
+   </g>
+   <g id="text_31">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(365.226328 243.258582)">Reads the nodes out of the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(371.415938 253.275934)">set and the fitted return</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(363.521953 263.293285)">hazard. Returns who comes</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(410.783906 273.310637)">back.</text>
+   </g>
+   <g id="text_32">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(30.347578 314.749871)">One number per day,</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(39.899531 324.781285)">keyed by the day</text>
+   </g>
+   <g id="text_33">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(364.564687 304.756426)">Reads the fitted daily count</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(371.554453 314.78784)">and the response to the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(362.271797 324.805191)">reward rate. Returns today's</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(379.177734 334.836605)">count of new nodes.</text>
+   </g>
+   <g id="text_34">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(38.159297 366.22052)">Two numbers per</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(29.562891 376.237871)">starting period, keyed</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(30.643594 386.269285)">by node and decision</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #0e7c86" transform="translate(63.253828 396.300699)">count</text>
+   </g>
+   <g id="text_35">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(372.315938 366.22966)">Reads stages 1 to 3, the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(370.323281 376.256855)">record of moves and the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(370.097578 386.274207)">fitted stake formula. Returns</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(385.786406 396.291559)">each new period.</text>
+   </g>
+   <g id="text_36">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(31.611797 437.739934)">None. Exact protocol</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(53.811563 447.757285)">arithmetic</text>
+   </g>
+   <g id="text_37">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(359.301797 427.70852)">Reads the supply counter and</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(365.262891 437.739934)">the reward formula under test.</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(360.729141 447.757285)">Returns today's issuance and</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(395.536641 457.788699)">offered rate.</text>
+   </g>
+   <g id="text_38">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #4f545c" x="75.24" y="504.231687" transform="rotate(-0 75.24 504.231687)">None. Bookkeeping</text>
+   </g>
+   <g id="text_39">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(368.024766 489.198629)">Reads stages 1, 2, 4 and 5</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(364.767891 499.225824)">and the scheduled periods.</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(356.778281 509.243176)">Returns every open period and</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(401.570859 519.27459)">node out.</text>
+   </g>
+   <g id="text_40">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #4f545c" x="199.728" y="672.068609" transform="rotate(-0 199.728 672.068609)">all pass</text>
+   </g>
+   <g id="text_41">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(480.611812 681.164902)">next</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(484.088062 691.182254)">day</text>
+   </g>
+   <g id="text_42">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="28.872" y="736.575687" transform="rotate(-0 28.872 736.575687)">Fitted stage, draws chance</text>
+   </g>
+   <g id="text_43">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="195.192" y="736.575687" transform="rotate(-0 195.192 736.575687)">Exact stage, no chance</text>
+   </g>
+   <g id="text_44">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="361.512" y="736.573578" transform="rotate(-0 361.512 736.573578)">Keyed random numbers</text>
+   </g>
+   <g id="text_45">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="28.872" y="750.692609" transform="rotate(-0 28.872 750.692609)">State</text>
+   </g>
+   <g id="text_46">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="195.192" y="750.692609" transform="rotate(-0 195.192 750.692609)">Stopping criterion</text>
+   </g>
+  </g>
+  <g id="text_47">
+   <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(7.2 31.663203)">Six Policy Stages, the State Update and the Invariant Check of the cadCAD Blocks</text>
+   <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(7.2 41.405281)">Traced from the client code of model v0.8.0 by running its daily policy once on a small synthetic state. Each random</text>
+   <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(7.2 51.094766)">number is keyed by its purpose and the node, so a design and its twin share every draw.</text>
+  </g>
+  <g id="text_48">
+   <text style="font-weight: 600; font-size: 11.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="7.2" y="15.938203" transform="rotate(-0 7.2 15.938203)">One Simulated Day in Model v0.8.0</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pfcf61a75df">
+   <rect x="7.2" y="61.901797" width="504" height="690.48"/>
+  </clipPath>
+ </defs>
+</svg>

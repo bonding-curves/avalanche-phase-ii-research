@@ -3,8 +3,13 @@
   "figures": [
     {
       "file": "daily-model.png",
-      "sha256": "1ecb031f1b3a57fbe44d76936b40ffd3f763bb0fb592e27c9eaa360373e37c89",
-      "reused_without_modification": true
+      "sha256": "26ef6d807ac231b84046031a8a2341c5e44c3144b71a3229f9b1264712715b8e",
+      "reused_without_modification": false,
+      "original_sha256": "1ecb031f1b3a57fbe44d76936b40ffd3f763bb0fb592e27c9eaa360373e37c89",
+      "modification": "Terminology labels changed from rule to formula in the editable SVG; stopping condition labelled criterion. Data and geometry unchanged.",
+      "editable_file": "daily-model.svg",
+      "editable_sha256": "1483c862b198589baefdfca6e51f9a2a6042de83eabd80fedddc47b833dfed26",
+      "render_command": "rsvg-convert --width 1439 --height 2112 --output daily-model.png daily-model.svg"
     },
     {
       "file": "forecast-scores.png",
@@ -28,18 +33,33 @@
     },
     {
       "file": "stocks-and-flows.png",
-      "sha256": "ddaee777d18543fc02e0897404de73115ed0b3db3a502b13cba24cfa893f42d6",
-      "reused_without_modification": true
+      "sha256": "37f6c1e10af0600c571d707aeab84e1fb526c1d378e12b60ce4d34494dd3efb4",
+      "reused_without_modification": false,
+      "original_sha256": "ddaee777d18543fc02e0897404de73115ed0b3db3a502b13cba24cfa893f42d6",
+      "modification": "Terminology labels changed to formula in the editable SVG; input legend shortened to fit. Data and geometry unchanged.",
+      "editable_file": "stocks-and-flows.svg",
+      "editable_sha256": "fe2e02c9c6edb6300c295fd15843ac36114d164d688a3e6d837f8106e4a61c64",
+      "render_command": "rsvg-convert --width 1439 --height 1355 --output stocks-and-flows.png stocks-and-flows.svg"
     },
     {
       "file": "issuance-stake-tradeoff.png",
-      "sha256": "566835de5f43824e8cc273e45fca910cd0fdcae79ba392eeaff8406612bf60cd",
-      "reused_without_modification": true
+      "sha256": "af0b4badfc4946aea6a7afff5097238882ab43fe6d74e7d46cfb7869ef30f985",
+      "reused_without_modification": false,
+      "original_sha256": "566835de5f43824e8cc273e45fca910cd0fdcae79ba392eeaff8406612bf60cd",
+      "modification": "Terminology labels changed from rule to formula in the editable SVG; stopping condition labelled criterion. Data and geometry unchanged.",
+      "editable_file": "issuance-stake-tradeoff.svg",
+      "editable_sha256": "1010190b3be0b55f84c1260063de7115c30dd7b9afc3f5bb33083d5277e6a787",
+      "render_command": "rsvg-convert --width 1310 --height 942 --output issuance-stake-tradeoff.png issuance-stake-tradeoff.svg"
     },
     {
       "file": "central-record-comparison.png",
-      "sha256": "f6da05d0900dd7ac855b62df84f93bbf35b62c9c7afd600d476d8037ba9fc08d",
-      "reused_without_modification": true
+      "sha256": "7a04289e49f90ce700373e935b8445bca19f1f7d4721634351b88d6e2645178b",
+      "reused_without_modification": false,
+      "original_sha256": "f6da05d0900dd7ac855b62df84f93bbf35b62c9c7afd600d476d8037ba9fc08d",
+      "modification": "Terminology labels changed from rule to formula in the editable SVG; stopping condition labelled criterion. Data and geometry unchanged.",
+      "editable_file": "central-record-comparison.svg",
+      "editable_sha256": "ffbc7575cb2c6af980c10c27b03673fd22c17c5667aa2612dfd54eaf1a8553b1",
+      "render_command": "rsvg-convert --width 1386 --height 1501 --output central-record-comparison.png central-record-comparison.svg"
     }
   ]
 }
