@@ -107,10 +107,10 @@
     "membership_stake_duration_and_dates_match": true
   },
   "size": {
-    "mapping": "area_pt2 = 420 * duration_days * log10(stake_avax / 1 AVAX) / maximum_weight",
-    "maximum_weight": 2225.9442249437207,
+    "mapping": "area_pt2 = 420 * sqrt(stake_avax * duration_days) / maximum_weight",
+    "maximum_weight": 21414.86099856578,
     "area_range_pt2": [
-      1.245702909033065,
+      1.2404064797428946,
       420.0
     ],
     "additive_floor": 0,
