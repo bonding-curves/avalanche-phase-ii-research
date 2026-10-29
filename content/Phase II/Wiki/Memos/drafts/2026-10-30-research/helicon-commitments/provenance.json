@@ -107,15 +107,13 @@
     "membership_stake_duration_and_dates_match": true
   },
   "size": {
-    "mapping": "area_pt2 = 12 + 408 * log10(AVAX-days / minimum) / log10(maximum / minimum)",
-    "domain_avax_days": [
-      4000.0,
-      458596271.5878937
-    ],
+    "mapping": "area_pt2 = 420 * duration_days * log10(stake_avax / 1 AVAX) / maximum_weight",
+    "maximum_weight": 2225.9442249437207,
     "area_range_pt2": [
-      12.0,
+      1.245702909033065,
       420.0
     ],
+    "additive_floor": 0,
     "shared_across": "Both cohorts, the static figure and the interactive figure"
   },
   "interpretation": "Gross scheduled AVAX-days include future time and repeat capital across transactions. This is not realized exposure or a causal effect."

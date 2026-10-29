@@ -25,7 +25,8 @@ ACTIVATION = pd.Timestamp("2026-09-22 15:00:00")
 END = pd.Timestamp("2026-10-27 00:00:00")
 START = ACTIVATION - (END - ACTIVATION)
 COLOURS = {"Before Helicon": "#3566a3", "After Helicon": "#b85c00"}
-AREA_MIN_PT2, AREA_MAX_PT2 = 12.0, 420.0
+AREA_MAX_PT2 = 420.0
+SIZE_EXAMPLES = [(10000, 7), (10000, 30), (10000, 365)]
 EXPECTED = {
     "derived.staking-periods": (
         "staking-periods-2026-10-27",
@@ -43,24 +44,28 @@ def sha256(path):
         return hashlib.file_digest(handle, "sha256").hexdigest()
 
 
-def bubble_area(values, domain):
-    """Area on one shared log scale, with visible minimum and maximum sizes."""
-    lo, hi = np.log10(domain)
-    return AREA_MIN_PT2 + (AREA_MAX_PT2 - AREA_MIN_PT2) * (
-        (np.log10(values) - lo) / (hi - lo)
-    )
+def bubble_weight(stake_avax, duration_days):
+    """Log stake relative to one AVAX, multiplied by untransformed duration."""
+    return np.log10(stake_avax) * duration_days
+
+
+def bubble_area(stake_avax, duration_days, maximum_weight):
+    """True circle area proportional to log stake times duration, without a floor."""
+    return AREA_MAX_PT2 * bubble_weight(stake_avax, duration_days) / maximum_weight
 
 
 def write_size_metadata(folder, frame):
     path = folder / "provenance.json"
     metadata = json.loads(path.read_text())
+    weights = bubble_weight(frame.stake_avax, frame.duration_days)
     metadata["size"] = {
-        "mapping": "area_pt2 = 12 + 408 * log10(AVAX-days / minimum) / log10(maximum / minimum)",
-        "domain_avax_days": [
-            float(frame.avax_days.min()),
-            float(frame.avax_days.max()),
+        "mapping": "area_pt2 = 420 * duration_days * log10(stake_avax / 1 AVAX) / maximum_weight",
+        "maximum_weight": float(weights.max()),
+        "area_range_pt2": [
+            float(AREA_MAX_PT2 * weights.min() / weights.max()),
+            AREA_MAX_PT2,
         ],
-        "area_range_pt2": [AREA_MIN_PT2, AREA_MAX_PT2],
+        "additive_floor": 0,
         "shared_across": "Both cohorts, the static figure and the interactive figure",
     }
     path.write_text(json.dumps(metadata, indent=2) + "\n")
@@ -219,12 +224,14 @@ def static_plot(f, folder):
     fig.subplots_adjust(left=0.11, right=0.97, bottom=0.24, top=0.78)
     # Interleave cohorts deterministically so neither entire cohort sits on top.
     shown = f.sample(frac=1, random_state=42)
-    domain = (f.avax_days.min(), f.avax_days.max())
+    maximum_weight = bubble_weight(f.stake_avax, f.duration_days).max()
     ax.scatter(
         shown.duration_days,
         shown.stake_avax,
         # Matplotlib s is squared diameter, so convert true circle area.
-        s=4 / np.pi * bubble_area(shown.avax_days, domain),
+        s=4
+        / np.pi
+        * bubble_area(shown.stake_avax, shown.duration_days, maximum_weight),
         c=shown.cohort.map(COLOURS),
         alpha=0.42,
         linewidths=0.5,
@@ -274,29 +281,29 @@ def static_plot(f, folder):
         fontsize=11,
         color="#566271",
     )
-    for value, x in [(1e4, 0.145), (1e6, 0.29), (1e8, 0.435)]:
+    for (stake, duration), x in zip(SIZE_EXAMPLES, [0.145, 0.36, 0.575]):
         ax.scatter(
             [x],
             [-0.23],
             transform=ax.transAxes,
             clip_on=False,
-            s=4 / np.pi * bubble_area(value, domain),
+            s=4 / np.pi * bubble_area(stake, duration, maximum_weight),
             color="#75808e",
             alpha=0.65,
         )
         ax.text(
             x + 0.025,
             -0.23,
-            f"10$^{{{int(np.log10(value))}}}$",
+            f"10k AVAX · {duration} days",
             transform=ax.transAxes,
             va="center",
             fontsize=10,
         )
-    fig.text(0.06, 0.116, "AVAX-days", fontsize=10, color="#566271")
+    fig.text(0.06, 0.116, "Size examples", fontsize=10, color="#566271")
     fig.text(
         0.06,
         0.075,
-        "Bubble area uses a shared log scale (12–420 pt²). One point per new validator transaction. Exact overlaps retained.",
+        "Bubble area ∝ duration × log₁₀(stake in AVAX). One point per new validator transaction. Exact overlaps retained.",
         fontsize=10,
         color="#566271",
     )
@@ -340,7 +347,7 @@ def interactive_plot(f, folder):
     from bokeh.plotting import figure
     from bokeh.resources import INLINE
 
-    domain = (f.avax_days.min(), f.avax_days.max())
+    maximum_weight = bubble_weight(f.stake_avax, f.duration_days).max()
     plot = figure(
         title="F1 · Validator commitments before and after Helicon",
         height=590,
@@ -355,8 +362,15 @@ def interactive_plot(f, folder):
     )
     for cohort, colour in COLOURS.items():
         g = f[f.cohort.eq(cohort)].copy()
-        # Bokeh size is diameter in CSS px. Convert the same log-area to diameter.
-        g["diameter"] = 2 * np.sqrt(bubble_area(g.avax_days, domain) / np.pi) * 96 / 72
+        # Bokeh size is diameter in CSS px. Convert the same circle area to diameter.
+        g["diameter"] = (
+            2
+            * np.sqrt(
+                bubble_area(g.stake_avax, g.duration_days, maximum_weight) / np.pi
+            )
+            * 96
+            / 72
+        )
         g["start_label"] = g.start_time.dt.strftime("%d %b %Y %H:%M:%S UTC")
         g["overlapping_points"] = g.groupby(
             ["duration_days", "stake_avax"]
@@ -398,20 +412,23 @@ def interactive_plot(f, folder):
         "Hover for records. Click a legend entry to hide its cohort. Drag or scroll to zoom.</p>"
     )
     legend = []
-    for value in (1e4, 1e6, 1e8):
-        diameter = 2 * np.sqrt(bubble_area(value, domain) / np.pi) * 96 / 72
+    for stake, duration in SIZE_EXAMPLES:
+        diameter = (
+            2 * np.sqrt(bubble_area(stake, duration, maximum_weight) / np.pi) * 96 / 72
+        )
         legend.append(
             f'<span style="display:inline-flex;align-items:center;gap:9px;margin-right:32px">'
             f'<span style="display:inline-block;width:{diameter:.3f}px;height:{diameter:.3f}px;'
             'border-radius:50%;background:#75808e;opacity:.65"></span>'
-            f"<span>10<sup>{int(np.log10(value))}</sup></span></span>"
+            f"<span>10k AVAX · {duration} days</span></span>"
         )
     size_legend = Div(
         text='<div style="display:flex;align-items:center;gap:18px;min-height:42px">'
-        "<span>AVAX-days</span>" + "".join(legend) + "</div>"
+        "<span>Size examples</span>" + "".join(legend) + "</div>"
     )
     note = Div(
-        text="<p>One point per new validator transaction. Bubble area uses one shared, normalised log scale (12–420 pt²). "
+        text="<p>One point per new validator transaction. Bubble area ∝ duration in days × log₁₀(stake in AVAX). "
+        "The same size scale applies to both cohorts. Doubling duration at fixed stake doubles bubble area. "
         "Both axes use logarithmic scales. Exact overlaps are retained, without jitter.</p>"
         "<p>Before: 19 Aug 06:00–22 Sep 15:00 UTC. After: 22 Sep 15:00–27 Oct 00:00 UTC. "
         "Each interval includes its start and excludes its end. Delegations and later automatic renewal cycles are excluded. "
