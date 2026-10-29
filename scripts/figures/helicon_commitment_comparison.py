@@ -251,11 +251,11 @@ def static_plot(f, folder):
             edgecolors="white",
         )
         ax.set(
-            xscale="log",
+            xscale="linear",
             yscale="log",
-            xlim=(1.8, 410),
+            xlim=(0, 410),
             ylim=(1600, 7e6),
-            xlabel="Commitment duration (days, log scale)",
+            xlabel="Commitment duration (days)",
         )
         ax.set_title(cohort, fontsize=13, color=colour, pad=75)
         ax.text(
@@ -268,8 +268,9 @@ def static_plot(f, folder):
             linespacing=1.5,
             color="#566271",
         )
-        ax.xaxis.set_major_locator(FixedLocator([2, 7, 14, 30, 90, 180, 365]))
+        ax.xaxis.set_major_locator(FixedLocator([2, 14, 30, 90, 180, 365]))
         ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
+        ax.tick_params(axis="x", labelsize=9)
         ax.yaxis.set_major_locator(
             FixedLocator([2000, 10000, 100000, 1000000, 5000000])
         )
@@ -362,6 +363,7 @@ def interactive_plot(f, folder):
         Div,
         FixedTicker,
         HoverTool,
+        LogScale,
         NumeralTickFormatter,
         Range1d,
         Select,
@@ -370,7 +372,7 @@ def interactive_plot(f, folder):
     from bokeh.plotting import figure
     from bokeh.resources import INLINE
     from helicon_density import (
-        BANDWIDTH_DEX,
+        BANDWIDTH,
         DURATION_EDGES,
         STAKE_EDGES,
         density,
@@ -381,38 +383,45 @@ def interactive_plot(f, folder):
     grids = [density(g) for g in cohorts]
     histograms = [marginals(g) for g in cohorts]
     maximum = max(float(np.nanmax(grid[2])) for grid in grids)
-    levels = np.linspace(0, maximum, 10)
+    # Allocate contour bands to weak density as well as dominant concentrations.
+    levels = np.r_[0, np.geomspace(maximum * 1e-5, maximum, 26)]
     palettes = {}
     for cohort, colour in COLOURS.items():
         rgb = np.array([int(colour[i : i + 2], 16) for i in (1, 3, 5)])
         palettes[cohort] = [
             "#" + "".join(f"{int(v):02x}" for v in np.rint(255 + (rgb - 255) * t))
-            for t in np.linspace(0.04, 1, 9)
+            for t in np.linspace(0.04, 1, len(levels) - 1)
         ]
     maximum_weight = bubble_weight(f.stake_avax, f.duration_days).max()
-    x_range, y_range = Range1d(1.8, 410), Range1d(1600, 7e6)
+    x_range, y_range = Range1d(0, 410), Range1d(1600, 7e6)
     duration_share = Range1d(0, max(max(h[0]["share"]) for h in histograms) * 1.1)
-    stake_share = Range1d(0, max(max(h[1]["share"]) for h in histograms) * 1.1)
+    stake_share = Range1d(max(max(h[1]["share"]) for h in histograms) * 1.1, 0)
     panels, scatters, contours = [], [], []
+    log_contours, time_plots, main_axes = [], [], []
     for (cohort, colour), g, grid, hist in zip(
         COLOURS.items(), cohorts, grids, histograms
     ):
+        # Omit empty bins; coloured outlines mark genuinely nonempty tiny bins.
+        visible_hist = [
+            {key: np.asarray(value)[h["count"] > 0] for key, value in h.items()}
+            for h in hist
+        ]
         plot = figure(
             height=480,
             sizing_mode="stretch_width",
-            x_axis_type="log",
+            x_axis_type="linear",
             y_axis_type="log",
             x_range=x_range,
             y_range=y_range,
-            min_border_left=60,
-            min_border_right=10,
+            min_border_left=35,
+            min_border_right=45,
             min_border_top=10,
             min_border_bottom=50,
             tools="pan,wheel_zoom,box_zoom,reset,save",
             toolbar_location=None,
             active_scroll="wheel_zoom",
-            x_axis_label="Commitment duration (days, log scale)",
-            y_axis_label="Stake amount (AVAX, log scale)",
+            x_axis_label="Commitment duration (days)",
+            y_axis_location="right",
         )
         contour = plot.contour(
             grid[0],
@@ -424,6 +433,17 @@ def interactive_plot(f, folder):
         )
         contour.visible = False
         contours.append(contour)
+        positive = grid[0] >= 1.8
+        log_contour = plot.contour(
+            grid[0][positive],
+            grid[1],
+            grid[2][:, positive],
+            levels,
+            fill_color=palettes[cohort],
+            line_color=None,
+        )
+        log_contour.visible = False
+        log_contours.append(log_contour)
         g["diameter"] = (
             2
             * np.sqrt(
@@ -463,21 +483,21 @@ def interactive_plot(f, folder):
                 ],
             )
         )
-        plot.xaxis.ticker = FixedTicker(ticks=[2, 7, 14, 30, 90, 180, 365])
+        plot.xaxis.ticker = FixedTicker(ticks=[2, 14, 30, 90, 180, 365])
         plot.yaxis.ticker = FixedTicker(ticks=[2000, 10000, 100000, 1000000, 5000000])
         plot.yaxis.formatter = NumeralTickFormatter(format="0.[0]a")
         plot.grid.grid_line_alpha = 0.3
         top = figure(
             height=125,
             sizing_mode="stretch_width",
-            x_axis_type="log",
+            x_axis_type="linear",
             x_range=x_range,
             y_range=duration_share,
             tools="",
             toolbar_location=None,
             title="AVAX-days by duration (% per bin)",
-            min_border_left=60,
-            min_border_right=10,
+            min_border_left=35,
+            min_border_right=45,
             min_border_bottom=10,
             min_border_top=25,
         )
@@ -485,19 +505,22 @@ def interactive_plot(f, folder):
         top.yaxis.major_label_text_font_size = "9px"
         top.yaxis.ticker = BasicTicker(desired_num_ticks=3, num_minor_ticks=0)
         top.title.text_font_size = "10px"
+        time_plots.extend([plot, top])
+        main_axes.append(plot.xaxis[0])
         tr = top.quad(
             left="lo",
             right="hi",
             top="share",
             bottom=0,
-            source=ColumnDataSource(hist[0]),
+            source=ColumnDataSource(visible_hist[0]),
             fill_color=colour,
-            line_color="white",
+            line_color=colour,
+            line_width=1.25,
             fill_alpha=0.65,
             name="duration-marginal",
         )
-        right = figure(
-            width=105,
+        side = figure(
+            width=130,
             height=480,
             sizing_mode="fixed",
             y_axis_type="log",
@@ -505,28 +528,34 @@ def interactive_plot(f, folder):
             x_range=stake_share,
             tools="",
             toolbar_location=None,
-            min_border_left=5,
-            min_border_right=10,
+            min_border_left=25,
+            min_border_right=5,
             min_border_top=10,
             min_border_bottom=50,
             x_axis_label="% per bin",
         )
-        right.yaxis.visible = False
-        right.xaxis.major_label_text_font_size = "9px"
-        right.xaxis.ticker = BasicTicker(desired_num_ticks=3, num_minor_ticks=0)
-        right.xaxis.axis_label_text_font_size = "10px"
-        rr = right.quad(
+        side.yaxis.axis_label = "Stake amount (AVAX, log scale)"
+        side.yaxis.axis_label_text_font_size = "11px"
+        side.yaxis.ticker = FixedTicker(ticks=[])
+        side.yaxis.axis_line_color = None
+        side.yaxis.major_tick_line_color = None
+        side.yaxis.minor_tick_line_color = None
+        side.xaxis.major_label_text_font_size = "9px"
+        side.xaxis.ticker = BasicTicker(desired_num_ticks=3, num_minor_ticks=0)
+        side.xaxis.axis_label_text_font_size = "10px"
+        rr = side.quad(
             left=0,
             right="share",
             bottom="lo",
             top="hi",
-            source=ColumnDataSource(hist[1]),
+            source=ColumnDataSource(visible_hist[1]),
             fill_color=colour,
-            line_color="white",
+            line_color=colour,
+            line_width=1.25,
             fill_alpha=0.65,
             name="stake-marginal",
         )
-        for hist_plot, bar, axis_name in [(top, tr, "Days"), (right, rr, "AVAX")]:
+        for hist_plot, bar, axis_name in [(top, tr, "Days"), (side, rr, "AVAX")]:
             hist_plot.add_tools(
                 HoverTool(
                     renderers=[bar],
@@ -547,8 +576,8 @@ def interactive_plot(f, folder):
         panels.append(
             column(
                 header,
-                row(top, Spacer(width=105), sizing_mode="stretch_width"),
-                row(plot, right, sizing_mode="stretch_width"),
+                row(Spacer(width=130), top, sizing_mode="stretch_width"),
+                row(side, plot, sizing_mode="stretch_width"),
                 sizing_mode="stretch_width",
             )
         )
@@ -568,14 +597,21 @@ def interactive_plot(f, folder):
     ramps = "".join(
         f'<div style="display:inline-block;margin-right:28px"><b>{cohort}</b>'
         f'<div style="width:280px;height:16px;background:linear-gradient(to right,{", ".join(palette)})"></div>'
-        f"<span>0 → {maximum:.2f}</span></div>"
+        f"<span>0 · {levels[1]:.3g} → {maximum:.2f} (log-spaced bands)</span></div>"
         for cohort, palette in palettes.items()
     )
     density_legend = Div(
         visible=False,
-        text="<p><b>AVAX-day density</b> · percentage of each era’s AVAX-days per log₁₀-day × log₁₀-AVAX unit.</p>"
+        text="<p><b>AVAX-day density</b> · percentage of each era’s AVAX-days per day × log₁₀-AVAX unit.</p>"
         + ramps
-        + "<p>Same density levels and relative colour intensity in both eras. Each era integrates to 100%.</p>",
+        + "<p>26 bands resolve low density using logarithmic spacing. Same levels and relative colour intensity in both eras. Each era integrates to 100%.</p>",
+    )
+    time_selector = Select(
+        title="Duration scale",
+        value="Linear",
+        options=["Linear", "Log"],
+        width=160,
+        name="duration-scale",
     )
     selector = Select(
         title="View",
@@ -590,24 +626,55 @@ def interactive_plot(f, folder):
             args={
                 "scatters": scatters,
                 "contours": contours,
+                "log_contours": log_contours,
+                "time_selector": time_selector,
                 "size_legend": size_legend,
                 "density_legend": density_legend,
             },
             code="""
         const kde = cb_obj.value === 'AVAX-days KDE';
         for (const renderer of scatters) renderer.visible = !kde;
-        for (const renderer of contours) renderer.visible = kde;
+        const log = time_selector.value === 'Log';
+        for (const renderer of contours) renderer.visible = kde && !log;
+        for (const renderer of log_contours) renderer.visible = kde && log;
         size_legend.visible = !kde;
         density_legend.visible = kde;
+    """,
+        ),
+    )
+    time_selector.js_on_change(
+        "value",
+        CustomJS(
+            args={
+                "plots": time_plots,
+                "axes": main_axes,
+                "linear_scales": [p.x_scale for p in time_plots],
+                "log_scales": [LogScale() for _ in time_plots],
+                "x": x_range,
+                "selector": selector,
+                "contours": contours,
+                "log_contours": log_contours,
+            },
+            code="""
+        const log = cb_obj.value === 'Log';
+        x.start = log ? 1.8 : 0; x.end = 410;
+        for (let i = 0; i < plots.length; i++) plots[i].x_scale = log ? log_scales[i] : linear_scales[i];
+        for (const axis of axes) {
+            axis.axis_label = log ? 'Commitment duration (days, log scale)' : 'Commitment duration (days)';
+            axis.ticker.ticks = log ? [2,7,14,30,90,180,365] : [2,14,30,90,180,365];
+        }
+        const kde = selector.value === 'AVAX-days KDE';
+        for (const renderer of contours) renderer.visible = kde && !log;
+        for (const renderer of log_contours) renderer.visible = kde && log;
     """,
         ),
     )
     reset = Button(label="Reset zoom", width=110, height=32, margin=(24, 5, 5, 5))
     reset.js_on_click(
         CustomJS(
-            args={"x": x_range, "y": y_range},
+            args={"x": x_range, "y": y_range, "time_selector": time_selector},
             code="""
-        x.start = 1.8; x.end = 410;
+        x.start = time_selector.value === 'Log' ? 1.8 : 0; x.end = 410;
         y.start = 1600; y.end = 7000000;
     """,
         )
@@ -615,24 +682,26 @@ def interactive_plot(f, folder):
     intro = Div(
         text="<h2>F1 · Validator commitments before and after Helicon</h2>"
         "<p>Before on the left, after on the right. Equal windows of <b>34 days, 9 hours</b> around 22 September 2026, 15:00 UTC. "
-        "Choose scatter or AVAX-days KDE. Zoom and pan are linked; hover points or bars for details.</p>"
+        "Choose scatter or AVAX-days KDE, and linear or log duration. Zoom and pan are linked; hover points or bars for details.</p>"
     )
     note = Div(
         text="<p><b>Scatter:</b> one point per new validator transaction, area ∝ √(AVAX-days). "
         "<b>KDE:</b> smoothed distribution weighted by actual AVAX-days, normalised to 100% in each era. "
         "The shared colour scale compares the distribution’s shape, rather than total volume. "
-        "<b>Bars:</b> exact percentage of each era’s AVAX-days per bin; top by duration, right by stake amount.</p>"
-        "<p>Both axes are logarithmic. KDE uses the same fixed Gaussian smoothing in both eras: "
-        "0.10 log₁₀-days and 0.20 log₁₀-AVAX. The KDE covers the full displayed rectangle in both eras, "
+        "<b>Bars:</b> exact percentage of each era’s AVAX-days per bin; top by duration, left by stake amount. "
+        "Thin outlines keep nonempty tiny bars visible; empty bins have no bar. Heights and widths are not inflated.</p>"
+        "<p>Duration defaults to linear; its scale toggle changes positions only. Stake amount remains logarithmic. KDE uses the same fixed Gaussian smoothing in both eras: "
+        "3 days and 0.20 log₁₀-AVAX. Duration bins are weekly, with additional edges at 2, 14, 30, 90, 180 and 365 days. The KDE covers the full displayed rectangle in both eras, "
         "with each kernel normalised within that rectangle. Smoothed tails can extend beyond observed or protocol bounds; "
-        "they are not additional recorded commitments. Bars are unsmoothed.</p>"
+        "they are not additional recorded commitments. Log duration starts at 1.8 days, clipping smoothed tails below that value. "
+        "Density units and smoothing stay fixed when the scale changes. Bars are unsmoothed.</p>"
         "<p>Windows include their start and exclude their end. Later automatic renewal cycles and delegations are excluded. "
         "AVAX-days are scheduled commitments including future time, not realised exposure. This comparison does not establish a causal effect.</p>"
     )
     html = file_html(
         column(
             intro,
-            row(selector, reset),
+            row(selector, time_selector, reset),
             row(*panels, sizing_mode="stretch_width"),
             size_legend,
             density_legend,
@@ -648,11 +717,17 @@ def interactive_plot(f, folder):
     metadata = json.loads((folder / "provenance.json").read_text())
     metadata["density"] = {
         "weights": "actual scheduled AVAX-days",
-        "coordinates": "log10 duration, log10 AVAX",
-        "bandwidth_dex": BANDWIDTH_DEX,
-        "normalization": "100% per era, density per dex squared",
-        "boundary": "per-kernel normalization within full shared plot domain: duration [1.8,410], stake [1600,7000000]; smoothing tails allowed beyond observed/protocol bounds",
+        "coordinates": "linear duration in days, log10 AVAX",
+        "bandwidth": {"days": BANDWIDTH[0], "log10_avax": BANDWIDTH[1]},
+        "normalization": "100% per era, density per day times stake dex",
+        "boundary": "per-kernel normalization within full shared plot domain: duration [0,410], stake [1600,7000000]; smoothing tails allowed beyond observed/protocol bounds",
         "palettes": palettes,
+        "contour_levels": levels.tolist(),
+        "contour_spacing": "zero background plus 26 positive log-spaced levels from 1e-5 of common maximum to maximum",
+        "marginal_visibility": "empty bins omitted; nonempty bins have 1.25 CSS-pixel era-coloured outlines, exact bar heights and widths unchanged",
+        "stake_marginal_side": "left, mirrored outward with reversed percentage range",
+        "stake_axis_layout": "outer-left axis label, stake bars, main plot, right-hand AVAX tick labels",
+        "duration_scale_toggle": "Linear default [0,410] or Log [1.8,410]; changes positioning only, fixed KDE in days and log stake",
         "grid_integrals_percent": [grid[3] for grid in grids],
         "common_colour_max": maximum,
         "duration_bin_edges_days": DURATION_EDGES.tolist(),
