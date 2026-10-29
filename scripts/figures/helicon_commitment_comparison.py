@@ -355,47 +355,65 @@ def interactive_plot(f, folder):
     from bokeh.embed import file_html
     from bokeh.layouts import column, row
     from bokeh.models import (
+        BasicTicker,
+        Button,
         ColumnDataSource,
+        CustomJS,
         Div,
         FixedTicker,
         HoverTool,
         NumeralTickFormatter,
         Range1d,
-        Title,
+        Select,
+        Spacer,
     )
+    from bokeh.palettes import Blues9
     from bokeh.plotting import figure
     from bokeh.resources import INLINE
+    from helicon_density import (
+        BANDWIDTH_DEX,
+        DURATION_EDGES,
+        STAKE_EDGES,
+        density,
+        marginals,
+    )
 
+    cohorts = [f[f.cohort.eq(name)].copy() for name in COLOURS]
+    grids = [density(g, minimum) for g, minimum in zip(cohorts, [14, 2])]
+    histograms = [marginals(g) for g in cohorts]
+    maximum = max(float(np.nanmax(grid[2])) for grid in grids)
+    levels = np.linspace(0, maximum, 10)
+    palette = Blues9[::-1]
     maximum_weight = bubble_weight(f.stake_avax, f.duration_days).max()
     x_range, y_range = Range1d(1.8, 410), Range1d(1600, 7e6)
-    plots = []
-    for cohort, colour in COLOURS.items():
-        g = f[f.cohort.eq(cohort)].copy()
+    duration_share = Range1d(0, max(max(h[0]["share"]) for h in histograms) * 1.1)
+    stake_share = Range1d(0, max(max(h[1]["share"]) for h in histograms) * 1.1)
+    panels, scatters, contours = [], [], []
+    for (cohort, colour), g, grid, hist in zip(
+        COLOURS.items(), cohorts, grids, histograms
+    ):
         plot = figure(
-            title=cohort,
-            height=620,
+            height=480,
             sizing_mode="stretch_width",
             x_axis_type="log",
             y_axis_type="log",
             x_range=x_range,
             y_range=y_range,
+            min_border_left=60,
+            min_border_right=10,
+            min_border_top=10,
+            min_border_bottom=50,
             tools="pan,wheel_zoom,box_zoom,reset,save",
+            toolbar_location=None,
+            active_scroll="wheel_zoom",
             x_axis_label="Commitment duration (days, log scale)",
             y_axis_label="Stake amount (AVAX, log scale)",
         )
-        plot.title.text_color = colour
-        # Add from the frame outward so the totals read in their natural order.
-        for line in reversed(annotation_lines(g)):
-            plot.add_layout(
-                Title(
-                    text=line,
-                    text_font_size="10px",
-                    text_font_style="normal",
-                    text_color="#566271",
-                ),
-                "above",
-            )
-        # Bokeh size is diameter in CSS px. Convert the same circle area to diameter.
+        contour = plot.contour(
+            grid[0], grid[1], grid[2], levels, fill_color=palette, line_color=None
+        )
+        contour.visible = False
+        contours.append(contour)
         g["diameter"] = (
             2
             * np.sqrt(
@@ -417,7 +435,9 @@ def interactive_plot(f, folder):
             fill_alpha=0.42,
             line_color=colour,
             line_alpha=0.65,
+            name="commitment-scatter",
         )
+        scatters.append(renderer)
         plot.add_tools(
             HoverTool(
                 renderers=[renderer],
@@ -437,12 +457,91 @@ def interactive_plot(f, folder):
         plot.yaxis.ticker = FixedTicker(ticks=[2000, 10000, 100000, 1000000, 5000000])
         plot.yaxis.formatter = NumeralTickFormatter(format="0.[0]a")
         plot.grid.grid_line_alpha = 0.3
-        plots.append(plot)
-    intro = Div(
-        text="<h2>F1 · Validator commitments before and after Helicon</h2>"
-        "<p>Equal windows of <b>34 days, 9 hours</b> around 22 September 2026, 15:00 UTC. "
-        "Before on the left, after on the right. Hover for records. Zoom and pan are linked between plots.</p>"
-    )
+        top = figure(
+            height=125,
+            sizing_mode="stretch_width",
+            x_axis_type="log",
+            x_range=x_range,
+            y_range=duration_share,
+            tools="",
+            toolbar_location=None,
+            title="AVAX-days by duration (% per bin)",
+            min_border_left=60,
+            min_border_right=10,
+            min_border_bottom=10,
+            min_border_top=25,
+        )
+        top.xaxis.visible = False
+        top.yaxis.major_label_text_font_size = "9px"
+        top.yaxis.ticker = BasicTicker(desired_num_ticks=3, num_minor_ticks=0)
+        top.title.text_font_size = "10px"
+        tr = top.quad(
+            left="lo",
+            right="hi",
+            top="share",
+            bottom=0,
+            source=ColumnDataSource(hist[0]),
+            fill_color=colour,
+            line_color="white",
+            fill_alpha=0.65,
+            name="duration-marginal",
+        )
+        right = figure(
+            width=105,
+            height=480,
+            sizing_mode="fixed",
+            y_axis_type="log",
+            y_range=y_range,
+            x_range=stake_share,
+            tools="",
+            toolbar_location=None,
+            min_border_left=5,
+            min_border_right=10,
+            min_border_top=10,
+            min_border_bottom=50,
+            x_axis_label="% per bin",
+        )
+        right.yaxis.visible = False
+        right.xaxis.major_label_text_font_size = "9px"
+        right.xaxis.ticker = BasicTicker(desired_num_ticks=3, num_minor_ticks=0)
+        right.xaxis.axis_label_text_font_size = "10px"
+        rr = right.quad(
+            left=0,
+            right="share",
+            bottom="lo",
+            top="hi",
+            source=ColumnDataSource(hist[1]),
+            fill_color=colour,
+            line_color="white",
+            fill_alpha=0.65,
+            name="stake-marginal",
+        )
+        for hist_plot, bar, axis_name in [(top, tr, "Days"), (right, rr, "AVAX")]:
+            hist_plot.add_tools(
+                HoverTool(
+                    renderers=[bar],
+                    tooltips=[
+                        (axis_name, "@lo{0,0.00}–@hi{0,0.00}"),
+                        ("Share", "@share{0.00}%"),
+                        ("AVAX-days", "@avax_days{0,0}"),
+                        ("Commitments", "@count"),
+                    ],
+                )
+            )
+            hist_plot.grid.grid_line_alpha = 0.15
+        header = Div(
+            text=f'<h3 style="color:{colour};margin-bottom:6px">{cohort}</h3>'
+            + "<br>".join(annotation_lines(g)),
+            height=105,
+        )
+        panels.append(
+            column(
+                header,
+                row(top, Spacer(width=105), sizing_mode="stretch_width"),
+                row(plot, right, sizing_mode="stretch_width"),
+                sizing_mode="stretch_width",
+            )
+        )
     legend = []
     for value in SIZE_EXAMPLES:
         diameter = 2 * np.sqrt(bubble_area(value, 1, maximum_weight) / np.pi) * 96 / 72
@@ -456,20 +555,72 @@ def interactive_plot(f, folder):
         text='<div style="display:flex;align-items:center;gap:18px;min-height:42px">'
         "<span>AVAX-days</span>" + "".join(legend) + "</div>"
     )
+    gradient = ", ".join(palette)
+    density_legend = Div(
+        visible=False,
+        text="<p><b>AVAX-day density</b> · percentage of each era’s AVAX-days per log₁₀-day × log₁₀-AVAX unit.</p>"
+        f'<div style="width:320px;height:16px;background:linear-gradient(to right,{gradient})"></div>'
+        f"<p>0 → {maximum:.2f} · Same colour scale for both eras. Each era integrates to 100%.</p>",
+    )
+    selector = Select(
+        title="View",
+        value="Scatter",
+        options=["Scatter", "AVAX-days KDE"],
+        width=240,
+        name="view-selector",
+    )
+    selector.js_on_change(
+        "value",
+        CustomJS(
+            args={
+                "scatters": scatters,
+                "contours": contours,
+                "size_legend": size_legend,
+                "density_legend": density_legend,
+            },
+            code="""
+        const kde = cb_obj.value === 'AVAX-days KDE';
+        for (const renderer of scatters) renderer.visible = !kde;
+        for (const renderer of contours) renderer.visible = kde;
+        size_legend.visible = !kde;
+        density_legend.visible = kde;
+    """,
+        ),
+    )
+    reset = Button(label="Reset zoom", width=110, height=32, margin=(24, 5, 5, 5))
+    reset.js_on_click(
+        CustomJS(
+            args={"x": x_range, "y": y_range},
+            code="""
+        x.start = 1.8; x.end = 410;
+        y.start = 1600; y.end = 7000000;
+    """,
+        )
+    )
+    intro = Div(
+        text="<h2>F1 · Validator commitments before and after Helicon</h2>"
+        "<p>Before on the left, after on the right. Equal windows of <b>34 days, 9 hours</b> around 22 September 2026, 15:00 UTC. "
+        "Choose scatter or AVAX-days KDE. Zoom and pan are linked; hover points or bars for details.</p>"
+    )
     note = Div(
-        text="<p>One point per new validator transaction. Bubble area ∝ √(stake in AVAX × duration in days). "
-        "The same size scale applies to both cohorts. Four times the AVAX-days gives twice the bubble area. "
-        "Both axes use logarithmic scales. Exact overlaps are retained, without jitter.</p>"
-        "<p>Before: 19 Aug 06:00–22 Sep 15:00 UTC. After: 22 Sep 15:00–27 Oct 00:00 UTC. "
-        "Each interval includes its start and excludes its end. Delegations and later automatic renewal cycles are excluded. "
-        "AVAX-days are scheduled commitments, including future days, rather than realized exposure. "
-        "This descriptive comparison does not establish a causal effect.</p>"
+        text="<p><b>Scatter:</b> one point per new validator transaction, area ∝ √(AVAX-days). "
+        "<b>KDE:</b> smoothed distribution weighted by actual AVAX-days, normalised to 100% in each era. "
+        "The shared colour scale compares the distribution’s shape, rather than total volume. "
+        "<b>Bars:</b> exact percentage of each era’s AVAX-days per bin; top by duration, right by stake amount.</p>"
+        "<p>Both axes are logarithmic. KDE uses the same fixed Gaussian smoothing in both eras: "
+        "0.10 log₁₀-days and 0.20 log₁₀-AVAX. Kernels are truncated and individually renormalised at the "
+        "14-day pre-Helicon or 2-day post-Helicon minimum, 365-day maximum, 2,000-AVAX minimum and displayed 7M-AVAX upper limit. "
+        "Smoothing is descriptive, not evidence of commitments between observed choices. Bars are unsmoothed.</p>"
+        "<p>Windows include their start and exclude their end. Later automatic renewal cycles and delegations are excluded. "
+        "AVAX-days are scheduled commitments including future time, not realised exposure. This comparison does not establish a causal effect.</p>"
     )
     html = file_html(
         column(
             intro,
-            row(*plots, sizing_mode="stretch_width"),
+            row(selector, reset),
+            row(*panels, sizing_mode="stretch_width"),
             size_legend,
+            density_legend,
             note,
             sizing_mode="stretch_width",
         ),
@@ -479,6 +630,22 @@ def interactive_plot(f, folder):
     (folder / "interactive.html").write_text(
         "\n".join(line.rstrip() for line in html.splitlines()) + "\n"
     )
+    metadata = json.loads((folder / "provenance.json").read_text())
+    metadata["density"] = {
+        "weights": "actual scheduled AVAX-days",
+        "coordinates": "log10 duration, log10 AVAX",
+        "bandwidth_dex": BANDWIDTH_DEX,
+        "normalization": "100% per era, density per dex squared",
+        "boundary": "per-kernel rectangular truncation and renormalization; duration [14,365] before or [2,365] after, stake [2000,7000000]",
+        "grid_integrals_percent": [grid[3] for grid in grids],
+        "common_colour_max": maximum,
+        "duration_bin_edges_days": DURATION_EDGES.tolist(),
+        "stake_bin_edges_avax": STAKE_EDGES.tolist(),
+        "histogram_share_sums": [
+            [float(h["share"].sum()) for h in hist] for hist in histograms
+        ],
+    }
+    (folder / "provenance.json").write_text(json.dumps(metadata, indent=2) + "\n")
 
 
 def main():

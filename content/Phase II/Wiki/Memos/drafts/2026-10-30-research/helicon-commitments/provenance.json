@@ -117,5 +117,84 @@
     "shared_across": "Both cohorts, the static figure and the interactive figure"
   },
   "interpretation": "Gross scheduled AVAX-days include future time and repeat capital across transactions. This is not realized exposure or a causal effect.",
-  "layout": "Before Helicon on the left, after Helicon on the right; identical axis ranges and size scale; linked interactive zoom and pan."
+  "layout": "Before Helicon on the left, after Helicon on the right; identical axis ranges and size scale; linked interactive zoom and pan.",
+  "density": {
+    "weights": "actual scheduled AVAX-days",
+    "coordinates": "log10 duration, log10 AVAX",
+    "bandwidth_dex": [
+      0.1,
+      0.2
+    ],
+    "normalization": "100% per era, density per dex squared",
+    "boundary": "per-kernel rectangular truncation and renormalization; duration [14,365] before or [2,365] after, stake [2000,7000000]",
+    "grid_integrals_percent": [
+      99.99083450383635,
+      99.99267346530334
+    ],
+    "common_colour_max": 244.85712537347857,
+    "duration_bin_edges_days": [
+      2.0,
+      2.594735771332496,
+      3.3663268615162214,
+      4.367364362786797,
+      5.666078269282825,
+      7.0,
+      7.350987984238934,
+      9.536935738670062,
+      12.372914155013252,
+      14.0,
+      16.052221476819536,
+      20.825636637627703,
+      27.018512172212592,
+      30.0,
+      35.05295001071124,
+      45.47657164176113,
+      58.999843598221275,
+      76.54450234366367,
+      90.0,
+      99.30637916497406,
+      128.83690717043316,
+      167.1488658514835,
+      216.8535706812506,
+      281.33885849391027,
+      365.0
+    ],
+    "stake_bin_edges_avax": [
+      2000.0,
+      2809.9558576610357,
+      3947.925961001783,
+      5546.748839864516,
+      7793.059696775925,
+      10949.076872028822,
+      15383.211346269176,
+      21613.072416043386,
+      30365.88971875663,
+      42663.404844154604,
+      59941.14217479821,
+      84215.98178448358,
+      118321.59566199234,
+      166239.23040910796,
+      233562.44963056772,
+      328150.08673453715,
+      461043.6292058447,
+      647756.1232621329,
+      910083.056448117,
+      1278646.6077122225,
+      1796470.262609686,
+      2524001.0687669725,
+      3546165.793962234,
+      4982284.672490688,
+      7000000.0
+    ],
+    "histogram_share_sums": [
+      [
+        99.99999999999997,
+        99.99999999999997
+      ],
+      [
+        100.0,
+        99.99999999999999
+      ]
+    ]
+  }
 }

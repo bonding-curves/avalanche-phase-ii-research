@@ -7,7 +7,7 @@ status: draft
 
 How did the amount and duration of new validator commitments differ around Helicon? This figure compares every new commitment starting in two equal windows around activation, through 26 October 2026. Each point represents one validator staking transaction.
 
-[Open the interactive figure](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/interactive.html) to inspect the eras side by side, before on the left and after on the right. Both plots share axis ranges and bubble sizes, with linked zoom and pan. Each plot lists its gross committed AVAX, scheduled AVAX-days, commitment count, unique nodes and observation-window length. The HTML works offline after download.
+[Open the interactive figure](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/interactive.html) to compare the eras side by side. Choose scatter or AVAX-days KDE from the dropdown. Bar histograms above and beside each plot show the AVAX-day distribution by duration and stake amount. Both eras share scales and linked zoom and pan. Each plot lists its totals and observation-window length. The HTML works offline after download.
 
 ![F1. Stake amount against commitment duration in two adjacent plots, before Helicon on the left and after Helicon on the right.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/f1.png)
 
@@ -27,6 +27,10 @@ The median commitment is shorter after activation, while the stake-weighted mean
 ## Reading the comparison
 
 Both axes use logarithmic scales. Bubble **area** is proportional to the square root of AVAX-days, which equal stake multiplied by scheduled duration. Four times the AVAX-days gives twice the bubble area. Both cohorts share the same scale. The size legend shows reference AVAX-day values, and the provenance file gives the exact mapping. Exact overlapping points remain in place, so visible circles understate the number of commitments. Hover details report overlaps within each cohort.
+
+The **KDE** is a smoothed distribution weighted by each commitment's actual AVAX-days. Each era is normalised to 100%, with a common colour scale, so it compares where commitments concentrate rather than their total volume. The marginal bars show exact percentages of each era's AVAX-days per bin, with common bins and bar scales. Hover a bar for its AVAX-days and commitment count. A wide bar covers a wider interval, so compare bar heights and hover values rather than visual bar area.
+
+Smoothing takes place in log coordinates, with fixed Gaussian widths of 0.10 log₁₀-days and 0.20 log₁₀-AVAX in both eras. Each kernel is truncated and renormalised at the duration bounds of 14–365 days before Helicon or 2–365 days after, the 2,000-AVAX minimum and the displayed 7M-AVAX upper limit. Smoothed regions between observed choices do not establish that commitments occurred there. These widths are display choices, not estimated behavioural responses. The [Bokeh statistical plotting guide](https://docs.bokeh.org/en/latest/docs/user_guide/topics/stats.html) illustrates the histogram and contour rendering used here.
 
 The windows are **19 August 06:00–22 September 15:00 UTC** and **22 September 15:00–27 October 00:00 UTC**, each 34 days and 9 hours. A window includes its start and excludes its end. Cohorts use commitment start time, rather than transaction acceptance time.
 
