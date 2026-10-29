@@ -1,0 +1,111 @@
+{
+  "inputs": [
+    {
+      "dataset_id": "derived.staking-periods",
+      "run": "staking-periods-2026-10-27",
+      "sha256": "1dd095cec9465c4b55438d710ac8b8ab6323cf2704c5feddfeaa8244c80517f8",
+      "bytes": 698525724,
+      "capture_id": "capture:derived:2026-10-27T04:28:58Z:221c0f60bd49",
+      "captured_at": "2026-10-27T04:28:58Z",
+      "coverage": {
+        "accepted_from": "2020-09-10T00:00:00Z",
+        "accepted_to": "2026-10-27T02:21:37Z",
+        "auto_renewed_cycles": 312,
+        "auto_renewed_periods": 88,
+        "delegators": 7125832,
+        "distinct_hashes": 7183910,
+        "fee_reconciled": 5385894,
+        "fee_reconciled_rows": 5385904,
+        "fee_reconciled_share": 0.9999981433014773,
+        "gap_ended_without_reward_row": 1,
+        "gap_without_supply_row": 163,
+        "immediate_reproduced": 4507627,
+        "immediate_reproduced_share": 0.9999997781538317,
+        "immediate_rows": 4507628,
+        "kernel_failed": 0,
+        "open_periods": 34779,
+        "pending_reproduced": 515093,
+        "pending_reproduced_share": 0.19247761403734287,
+        "pending_rows": 2676119,
+        "rows": 7183910,
+        "validators": 58078,
+        "with_reward_row": 7149077,
+        "zero_realized": 69454
+      }
+    },
+    {
+      "dataset_id": "derived.helicon-commitments",
+      "run": "helicon-commitments-2026-10-27",
+      "sha256": "5e38203a836c146fde468faef1d2d9e2fd584b32ec08b4a2963712bf77babc20",
+      "bytes": 53573,
+      "capture_id": "capture:derived:2026-10-27T00:19:51Z:be5dbdcf0de7",
+      "captured_at": "2026-10-27T00:19:51Z",
+      "coverage": {
+        "auto_renewed_transactions": 50,
+        "before_helicon": {
+          "periods": 401,
+          "periods_by_bin": {
+            "14d to 30d": 304,
+            "180d to 365d": 13,
+            "30d to 90d": 58,
+            "48h to 7d": 0,
+            "7d to 14d": 0,
+            "90d to 180d": 26,
+            "over 365d": 0
+          },
+          "window_end": "2026-09-22T15:00:00",
+          "window_start": "2026-08-23T15:00:00"
+        },
+        "cycles_before_activation": 0,
+        "cycles_by_bin": {
+          "14d to 30d": 219,
+          "180d to 365d": 16,
+          "30d to 90d": 112,
+          "48h to 7d": 267,
+          "7d to 14d": 90,
+          "90d to 180d": 34,
+          "over 365d": 0
+        },
+        "cycles_under_minimum": 0,
+        "distinct_cycles": 738,
+        "first_cycle_start": "2026-09-22T15:23:03",
+        "last_first_seen_at": "2026-10-27T00:15:03",
+        "lowered_cycles": 119,
+        "lowered_nodes": 114,
+        "max_snapshot_gap_hours": 44.0,
+        "new_nodes": 31,
+        "nodes": 342,
+        "raised_cycles": 89,
+        "renewal_breaks": 0,
+        "renewal_cycles": 223,
+        "returning_nodes": 311,
+        "rows": 738,
+        "snapshots": 39,
+        "transactions": 515,
+        "transactions_by_bin": {
+          "14d to 30d": 216,
+          "180d to 365d": 16,
+          "30d to 90d": 112,
+          "48h to 7d": 110,
+          "7d to 14d": 28,
+          "90d to 180d": 33,
+          "over 365d": 0
+        }
+      }
+    }
+  ],
+  "extract_sha256": "1e20cbaead9cb2ab092c8334b16bd37115b644ec67297283423f6c04afddc9fc",
+  "activation_utc": "2026-09-22T15:00:00Z",
+  "start_utc": "2026-08-19T06:00:00Z",
+  "end_exclusive_utc": "2026-10-27T00:00:00Z",
+  "seconds_per_window": 2970000,
+  "unit": "One new validator staking transaction, at its first cycle. Delegations and later automatic renewal cycles excluded.",
+  "assignment": "Commitment start time, not transaction acceptance time. Half-open windows.",
+  "reconciliation": {
+    "post_transaction_count": 514,
+    "post_first_cycle_count": 514,
+    "membership_stake_duration_and_dates_match": true
+  },
+  "size": "Bubble area in points squared = 14 * log10(AVAX-days / 1 AVAX-day). Not radius or raw AVAX-days.",
+  "interpretation": "Gross scheduled AVAX-days include future time and repeat capital across transactions. This is not realized exposure or a causal effect."
+}
