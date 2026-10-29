@@ -31,7 +31,7 @@ Each command prints a version. Plan for about 2 GB of free disk space, most of i
 ## 2. Clone the repository
 
 ```sh
-git clone --branch phase-ii git@github.com:AVL-Foundation/ext-bcrg-validator-research.git
+git clone --branch milestone-2 git@github.com:AVL-Foundation/ext-bcrg-validator-research.git
 cd ext-bcrg-validator-research
 ```
 
@@ -51,7 +51,7 @@ This installs the package with its test tools (the `dev` group, installed by def
 uv run pytest -q
 ```
 
-The suite holds 1,647 tests and takes 2 to 3 minutes. With the input set in place (see step 7), all of them pass. Without it, 37 tests skip and 17 tests of the one-time scoring script fail, because they read a data run instead of skipping.
+The checked fresh installation without input data passes 2,127 tests and skips 37 in about four minutes. The input data is needed for the model-run example in step 7, rather than for these installation checks.
 
 ## 5. Query the model from the command line
 

@@ -6,7 +6,7 @@ A calibrated simulation of Avalanche Primary Network staking, built by BCRG, the
 
 [![The v0.8.0 model: staking events measured before the origin fit the behaviour blocks, six stages run each day in order and read and write the state, and the run writes a daily table that the KPIs read](src/avalanche_research/model/images/v0.8-structure.png)](src/avalanche_research/model/README.md)
 
-**Status, 13 October 2026:** staking model v0.8.0, tagged `model-v0.8.0`. Previous release `model-v0.7.0`. 1,647 tests, all passing with the input data. The pinned input data is not yet distributed (see [Data availability](#data-availability)).
+**Status, 28 October 2026:** staking model v0.8.0, tagged `model-v0.8.0`. Previous release `model-v0.7.0`. The pinned input data is not yet distributed (see [Data availability](#data-availability)).
 
 ## Contents
 
@@ -72,14 +72,14 @@ The pages under `content/` are best read on the research site, where links, char
 You need `git`, [uv](https://docs.astral.sh/uv/), Node.js 22 or later, and Graphviz. [SETUP.md](SETUP.md) gives every step for a fresh machine.
 
 ```sh
-git clone git@github.com:bonding-curves/avalanche-phase-ii-research.git
+git clone --branch milestone-2 git@github.com:AVL-Foundation/ext-bcrg-validator-research.git avalanche-phase-ii-research
 cd avalanche-phase-ii-research
 uv sync --locked --group model --group notebook
 uv run pytest -q
 uv run avalanche model describe
 ```
 
-The suite takes 2 to 3 minutes. With the input data all tests pass. Without it, 37 skip and 17 tests of the one-time scoring script fail, because they read a data run instead of skipping. The Foundation's copy of the code is the `phase-ii` branch of `AVL-Foundation/ext-bcrg-validator-research`, last updated on 1 October 2026. `avalanche model describe` needs no data. It prints the mainnet staking parameters and upgrade schedule the model uses.
+The suite takes about four minutes. Without the input data, 2,127 tests pass and 37 skip. The Foundation's current copy is the [`milestone-2` branch](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/milestone-2). The `m2-market-sweep` branch preserves the separate execution source cited by the report. The earlier `phase-ii` branch is retained. `avalanche model describe` needs no data. It prints the mainnet staking parameters and upgrade schedule the model uses.
 
 Open the notebooks:
 
