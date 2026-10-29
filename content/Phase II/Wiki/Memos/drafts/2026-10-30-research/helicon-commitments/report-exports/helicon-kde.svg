@@ -43711,10 +43711,6 @@ L 205.606299 234.708661
 L 205.606299 121.53677
 " style="fill: none; stroke: #a0a8b0; stroke-width: 0.4; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
-   <g id="text_14">
-    <text style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #3566a3" transform="translate(74.358062 167.543098)">None below</text>
-    <text style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #3566a3" transform="translate(81.126187 175.381567)">14 days</text>
-   </g>
   </g>
   <g id="axes_2">
    <g id="patch_7">
@@ -43793,7 +43789,7 @@ L -2 0
        <use xlink:href="#mcc383655fd" x="69.300337" y="113.048878" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_15">
+     <g id="text_14">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: end" x="65.300337" y="115.898292" transform="rotate(-0 65.300337 115.898292)">0</text>
      </g>
     </g>
@@ -43808,7 +43804,7 @@ L 205.606299 90.417844
        <use xlink:href="#mcc383655fd" x="69.300337" y="90.417844" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_16">
+     <g id="text_15">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: end" x="65.300337" y="93.267258" transform="rotate(-0 65.300337 93.267258)">20</text>
      </g>
     </g>
@@ -43993,7 +43989,7 @@ L 205.606299 113.048878
 L 205.606299 84.755906
 " style="fill: none; stroke: #a0a8b0; stroke-width: 0.4; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
-   <g id="text_17">
+   <g id="text_16">
     <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: start" x="69.300337" y="81.755906" transform="rotate(-0 69.300337 81.755906)">AVAX-days by duration (%)</text>
    </g>
   </g>
@@ -44018,7 +44014,7 @@ L 60.886389 121.53677
        <use xlink:href="#m8c808e0a64" x="60.886389" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_18">
+     <g id="text_17">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="60.886389" y="244.40749" transform="rotate(-0 60.886389 244.40749)">0</text>
      </g>
     </g>
@@ -44033,11 +44029,11 @@ L 33.759093 121.53677
        <use xlink:href="#m8c808e0a64" x="33.759093" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_19">
+     <g id="text_18">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="33.759093" y="244.40749" transform="rotate(-0 33.759093 244.40749)">30</text>
      </g>
     </g>
-    <g id="text_20">
+    <g id="text_19">
      <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="44.899888" y="255.666083" transform="rotate(-0 44.899888 255.666083)">%</text>
     </g>
    </g>
@@ -44077,7 +44073,7 @@ L 60.886389 126.078843
 " clip-path="url(#pdbd40827dd)" style="fill: none; stroke: #e1e5e9; stroke-width: 0.3; stroke-linecap: square"/>
      </g>
     </g>
-    <g id="text_21">
+    <g id="text_20">
      <text style="font-size: 8px; font-family: 'DejaVu Sans'; text-anchor: middle" x="23.249636" y="178.122716" transform="rotate(-90 23.249636 178.122716)">Stake (AVAX, log)</text>
     </g>
    </g>
@@ -44397,7 +44393,7 @@ L 0 2
        <use xlink:href="#m44d27d2769" x="38.551181" y="283.606299" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_22">
+     <g id="text_21">
       <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: middle" x="38.551181" y="294.425205" transform="rotate(-0 38.551181 294.425205)">0.00018</text>
      </g>
     </g>
@@ -44407,7 +44403,7 @@ L 0 2
        <use xlink:href="#m44d27d2769" x="183.11811" y="283.606299" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_23">
+     <g id="text_22">
       <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: middle" x="183.11811" y="294.425205" transform="rotate(-0 183.11811 294.425205)">17.77</text>
      </g>
     </g>
@@ -44447,7 +44443,7 @@ L 319.316011 121.53677
        <use xlink:href="#m8c808e0a64" x="319.316011" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_24">
+     <g id="text_23">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="319.316011" y="244.40749" transform="rotate(-0 319.316011 244.40749)">2</text>
      </g>
     </g>
@@ -44462,7 +44458,7 @@ L 350.772791 121.53677
        <use xlink:href="#m8c808e0a64" x="350.772791" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_25">
+     <g id="text_24">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="350.772791" y="244.40749" transform="rotate(-0 350.772791 244.40749)">7</text>
      </g>
     </g>
@@ -44477,7 +44473,7 @@ L 368.177663 121.53677
        <use xlink:href="#m8c808e0a64" x="368.177663" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_26">
+     <g id="text_25">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="368.177663" y="244.40749" transform="rotate(-0 368.177663 244.40749)">14</text>
      </g>
     </g>
@@ -44492,7 +44488,7 @@ L 387.314941 121.53677
        <use xlink:href="#m8c808e0a64" x="387.314941" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_27">
+     <g id="text_26">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="387.314941" y="244.40749" transform="rotate(-0 387.314941 244.40749)">30</text>
      </g>
     </g>
@@ -44507,7 +44503,7 @@ L 414.90101 121.53677
        <use xlink:href="#m8c808e0a64" x="414.90101" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_28">
+     <g id="text_27">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="414.90101" y="244.40749" transform="rotate(-0 414.90101 244.40749)">90</text>
      </g>
     </g>
@@ -44522,7 +44518,7 @@ L 432.305882 121.53677
        <use xlink:href="#m8c808e0a64" x="432.305882" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_29">
+     <g id="text_28">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="432.305882" y="244.40749" transform="rotate(-0 432.305882 244.40749)">180</text>
      </g>
     </g>
@@ -44537,11 +44533,11 @@ L 450.057103 121.53677
        <use xlink:href="#m8c808e0a64" x="450.057103" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_30">
+     <g id="text_29">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="450.057103" y="244.40749" transform="rotate(-0 450.057103 244.40749)">365</text>
      </g>
     </g>
-    <g id="text_31">
+    <g id="text_30">
      <text style="font-size: 8px; font-family: 'DejaVu Sans'; text-anchor: middle" x="384.823397" y="256.046005" transform="rotate(-0 384.823397 256.046005)">Duration (days, log)</text>
     </g>
    </g>
@@ -44557,7 +44553,7 @@ L 452.976378 231.696424
        <use xlink:href="#m264f4de286" x="452.976378" y="231.696424" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_32">
+     <g id="text_31">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: start" x="456.976378" y="234.545838" transform="rotate(-0 456.976378 234.545838)">2k</text>
      </g>
     </g>
@@ -44572,7 +44568,7 @@ L 452.976378 209.97046
        <use xlink:href="#m264f4de286" x="452.976378" y="209.97046" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_33">
+     <g id="text_32">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: start" x="456.976378" y="212.819875" transform="rotate(-0 456.976378 212.819875)">10k</text>
      </g>
     </g>
@@ -44587,7 +44583,7 @@ L 452.976378 178.887633
        <use xlink:href="#m264f4de286" x="452.976378" y="178.887633" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_34">
+     <g id="text_33">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: start" x="456.976378" y="181.737047" transform="rotate(-0 456.976378 181.737047)">100k</text>
      </g>
     </g>
@@ -44602,7 +44598,7 @@ L 452.976378 147.804806
        <use xlink:href="#m264f4de286" x="452.976378" y="147.804806" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_35">
+     <g id="text_34">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: start" x="456.976378" y="150.65422" transform="rotate(-0 456.976378 150.65422)">1M</text>
      </g>
     </g>
@@ -44617,7 +44613,7 @@ L 452.976378 126.078843
        <use xlink:href="#m264f4de286" x="452.976378" y="126.078843" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_36">
+     <g id="text_35">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: start" x="456.976378" y="128.928257" transform="rotate(-0 456.976378 128.928257)">5M</text>
      </g>
     </g>
@@ -104710,7 +104706,7 @@ L 452.976378 113.048878
        <use xlink:href="#mcc383655fd" x="316.670416" y="113.048878" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_37">
+     <g id="text_36">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: end" x="312.670416" y="115.898292" transform="rotate(-0 312.670416 115.898292)">0</text>
      </g>
     </g>
@@ -104725,7 +104721,7 @@ L 452.976378 90.417844
        <use xlink:href="#mcc383655fd" x="316.670416" y="90.417844" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_38">
+     <g id="text_37">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: end" x="312.670416" y="93.267258" transform="rotate(-0 312.670416 93.267258)">20</text>
      </g>
     </g>
@@ -104966,7 +104962,7 @@ L 452.976378 113.048878
 L 452.976378 84.755906
 " style="fill: none; stroke: #a0a8b0; stroke-width: 0.4; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
-   <g id="text_39">
+   <g id="text_38">
     <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: start" x="316.670416" y="81.755906" transform="rotate(-0 316.670416 81.755906)">AVAX-days by duration (%)</text>
    </g>
   </g>
@@ -104991,7 +104987,7 @@ L 308.256468 121.53677
        <use xlink:href="#m8c808e0a64" x="308.256468" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_40">
+     <g id="text_39">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="308.256468" y="244.40749" transform="rotate(-0 308.256468 244.40749)">0</text>
      </g>
     </g>
@@ -105006,11 +105002,11 @@ L 281.129172 121.53677
        <use xlink:href="#m8c808e0a64" x="281.129172" y="234.708661" style="stroke: #000000; stroke-width: 0.4"/>
       </g>
      </g>
-     <g id="text_41">
+     <g id="text_40">
       <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="281.129172" y="244.40749" transform="rotate(-0 281.129172 244.40749)">30</text>
      </g>
     </g>
-    <g id="text_42">
+    <g id="text_41">
      <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="292.269966" y="255.666083" transform="rotate(-0 292.269966 255.666083)">%</text>
     </g>
    </g>
@@ -105050,7 +105046,7 @@ L 308.256468 126.078843
 " clip-path="url(#p2f34aa34b3)" style="fill: none; stroke: #e1e5e9; stroke-width: 0.3; stroke-linecap: square"/>
      </g>
     </g>
-    <g id="text_43">
+    <g id="text_42">
      <text style="font-size: 8px; font-family: 'DejaVu Sans'; text-anchor: middle" x="270.619715" y="178.122716" transform="rotate(-90 270.619715 178.122716)">Stake (AVAX, log)</text>
     </g>
    </g>
@@ -105365,7 +105361,7 @@ L 419.846457 283.606299
        <use xlink:href="#m44d27d2769" x="284.314961" y="283.606299" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_44">
+     <g id="text_43">
       <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: middle" x="284.314961" y="294.425205" transform="rotate(-0 284.314961 294.425205)">0.00018</text>
      </g>
     </g>
@@ -105375,7 +105371,7 @@ L 419.846457 283.606299
        <use xlink:href="#m44d27d2769" x="428.88189" y="283.606299" style="stroke: #000000; stroke-width: 0.8"/>
       </g>
      </g>
-     <g id="text_45">
+     <g id="text_44">
       <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: middle" x="428.88189" y="294.425205" transform="rotate(-0 428.88189 294.425205)">17.77</text>
      </g>
     </g>
@@ -105394,40 +105390,40 @@ z
 " style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
   </g>
-  <g id="text_46">
+  <g id="text_45">
    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start" x="19.275591" y="13.03937" transform="rotate(-0 19.275591 13.03937)">Validator commitments around Helicon</text>
   </g>
-  <g id="text_47">
+  <g id="text_46">
    <text style="font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: start" x="19.275591" y="27.708661" transform="rotate(-0 19.275591 27.708661)">Where scheduled AVAX-days concentrate</text>
   </g>
-  <g id="text_48">
+  <g id="text_47">
    <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #3566a3" x="33.732283" y="44.007874" transform="rotate(-0 33.732283 44.007874)">Before Helicon</text>
   </g>
-  <g id="text_49">
+  <g id="text_48">
    <text style="font-size: 7.8px; font-family: 'DejaVu Sans'; text-anchor: start" x="33.732283" y="56.395276" transform="rotate(-0 33.732283 56.395276)">107.65M AVAX · 5.313B AVAX-days</text>
   </g>
-  <g id="text_50">
+  <g id="text_49">
    <text style="font-size: 7.8px; font-family: 'DejaVu Sans'; text-anchor: start" x="33.732283" y="67.804724" transform="rotate(-0 33.732283 67.804724)">440 commitments · 309 nodes · 34.375 days</text>
   </g>
-  <g id="text_51">
+  <g id="text_50">
    <text style="font-weight: 700; font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #b85c00" x="279.496063" y="44.007874" transform="rotate(-0 279.496063 44.007874)">After Helicon</text>
   </g>
-  <g id="text_52">
+  <g id="text_51">
    <text style="font-size: 7.8px; font-family: 'DejaVu Sans'; text-anchor: start" x="279.496063" y="56.395276" transform="rotate(-0 279.496063 56.395276)">117.48M AVAX · 6.170B AVAX-days</text>
   </g>
-  <g id="text_53">
+  <g id="text_52">
    <text style="font-size: 7.8px; font-family: 'DejaVu Sans'; text-anchor: start" x="279.496063" y="67.804724" transform="rotate(-0 279.496063 67.804724)">514 commitments · 342 nodes · 34.375 days</text>
   </g>
-  <g id="text_54">
+  <g id="text_53">
    <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: start" x="19.275591" y="267.307087" transform="rotate(-0 19.275591 267.307087)">AVAX-day weighted density · 16 bands · smoothing: 1.5 days / 0.12 stake dex</text>
   </g>
-  <g id="text_55">
+  <g id="text_54">
    <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: start" x="19.275591" y="304.795276" transform="rotate(-0 19.275591 304.795276)">Density: % of era AVAX-days per day × log₁₀-AVAX. Tails below 14 days before / 2 days after hidden.</text>
   </g>
-  <g id="text_56">
+  <g id="text_55">
    <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: start" x="19.275591" y="311.966929" transform="rotate(-0 19.275591 311.966929)">Equal 34-day, 9-hour windows around 22 Sep 2026, 15:00 UTC, through 26 Oct.</text>
   </g>
-  <g id="text_57">
+  <g id="text_56">
    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; text-anchor: start" x="19.275591" y="319.790551" transform="rotate(-0 19.275591 319.790551)">Source: frozen 27 Oct P-Chain records. New validator transactions; later renewal cycles excluded.</text>
   </g>
  </g>

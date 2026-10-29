@@ -112,16 +112,6 @@ def draw(frame, grids, histograms, mode):
             ax.axvline(
                 DISPLAY_MIN_DAYS[cohort], color=colour, linewidth=0.6, linestyle=":"
             )
-            if cohort == "Before Helicon":
-                ax.text(
-                    5.0,
-                    2e5,
-                    "None below\n14 days",
-                    ha="center",
-                    va="center",
-                    fontsize=7,
-                    color=colour,
-                )
             cax = fig.add_axes([0.08 if column == 0 else 0.59, 0.13, 0.30, 0.014])
             bar = fig.colorbar(
                 matplotlib.cm.ScalarMappable(
