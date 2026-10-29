@@ -18,5 +18,15 @@
     "file": "central-trajectories.png",
     "sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1",
     "source": "Existing central-case plot from the research memo set, reused without modification"
+  },
+  "mechanism_summary": {
+    "file": "mechanism-utilities.csv",
+    "sha256": "650e1ba05713c1f1a7d9c31df20afde48f1baf51a0bb5261c4244e3ac00a30df",
+    "aggregation": "Within each family, mean of each original utility weighted by setting-cell run count; no rescoring",
+    "design_runs_per_family": 4096,
+    "outputs": [
+      "mechanism-utilities.png",
+      "mechanism-utilities.svg"
+    ]
   }
 }

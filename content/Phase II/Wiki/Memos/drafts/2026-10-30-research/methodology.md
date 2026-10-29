@@ -3,6 +3,8 @@ title: "Modeling Avalanche's staking economy"
 description: "How the staking simulation represents validators, computes rewards, learns from the record and evaluates alternative reward rules."
 date: 2026-10-29
 status: draft
+aliases:
+  - Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/index
 kind: report
 reader: "Avalanche Foundation and Ava Labs researchers and decision makers"
 question: "How can a staking simulation support the design and evaluation of Avalanche's reward rules?"
@@ -154,22 +156,55 @@ The period from 19 November 2025 to Helicon on 22 September 2026 is reserved for
 
 ## 7. Experiments turn trajectories into design comparisons
 
-**Parameter selection under uncertainty**, or PSUU, compares settings the Foundation can choose across conditions and behaviour it cannot choose. An experiment specifies those inputs, runs the paired simulations and computes measures. A **utility** maps a measure onto a preference scale for evaluating those outcomes.
+**Parameter selection under uncertainty**, or PSUU, compares reward settings across behaviour and outside conditions the Foundation cannot choose. A **sweep** runs many such settings. Each design is paired with the historical chain rule, which adopts ACP-285 at Helicon. The experiments distinguish changing the reward rule from changing the conditions under which it operates.
 
-| Stage | Output |
+### 7.1 The run families test different mechanisms and horizons
+
+The first two one-year sweeps contain 199,887 recorded runs, including reference runs. The first compares the ACP-285 ramp, a constant pre-ACP-285 rule, an alternative duration curve and a boost for completed staking periods. The second adds broader protocol settings. Their run counts describe coverage, rather than independent confirmations of a policy effect.
+
+| Experiment | Size | What varies and what it tests |
+| --- | ---: | --- |
+| First one-year sweep | 132,800 runs | Four design families, annual outside yields of 3%, 5%, 7% and 10%, and behavioural responses. Identifies which inputs drive issuance and participation |
+| Second one-year sweep | 67,087 runs | Minimum and maximum consumption rates, duration limits and bear, neutral and bull conditions. Examines interactions and available-supply constraints |
+| Central comparisons | 50 pairs per design | Random draws at fixed working responses and 5% annual outside yield. Quantifies variation for a specific rule comparison |
+| Five-year experiment | 4,096 pairs | Ramp settings, responses and outside yields. Examines how an early-start advantage changes over time |
+| Ten-year experiment | 8,192 pairs | Ramp and duration-curve scenarios. Explores longer-run implications without forecast validation at that horizon |
+
+A pair contains a design run and its reference. Shared references and repeated runs must be reconciled before combining counts. The second sweep records one failed available-supply check. The [experiment results](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#22-simulation-execution) distinguish these populations and report the conditional findings. Revenue-funded rewards are a proposed next evaluation, requiring a specified funding source and shortfall rule.
+
+### 7.2 Goals guide which outcomes the experiments measure
+
+Eric Lu's ACP-285 presentation names three aims: lower inflation, extend the issuance-funded security budget and encourage longer staking. These motivate the measurements. Stake and validator participation provide additional information about what a reward reduction could cost. [ACP-285 presentation](/Phase-II/Wiki/Collections/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/Source-Video#three-intended-goals).
+
+A **KPI**, or key performance indicator, is a measurable outcome. The five working goals group those outcomes for evaluation. Their thresholds and weights are BCRG's exploratory choices, rather than confirmed Foundation preferences.
+
+| Working goal | KPIs and interpretation |
 | --- | --- |
-| Choose designs, conditions and response ranges | An experiment specification |
-| Sample the inputs using Sobol sequences | Settings spread across the specified ranges |
-| Run each design with its twin | Daily trajectories |
-| Reduce trajectories at named horizons | Measures such as issuance saved and stake retained |
-| Apply thresholds and utility functions | Pass rates and preference scores |
-| Analyze input–output relationships | Correlations, trees, sensitivity estimates and response curves |
+| G1 Stake participation | Own stake retained and the worst 30-day stake fall relative to the reference |
+| G2 Validator participation and distribution | Validator count, node-level stake concentration and annual return margin after outside yield and operating cost |
+| G3 Issuance and inflation | Validator issuance saved and annual net issuance relative to total supply. Delegated issuance is omitted, so the inflation proxy is not network-wide |
+| G4 Stake per AVAX issued | Retained own stake per unit of issuance relative to the reference, measuring reward efficiency |
+| G5 Commitment duration | Stake-weighted duration relative to the reference. Individual duration choices do not respond to incentives in v0.8.0, so changes reflect the mix of participating validators |
 
-For a simple increasing utility, a lower value scores zero and a target scores one, with a straight line between them. For example, a target stake share of 100% and lower value of 90% give 95% retained a score of 0.5. Goal weights combine such scores.
+Cumulative issuance also measures budget use over a stated horizon. A longer budget lifetime remains a projection dependent on the future reward rule and participation. Measuring an outcome does not establish that it must be an acceptance condition. The [working goal definitions](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#23-kpi-computation) specify the existing thresholds.
 
-A **pass threshold** answers a separate question: whether an outcome is acceptable. A high average score can coexist with frequent threshold failures. For that reason, the results distinguish the best weighted score, the range meeting each goal and the range meeting all goals.
+### 7.3 Utilities make the scoring choices explicit
 
-Correlations show direction, trees describe conditional regions, forests rank predictive inputs and Sobol indices estimate shares of output variance. Each analysis answers a different question. A numerical variance split is reported only where its convergence check supports it.
+A **utility** maps a KPI onto a preference scale from zero to one. For a simple increasing utility, a lower value scores zero and a target scores one, with a straight line between them. The combined score weights G1 to G4 equally and gives G5 half their weight. The [goal-by-setting heatmap](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png) retains both the individual goals and their combined score.
+
+A **pass threshold** asks whether an outcome is acceptable. Matching reference duration, for example, earns a G5 utility of 0.29 and passes the 99% duration-retention threshold. The utility reaches one at 105% of reference duration. A low score can therefore coexist with a passing outcome, and a high combined score can coexist with failures on individual goals.
+
+The [aggregate utilities](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv) and [score mappings](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/utility-mappings.json) preserve those choices. Correlations show direction, trees describe conditional regions, forests rank predictive inputs and Sobol indices estimate shares of output variance. A numerical variance split is reported only where its convergence check supports it.
+
+The [figure manifest](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json) identifies the frozen inputs. Rebuild the detailed heatmap and its mechanism-level summary from the repository root:
+
+```bash
+uv run --frozen --group notebook --with matplotlib==3.10.8 python \
+  scripts/figures/reward_rule_report_figures.py \
+  'content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons'
+```
+
+The summary weights setting-cell means by their run counts. Both figures reuse stored scores without new simulation or scoring.
 
 ## 8. Separate components make the system reusable
 
@@ -185,5 +220,3 @@ A new question can often reuse most of the system. The [reward interface](https:
 The next extensions address specific economic questions. Delegations and available-supply feedback broaden the simulated population. Price and holder types add feedback absent from v0.8.0. A duration choice that responds to rewards is needed to test ACP-285's hoped-for shift toward longer commitments. Revenue-funded rewards require a separate funding component, being developed alongside the released interface.
 
 Every result should identify its model, inputs, design and comparator. The code and development evidence are in the [Foundation repository](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/milestone-2). Historical pinned input snapshots are not yet distributed with a fresh clone. The accompanying [evidence and reproduction guide](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence) states what can be checked from this package and what still requires those inputs.
-
-The value of the system is cumulative. Each new observation can improve a behavioural component, and each new proposal can be evaluated using the same accounting, comparisons and stated goals.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draw the report's goal matrix from its included frozen aggregate CSV."""
+"""Draw detailed and summary goal matrices from the frozen aggregate CSV."""
 
 import argparse
 import hashlib
@@ -136,6 +136,78 @@ def main():
     bar.set_label("Utility score, not a probability", fontsize=11)
     fig.savefig(assets / "goal-utilities.png", dpi=160)
     fig.savefig(assets / "goal-utilities.svg", metadata={"Date": None})
+    plt.close(fig)
+
+    columns = [*[f"utility_G{i}" for i in range(1, 6)], "utility_combined"]
+    summary = []
+    for family in families:
+        group = frame[frame.family.eq(family)]
+        scores = np.average(group[columns], axis=0, weights=group.runs)
+        summary.append(
+            {
+                "family": family,
+                "runs": int(group.runs.sum()),
+                **dict(zip(columns, scores)),
+            }
+        )
+    pd.DataFrame(summary).to_csv(assets / "mechanism-utilities.csv", index=False)
+    values = np.array([[row[c] for c in columns] for row in summary])
+    fig, ax = plt.subplots(figsize=(10.5, 4.5))
+    fig.subplots_adjust(left=0.24, right=0.98, top=0.65, bottom=0.23)
+    image = ax.imshow(values, vmin=0, vmax=1, cmap="Blues", aspect="auto")
+    ax.set_xticks(
+        range(6),
+        labels=[
+            "Stake",
+            "Validators",
+            "Issuance /\ninflation",
+            "Stake per\nAVAX issued",
+            "Duration",
+            "Combined",
+        ],
+    )
+    ax.xaxis.tick_top()
+    ax.set_yticks(
+        range(4),
+        labels=["Pre-ACP-285 rule", "ACP-285 ramp", "Duration curve", "Tenure boost"],
+    )
+    ax.tick_params(length=0, labelsize=10, pad=8)
+    for i, row in enumerate(values):
+        for j, value in enumerate(row):
+            ax.text(
+                j,
+                i,
+                f"{value:.2f}",
+                ha="center",
+                va="center",
+                fontsize=12,
+                color="white" if value > 0.58 else "#233248",
+            )
+    ax.axvline(4.5, color="white", linewidth=3)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    fig.text(
+        0.04,
+        0.94,
+        "Reward designs balance issuance and participation",
+        fontsize=16,
+        weight="bold",
+    )
+    fig.text(
+        0.04,
+        0.86,
+        "Mean working utility at one year · 4,096 design runs per mechanism",
+        fontsize=11,
+        color="#536176",
+    )
+    bar = fig.colorbar(
+        image, cax=fig.add_axes([0.27, 0.10, 0.62, 0.025]), orientation="horizontal"
+    )
+    bar.set_ticks([0, 0.5, 1], labels=["0", "0.5", "1"])
+    bar.ax.tick_params(labelsize=9)
+    bar.set_label("Working utility score", fontsize=10)
+    fig.savefig(assets / "mechanism-utilities.png", dpi=180)
+    fig.savefig(assets / "mechanism-utilities.svg", metadata={"Date": None})
     plt.close(fig)
 
 

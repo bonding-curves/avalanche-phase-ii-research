@@ -25,17 +25,16 @@ Commitments shorter than seven days made about 26%–27% of weekly new validator
 
 Renewal within fourteen days was 86.2% for 320 nodes ending between Helicon and 12 October, compared with 85.6% of 1,235 endings in the preceding 90 days, using the same fourteen-day follow-up. These descriptive observations do not isolate the upgrade's effect. The model uses a separate seven-day renewal definition. [Data and definitions](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#post-helicon-observations).
 
-## 2. The model makes reward comparisons explicit
+## 2. The model compares reward rules on issuance and stake
 
-The system separates the protocol's reward calculation from validators' fitted choices and their uncertain response to changed incentives. Each proposed rule runs beside a twin under the chain's rule, sharing conditions and random draws.
+Each reward design runs beside the historical chain rule under the same conditions and random draws. The heatmap summarizes four designs across the five working goals. The ramp scores better on issuance, while the alternatives score better on participation. The combined score expresses their balance under BCRG's working weights.
 
-In the central one-year comparison, starting ACP-285's ramp ten months early saves a median 12.8% of validator issuance and retains 98.7% of validator own stake. The middle 80% of 50 paired runs spans 11.6%–15.4% saved and 95.3%–99.9% retained. These results use preliminary behavioural responses and a 5% annual outside yield. They are an early-start scenario, not a measurement of ACP-285's realized effect.
-
-The minimum consumption rate drives most variation in issuance saved. Participation depends more on uncertain behaviour. Development forecasts beat six benchmarks for stake, while count forecasts and short-horizon interval coverage need improvement. The separate held-back evaluation has no completed verdict in this set.
+![Mean utilities for four reward designs across five goals and the combined score.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/mechanism-utilities.png)
+*Figure 1. Run-weighted mean utilities at one year across 16,384 design runs. Outside yields and behavioural responses are pooled. Combined weights are equal for the first four goals and half for duration. Scores reflect working preferences and do not establish a recommended mechanism. [Mechanisms, KPIs and experiments](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#7-experiments-turn-trajectories-into-design-comparisons).*
 
 ## 3. Workshop 1 should settle the evaluation criteria
 
-The proposed 13 November workshop will review the system, its results and the criteria for subsequent recommendations. BCRG's five working goals illustrate trade-offs. The Foundation should select the objectives and participation safeguards, then the thresholds and preference weights.
+The proposed 13 November workshop will review the system, its results and the criteria for subsequent recommendations. The Foundation should select the objectives and participation safeguards, then the thresholds and preference weights.
 
 **Q1.** Which measures should lead: inflation on which supply base, use of the remaining issuance budget and stake-weighted duration? Which participation measures should act as safeguards?
 
