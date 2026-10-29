@@ -1,42 +1,43 @@
-# Avalanche Phase II: Staking Economics Research
+# Avalanche Staking Economics
 
-Avalanche pays validators with newly issued AVAX. This research compares how reward designs change that issuance, the stake validators commit, and participation in the Primary Network. BCRG, the Bonding Curve Research Group, builds the model for the Avalanche Foundation.
+Avalanche pays validators with newly issued AVAX. Which reward rules sustain stake and participation while spending less on rewards?
 
-The model follows individual validator staking periods through renewal, departure, return and arrival. Parameter selection under uncertainty, or **PSUU**, compares reward settings across sampled conditions, reduces the simulated paths to measures, and scores those measures against working network goals. The Foundation chooses the goals and acceptable tradeoffs.
+BCRG, the Bonding Curve Research Group, studies this question for the Avalanche Foundation. We reconstruct staking history, model validator decisions, and compare reward designs across market conditions and assumptions about how strongly validators respond to rewards.
 
-[![Model v0.8.0: historical staking events supply the behaviour blocks, six ordered daily stages update the state, and daily outputs supply the performance measures](src/avalanche_research/model/images/v0.8-structure.png)](src/avalanche_research/model/README.md)
+The [Milestone 2 report](<content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md>) brings together the model, experiments, findings and policy questions. The [model guide](src/avalanche_research/model/README.md) explains the implementation.
 
-Release as of 28 October 2026: staking model v0.8.0, tagged `model-v0.8.0`. The Foundation copy is on [`milestone-2`](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/milestone-2). Installation checks and the model description work without data. Repeating a simulation requires pinned input snapshots that are not yet distributed with this repository.
+## From staking history to reward policy
 
-## Contents
+Stake and validator counts can move differently. A reward rule therefore needs to be assessed by both the AVAX it keeps staked and the validators who remain active. The [staking record](<content/Phase II/Wiki/Reference/Data.md>) supplies the observed commitments, rewards and participation behind the model.
 
-1. [Start here](#start-here)
-2. [Quick start](#quick-start)
-3. [Economic model](#economic-model)
-4. [Goals and measures](#goals-and-measures)
-5. [Model terminology](#model-terminology)
-6. [Structure of the model](#structure-of-the-model)
-7. [Background](#background)
-8. [Change an experiment](#change-an-experiment)
-9. [Analysis and evidence](#analysis-and-evidence)
-10. [Data availability](#data-availability)
-11. [Deliverables and resources](#deliverables-and-resources)
-12. [Versions](#versions)
-13. [Writing links](#writing-links)
-14. [License](#license)
+Model v0.8.0 follows validators' own staking periods through renewal, departure, return and new entry. It computes rewards using the protocol's arithmetic. Historical decisions supply the behavioural estimates, while experiments vary how strongly renewal and entry respond to rewards. The [model selection evidence](results/model-v0.8.0-selection/README.md) compares its forecasts with simple alternatives.
 
-## Start here
+Reward comparisons follow parameter selection under uncertainty, or PSUU:
 
-| Your task | Entry point |
-| --- | --- |
-| Assess a reward-policy comparison | Read [Economic model](#economic-model), then the [Sensitivity Analysis Report](<content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md>) for the experiment, working goals and findings |
-| Review the mathematics and evidence | Read the [model README](src/avalanche_research/model/README.md), the [v0.7 model specification](<content/Phase II/Milestones/Milestone 1/1-3 Staking Model Spec/index.md>) and the [v0.8.0 selection evidence](results/model-v0.8.0-selection/README.md) |
-| Install, run or extend the package | Follow [Quick start](#quick-start), then the model README's [run instructions](src/avalanche_research/model/README.md#run-it) and [change recipes](src/avalanche_research/model/README.md#change-it) |
-| Locate a contractual deliverable | Open the [milestone index](<content/Phase II/Milestones/index.md>) |
+1. Run each reward design across reward settings, market conditions and behavioural responses.
+2. Reduce each simulated daily path to measures of issuance, stake, participation, concentration and commitment length.
+3. Convert the measures to scores between zero and one, called utilities, expressing the working network goals.
+4. Use decision trees, forests and response curves to identify which settings meet each goal and where they fall short.
 
-## Quick start
+Each design is compared with the chain's rule under the same sampled conditions and random draws. The Foundation sets the acceptable outcomes and tradeoffs used to turn the comparisons into recommendations.
 
-You need repository access, `git` and [uv](https://docs.astral.sh/uv/). [SETUP.md](SETUP.md) gives the fresh-machine instructions, including Graphviz for model diagrams and Node.js for the research site.
+## Milestone 2 compares issuance with stake retained
+
+ACP-285 gradually lowers rewards for shorter staking periods over 90 days by reducing the reward formula's minimum consumption rate. Annual reward rates on stake also depend on duration and supply.
+
+The first sweep, a set of 132,800 one-year simulations including reference and control runs, compared an early start to ACP-285's reward ramp, the rule before ACP-285, a tenure boost and a quadratic duration curve.
+
+Across that sweep's parameter samples, the early-start ramp saved about 13% of validator reward issuance and retained about 97% of validators' own stake relative to the chain-rule runs. The comparison starts on 18 November 2025. Its reference follows the historical schedule, introducing ACP-285 in September 2026.
+
+![One-year issuance savings and validator stake retained for four reward designs, grouped by outside yield](<content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/fig4-design-comparison.png>)
+
+*Panels vary the annual return available outside staking, measured in AVAX. The teal points show the early-start ramp. Moving right saves issuance. Moving down loses stake relative to the matched reference. Bars show the 10th to 90th percentiles across sampled runs. [Experiment and results](<content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md#7-findings>).*
+
+The comparisons are conditional on the model and the sampled settings. The preferred setting depends on the participation thresholds and goal weights. The report explains the experiment design, assumptions, sensitivity analysis and recommendation tiers.
+
+## Run the code
+
+Released staking model: v0.8.0, tagged `model-v0.8.0`. With `git` and [uv](https://docs.astral.sh/uv/):
 
 ```sh
 git clone --branch milestone-2 git@github.com:AVL-Foundation/ext-bcrg-validator-research.git avalanche-phase-ii-research
@@ -46,136 +47,23 @@ uv run avalanche model describe
 uv run pytest -q
 ```
 
-The description starts with `PASS | model describe | 13 mechanisms` and prints the protocol settings and upgrade schedule. The checked fresh installation without input data passes 2,127 tests and skips 37 in about four minutes. Those checks establish installation and tested software behaviour. Forecast evaluation is recorded separately in [Analysis and evidence](#analysis-and-evidence).
+The description and installation tests work without data. Pinned input snapshots and full sweep outputs are not yet distributed with this repository, so a fresh clone cannot reproduce every simulation or report figure. Saved notebook outputs remain readable.
 
-Read the saved notebook outputs in JupyterLab:
+## Read further
 
-```sh
-uv run jupyter trust notebooks/*.ipynb
-uv run jupyter lab notebooks/
-```
-
-Trusting the delivered notebooks allows JupyterLab to display their saved interactive charts. Read them without rerunning cells until the required input snapshots are available. GitHub displays notebook text and code but does not render those interactive charts. [SETUP.md](SETUP.md) also covers building and serving the research site.
-
-## Economic model
-
-A validator commits AVAX for a staking period. When the period ends, its owner can renew, leave, or return later. New validators enter. The model starts from the observed commitments at an origin date and advances one UTC day at a time, recording stake, validator counts and rewards.
-
-The [protocol layer](src/avalanche_research/domain/protocol/) computes potential rewards from stake, duration, the supply counter and the selected reward rule. The [behavioural layer](src/avalanche_research/model/README.md#what-is-fitted-swept-and-fixed) supplies renewal probabilities, return probabilities, arrival counts, durations and stake choices from historical decisions before the origin. In v0.8.0, three blocks use likelihood estimation. Duration uses conditional empirical resampling, and stake uses a hurdle model with empirical draws. The assumed strength of response to rewards is varied across experiments.
-
-[cadCAD](https://github.com/cadCAD-org/cadCAD) executes the ordered state updates. Param declares the model's settings and bounds. A run produces a daily trajectory, which the performance measures reduce at a stated horizon. Matched runs under the chain's rule share random draws with each alternative, allowing the analysis to compare outcomes under the same simulated conditions.
-
-The [model README](src/avalanche_research/model/README.md) explains the six daily stages, fitted and assumed settings, equations, code and use boundaries. Model v0.8.0 represents validator choices. Delegators' independent choices and automatic-renewal decisions are outside that release's behavioural model.
-
-## Goals and measures
-
-The research uses five working goals. Their thresholds and weights express policy judgements for the Foundation to refine. A **key performance indicator**, or KPI, is a measure computed from a simulated trajectory.
-
-| Working goal | Measures used to assess it |
+| Task | Guide |
 | --- | --- |
-| Security holds | Validator stake retained against the matched chain-rule run, and the worst 30-day stake decline |
-| Validators stay and stay spread | Active validators retained, concentration measured by the smallest node count holding more than a third of stake, and return margin |
-| Holders pay less | Issuance saved against the matched chain-rule run, and annual net inflation |
-| Security per AVAX issued | Stake retained relative to issuance retained |
-| Longer staking | Stake-weighted duration of new commitments |
-
-A utility converts a measure to a score between zero and one using a stated floor and target. The report distinguishes a setting with the highest weighted score from a range meeting the thresholds in a specified share of sampled runs. A sampled pass share describes the experiment's chosen conditions. It is not an estimated probability of real-world success.
-
-The [report's goal definitions](<content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md#6-five-goals-score-every-run-against-one-working-objective>) give the thresholds, weights and comparison horizons. In v0.8.0, rewards change commitment length only through the composition of participants. The longer-staking measure therefore needs separate interpretation from a directly modelled duration response.
-
-## Model terminology
-
-The [glossary and notation](<content/Phase II/Wiki/Reference/Glossary and Notation.md>) supplies the full vocabulary. These terms connect the model to an experiment:
-
-| Term | Meaning |
-| --- | --- |
-| Origin | The observed date from which a simulation starts. Behavioural inputs use earlier observations |
-| Mechanism | A reward or admission rule, with its own settings |
-| Scenario | A declared environmental condition, such as an outside yield |
-| Run | One simulated path for a specified mechanism, scenario, parameter draw and random seed |
-| Sweep | A collection of runs covering a declared set of settings and conditions |
-| Pinned input | A reference to exact input runs and their recorded hashes |
-| Receipt | The record binding an output to its code, inputs, settings and hashes |
-
-A consumption rate is a reward-formula parameter. It differs from the annual reward rate paid on stake. The model specification defines the conversion and units.
-
-## Structure of the model
-
-The package separates protocol rules, behaviour, experiment execution and analysis.
-
-| Path | Responsibility |
-| --- | --- |
-| [`src/avalanche_research/domain/protocol/`](src/avalanche_research/domain/protocol/) | Mainnet reward arithmetic and upgrade rules |
-| [`src/avalanche_research/mechanisms/`](src/avalanche_research/mechanisms/) | Alternative reward and admission rules |
-| [`src/avalanche_research/model/`](src/avalanche_research/model/) | Validator behaviour, daily state updates, sweep execution, KPIs and forecast evaluation |
-| [`src/avalanche_research/analysis/`](src/avalanche_research/analysis/README.md) | Matched comparisons, sensitivity calculations, decision trees and risk analysis |
-| [`data/`](data/README.md) | Dataset catalog, source queries, run layout and input pins |
-| [`results/`](results/) | Committed result tables, specifications and reproduction instructions |
-| [`notebooks/`](notebooks/) | Explanatory and exploratory notebooks saved with outputs |
-| [`tests/`](tests/) | Software checks, including synthetic inputs for data-free execution |
-| [`content/`](<content/Phase II/index.md>) | Research pages, milestone evidence, briefs and source collections |
-
-## Background
-
-Reward policy trades issuance against the stake and participation it sustains. Issuance per unit of stake measures the cost of paying for security. It differs from the cost of attacking the network. Both the reward rule and holders' responses matter when comparing alternatives.
-
-The [Essential Readings](<content/Phase II/Wiki/Collections/Essential Readings/index.md>) introduce the Foundation's economic questions. The [v0.7 model specification](<content/Phase II/Milestones/Milestone 1/1-3 Staking Model Spec/index.md>) connects those questions to protocol rules and simulated behaviour. Use the model README for v0.8.0 changes. The [data reference](<content/Phase II/Wiki/Reference/Data.md>) describes the observational basis.
-
-## Change an experiment
-
-With the required input data in place, use the model README's [change recipes](src/avalanche_research/model/README.md#change-it) to change the origin state, a behavioural parameter, an environmental scenario or the reward mechanism. Keep the measured origin state, an assumed response and a policy lever distinct in the experiment specification.
-
-The [run instructions](src/avalanche_research/model/README.md#run-it) give a 30-day example and the sweep entry point. [`scripts/m2_sweep_design.py`](scripts/m2_sweep_design.py) constructs the Milestone 2 design. New mechanisms use the interface in [`mechanisms/`](src/avalanche_research/mechanisms/). A neutral setting should reproduce the chain's rule before a new rule enters a policy comparison.
-
-## Analysis and evidence
-
-The research follows one sequence: experiment settings produce daily trajectories, KPIs reduce the trajectories, utilities express the working goals, and sensitivity and risk analysis explain how settings change outcomes.
-
-| Evidence | What you can inspect |
-| --- | --- |
-| [Sensitivity Analysis Report](<content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md>) | Reward comparisons, goals, trees, response curves, sensitivity findings and recommendation tiers |
-| [v0.8.0 selection](results/model-v0.8.0-selection/README.md) | Committed forecast scores and the command that recomputes the adoption verdict |
-| [Preliminary Validation Report](<content/Phase II/Milestones/Milestone 1/Preliminary Validation Report/index.md>) | Protocol verification and model v0.7 forecast evaluation |
-| [Paired sweep analysis](src/avalanche_research/analysis/README.md) | Required sweep artifacts, authentication, matching, estimators and failure handling |
-| [Model story notebook](notebooks/model-story.ipynb) | The v0.7 model's structure and worked comparisons |
-| [Mechanism explorer](notebooks/mechanism-explorer.ipynb) | Reward and admission designs on one observed reference cohort |
-
-The [v0.8.0 selection verdict](results/model-v0.8.0-selection/verdict.json) can be recomputed from its committed score tables. Repeating the underlying simulations requires the pinned inputs. The report's full sweep outputs are not bundled here, so the repository alone does not reproduce every report result. Comparisons between mechanism families also retain their declared budgets and pairing structure.
-
-## Data availability
-
-Input files are too large for Git and are not stored here. The [data guide](data/README.md), [catalog](data/data-catalog.json) and [pins](data/pins/) identify the required datasets and recorded inputs.
-
-The pinned snapshots are not yet distributed with this repository. Building a new snapshot from a source does not recreate an earlier pinned input. Without the required runs, notebook execution stops at its first missing-data dependency. Saved outputs remain readable. [SETUP.md](SETUP.md) describes the run layout and the notebook verification command for use after the inputs arrive.
-
-## Deliverables and resources
-
-The [milestone index](<content/Phase II/Milestones/index.md>) maps the agreement's deliverables to their pages and evidence. [Milestone 1](<content/Phase II/Milestones/Milestone 1/index.md>) was accepted in August 2026. Its five deliverables were rebuilt on model v0.7 and published on 8 October 2026. The [Phase II overview](<content/Phase II/index.md>) records delivery status, and [Milestone 0](<content/Phase II/Milestones/Milestone 0/index.md>) holds the agreement and proposal. The [Phase I archive](<content/Phase I/index.md>) preserves the 2025 work.
-
-Read pages under `content/` on the research site for rendered charts, mathematics and diagrams. GitHub shows their source text. [SETUP.md](SETUP.md) covers the site build.
-
-The Foundation's `m2-market-sweep` branch preserves the separate execution source cited by the report. The earlier `phase-ii` branch is retained.
-
-## Versions
-
-| Item | Version |
-| --- | --- |
-| Python package `avalanche-phase-ii-research` | `0.1.0.dev0` in [`pyproject.toml`](pyproject.toml) |
-| Staking model | v0.8.0, tagged `model-v0.8.0` on 13 October 2026. Each model run records `MODEL_VERSION = "0.8.0"`. Previous release `model-v0.7.0` |
+| Understand the findings | [Milestone 2 report](<content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md>) |
+| Inspect or change the model | [Model guide](src/avalanche_research/model/README.md) |
+| Install and open the notebooks | [Setup](SETUP.md) |
+| Identify the required inputs | [Data guide](data/README.md) |
+| Inspect the sweep calculations | [Analysis guide](src/avalanche_research/analysis/README.md) |
+| Find a contractual deliverable | [Milestone index](<content/Phase II/Milestones/index.md>) |
 
 ## Writing links
 
-Pages under `content/` are published by the research site, so their links must point at what the site publishes, not at files in this repository.
-
-| Link to | Write it as | Example |
-| --- | --- | --- |
-| Another page | The page's site route, from the root | `[1.3 Staking Model Spec](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/)` |
-| A heading on a page | The route with the heading's anchor | `[the boundary](/Phase-II/Milestones/Milestone-1/1-3-Staking-Model-Spec/#boundary)` |
-| An image or data file | Copy it into the page's folder and link its route from the root. Relative links such as `figure.png` break, because the site resolves links from its root | `![Figure 1](/Phase-II/Milestones/Milestone-1/milestone-1-chain.png)` |
-| An outside source | Its full `https://` address | `[ACP-285](https://github.com/avalanche-foundation/ACPs)` |
-
-A source file elsewhere in the repository, such as a script or a notebook, is not a published page. Name it in code format, for example `scripts/milestone_pages.py`, rather than linking it. Before committing a change to `content/`, run `npm --prefix .site run verify`, which fails on any new link the site cannot resolve.
+Pages in `content/` use published routes, such as `/Phase-II/Milestones/Milestone-2/`, with `#heading` for a section. Images use their published asset routes. Repository code links use GitHub URLs. Check content changes with `npm --prefix .site run verify`.
 
 ## License
 
-Copyright (c) 2026 Longtail Financial Corp., operating as the Bonding Curve Research Group (BCRG). All rights reserved. See [LICENSE.md](LICENSE.md). The site engine in `.site/` is Quartz, under its own MIT license in [`.site/LICENSE.txt`](.site/LICENSE.txt).
+Copyright 2026 Longtail Financial Corp., operating as BCRG. All rights reserved. See [LICENSE.md](LICENSE.md). The [Quartz site engine](.site/LICENSE.txt) has its own MIT license.
