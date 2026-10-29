@@ -126,12 +126,36 @@
       0.2
     ],
     "normalization": "100% per era, density per dex squared",
-    "boundary": "per-kernel rectangular truncation and renormalization; duration [14,365] before or [2,365] after, stake [2000,7000000]",
+    "boundary": "per-kernel normalization within full shared plot domain: duration [1.8,410], stake [1600,7000000]; smoothing tails allowed beyond observed/protocol bounds",
+    "palettes": {
+      "Before Helicon": [
+        "#f7f9fb",
+        "#dfe7f0",
+        "#c6d4e5",
+        "#aec2da",
+        "#96afcf",
+        "#7e9dc4",
+        "#658bb9",
+        "#4d78ae",
+        "#3566a3"
+      ],
+      "After Helicon": [
+        "#fcf8f5",
+        "#f4e5d6",
+        "#ebd1b8",
+        "#e3be99",
+        "#daaa7a",
+        "#d2975c",
+        "#c9833d",
+        "#c1701f",
+        "#b85c00"
+      ]
+    },
     "grid_integrals_percent": [
-      99.99083450383635,
-      99.99267346530334
+      99.99193485447168,
+      99.99296204507932
     ],
-    "common_colour_max": 244.85712537347857,
+    "common_colour_max": 244.85675711033423,
     "duration_bin_edges_days": [
       2.0,
       2.594735771332496,

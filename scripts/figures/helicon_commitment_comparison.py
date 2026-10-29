@@ -367,7 +367,6 @@ def interactive_plot(f, folder):
         Select,
         Spacer,
     )
-    from bokeh.palettes import Blues9
     from bokeh.plotting import figure
     from bokeh.resources import INLINE
     from helicon_density import (
@@ -379,11 +378,17 @@ def interactive_plot(f, folder):
     )
 
     cohorts = [f[f.cohort.eq(name)].copy() for name in COLOURS]
-    grids = [density(g, minimum) for g, minimum in zip(cohorts, [14, 2])]
+    grids = [density(g) for g in cohorts]
     histograms = [marginals(g) for g in cohorts]
     maximum = max(float(np.nanmax(grid[2])) for grid in grids)
     levels = np.linspace(0, maximum, 10)
-    palette = Blues9[::-1]
+    palettes = {}
+    for cohort, colour in COLOURS.items():
+        rgb = np.array([int(colour[i : i + 2], 16) for i in (1, 3, 5)])
+        palettes[cohort] = [
+            "#" + "".join(f"{int(v):02x}" for v in np.rint(255 + (rgb - 255) * t))
+            for t in np.linspace(0.04, 1, 9)
+        ]
     maximum_weight = bubble_weight(f.stake_avax, f.duration_days).max()
     x_range, y_range = Range1d(1.8, 410), Range1d(1600, 7e6)
     duration_share = Range1d(0, max(max(h[0]["share"]) for h in histograms) * 1.1)
@@ -410,7 +415,12 @@ def interactive_plot(f, folder):
             y_axis_label="Stake amount (AVAX, log scale)",
         )
         contour = plot.contour(
-            grid[0], grid[1], grid[2], levels, fill_color=palette, line_color=None
+            grid[0],
+            grid[1],
+            grid[2],
+            levels,
+            fill_color=palettes[cohort],
+            line_color=None,
         )
         contour.visible = False
         contours.append(contour)
@@ -555,12 +565,17 @@ def interactive_plot(f, folder):
         text='<div style="display:flex;align-items:center;gap:18px;min-height:42px">'
         "<span>AVAX-days</span>" + "".join(legend) + "</div>"
     )
-    gradient = ", ".join(palette)
+    ramps = "".join(
+        f'<div style="display:inline-block;margin-right:28px"><b>{cohort}</b>'
+        f'<div style="width:280px;height:16px;background:linear-gradient(to right,{", ".join(palette)})"></div>'
+        f"<span>0 → {maximum:.2f}</span></div>"
+        for cohort, palette in palettes.items()
+    )
     density_legend = Div(
         visible=False,
         text="<p><b>AVAX-day density</b> · percentage of each era’s AVAX-days per log₁₀-day × log₁₀-AVAX unit.</p>"
-        f'<div style="width:320px;height:16px;background:linear-gradient(to right,{gradient})"></div>'
-        f"<p>0 → {maximum:.2f} · Same colour scale for both eras. Each era integrates to 100%.</p>",
+        + ramps
+        + "<p>Same density levels and relative colour intensity in both eras. Each era integrates to 100%.</p>",
     )
     selector = Select(
         title="View",
@@ -608,9 +623,9 @@ def interactive_plot(f, folder):
         "The shared colour scale compares the distribution’s shape, rather than total volume. "
         "<b>Bars:</b> exact percentage of each era’s AVAX-days per bin; top by duration, right by stake amount.</p>"
         "<p>Both axes are logarithmic. KDE uses the same fixed Gaussian smoothing in both eras: "
-        "0.10 log₁₀-days and 0.20 log₁₀-AVAX. Kernels are truncated and individually renormalised at the "
-        "14-day pre-Helicon or 2-day post-Helicon minimum, 365-day maximum, 2,000-AVAX minimum and displayed 7M-AVAX upper limit. "
-        "Smoothing is descriptive, not evidence of commitments between observed choices. Bars are unsmoothed.</p>"
+        "0.10 log₁₀-days and 0.20 log₁₀-AVAX. The KDE covers the full displayed rectangle in both eras, "
+        "with each kernel normalised within that rectangle. Smoothed tails can extend beyond observed or protocol bounds; "
+        "they are not additional recorded commitments. Bars are unsmoothed.</p>"
         "<p>Windows include their start and exclude their end. Later automatic renewal cycles and delegations are excluded. "
         "AVAX-days are scheduled commitments including future time, not realised exposure. This comparison does not establish a causal effect.</p>"
     )
@@ -636,7 +651,8 @@ def interactive_plot(f, folder):
         "coordinates": "log10 duration, log10 AVAX",
         "bandwidth_dex": BANDWIDTH_DEX,
         "normalization": "100% per era, density per dex squared",
-        "boundary": "per-kernel rectangular truncation and renormalization; duration [14,365] before or [2,365] after, stake [2000,7000000]",
+        "boundary": "per-kernel normalization within full shared plot domain: duration [1.8,410], stake [1600,7000000]; smoothing tails allowed beyond observed/protocol bounds",
+        "palettes": palettes,
         "grid_integrals_percent": [grid[3] for grid in grids],
         "common_colour_max": maximum,
         "duration_bin_edges_days": DURATION_EDGES.tolist(),
