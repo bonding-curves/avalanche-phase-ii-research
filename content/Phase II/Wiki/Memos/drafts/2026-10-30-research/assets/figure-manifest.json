@@ -1,0 +1,30 @@
+{
+  "model": "v0.8.0",
+  "figures": [
+    {
+      "file": "daily-model.png",
+      "sha256": "1ecb031f1b3a57fbe44d76936b40ffd3f763bb0fb592e27c9eaa360373e37c89",
+      "reused_without_modification": true
+    },
+    {
+      "file": "forecast-scores.png",
+      "sha256": "cd0a8c5cbd1c2b87f228ecc3e58291f47fb949042de69f10c363a234c14513ab",
+      "reused_without_modification": true
+    },
+    {
+      "file": "utility-heatmap.png",
+      "sha256": "9d298ad4bcd94d6a8a0b25cfeccd8d98dab2621c5e0e941b4b8b29f8cfedfaab",
+      "reused_without_modification": true
+    },
+    {
+      "file": "decision-tree.png",
+      "sha256": "16d27f3c2f6cf28e0bab7a8adda2e3ff555595fa41dbcaecec47a5de864d45a5",
+      "reused_without_modification": true
+    },
+    {
+      "file": "central-trajectories.png",
+      "sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1",
+      "reused_without_modification": true
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+---
+title: "Modeling Avalanche's staking economy"
+description: "How the staking simulation represents validators, computes rewards, learns from the record and evaluates alternative reward rules."
+date: 2026-10-29
+status: draft
+kind: report
+reader: "Avalanche Foundation and Ava Labs researchers and decision makers"
+question: "How can a staking simulation support the design and evaluation of Avalanche's reward rules?"
+---
+
+Date: 29 October 2026\
+To: Avalanche Foundation and Ava Labs\
+From: Bonding Curve Research Group\
+Subject: Modeling Avalanche's staking economy
+
+## Introduction
+
+Avalanche rewards its Primary Network validators with newly minted AVAX from a finite supply budget. Its reward rule determines how quickly that budget is used and how the return varies with staking duration. [ACP-285](https://github.com/avalanche-foundation/ACPs/blob/b80ea34682b419603f0241f114560dea5d61e03a/ACPs/285-reduce-minimum-consumption-rate/README.md) changes that rule to reduce inflation, extend the issuance budget and encourage longer commitments. The network-wide effects unfold as validators complete their existing commitments and choose what to do next.
+
+A staking simulation makes those choices explicit. It follows individual validator staking periods, computes their rewards with the protocol's arithmetic and compares alternative rules under the same conditions. The resulting differences show how a design could change issuance, participation and staking duration. Repeating the comparison across uncertain behaviour makes clear which conclusions depend on validators' responses.
+
+Bonding Curve Research Group's system combines a checked chain record, a model of validator decisions and an experiment pipeline. New reward rules can reuse the data, fitted behaviour and evaluation criteria. Model v0.8.0 is the implementation used in the [Milestone 2 results](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results). Its own-stake population covers the AVAX validators lock themselves. Delegated AVAX is outside its simulated population.
+
+## 1. The reward rule links duration to the issuance budget
+
+A validator commits an amount of AVAX for a chosen period. The protocol promises a reward when that period starts, conditional on meeting its eligibility requirements. The reward increases with the stake, its duration and the rate parameters set by the protocol.
+
+The **consumption rate** is a parameter of the formula. The **annualized reward rate** is the reward divided by stake and duration, expressed per year. The remaining-supply ratio scales the former into the latter, so a 7.5% consumption rate does not mean a validator earns 7.5% a year. The [protocol implementation](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/model-v0.8.0/src/avalanche_research/domain/protocol/__init__.py) computes the reward with whole-number arithmetic and rounding.
+
+Let the staking duration be $d$ days and the minting period be $T=365$ days.
+
+The duration-dependent consumption rate $r(d)$ rises linearly between $r_{\min}$ and $r_{\max}$, the protocol's MinConsumptionRate and MaxConsumptionRate:
+
+$$
+r(d)=r_{\min}+(r_{\max}-r_{\min})\,d/T.
+$$
+
+At the earlier 10% minimum and 12% maximum, a 14-day stake has a consumption rate of 10% + 2% × 14/365 = 10.077%. A longer commitment approaches the maximum.
+
+Let $S$ be the P-Chain's CurrentSupply counter in AVAX and $C=720$ million AVAX be SupplyCap. The remaining-supply ratio, also called the scarcity factor $\kappa$, is
+
+$$
+\kappa=(C-S)/S.
+$$
+
+At a counter of about 465 million AVAX, the ratio is 255/465 = 0.548. Multiplying a consumption rate by this ratio gives its annualized reward rate before integer rounding. As the counter rises, the same consumption rate pays a smaller percentage of stake.
+
+For a stake of $s$ AVAX, the reward $R$ in AVAX is approximately
+
+$$
+R=s\,\frac{d}{T}\,\kappa\,r(d).
+$$
+
+A 2,000 AVAX stake for 14 days at the preceding counter and rates earns about 2,000 × 14/365 × 0.548 × 0.10077 = 4.24 AVAX. The simulation repeats the integer calculation rather than this rounded approximation.
+
+ACP-285 keeps the 12% maximum and lowers the minimum from 10% to 7.5% over 90 days after Helicon. A period receives the configuration applicable at its start. The direct reduction is therefore greatest for short commitments, while a one-year commitment keeps the same consumption rate.
+
+## 2. The data fixes what the model can learn
+
+Each experiment starts on an **origin**, the day used to initialize the simulation. Its **state** is the information carried between days, including open periods and the supply counter. Fitting uses only observations available through the end of the origin's UTC day. The model can therefore be compared with subsequent observations without having learned their outcomes.
+
+The central experiments use 18 November 2025 as their origin. Their inputs describe open validator periods, validators that have left and periods accepted ahead of their start. The historical record also supplies the decisions used to fit behaviour.
+
+| Input | What the model learns or initializes |
+| --- | --- |
+| Open and scheduled periods | Stake, end dates and commitments already made |
+| Endings and subsequent starts | Whether a node renews or returns later |
+| First-ever validator periods | Daily entry and new entrants' initial stake and duration |
+| Consecutive periods on one node | Changes in duration and stake |
+| Supply readings and protocol configuration | The reward applicable to each new period |
+
+The [data guide](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/data/README.md) separates the original records from derived tables. A **pin** identifies the exact input copies an experiment reads, including their byte hashes. An experiment rejects a missing or changed pinned input. A pin establishes which data were used. The separate data checks establish whether those records satisfy the required accounting and schema checks.
+
+The [rewards reconstructed from the chain](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/data/README.md) provide one strong verification test. The checked data pipeline reproduces all but one of 4,455,121 rewards for periods that started when accepted. The exception is a delegation differing by 31 nAVAX, where one nAVAX is a billionth of an AVAX. Periods accepted ahead of their start are outside that comparison. Agreement on reward arithmetic supports the accounting component. The behavioural model needs separate evaluation.
+
+## 3. Five decisions turn the historical record into daily behaviour
+
+The model follows staking periods because periods are the commitments the chain records. It represents five decisions, each with a statistical form suited to its outcome. A **logistic model** estimates the probability of a yes-or-no decision. Their [implementations](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/model-v0.8.0/src/avalanche_research/model/parts) keep the questions separate.
+
+| Decision | Representation | Reason for the choice |
+| --- | --- | --- |
+| Renew on the same node within seven days | A penalized logistic model using tenure, previous return, duration and stake bands | Produces a probability between zero and one while allowing repeated patterns in the record |
+| Return after 8–365 days away | A daily logistic hazard using time away and node history | Allows the chance of return to change with the length of absence |
+| Start validating for the first time | A negative-binomial daily count | Allows daily arrivals to vary more than a Poisson count with the same mean |
+| Choose a duration | Draws from historical choices conditional on the kind of start and previous duration | Preserves concentrations at common durations |
+| Choose a stake amount | A hurdle distinguishing an unchanged reference amount from a changed amount | Preserves both repeated amounts and the distribution of actual changes |
+
+The logistic model turns a weighted combination of predictors into a probability. Its weights are fitted to make observed decisions likely. Penalization limits extreme weights supported by little data. For returns, a prior encourages neighboring time-away bands to have similar effects. The release omits the additional node-specific renewal-record term tested in development.
+
+For arrivals, the fitted mean $\lambda$ is the expected number of first-ever validators per day. The dispersion $k$ controls how variable that count is:
+
+$$
+\operatorname{Var}(\text{daily arrivals})=\lambda+\lambda^2/k.
+$$
+
+The origin's [fitted values](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) are about 3.89 arrivals a day and dispersion 0.493. They imply variance 3.89 + 3.89²/0.493 ≈ 34.6, almost nine times the mean. A Poisson count would require the variance to equal the mean and would understate those daily fluctuations.
+
+Duration and stake use empirical distributions, meaning distributions constructed from observed choices. For renewed and returning periods, the model draws a duration using the previous-duration band. The stake hurdle then draws whether the reference amount changes and, if so, the size of that change. New entrants use the minimum validator stake as their reference amount because they have no previous stake.
+
+Most fitting windows cover the preceding year. Returns use two years of endings to observe longer absences. Follow-up still stops at the origin, so a recent departure is not treated as if its eventual return were already known.
+
+## 4. The response to reward is separate from habitual behaviour
+
+Historical renewal, entry and duration patterns describe what validators did under the incentives they faced. Comparing a different reward rule requires an additional assumption about how behaviour changes when its return changes.
+
+The model represents two explicit responses. The **renewal response** $\beta_R$ changes renewal log-odds per percentage point of annual yield gained. The **entry response** $\beta_E$ changes the log arrival rate on the same basis. A one-percentage-point yield gain multiplies renewal odds by $\exp(\beta_R)$ and the arrival mean by $\exp(\beta_E)$, with arrivals capped at 100 new nodes a day.
+
+The **yield gap** compares the design's annual reward yield with the reward yield of the menu used during fitting, then subtracts the change in the yield available outside staking. Both reward yields use a standard 30-day stake and the origin's supply counter. Renewal uses typical renewing-node tenure, while entry uses zero completed periods. The [response implementation](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/model-v0.8.0/src/avalanche_research/model/response.py) keeps those references fixed through a run.
+
+For example, if a validator renews with probability 80%, its odds are four to one. A response of 0.025 and a one-percentage-point yield reduction multiply those odds by $\exp(-0.025)=0.975$. The renewal probability becomes about 79.6%. The same yield reduction at an entry response of 0.04 multiplies expected entry by $\exp(-0.04)=0.961$.
+
+BCRG's preliminary working values, 0.025 for renewal and 0.04 for entry, use historical AVAX price variation to study changes in dollar rewards. Translating that evidence into an annualized reward-yield response assumes validators respond similarly to the two sources of dollar-reward changes. Market sentiment can affect both AVAX's price and staking decisions, so these are specification-dependent estimates. The experiments vary the responses to test the dependence on these central values. The [evidence notes](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#response-estimates) give the alternative estimates.
+
+## 5. A paired simulation follows each rule through the same decisions
+
+Each proposed rule runs beside a **twin**, a simulation under the chain's rule using the same origin, fitted-parameter draw, outside conditions and keyed random numbers. The pairing reduces variation caused by unrelated random choices. Model error can still affect both paths and their difference.
+
+Figure 1 shows the order of one simulated day. The first four stages determine who starts a new period and what they commit. The reward stage prices those periods, then assembly constructs the next day's state.
+
+![One simulated day in model v0.8.0](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png)
+*Figure 1. Renewal, return, arrival, continuation, rewards and assembly run in that order. Green stages draw stochastic decisions. Gray stages apply accounting. The final checks stop a run on invalid stake, inconsistent totals or supply violations. This existing diagram is traced from the v0.8.0 implementation.*
+
+The daily state includes open periods and their attributes, departed nodes and their history, scheduled starts, and supply accounting. Validator stake, validator count and issuance are derived from the evolving periods. The model checks individual stake bounds, the reconciliation of stake totals, the maximum absence tracked, supply below the cap and stake within supply.
+
+Repeated runs carry several forms of uncertainty:
+
+| Source | How it enters |
+| --- | --- |
+| Daily chance | Random renewals, returns, arrivals and commitment choices |
+| Fitting uncertainty | Resampling nodes for renewal, returns and continuation, and 28-day blocks of arrival counts |
+| Drift in renewal | A run-level shift estimated from variation between historical fitting windows |
+| Uncertain economic response | Experiment settings for renewal and entry responses |
+
+Fitted behaviour is drawn once for a run and then used through its simulated days. The stake hurdle remains at its fitted point estimate in v0.8.0. The distinction matters because the run distribution does not include uncertainty in every model component.
+
+## 6. Forecast tests evaluate what the behavioural model predicts
+
+A plausible explanation of past choices can still make poor predictions. Each candidate therefore forecasts from historical origins using only earlier data. Its outcomes are compared with the chain's realized stake and validator count.
+
+The **continuous ranked probability score**, or CRPS, evaluates the whole forecast distribution. For equally weighted runs, it is the average distance from a run to the realized outcome, less half the average distance between two runs. This [proper scoring rule](https://sites.stat.washington.edu/people/raftery/Research/PDF/Gneiting2007jasa.pdf) rewards accurate distributions and penalizes misleading certainty or excessive spread.
+
+Consider 200 illustrative runs, half predicting 100 million AVAX of stake and half 120 million, with a realized 110 million. The distance from a run to the outcome averages 10 million. Distances between all ordered pairs of runs also average 10 million. The CRPS is therefore 10 − 10/2 = 5 million AVAX. The model evaluation scales this score by the mean absolute daily change before the origin, making performance comparable across origins.
+
+| Test | Question it answers |
+| --- | --- |
+| Held-out decisions within development | Does a proposed behavioural component improve predictions of its own decision? |
+| Repeated historical forecasts | Does the whole model beat simple forecasts at 30, 90 and 180 days? |
+| Interval coverage | Does a stated forecast interval include outcomes as often as it should? |
+| A separate held-back period | Does a model selected in development generalize to later data? |
+
+The benchmarks include holding the last value, extending recent drift, a weekly autoregression, distributional versions of the first two, and a local-level statistical model. Candidate adoption follows a rule specified before the development scores. The [selection evidence](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/model-v0.8.0/results/model-v0.8.0-selection) records the outcomes.
+
+The period from 19 November 2025 to Helicon on 22 September 2026 is reserved for a separate evaluation. No completed held-back verdict is reported here. Forecast skill on stake levels also provides a different test from the validity of a consumption-rate counterfactual. Both forms of evidence matter.
+
+## 7. Experiments turn trajectories into design comparisons
+
+**Parameter selection under uncertainty**, or PSUU, compares settings the Foundation can choose across conditions and behaviour it cannot choose. An experiment specifies those inputs, runs the paired simulations and computes measures. A **utility** maps a measure onto a preference scale for evaluating those outcomes.
+
+| Stage | Output |
+| --- | --- |
+| Choose designs, conditions and response ranges | An experiment specification |
+| Sample the inputs using Sobol sequences | Settings spread across the specified ranges |
+| Run each design with its twin | Daily trajectories |
+| Reduce trajectories at named horizons | Measures such as issuance saved and stake retained |
+| Apply thresholds and utility functions | Pass rates and preference scores |
+| Analyze input–output relationships | Correlations, trees, sensitivity estimates and response curves |
+
+For a simple increasing utility, a lower value scores zero and a target scores one, with a straight line between them. For example, a target stake share of 100% and lower value of 90% give 95% retained a score of 0.5. Goal weights combine such scores.
+
+A **pass threshold** answers a separate question: whether an outcome is acceptable. A high average score can coexist with frequent threshold failures. For that reason, the results distinguish the best weighted score, the range meeting each goal and the range meeting all goals.
+
+Correlations show direction, trees describe conditional regions, forests rank predictive inputs and Sobol indices estimate shares of output variance. Each analysis answers a different question. A numerical variance split is reported only where its convergence check supports it.
+
+## 8. Separate components make the system reusable
+
+A new question can often reuse most of the system. The [reward interface](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/model-v0.8.0/src/avalanche_research/mechanisms/reward.py) separates the rate configuration, the duration curve and the multiplier for completed periods. Released alternatives have neutral-setting tests against the chain's rule.
+
+| Change | What can be reused |
+| --- | --- |
+| A new reward formula | Fitted behaviour, experiment conditions and existing measures |
+| Different thresholds or weights | Stored measures, when all required columns were retained |
+| New historical inputs | Reward implementations and experiment structure after refitting |
+| A better behavioural component | Data interfaces, reward rules and analysis after evaluation |
+
+The next extensions address specific economic questions. Delegations and available-supply feedback broaden the simulated population. Price and holder types add feedback absent from v0.8.0. A duration choice that responds to rewards is needed to test ACP-285's hoped-for shift toward longer commitments. Revenue-funded rewards require a separate funding component, being developed alongside the released interface.
+
+Every result should identify its model, inputs, design and comparator. The code and development evidence are in the [Foundation repository](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/milestone-2). Historical pinned input snapshots are not yet distributed with a fresh clone. The accompanying [evidence and reproduction guide](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence) states what can be checked from this package and what still requires those inputs.
+
+The value of the system is cumulative. Each new observation can improve a behavioural component, and each new proposal can be evaluated using the same accounting, comparisons and stated goals.
