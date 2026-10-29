@@ -1,6 +1,6 @@
 # BENQI liquid staking interview with Hansen
 
-Machine draft. Legion's prose narrative for transcript `tx_293_9ccee9eb` with speaker names normalized to the speaker table. A person rewrites this under `skills/writing/` before it is cited; until then it is a reading aid, not a record.
+Machine-generated narrative for transcript `tx_293_9ccee9eb`, with speaker names normalized to the speaker table. This reading aid has not been reviewed against the audio. Its interpretations require review before they are cited as findings.
 
 ## Introduction and Project Scope (00:04)
 

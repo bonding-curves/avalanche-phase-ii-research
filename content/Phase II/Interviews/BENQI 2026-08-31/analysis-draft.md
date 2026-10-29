@@ -1,6 +1,6 @@
 ---
 title: "BENQI interview evidence analysis"
-description: "Private draft linking Hansen's machine-transcribed statements to topic codes, reproducible checks, and bounded model hypotheses."
+description: "Working analysis linking Hansen's machine-transcribed statements to topic codes, reproducible checks, and bounded model hypotheses."
 date: 2026-09-30
 status: draft
 owner: project-manager
@@ -11,7 +11,7 @@ interview_id: mh-2026-08-31-benqi-liquid-staking-interview
 
 Hansen describes two different decisions: managing a liquid staking service's redemption needs and choosing how to stake his personal AVAX. Those decisions should remain separate in the model. The observed funding address is sufficiently concentrated to warrant its own analysis stratum, conditional on the inferred BENQI attribution. This interview supports candidate decision rules. It does not estimate population preferences, response coefficients, or future adoption.
 
-This is the private `I2` draft requested in the modeling thread on September 30 at 18:40. Shawn authorized preparation of this analysis. Participant permission for Foundation delivery, scientific acceptance, and promotion into Phase II remain unrecorded here. No source bytes were changed.
+The research lead authorized sharing this interview material with the Avalanche Foundation on 28 October 2026. The analysis remains a working draft. Sharing does not establish scientific acceptance, participant consent for public publication, or audio verification. The segment-level source in `transcript.json` is unchanged.
 
 ## Source and interpretation boundary
 
@@ -22,7 +22,7 @@ The transcript uses variants such as “Banky,” “SFOX,” and “Essovox.”
 | Source | SHA-256 checked for this draft |
 | --- | --- |
 | `transcript.json` | `e7e028ba5a067ccc7a558b48bfdfd63d81059a39559f5807b0a5bb535326bd49` |
-| `transcript.md` | `742b8460d66fc1def82eaf298adcff59314dadbab6f8c9823b4c84af8cdbe41d` |
+| `transcript.md` | `05489e9c583a5bde41abf0e990bfa1f973c5691dd0d7737fe76c17770bbeffcf` |
 
 ## Claims by topic
 
@@ -296,6 +296,6 @@ FROM sums ORDER BY cutoff;
 | `R3` | Defined redemption churn, fee economics, costs, and product-flow history | No churn hazard, cost distribution, revenue elasticity, or withdrawal constraint is estimated. |
 | `R4` | Post-Helicon behavior and feasible alternatives at each allocation time | Intentions do not become adoption rates or causal reward sensitivities. |
 | `R5` | A varied participant sample and reviewed coding | One participant cannot establish ecosystem prevalence or behavioral-type weights. |
-| `R6` | Recorded participant delivery permission, Hash's interpretation review, and Shawn's promotion | This named, quoted draft remains private. |
+| `R6` | Interpretation review and delivery scope | Sharing with the Foundation was authorized by the research lead on 28 October 2026. Audio review, scientific acceptance and permission for public publication are not established by that decision. |
 
 The [methodology draft](/Phase-II/Interviews/BENQI-2026-08-31/methodology-draft) defines the next evidence and review sequence. None of these checks authorizes fitting or publication.

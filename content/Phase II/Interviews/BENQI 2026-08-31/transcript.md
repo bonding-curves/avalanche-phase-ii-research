@@ -1,13 +1,13 @@
 # Transcript, 2026-08-31 19:00 (America/New_York)
 
-Legion transcript `tx_293_9ccee9eb`, 603 segments, 1:05:13 of audio. Machine transcript and machine diarization; not audio reviewed. Speaker names are decided from evidence per the speaker table below (rules MR-N1 to MR-N4 of the meeting records plan). Unresolved labels read as Voice N. Noise labels are dropped from the body and listed here. Wording is unchanged; a correction would be listed in `transcript.json`.
+Machine transcript `tx_293_9ccee9eb`, 603 segments, 1:05:13 of audio. Machine transcript and machine diarization; not audio reviewed. Speaker names are decided from evidence in the speaker table below. Unresolved labels read as Voice N. Noise labels are dropped from the body and listed here. Wording is unchanged; a correction would be listed in `transcript.json`.
 
 ## Speakers
 
 | Name | Labels | Share of words | Status | Evidence |
 |---|---|---|---|---|
-| Hansen | DOWN_01 | 52% | likely | voice match, Legion assigned hansen to 4074 of 4074 words |
-| Hash | DOWN_00 | 37% | likely | voice match, Legion assigned hash to 2946 of 2946 words |
+| Hansen | DOWN_01 | 52% | likely | automated voice match assigned hansen to 4074 of 4074 words |
+| Hash | DOWN_00 | 37% | likely | automated voice match assigned hash to 2946 of 2946 words |
 | Shawn Anderson | MIC | 11% | named | microphone track (76% of audio on Shawn's microphone) |
 
 ## Turns

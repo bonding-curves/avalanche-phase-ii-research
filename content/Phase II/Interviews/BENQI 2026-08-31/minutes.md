@@ -6,7 +6,7 @@
 
 **Mentioned, not present.** Eric, Matthias, Martin, Dan.
 
-**Source.** Legion transcript `tx_293_9ccee9eb`, machine transcript and diarization, not audio reviewed. Speaker names per the table in [transcript.md](/Phase-II/Interviews/BENQI-2026-08-31/transcript). Derived items from Legion's extraction run `tpf_293_20260909163544`; each is one machine reading with its evidence segment, not a reviewed record. Follow-through is updated as later meetings and commits land.
+**Source.** Machine transcript `tx_293_9ccee9eb` and machine diarization, not audio reviewed. Speaker names per the table in [transcript.md](/Phase-II/Interviews/BENQI-2026-08-31/transcript). Derived items from automated extraction run `tpf_293_20260909163544`; each is one machine reading with its evidence segment, not a reviewed record. Follow-through is updated as later meetings and commits land.
 
 ## Summary
 

@@ -1,6 +1,6 @@
 ---
 title: "Validator interview process strategy and method"
-description: "Private draft of participant selection, the eight-topic question spine, consent, evidence handling, and the sourced interview schedule."
+description: "Working description of participant selection, the eight-topic question spine, consent, evidence handling, and the sourced interview schedule."
 date: 2026-09-30
 status: draft
 owner: project-manager
@@ -11,7 +11,7 @@ interview_id: mh-2026-08-31-benqi-liquid-staking-interview
 
 The interviews explain staking decisions that the chain can record but cannot explain by itself. Their output is a set of traceable, testable hypotheses about duration, renewal, delegation, entry, and exit. Chain data test the observed actions. A single interview supplies neither population preferences nor calibrated response parameters.
 
-This private `I3` draft follows the September 30 modeling request at 18:40. Its method comes from the September 13 collaborator and interview plan. Its survey wording comes from the accompanying survey protocol. Those documents contain proposed gates and historical state, not proof that all approvals or activities occurred. Shawn's current authorization covers preparation of these drafts, not participant consent or client publication.
+This working method was recorded after the interview, in September 2026. It describes proposed research steps rather than proving that each step occurred. The research lead authorized sharing the interview material with the Avalanche Foundation on 28 October 2026. That decision does not establish participant consent for public publication or scientific acceptance of the analysis.
 
 ## Research strategy and selection
 
@@ -58,11 +58,11 @@ The BENQI conversation also explores an interviewer-proposed stablecoin. Code th
 
 ## Consent, access, and delivery
 
-The survey promises confidential responses reported only in aggregated or anonymized research. That statement is proposed participant-facing language. It does not record consent for the August 31 conversation or authorize named quotation. The source package documents a recording and machine transcript, but no consent record for Foundation delivery. The September 30 `I1` request assigns the account owner to seek permission through the appropriate contact. It remains separate from preparing `I2` and `I3`.
+The survey promises confidential responses reported only in aggregated or anonymized research. That statement is proposed participant-facing language. It does not record consent for the August 31 conversation or authorize named quotation. The source package documents a recording and machine transcript. The research lead authorized Foundation sharing on 28 October 2026. Participant consent for public publication remains unrecorded in this source package.
 
-Before further collection or delivery, record the participant's choices for recording, transcription, internal analysis, attribution, quotation, sharing with the Foundation, and public publication. Keep scope and recipients explicit. Record attribution preferences and any limits or withdrawal request. An invitation to continue chatting or discuss the stablecoin is not permission to deliver the full interview.
+Before further collection or public publication, record the participant's choices for recording, transcription, internal analysis, attribution, quotation, sharing with the Foundation, and public publication. Keep scope and recipients explicit. Record attribution preferences and any limits or withdrawal request. An invitation to continue chatting or discuss the stablecoin is not permission to deliver the full interview.
 
-Hash leads field coordination and method interpretation. Jeff leads editorial interpretation. Shawn directs the research and decides promotion. Agents prepare bounded evidence maps, checks, and drafts. This draft has no participant approval, scientific approval, or promotion decision attached to it. Raw recordings, identifying details, transcripts, and operational claims remain restricted. A client projection must carry only evidence whose delivery scope has been recorded and whose interpretation has been reviewed.
+Hash leads field coordination and method interpretation. Jeff leads editorial interpretation. Shawn directs the research. These working pages are shared with the Foundation under the research lead's authorization. They do not establish participant approval, audio verification or scientific acceptance. Public release requires a separate decision on attribution and quotation.
 
 ## How a statement becomes evidence
 
@@ -107,10 +107,10 @@ The plan's earlier onboarding phases `CV0` to `CV2` concern repository access an
 | ID | Evidence needed | Current draft state |
 | --- | --- | --- |
 | `A1` | Identified source and segment-level traceability | BENQI export located. Analysis references exact JSON segments. Audio and uncertain speaker labels remain unreviewed. |
-| `A2` | Recorded consent and delivery scope | Unrecorded for named quotation or Foundation transcript delivery. Account owns `I1`. |
+| `A2` | Recorded consent and delivery scope | Foundation sharing authorized by the research lead on 28 October 2026. Participant consent for public publication remains unrecorded. |
 | `A3` | Protocol version and method review | Historical version unconfirmed. Later plan and survey provide the proposed spine, with corrections still needed. |
 | `A4` | Checked claims with defined denominators and snapshot times | Analysis independently reproduces selected address counts, durations, and stake shares. Other claims remain untested. |
 | `A5` | Reviewed responses and model-input rationale | Draft hypotheses and limitations supplied. No accepted matrix or fitted behavior parameter. |
-| `A6` | Approved client projection | No promotion decision recorded for these drafts. They stay beside the private interview sources. |
+| `A6` | Foundation delivery | Working pages shared under the research lead's 28 October 2026 decision. Scientific acceptance and public publication remain separate. |
 
 The next review should resolve evidence and interpretation at those boundaries. It should not convert a structural check, a participant's forecast, or one information-rich case into a completed scientific finding.
