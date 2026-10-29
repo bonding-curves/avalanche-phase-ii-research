@@ -7,9 +7,9 @@ status: draft
 
 How did the amount and duration of new validator commitments differ around Helicon? This figure compares every new commitment starting in two equal windows around activation, through 26 October 2026. Each point represents one validator staking transaction.
 
-[Open the interactive figure](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/interactive.html) to inspect records, zoom and hide either cohort. The HTML works offline after download.
+[Open the interactive figure](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/interactive.html) to inspect the eras side by side, before on the left and after on the right. Both plots share axis ranges and bubble sizes, with linked zoom and pan. Each plot lists its gross committed AVAX, scheduled AVAX-days, commitment count, unique nodes and observation-window length. The HTML works offline after download.
 
-![F1. Stake amount against commitment duration, before and after Helicon.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/f1.png)
+![F1. Stake amount against commitment duration in two adjacent plots, before Helicon on the left and after Helicon on the right.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/f1.png)
 
 Short commitments appear after activation, but account for little of the scheduled AVAX-days. Of 514 post-Helicon commitments, 109 last less than seven days. They represent **21.2% of commitments, 8.7% of committed AVAX and 0.33% of AVAX-days**. None of the 440 pre-Helicon commitments lasts less than seven days.
 

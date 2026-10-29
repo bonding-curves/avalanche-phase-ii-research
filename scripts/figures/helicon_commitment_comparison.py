@@ -54,6 +54,16 @@ def bubble_area(stake_avax, duration_days, maximum_weight):
     return AREA_MAX_PT2 * bubble_weight(stake_avax, duration_days) / maximum_weight
 
 
+def annotation_lines(frame):
+    """Gross commitment totals and the length of each equal observation window."""
+    window_days = (END - ACTIVATION).total_seconds() / 86400
+    return [
+        f"AVAX committed: {frame.stake_avax.sum() / 1e6:,.2f}M · AVAX-days: {frame.avax_days.sum() / 1e9:,.3f}B",
+        f"Commitments: {len(frame):,} · Unique nodes: {frame.node_id.nunique():,}",
+        f"Window: {window_days:g} days (34 days, 9 hours)",
+    ]
+
+
 def write_size_metadata(folder, frame):
     path = folder / "provenance.json"
     metadata = json.loads(path.read_text())
@@ -68,6 +78,9 @@ def write_size_metadata(folder, frame):
         "additive_floor": 0,
         "shared_across": "Both cohorts, the static figure and the interactive figure",
     }
+    metadata["layout"] = (
+        "Before Helicon on the left, after Helicon on the right; identical axis ranges and size scale; linked interactive zoom and pan."
+    )
     path.write_text(json.dumps(metadata, indent=2) + "\n")
 
 
@@ -220,52 +233,56 @@ def static_plot(f, folder):
     plt.rcParams.update(
         {"font.family": "DejaVu Sans", "font.size": 11, "svg.hashsalt": "helicon-f1"}
     )
-    fig, ax = plt.subplots(figsize=(12, 7.5))
-    fig.subplots_adjust(left=0.11, right=0.97, bottom=0.24, top=0.78)
-    # Interleave cohorts deterministically so neither entire cohort sits on top.
-    shown = f.sample(frac=1, random_state=42)
+    fig, axes = plt.subplots(1, 2, figsize=(14, 8.5), sharex=True, sharey=True)
+    fig.subplots_adjust(left=0.08, right=0.98, bottom=0.24, top=0.69, wspace=0.12)
     maximum_weight = bubble_weight(f.stake_avax, f.duration_days).max()
-    ax.scatter(
-        shown.duration_days,
-        shown.stake_avax,
-        # Matplotlib s is squared diameter, so convert true circle area.
-        s=4
-        / np.pi
-        * bubble_area(shown.stake_avax, shown.duration_days, maximum_weight),
-        c=shown.cohort.map(COLOURS),
-        alpha=0.42,
-        linewidths=0.5,
-        edgecolors="white",
-    )
-    ax.set(
-        xscale="log",
-        yscale="log",
-        xlim=(1.8, 410),
-        ylim=(1600, 7e6),
-        xlabel="Commitment duration (days, log scale)",
-        ylabel="Stake amount (AVAX, log scale)",
-    )
-    ax.xaxis.set_major_locator(FixedLocator([2, 7, 14, 30, 90, 180, 365]))
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
-    ax.yaxis.set_major_locator(FixedLocator([2000, 10000, 100000, 1000000, 5000000]))
-    ax.yaxis.set_major_formatter(
-        FuncFormatter(lambda x, _: f"{x / 1e6:g}M" if x >= 1e6 else f"{x / 1e3:g}k")
-    )
-    ax.minorticks_off()
-    ax.grid(color="#dce1e6", lw=0.6)
-    ax.set_axisbelow(True)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    for cohort, colour in COLOURS.items():
+    for ax, (cohort, colour) in zip(axes, COLOURS.items()):
+        shown = f[f.cohort.eq(cohort)].sample(frac=1, random_state=42)
         ax.scatter(
-            [],
-            [],
-            s=65,
+            shown.duration_days,
+            shown.stake_avax,
+            # Matplotlib s is squared diameter, so convert true circle area.
+            s=4
+            / np.pi
+            * bubble_area(shown.stake_avax, shown.duration_days, maximum_weight),
             color=colour,
-            alpha=0.75,
-            label=f"{cohort} · {sum(f.cohort.eq(cohort))} commitments",
+            alpha=0.42,
+            linewidths=0.5,
+            edgecolors="white",
         )
-    ax.legend(loc="upper left", bbox_to_anchor=(0, 1.18), frameon=False, ncols=2)
+        ax.set(
+            xscale="log",
+            yscale="log",
+            xlim=(1.8, 410),
+            ylim=(1600, 7e6),
+            xlabel="Commitment duration (days, log scale)",
+        )
+        ax.set_title(cohort, fontsize=13, color=colour, pad=75)
+        ax.text(
+            0,
+            1.025,
+            "\n".join(annotation_lines(shown)),
+            transform=ax.transAxes,
+            va="bottom",
+            fontsize=10,
+            linespacing=1.5,
+            color="#566271",
+        )
+        ax.xaxis.set_major_locator(FixedLocator([2, 7, 14, 30, 90, 180, 365]))
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
+        ax.yaxis.set_major_locator(
+            FixedLocator([2000, 10000, 100000, 1000000, 5000000])
+        )
+        ax.yaxis.set_major_formatter(
+            FuncFormatter(lambda x, _: f"{x / 1e6:g}M" if x >= 1e6 else f"{x / 1e3:g}k")
+        )
+        ax.minorticks_off()
+        ax.grid(color="#dce1e6", lw=0.6)
+        ax.set_axisbelow(True)
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+    axes[0].set_ylabel("Stake amount (AVAX, log scale)")
+    ax = axes[0]
     fig.text(
         0.06,
         0.94,
@@ -284,8 +301,8 @@ def static_plot(f, folder):
     for value, x in zip(SIZE_EXAMPLES, [0.145, 0.36, 0.575]):
         ax.scatter(
             [x],
-            [-0.23],
-            transform=ax.transAxes,
+            [0.116],
+            transform=fig.transFigure,
             clip_on=False,
             s=4 / np.pi * bubble_area(value, 1, maximum_weight),
             color="#75808e",
@@ -293,9 +310,9 @@ def static_plot(f, folder):
         )
         ax.text(
             x + 0.025,
-            -0.23,
+            0.116,
             f"10$^{{{int(np.log10(value))}}}$",
-            transform=ax.transAxes,
+            transform=fig.transFigure,
             va="center",
             fontsize=10,
         )
@@ -336,32 +353,48 @@ def static_plot(f, folder):
 
 def interactive_plot(f, folder):
     from bokeh.embed import file_html
-    from bokeh.layouts import column
+    from bokeh.layouts import column, row
     from bokeh.models import (
         ColumnDataSource,
         Div,
         FixedTicker,
         HoverTool,
         NumeralTickFormatter,
+        Range1d,
+        Title,
     )
     from bokeh.plotting import figure
     from bokeh.resources import INLINE
 
     maximum_weight = bubble_weight(f.stake_avax, f.duration_days).max()
-    plot = figure(
-        title="F1 · Validator commitments before and after Helicon",
-        height=590,
-        sizing_mode="stretch_width",
-        x_axis_type="log",
-        y_axis_type="log",
-        x_range=(1.8, 410),
-        y_range=(1600, 7e6),
-        tools="pan,wheel_zoom,box_zoom,reset,save",
-        x_axis_label="Commitment duration (days, log scale)",
-        y_axis_label="Stake amount (AVAX, log scale)",
-    )
+    x_range, y_range = Range1d(1.8, 410), Range1d(1600, 7e6)
+    plots = []
     for cohort, colour in COLOURS.items():
         g = f[f.cohort.eq(cohort)].copy()
+        plot = figure(
+            title=cohort,
+            height=620,
+            sizing_mode="stretch_width",
+            x_axis_type="log",
+            y_axis_type="log",
+            x_range=x_range,
+            y_range=y_range,
+            tools="pan,wheel_zoom,box_zoom,reset,save",
+            x_axis_label="Commitment duration (days, log scale)",
+            y_axis_label="Stake amount (AVAX, log scale)",
+        )
+        plot.title.text_color = colour
+        # Add from the frame outward so the totals read in their natural order.
+        for line in reversed(annotation_lines(g)):
+            plot.add_layout(
+                Title(
+                    text=line,
+                    text_font_size="10px",
+                    text_font_style="normal",
+                    text_color="#566271",
+                ),
+                "above",
+            )
         # Bokeh size is diameter in CSS px. Convert the same circle area to diameter.
         g["diameter"] = (
             2
@@ -384,7 +417,6 @@ def interactive_plot(f, folder):
             fill_alpha=0.42,
             line_color=colour,
             line_alpha=0.65,
-            legend_label=f"{cohort} ({len(g)})",
         )
         plot.add_tools(
             HoverTool(
@@ -401,15 +433,15 @@ def interactive_plot(f, folder):
                 ],
             )
         )
-    plot.xaxis.ticker = FixedTicker(ticks=[2, 7, 14, 30, 90, 180, 365])
-    plot.yaxis.ticker = FixedTicker(ticks=[2000, 10000, 100000, 1000000, 5000000])
-    plot.yaxis.formatter = NumeralTickFormatter(format="0.[0]a")
-    plot.legend.click_policy = "hide"
-    plot.legend.location = "top_left"
-    plot.grid.grid_line_alpha = 0.3
+        plot.xaxis.ticker = FixedTicker(ticks=[2, 7, 14, 30, 90, 180, 365])
+        plot.yaxis.ticker = FixedTicker(ticks=[2000, 10000, 100000, 1000000, 5000000])
+        plot.yaxis.formatter = NumeralTickFormatter(format="0.[0]a")
+        plot.grid.grid_line_alpha = 0.3
+        plots.append(plot)
     intro = Div(
-        text="<p>Equal windows of <b>34 days, 9 hours</b> around 22 September 2026, 15:00 UTC. "
-        "Hover for records. Click a legend entry to hide its cohort. Drag or scroll to zoom.</p>"
+        text="<h2>F1 · Validator commitments before and after Helicon</h2>"
+        "<p>Equal windows of <b>34 days, 9 hours</b> around 22 September 2026, 15:00 UTC. "
+        "Before on the left, after on the right. Hover for records. Zoom and pan are linked between plots.</p>"
     )
     legend = []
     for value in SIZE_EXAMPLES:
@@ -434,7 +466,13 @@ def interactive_plot(f, folder):
         "This descriptive comparison does not establish a causal effect.</p>"
     )
     html = file_html(
-        column(intro, plot, size_legend, note, sizing_mode="stretch_width"),
+        column(
+            intro,
+            row(*plots, sizing_mode="stretch_width"),
+            size_legend,
+            note,
+            sizing_mode="stretch_width",
+        ),
         INLINE,
         "Helicon commitment comparison",
     )

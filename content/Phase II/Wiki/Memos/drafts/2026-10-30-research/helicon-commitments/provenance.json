@@ -116,5 +116,6 @@
     "additive_floor": 0,
     "shared_across": "Both cohorts, the static figure and the interactive figure"
   },
-  "interpretation": "Gross scheduled AVAX-days include future time and repeat capital across transactions. This is not realized exposure or a causal effect."
+  "interpretation": "Gross scheduled AVAX-days include future time and repeat capital across transactions. This is not realized exposure or a causal effect.",
+  "layout": "Before Helicon on the left, after Helicon on the right; identical axis ranges and size scale; linked interactive zoom and pan."
 }
