@@ -119,7 +119,7 @@ The economic interpretation follows ACP-285's stated objectives. The simulation 
 | [Gneiting and Raftery 2007](https://sites.stat.washington.edu/people/raftery/Research/PDF/Gneiting2007jasa.pdf) | Proper scoring rules and CRPS |
 | [Grant agreement](/Phase-II/Milestones/Milestone-0/Signed-Grant-Agreement) | The eight Milestone 2 deliverables |
 
-All five figures are existing outputs reused without graphical changes. The [figure manifest](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json) identifies their bytes. The simulated trajectory figure omits delegated issuance. The two analytical figures pool original response ranges, while the central trajectories use the fixed working values. Their captions retain that distinction.
+The [figure manifest](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json) identifies the reused image bytes. The [goal-utility manifest](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json) records the frozen aggregates used for the detailed and summary heatmaps. The central trajectory figure omits delegated issuance. The trade-off plot separates the original response sweep from the fixed working-response case. Its black marker represents simulated outcomes under preliminary settings.
 
 ## Notation
 

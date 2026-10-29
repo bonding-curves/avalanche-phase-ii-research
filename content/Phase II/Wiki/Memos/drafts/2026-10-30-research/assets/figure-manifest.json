@@ -25,6 +25,21 @@
       "file": "central-trajectories.png",
       "sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1",
       "reused_without_modification": true
+    },
+    {
+      "file": "stocks-and-flows.png",
+      "sha256": "ddaee777d18543fc02e0897404de73115ed0b3db3a502b13cba24cfa893f42d6",
+      "reused_without_modification": true
+    },
+    {
+      "file": "issuance-stake-tradeoff.png",
+      "sha256": "566835de5f43824e8cc273e45fca910cd0fdcae79ba392eeaff8406612bf60cd",
+      "reused_without_modification": true
+    },
+    {
+      "file": "central-record-comparison.png",
+      "sha256": "f6da05d0900dd7ac855b62df84f93bbf35b62c9c7afd600d476d8037ba9fc08d",
+      "reused_without_modification": true
     }
   ]
 }

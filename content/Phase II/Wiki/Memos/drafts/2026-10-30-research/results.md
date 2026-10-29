@@ -64,10 +64,10 @@ At working renewal and entry responses of 0.025 and 0.04, and an outside yield o
 
 These percentiles describe variation between simulated pairs. They are not confidence intervals for a causal effect or for the median. The [central-case evidence](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#central-case) identifies the underlying comparison and summary.
 
-Figure 1 shows how the same central runs develop over time. Both rules carry forward the pre-origin pattern of many relatively small entrants. Their paired difference is smaller than the uncertainty in either absolute path.
+Figure 1 compares the central simulated paths with the recorded population. The record moves toward fewer, larger validators, while the runs retain more validators with less own stake. This descriptive comparison shows a model limitation alongside the paired policy estimates.
 
-![Central paired trajectories](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/central-trajectories.png)
-*Figure 1. Central-case trajectories from 18 November 2025, with 50 pairs, renewal response 0.025 and entry response 0.04. Lines are medians and bands span the 10th–90th percentiles. The chain's rule adopts ACP-285 at Helicon. Simulated supply includes validator issuance and a burn assumption, but omits delegated issuance. The historical portions provide context.*
+![Recorded validator stake, count and supply alongside the central simulated paths.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png)
+*Figure 1. Recorded paths through 26 October 2026 and 50 paired runs from 18 November 2025. Lines are simulation medians and bands span the 10th to 90th percentiles, at renewal response 0.025 and entry response 0.04. The reference adopts ACP-285 at Helicon. Simulated supply includes validator issuance and a burn assumption, while delegated issuance is omitted. The overlay is descriptive and does not replace the separate held-back evaluation.*
 
 ## 2.3 KPI Computation
 
@@ -123,15 +123,15 @@ Of 512 sets of Sobol indices, 310 passed the convergence check. None of the 32 s
 
 The maximum consumption rate also matters because it prices longer commitments. ACP-285 leaves that parameter unchanged. Testing the minimum and maximum together therefore answers a different design question from lowering the minimum alone.
 
-Figure 3 shows the working combined score across minimum rates and renewal responses. Lower rates save more issuance and can score highly under the chosen weights. A high score does not guarantee that every participation threshold is met.
+Figure 3 compares the mechanism settings across all five working goals and their combined score. The ramp scores better on issuance and efficiency, while the duration curve and tenure boost score better on participation. These differences depend on the working utility mappings and weights.
 
-![Utility by reward floor and renewal response](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/utility-heatmap.png)
-*Figure 3. Mean combined utility for the first sweep's ramp runs at one year. Panels use annual outside yields of 3%, 5%, 7% and 10%. Entry response spans 0–0.1. The dots mark the preliminary central renewal response and brackets show Bitcoin-controlled alternatives. The colors encode BCRG's working preference scale, not an approved Foundation ranking.*
+![Goal utilities and combined score for four reward designs at one year.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png)
+*Figure 3. Mean utilities for 16,384 design runs at one year, with 4,096 per design family. Cells pool outside yields of 3%, 5%, 7% and 10% annually and renewal and entry responses from 0 to 0.1. The combined score weights the first four goals equally and duration at half their weight. A utility is a preference score. It is distinct from the share passing a threshold. Source: the included frozen goal-utility aggregates.*
 
-Figure 4 presents a complementary view. Its splits identify combinations of settings associated with passing the working goals. The tree describes the sampled simulations and does not establish an exact protocol threshold.
+Figure 4 expresses the ramp's trade-off in the original outcome units. Saving more issuance generally accompanies lower retained stake across the sampled settings. The fixed working-response comparison sits above the wider sweep's average stake retention near the same minimum rate.
 
-![Decision tree for working goal attainment](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png)
-*Figure 4. A classification tree for the ramp's 4,096 independent one-year runs across the original response range. The minimum rate supplies most splits. One lower-rate branch splits on renewal response at 0.041. Leaf pass shares describe that branch's sample and differ from pass shares pooled over all responses.*
+![Issuance saved against validator stake retained across ramp settings.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png)
+*Figure 4. First-sweep ramp results at one year. Teal points are half-point minimum-rate bin means, with shaded 10th to 90th percentiles of stake retained. The black point and error bars show simulated medians and marginal 10th to 90th percentiles across 50 pairs at the preliminary working responses and 5% annual outside yield. Both comparisons use the historical chain-rule reference and an early ramp start. Source: the existing sweep and central-case artifacts.*
 
 ## 2.6 Risk Surface Map
 

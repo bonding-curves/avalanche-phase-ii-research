@@ -77,7 +77,12 @@ The [rewards reconstructed from the chain](https://github.com/AVL-Foundation/ext
 
 ## 3. Five decisions turn the historical record into daily behaviour
 
-The model follows staking periods because periods are the commitments the chain records. It represents five decisions, each with a statistical form suited to its outcome. A **logistic model** estimates the probability of a yes-or-no decision. Their [implementations](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/model-v0.8.0/src/avalanche_research/model/parts) keep the questions separate.
+The model follows staking periods because periods are the commitments the chain records. Figure 1 shows how arrivals, renewals, departures and returns change the validator population, while new commitments update the supply counter.
+
+![Validator staking periods and supply represented as stocks and flows.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png)
+*Figure 1. Stocks and flows in model v0.8.0. Filled boxes persist between days, solid arrows move periods or AVAX, and dashed arrows carry information. Renewal and entry responses remain preliminary working settings. Source: the released implementation, with figure identity in the evidence manifest.*
+
+Five decisions determine those movements and commitments, each with a statistical form suited to its outcome. A **logistic model** estimates the probability of a yes-or-no decision. Their [implementations](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/model-v0.8.0/src/avalanche_research/model/parts) keep the questions separate.
 
 | Decision | Representation | Reason for the choice |
 | --- | --- | --- |
@@ -117,10 +122,10 @@ BCRG's preliminary working values, 0.025 for renewal and 0.04 for entry, use his
 
 Each proposed rule runs beside a **twin**, a simulation under the chain's rule using the same origin, fitted-parameter draw, outside conditions and keyed random numbers. The pairing reduces variation caused by unrelated random choices. Model error can still affect both paths and their difference.
 
-Figure 1 shows the order of one simulated day. The first four stages determine who starts a new period and what they commit. The reward stage prices those periods, then assembly constructs the next day's state.
+Figure 2 shows the order of one simulated day. The first four stages determine who starts a new period and what they commit. The reward stage prices those periods, then assembly constructs the next day's state.
 
 ![One simulated day in model v0.8.0](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png)
-*Figure 1. Renewal, return, arrival, continuation, rewards and assembly run in that order. Green stages draw stochastic decisions. Gray stages apply accounting. The final checks stop a run on invalid stake, inconsistent totals or supply violations. This existing diagram is traced from the v0.8.0 implementation.*
+*Figure 2. Renewal, return, arrival, continuation, rewards and assembly run in that order. Green stages draw stochastic decisions. Gray stages apply accounting. The final checks stop a run on invalid stake, inconsistent totals or supply violations. This existing diagram is traced from the v0.8.0 implementation.*
 
 The daily state includes open periods and their attributes, departed nodes and their history, scheduled starts, and supply accounting. Validator stake, validator count and issuance are derived from the evolving periods. The model checks individual stake bounds, the reconciliation of stake totals, the maximum absence tracked, supply below the cap and stake within supply.
 
