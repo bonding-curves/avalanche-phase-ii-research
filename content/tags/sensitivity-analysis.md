@@ -13,13 +13,13 @@ Which parameters and inputs drive each result.
 | --- | --- | --- | --- |
 | [2.5 Sensitivity Analysis](/Phase-II/Milestones/Milestone-2/2-5-Sensitivity-Analysis/) | BCRG |  | Rank correlations, variance shares, decision trees and forests that show which inputs decide each measure and goal. |
 | [2.7 Workshop 1](/Phase-II/Milestones/Milestone-2/2-7-Workshop-1/) | BCRG |  | The Milestone 2 overview on 30 October 2026 and Workshop 1 on 13 November 2026: the model, the results, the goals and the Foundation's answers. |
-| [Sensitivity Analysis Report](/Phase-II/Milestones/Milestone-2/Sensitivity-Analysis-Report/) | BCRG |  | Milestone 2 of Avalanche Phase II tests reward designs on a model of every validator. ACP-285's lower minimum rate makes each AVAX issued hold more stake, and the thresholds the Foundation sets for security and participation decide whether the best minimum rate is near 6% or near 9%. |
+| [Sensitivity Analysis Report](/Phase-II/Milestones/Milestone-2/Sensitivity-Analysis-Report/) | BCRG |  | Milestone 2 of Avalanche Phase II tests reward designs on a model of every validator. At the first measured responses, ACP-285's ramp started early saves 12.8% of one year's issuance and keeps 98.7% of validator stake, and the Foundation's thresholds choose among minimum rates. |
 
 ## Briefs
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [2026-10-30-milestone-2](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/) | BCRG | October 30, 2026 | The agenda brief for the 30 October call: what the chain's data shows since Helicon, Milestone 2 and the structure of the model, the plan for Workshop 1 on 13 November, and the plan for Milestone 3 in December and January. |
+| [2026-10-30-milestone-2](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/) | BCRG | October 30, 2026 | The agenda brief for the 30 October call: the chain's data since Helicon, Milestone 2 and the model, Workshop 1 on 13 November, and Milestone 3 in December and January. |
 
 ## Research papers
 

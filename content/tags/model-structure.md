@@ -19,7 +19,7 @@ Specifying an economic system as states, actions, and update rules. For whether 
 
 | Page | Authors | Date | Summary |
 | --- | --- | --- | --- |
-| [2026-10-30-milestone-2](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/) | BCRG | October 30, 2026 | The agenda brief for the 30 October call: what the chain's data shows since Helicon, Milestone 2 and the structure of the model, the plan for Workshop 1 on 13 November, and the plan for Milestone 3 in December and January. |
+| [2026-10-30-milestone-2](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/) | BCRG | October 30, 2026 | The agenda brief for the 30 October call: the chain's data since Helicon, Milestone 2 and the model, Workshop 1 on 13 November, and Milestone 3 in December and January. |
 
 ## Essential Readings
 

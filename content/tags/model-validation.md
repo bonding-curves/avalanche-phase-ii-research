@@ -13,7 +13,7 @@ Tests that decide whether a model can be trusted for policy. For how a model is 
 | --- | --- | --- | --- |
 | [Preliminary Validation Report](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/) | BCRG |  | Milestone 1's success criterion: a first goodness-of-fit assessment of staking model v0.7 against the P-Chain's history, covering verification of its protocol layer, forecast scores at 19 dates against simple forecasts, the contract's correlation test, and the held-back test still to come. |
 | [2.4 Validation Confirmation](/Phase-II/Milestones/Milestone-2/2-4-Validation-Confirmation/) | BCRG |  | The forecast-skill standard that chose model v0.8.0, its scores against simple forecasts, and the frozen held-back test. |
-| [Sensitivity Analysis Report](/Phase-II/Milestones/Milestone-2/Sensitivity-Analysis-Report/) | BCRG |  | Milestone 2 of Avalanche Phase II tests reward designs on a model of every validator. ACP-285's lower minimum rate makes each AVAX issued hold more stake, and the thresholds the Foundation sets for security and participation decide whether the best minimum rate is near 6% or near 9%. |
+| [Sensitivity Analysis Report](/Phase-II/Milestones/Milestone-2/Sensitivity-Analysis-Report/) | BCRG |  | Milestone 2 of Avalanche Phase II tests reward designs on a model of every validator. At the first measured responses, ACP-285's ramp started early saves 12.8% of one year's issuance and keeps 98.7% of validator stake, and the Foundation's thresholds choose among minimum rates. |
 
 ## Research papers
 
