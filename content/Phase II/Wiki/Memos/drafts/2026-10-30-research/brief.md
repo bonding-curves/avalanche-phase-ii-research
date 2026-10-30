@@ -25,12 +25,20 @@ Commitments shorter than seven days made about 26%–27% of weekly new validator
 
 Renewal within fourteen days was 86.2% for 320 nodes ending between Helicon and 12 October, compared with 85.6% of 1,235 endings in the preceding 90 days, using the same fourteen-day follow-up. These descriptive observations do not isolate the upgrade's effect. The model uses a separate seven-day renewal definition. [Data and definitions](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#post-helicon-observations).
 
+Figures 1 and 2 compare new commitments in equal windows around Helicon. The scatter shows individual commitments, while the density plot shows where their scheduled AVAX-days concentrate.
+
+![New validator commitments before and after Helicon, with duration, stake and AVAX-day histograms.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-scatter.png)
+*Figure 1. Equal 34-day, 9-hour windows around 22 September 2026, 15:00 UTC, through 26 October. Each point is a commitment. Bubble area is proportional to the square root of scheduled AVAX-days. Both axes are logarithmic. Bars show each era's AVAX-day shares. These are gross commitments, including future days and potentially repeated capital, rather than net stake added. [Data and methods](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/).*
+
+![AVAX-day weighted density before and after Helicon, on the same duration and stake axes.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-kde.png)
+*Figure 2. The same commitments, weighted by scheduled AVAX-days. Kernel density estimation smooths their distribution using common bandwidths of 1.5 days and 0.12 log₁₀-AVAX. Density is normalized within each era. Smoothing below 14 days before Helicon and 2 days after is hidden. The plots describe the record and do not isolate Helicon's effect. [Density definition and exports](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/).*
+
 ## 2. The model compares reward formulas on issuance and stake
 
 Each reward design runs beside the historical chain formula under the same conditions and random draws. The heatmap summarizes four designs across the five working goals. The ramp scores better on issuance, while the alternatives score better on participation. The combined score expresses their balance under BCRG's working weights.
 
 ![Mean utilities for four reward designs across five goals and the combined score.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/mechanism-utilities.png)
-*Figure 1. Run-weighted mean utilities at one year across 16,384 design runs. Outside yields and behavioural responses are pooled. Combined weights are equal for the first four goals and half for duration. A high combined score does not guarantee that every goal passes. [Mechanisms, KPIs and experiments](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#7-experiments-turn-trajectories-into-design-comparisons).*
+*Figure 3. Run-weighted mean utilities at one year across 16,384 design runs. Outside yields and behavioural responses are pooled. Combined weights are equal for the first four goals and half for duration. A high combined score does not guarantee that every goal passes. [Mechanisms, KPIs and experiments](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#7-experiments-turn-trajectories-into-design-comparisons).*
 
 ## 3. Workshop 1 should settle the evaluation criteria
 
