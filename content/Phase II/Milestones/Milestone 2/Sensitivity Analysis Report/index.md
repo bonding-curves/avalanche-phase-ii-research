@@ -26,13 +26,13 @@ A change tried on the live network shows its effect only over months and reaches
 Avalanche pays validators in new AVAX at a reward fixed when each staking period starts, and the reward per AVAX shrinks as supply nears its cap. Since Helicon a staking period lasts 48 hours to one year, against 14 days before. Let $S_{\max}$ be the supply cap of 720 million AVAX and $S$ the supply counter of the P-Chain, the chain that records stakes, when the staking period starts. Let $s$ be the stake in AVAX, $d$ the duration in days and $T_{\text{mint}}$ one year of 365 days. A validator that meets the protocol's uptime requirement, a minimum share of the period spent online and responsive, receives
 
 $$
-R(s, d, S) = \min\left\{ S_{\max} - S, \; (S_{\max} - S) \frac{s}{S} \frac{d}{T_{\text{mint}}} r(d) \right\}, \qquad r(d) = r_{\min} + (r_{\max} - r_{\min}) \frac{d}{T_{\text{mint}}},
+R(s, d, S) = \min\left\lbrace S_{\max} - S, \ (S_{\max} - S) \frac{s}{S} \frac{d}{T_{\text{mint}}} r(d) \right\rbrace, \qquad r(d) = r_{\min} + (r_{\max} - r_{\min}) \frac{d}{T_{\text{mint}}},
 $$
 
 where the minimum and maximum consumption rates $r_{\min}$ and $r_{\max}$ are the annual shares of the stake's portion of the room under the cap, $S_{\max} - S$, that a stake earns (AvalancheGo, `vms/platformvm/reward/calculator.go`). The annualized reward rate (ARR), as a fraction of stake a year, is
 
 $$
-\text{ARR}(d, S) = r(d) \, \kappa(S), \qquad \kappa(S) = \frac{S_{\max} - S}{S}.
+\text{ARR}(d, S) = r(d) \thinspace \kappa(S), \qquad \kappa(S) = \frac{S_{\max} - S}{S}.
 $$
 
 The scarcity factor $\kappa(S_0)$ was 0.548 at the supply counter $S_0$ of 465 million AVAX on 18 November 2025, when total supply was 454.1 million AVAX. The counter runs ahead of total supply because it adds each promised reward when the stake starts, and every annualized reward rate beside a consumption rate uses $\kappa(S_0)$.
@@ -93,7 +93,7 @@ where $z$ holds thirteen indicators of the period's tenure, duration and stake, 
 First-ever arrivals on day $t$ are a negative binomial count,
 
 $$
-n_t \sim \text{NegBin}(\mu_t, \kappa), \qquad \mu_t = \min\left\{ 100, \, \mu_0 e^{\theta_E g_t} \right\}, \qquad \operatorname{Var}(n_t) = \mu_t + \frac{\mu_t^2}{\kappa},
+n_t \sim \text{NegBin}(\mu_t, \kappa), \qquad \mu_t = \min\left\lbrace 100, \ \mu_0 e^{\theta_E g_t} \right\rbrace, \qquad \mathrm{Var}(n_t) = \mu_t + \frac{\mu_t^2}{\kappa},
 $$
 
 with fitted mean $\mu_0 = 3.89$ nodes a day and dispersion $\kappa = 0.49$.
@@ -141,13 +141,13 @@ Every run is scored at 180 and 365 days by five goals built on fourteen measures
 | --- | --- | --- |
 | G1 Security holds, 1 | Stake kept, weighted 2, and worst 30-day stake fall | $s_W \ge 0.95$, and the fall is at most 2 percentage points of stake deeper |
 | G2 Validators stay and stay spread, 1 | Validators kept, Nakamoto coefficient, return margin | At least 95% kept, with at most one node fewer and 1 percentage point of stake a year of margin lost |
-| G3 Holders pay less, 1 | Issuance saved, weighted 2, and net inflation | $s_I > 0$, and net inflation at most 5% of supply a year |
+| G3 Holders pay less, 1 | Issuance saved, weighted 2, and net inflation | $s_I \gt 0$, and net inflation at most 5% of supply a year |
 | G4 Security per AVAX issued, 1 | $s_W/(1 - s_I)$ | At least 1 |
 | G5 Longer commitments, 0.5 | Stake-weighted commitment length | At least 99% of the twin's |
 
 The Nakamoto coefficient is the fewest validators holding over a third of validators' own stake. The return margin is $M = 100 \overline{\text{ARR}} - y - c$ percentage points a year, where $\overline{\text{ARR}}$ is the annualized reward rate validators earn and $c$ is an operating cost of 1.5% of stake a year. Net inflation is a year's issuance less fees burned, as a share of total supply.
 
-Each measure $m$ scores the clipped-linear utility $u(m) = \min\{1, \max\{0, (m - m_0)/(m_1 - m_0)\}\}$, which is 0 at a lower bound $m_0$ and 1 at a target $m_1$. Figure 6 and the goal specification give each measure's $m_0$ and $m_1$. Goal utilities average their measures' utilities by weight, and the combined utility averages the goals by the table's weights.
+Each measure $m$ scores the clipped-linear utility $u(m) = \min\lbrace 1, \max\lbrace 0, (m - m_0)/(m_1 - m_0)\rbrace\rbrace$, which is 0 at a lower bound $m_0$ and 1 at a target $m_1$. Figure 6 and the goal specification give each measure's $m_0$ and $m_1$. Goal utilities average their measures' utilities by weight, and the combined utility averages the goals by the table's weights.
 
 A run passes when it meets every measure's pass line in all five goals at once. A half-point cell $k$ of the minimum rate, holding at least 30 runs, meets the goals when at least 90% of its runs pass, pooling the outside yields and the swept responses, each response weighted equally.
 
@@ -209,7 +209,7 @@ At the measured responses, ACP-285's ramp to a 7.5% minimum rate, about 4.1% of 
 ![Figure 11](./figure-11-f225.png)
 *Figure 11. Mean issuance saved against mean validator stake kept for each half-point cell of the ramp's minimum consumption rate, both as shares of the paired one-year run under the chain's rule, with the 10th to 90th percentile of stake kept shaded and G1's pass line of 95% dashed. Each percentage point off the rate, about 0.55 points of a 48-hour stake's annualized reward rate a year, saves about 5.5 points more of the year's issuance and gives up about 1.3 points of stake, and the 10th percentile of stake kept crosses 95% near a rate of 8%, about 4.4% of stake a year. The ring marks the sweep's cell centred on ACP-285's 7.5%, from 7.25% to 7.75%, about 4.0% to 4.2% of stake a year, at 13.3% saved and 97.2% kept.*
 
-With each response from 0 to 0.1 weighted equally, combined utility peaks at 0.77 at minimum rates of 6% to 6.5%, which pay a 48-hour stake 3.3% to 3.6% of stake a year. The acceptable range $\mathcal{A} = \{k : P(\text{pass} \mid k) \ge 0.9\}$, the cells that meet the goals, holds only 9% to 9.5%, paying 4.9% to 5.2%, where 93.1% of runs pass. The range stays at 9% to 9.5% when G1's threshold for stake kept rises from 95% to 97%, and widens to 8.5% to 9.5% when it falls to 90% or the pass rule falls to 80% of runs. Validators kept and commitment length set its lower edge. Issuance saved sets its upper edge, passing in only 72.0% of runs at 9.5% to 10%, about 5.2% to 5.5% of stake a year, because from Helicon, day 308, the chain's own ramp pays new stakes less than such a design.
+With each response from 0 to 0.1 weighted equally, combined utility peaks at 0.77 at minimum rates of 6% to 6.5%, which pay a 48-hour stake 3.3% to 3.6% of stake a year. The acceptable range $\mathcal{A} = \lbrace k : P(\text{pass} \mid k) \ge 0.9\rbrace$, the cells that meet the goals, holds only 9% to 9.5%, paying 4.9% to 5.2%, where 93.1% of runs pass. The range stays at 9% to 9.5% when G1's threshold for stake kept rises from 95% to 97%, and widens to 8.5% to 9.5% when it falls to 90% or the pass rule falls to 80% of runs. Validators kept and commitment length set its lower edge. Issuance saved sets its upper edge, passing in only 72.0% of runs at 9.5% to 10%, about 5.2% to 5.5% of stake a year, because from Helicon, day 308, the chain's own ramp pays new stakes less than such a design.
 
 ![Figure 12](./figure-12-f046.png)
 *Figure 12. The point estimate with the highest combined utility, each goal's range in which at least 90% of runs meet that goal, and the global range in which every goal holds in at least 90% of runs, on one axis of minimum consumption rate, with thin lines for outside yields of 3%, 5%, 7% and 10% a year. The point estimate at rates of 6% to 6.5%, about 3.3% to 3.6% of stake a year for a 48-hour stake, lies below the global range of 9% to 9.5%, about 4.9% to 5.2%, and ACP-285's 7.5%, about 4.1%, falls between them. At an outside yield of 3% a year the global range widens to 8.5% to 9.5%, about 4.7% to 5.2% of stake a year.*
