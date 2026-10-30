@@ -157,3 +157,16 @@ uv run python scripts/model_v080_selection.py verdict
 The included JSON and CSV files allow checking the displayed counts, ratios and forecast summaries. They contain aggregate evidence and omit individual validator records.
 
 Full simulation reproduction also needs the pinned historical staking tables, fitted-parameter draws, experiment specifications and the corresponding analysis code. A data pin checks input bytes already present. It does not download those snapshots. The [setup guide](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/SETUP.md) records that distribution requirement. The package reports no completed held-back score and performs no new scoring of the reserved period.
+
+
+## Explanatory figures
+
+The reward-duration plot illustrates the formula at a fixed supply counter. The conditional pass heatmap redraws the frozen integer counts above. The two brief diagrams show proposed evaluation choices and dates. Their [inputs](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json), [output hashes](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json), [reward values](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv) and [pass counts](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv) are included. These figures require no simulation or new scoring.
+
+From the repository root:
+
+```bash
+uv run --frozen --group notebook --with matplotlib==3.10.8 python \
+  scripts/figures/research_explanatory_figures.py \
+  'content/Phase II/Wiki/Memos/drafts/2026-10-30-research'
+```

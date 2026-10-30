@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="820.8pt" height="374.4pt" viewBox="0 0 820.8 374.4" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.8, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 374.4 
+L 820.8 374.4 
+L 820.8 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 316.008 314.496 
+L 775.656 314.496 
+L 775.656 86.112 
+L 316.008 86.112 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 493.164 189.066057 
+L 541.044 189.066057 
+L 541.044 175.290514 
+L 493.164 175.290514 
+z
+" clip-path="url(#p7da9181fb1)" style="fill: #087f8c; opacity: 0.85"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 655.956 225.317486 
+L 708.624 225.317486 
+L 708.624 211.541943 
+L 655.956 211.541943 
+z
+" clip-path="url(#p7da9181fb1)" style="fill: #087f8c; opacity: 0.85"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1">
+      <path d="M 349.524 314.496 
+L 349.524 86.112 
+" clip-path="url(#p7da9181fb1)" style="fill: none; stroke: #e0e6ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_2"/>
+     <g id="text_1">
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #536176" x="349.524" y="333.614125" transform="rotate(-0 349.524 333.614125)">Nov 2026</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_3">
+      <path d="M 493.164 314.496 
+L 493.164 86.112 
+" clip-path="url(#p7da9181fb1)" style="fill: none; stroke: #e0e6ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_4"/>
+     <g id="text_2">
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #536176" x="493.164" y="333.614125" transform="rotate(-0 493.164 333.614125)">Dec 2026</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_5">
+      <path d="M 641.592 314.496 
+L 641.592 86.112 
+" clip-path="url(#p7da9181fb1)" style="fill: none; stroke: #e0e6ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_6"/>
+     <g id="text_3">
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #536176" x="641.592" y="333.614125" transform="rotate(-0 641.592 333.614125)">Jan 2027</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_7"/>
+     <g id="text_4">
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="114.234491" transform="rotate(-0 306.008 114.234491)">Model walkthrough</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_8"/>
+     <g id="text_5">
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="150.48592" transform="rotate(-0 306.008 150.48592)">Workshop 1: evaluation criteria</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_9"/>
+     <g id="text_6">
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="186.737348" transform="rotate(-0 306.008 186.737348)">Recommendations and scenarios</text>
+     </g>
+    </g>
+    <g id="ytick_4">
+     <g id="line2d_10"/>
+     <g id="text_7">
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="222.988777" transform="rotate(-0 306.008 222.988777)">Finalize recommendations and playbook</text>
+     </g>
+    </g>
+    <g id="ytick_5">
+     <g id="line2d_11"/>
+     <g id="text_8">
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="259.240205" transform="rotate(-0 306.008 259.240205)">Workshop 2: review</text>
+     </g>
+    </g>
+    <g id="ytick_6">
+     <g id="line2d_12"/>
+     <g id="text_9">
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="295.491634" transform="rotate(-0 306.008 295.491634)">Final delivery</text>
+     </g>
+    </g>
+   </g>
+   <g id="PathCollection_1">
+    <defs>
+     <path id="m87048aee6e" d="M 0 4.031129 
+C 1.069068 4.031129 2.094493 3.606384 2.850439 2.850439 
+C 3.606384 2.094493 4.031129 1.069068 4.031129 0 
+C 4.031129 -1.069068 3.606384 -2.094493 2.850439 -2.850439 
+C 2.094493 -3.606384 1.069068 -4.031129 0 -4.031129 
+C -1.069068 -4.031129 -2.094493 -3.606384 -2.850439 -2.850439 
+C -3.606384 -2.094493 -4.031129 -1.069068 -4.031129 0 
+C -4.031129 1.069068 -3.606384 2.094493 -2.850439 2.850439 
+C -2.094493 3.606384 -1.069068 4.031129 0 4.031129 
+z
+" style="stroke: #3566a3"/>
+    </defs>
+    <g clip-path="url(#p7da9181fb1)">
+     <use xlink:href="#m87048aee6e" x="339.948" y="109.675429" style="fill: #3566a3; stroke: #3566a3"/>
+    </g>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="348.948" y="112.710741" transform="rotate(-0 348.948 112.710741)">30 Oct</text>
+   </g>
+   <g id="PathCollection_2">
+    <defs>
+     <path id="m2d8ad9717c" d="M -0 5.700877 
+L 5.700877 0 
+L 0 -5.700877 
+L -5.700877 -0 
+z
+" style="stroke: #b85c00"/>
+    </defs>
+    <g clip-path="url(#p7da9181fb1)">
+     <use xlink:href="#m2d8ad9717c" x="406.98" y="145.926857" style="fill: #b85c00; stroke: #b85c00"/>
+    </g>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="415.98" y="148.96217" transform="rotate(-0 415.98 148.96217)">13 Nov</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #23354d" x="517.104" y="169.178286" transform="rotate(-0 517.104 169.178286)">1–11 Dec</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #23354d" x="682.29" y="205.429714" transform="rotate(-0 682.29 205.429714)">4–15 Jan</text>
+   </g>
+   <g id="PathCollection_3">
+    <g clip-path="url(#p7da9181fb1)">
+     <use xlink:href="#m2d8ad9717c" x="675.108" y="254.681143" style="fill: #b85c00; stroke: #b85c00"/>
+    </g>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="684.108" y="257.716455" transform="rotate(-0 684.108 257.716455)">8 Jan</text>
+   </g>
+   <g id="PathCollection_4">
+    <g clip-path="url(#p7da9181fb1)">
+     <use xlink:href="#m87048aee6e" x="708.624" y="290.932571" style="fill: #3566a3; stroke: #3566a3"/>
+    </g>
+   </g>
+   <g id="text_15">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="717.624" y="293.967884" transform="rotate(-0 717.624 293.967884)">15 Jan</text>
+   </g>
+  </g>
+  <g id="text_16">
+   <text style="font-weight: 700; font-size: 19px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="32.832" y="33.157031" transform="rotate(-0 32.832 33.157031)">Proposed research schedule</text>
+  </g>
+  <g id="text_17">
+   <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #536176" x="32.832" y="55.918125" transform="rotate(-0 32.832 55.918125)">October 2026 to January 2027 · dates and responsibilities remain to be confirmed</text>
+  </g>
+  <g id="text_18">
+   <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #536176" x="32.832" y="359.424" transform="rotate(-0 32.832 359.424)">Workshops settle criteria and review results. Work periods develop recommendations and the scenario playbook.</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p7da9181fb1">
+   <rect x="316.008" y="86.112" width="459.648" height="228.384"/>
+  </clipPath>
+ </defs>
+</svg>

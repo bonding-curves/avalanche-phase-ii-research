@@ -42,7 +42,10 @@ Each reward design runs beside the historical chain formula under the same condi
 
 ## 3. Workshop 1 should settle the evaluation criteria
 
-The proposed 13 November workshop will review the system, its results and the criteria for subsequent recommendations. The Foundation should select the objectives and participation safeguards, then the thresholds and preference weights.
+The proposed 13 November workshop should settle the objectives and participation safeguards, then the key performance indicators, or KPIs, thresholds and preference weights. Figure 4 shows that sequence.
+
+![Objectives, KPIs, acceptance thresholds and preference weights as successive evaluation choices.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.png)
+*Figure 4. Proposed evaluation choices for Workshop 1. The existing results use BCRG's working thresholds and weights. The Foundation can select its own criteria. [Goals, measures and scoring](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#72-goals-guide-which-outcomes-the-experiments-measure).*
 
 **Q1.** Which measures should lead: inflation on which supply base, use of the remaining issuance budget and stake-weighted duration? Which participation measures should act as safeguards?
 
@@ -50,7 +53,10 @@ The proposed 13 November workshop will review the system, its results and the cr
 
 ## 4. Milestone 3 should evaluate the next mechanism against those criteria
 
-The proposed sequence develops recommendations and a scenario playbook during 1–11 December and 4–15 January, with Workshop 2 proposed for 8 January and final delivery targeted for 15 January 2027. These are working targets to confirm.
+The proposed Milestone 3 schedule places evaluation criteria before recommendations and scenario planning. Figure 5 shows the work periods, workshop reviews and final delivery target.
+
+![Proposed work periods and workshops from 30 October 2026 through final delivery on 15 January 2027.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png)
+*Figure 5. Proposed schedule from the 30 October walkthrough to January delivery. Work periods develop recommendations and the scenario playbook. Dates and responsibilities remain to be confirmed.*
 
 Revenue-funded rewards are a useful next mechanism because they directly address the transition from issuance to protocol revenue. Their evaluation needs an explicit funding source and a formula for revenue shortfalls.
 

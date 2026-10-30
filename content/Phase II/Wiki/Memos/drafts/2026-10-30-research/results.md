@@ -140,14 +140,10 @@ Figure 5 shows which combinations of minimum rate and renewal response are assoc
 
 ## 2.6 Risk Surface Map
 
-The range meeting every working threshold depends on the response sample and the comparison formula. The table below uses half-percentage-point minimum-rate bands and pools all four outside yields.
+The range meeting every working threshold depends on the response sample and comparison formula. At minimum rates from 7.5% to below 8.0%, 88.9% of near-central runs pass, compared with 68.0% in the wider response window. Figure 6 shows the differences across all ten rate bands.
 
-| Response sample | Minimum-rate band | Runs meeting every working threshold |
-| --- | --- | ---: |
-| Near the central responses | 7.5% to below 8.0% | 48 of 54, or 88.9% |
-| Near the central responses | 8.0% to below 9.5% | 93.5%–98.1% across the three bands |
-| Wider renewal range | 8.5% to below 9.5% | 90.6%–93.5% across the two bands |
-| Wider renewal range | 9.5% to 10.0% | 65.6% |
+![All-goal pass shares and integer counts across ten minimum-rate bands and two behavioural response windows.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png)
+*Figure 6. Share meeting all five working goals in the first sweep's independent A and B blocks at 365 days. Each cell shows the pass percentage and passes/runs. Bands include their lower boundary and exclude their upper boundary. Outside yields of 3%, 5%, 7% and 10% annually are pooled. The response windows overlap. These sample shares depend on BCRG's thresholds and do not measure confidence in a response estimate. Source: the [included frozen counts](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json).*
 
 The near-central sample uses renewal responses from 0.01 to 0.04 and entry responses from 0.02 to 0.06. The wider sample uses renewal from 0.01 to 0.06 and the full entry range from 0 to 0.1. These are slices of the original sweep, with about 50 or 200 runs per band respectively. They are not experiments at an exact minimum rate. The [full count tables](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#conditional-goal-regions) preserve their denominators.
 

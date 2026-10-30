@@ -57,6 +57,11 @@ A 2,000 AVAX stake for 14 days at the preceding counter and rates earns about 2,
 
 ACP-285 keeps the 12% maximum and lowers the minimum from 10% to 7.5% over 90 days after Helicon. A period receives the configuration applicable at its start. The direct reduction is therefore greatest for short commitments, while a one-year commitment keeps the same consumption rate.
 
+Figure 1 compares annualized rewards before Helicon and after the ramp at the same supply counter.
+
+![Annualized reward against duration before Helicon and after the completed ACP-285 ramp.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png)
+*Figure 1. Formula illustration at a supply counter of 465 million AVAX, a supply cap of 720 million AVAX and a 12% maximum consumption rate. Curves start at each configuration's minimum duration: 14 days before Helicon and 2 days after. Orange uses the 7.5% minimum reached after the 90-day ramp. Values precede integer rounding. Source: the [v0.8.0 reward implementation](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc/src/avalanche_research/domain/protocol/__init__.py).*
+
 ## 2. The data fixes what the model can learn
 
 Each experiment starts on an **origin**, the day used to initialize the simulation. Its **state** is the information carried between days, including open periods and the supply counter. Fitting uses only observations available through the end of the origin's UTC day. The model can therefore be compared with subsequent observations without having learned their outcomes.
@@ -77,10 +82,10 @@ The [rewards reconstructed from the chain](https://github.com/AVL-Foundation/ext
 
 ## 3. Five decisions turn the historical record into daily behaviour
 
-The model follows staking periods because periods are the commitments the chain records. Figure 1 shows how arrivals, renewals, departures and returns change the validator population, while new commitments update the supply counter.
+The model follows staking periods because periods are the commitments the chain records. Figure 2 shows how arrivals, renewals, departures and returns change the validator population, while new commitments update the supply counter.
 
 ![Validator staking periods and supply represented as stocks and flows.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png)
-*Figure 1. Stocks and flows in model v0.8.0. Filled boxes persist between days, solid arrows move periods or AVAX, and dashed arrows carry information. Renewal and entry responses remain preliminary working settings. Source: the released implementation, with figure identity in the evidence manifest.*
+*Figure 2. Stocks and flows in model v0.8.0. Filled boxes persist between days, solid arrows move periods or AVAX, and dashed arrows carry information. Renewal and entry responses remain preliminary working settings. Source: the released implementation, with figure identity in the evidence manifest.*
 
 Five decisions determine those movements and commitments, each with a statistical form suited to its outcome. A **logistic model** estimates the probability of a yes-or-no decision. Their [implementations](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/model-v0.8.0/src/avalanche_research/model/parts) keep the questions separate.
 
@@ -122,10 +127,10 @@ BCRG's preliminary working values, 0.025 for renewal and 0.04 for entry, use his
 
 Each proposed formula runs beside a **twin**, a simulation under the chain's formula using the same origin, fitted-parameter draw, outside conditions and keyed random numbers. The pairing reduces variation caused by unrelated random choices. Model error can still affect both paths and their difference.
 
-Figure 2 shows the order of one simulated day. The first four stages determine who starts a new period and what they commit. The reward stage prices those periods, then assembly constructs the next day's state.
+Figure 3 shows the order of one simulated day. The first four stages determine who starts a new period and what they commit. The reward stage prices those periods, then assembly constructs the next day's state.
 
 ![One simulated day in model v0.8.0](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png)
-*Figure 2. Renewal, return, arrival, continuation, rewards and assembly run in that order. Green stages draw stochastic decisions. Gray stages apply accounting. The final checks stop a run on invalid stake, inconsistent totals or supply violations. This existing diagram is traced from the v0.8.0 implementation.*
+*Figure 3. Renewal, return, arrival, continuation, rewards and assembly run in that order. Green stages draw stochastic decisions. Gray stages apply accounting. The final checks stop a run on invalid stake, inconsistent totals or supply violations. This existing diagram is traced from the v0.8.0 implementation.*
 
 The daily state includes open periods and their attributes, departed nodes and their history, scheduled starts, and supply accounting. Validator stake, validator count and issuance are derived from the evolving periods. The model checks individual stake bounds, the reconciliation of stake totals, the maximum absence tracked, supply below the cap and stake within supply.
 
