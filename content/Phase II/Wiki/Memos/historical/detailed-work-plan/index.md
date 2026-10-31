@@ -1,0 +1,315 @@
+---
+title: "Detailed Work Plan"
+description: "Historical work plan with the original text and later research context."
+date: "2026-10-30"
+kind: archival-edition
+original_kind: "work plan"
+status: "historical"
+source_id: 35360ed9-0ab7-80ed-93ce-df089f5b3350
+reader: "Avalanche Foundation and Ava Labs researchers"
+question: "What did this earlier research propose or report, and how does it relate to the October model?"
+---
+
+Historical edition. Context added 30 October 2026.
+
+The May work plan proposed extending an equilibrium account of staking with a fitted model of adjustment over time. It sets out candidate response functions, validation targets, parameter sweeps and the intended handoff. These are commitments made at the start of the engagement.
+
+The proposed aggregate hyperbolic tangent response was superseded by models of individual staking periods. Model v0.8.0 fits renewal, return and arrival behaviour, draws durations and stake amounts from historical choices, and varies the assumed response to rewards. The [October model explanation](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#3-five-decisions-turn-the-historical-record-into-daily-behaviour) describes those decisions. The [validation report](/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/#14-how-this-test-relates-to-the-proposal) explains how the forecast tests differ from this plan's original targets.
+
+The original equations retain their own notation. For the implemented reward formula and the distinction between consumption rate and annualised reward rate, use the [October formula explanation](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#1-the-reward-formula-links-duration-to-the-issuance-budget).
+
+## Source record
+
+The source records creation on May 1, 2026 3:24 PM and last editing on May 8, 2026 10:24 AM. Its timezone is unspecified. The creator field names Shawn Anderson, which does not establish sole authorship. The preserved export is labelled 1 July 2026.
+
+[Original Markdown as text](/Phase-II/Wiki/Memos/historical/detailed-work-plan/original-35360ed9-0ab7-80ed-93ce-df089f5b3350.txt) · [Source identities and hashes](/Phase-II/Wiki/Research-History/manifest.json) · [Research chronology](/Phase-II/Wiki/Research-History/)
+
+The reading edition changes heading depth, metadata line breaks and local image routes. Earlier repository-file links lead to a list of their original URLs. The retained text download preserves the exported bytes.
+
+## Original text
+
+<!-- historical-original:start -->
+### Detailed Work Plan
+
+Created By: Shawn Anderson  
+Creation Time: May 1, 2026 3:24 PM  
+Description: Methodology Briefing: Avalanche Staking Economics, Phase II  
+Last Edited Time: May 8, 2026 10:24 AM  
+Sprint: Sprint 1  
+Status: Draft  
+
+### Methodology Briefing: Avalanche Staking Economics, Phase II
+
+*Bonding Curve Research Group · Specification of execution methods for the staking parameter selection engagement*
+
+---
+
+#### Purpose of This Document
+
+Phase II is structured to interface directly with the analytical framework Eric has developed at the Avalanche Foundation. This briefing specifies how that interface works in operational detail: which equations we are taking as specification, where our methodology fills the remaining gaps, what protocols govern each step of execution, and what ships to the Foundation at the end. It is intended for Eric and any other Foundation reviewers who need to understand not just *what* we are delivering but *how* the work is done.
+
+The structure follows the technical sequence of the work itself, beginning with the mathematical framework that scopes everything that follows.
+
+---
+
+#### 1. Starting from the Equations
+
+Eric's framework is our specification. We treat his three core formal elements as fixed reference points and build **Phase II** to interface cleanly with each.
+
+**Agent optimization.** Each representative agent maximizes expected utility over a continuous trade-off between liquid and staked positions:
+
+$$
+\max_{x_t, \theta_t} \, \mathbb{E}\left[\int_0^\infty e^{-\rho s}\, U(x_s, \theta_s, r_s, \mu_s)\, ds\right]
+$$
+
+where $x_t$ is liquid holdings (yielding convenience utility), $θ_t$ is staked holdings (incurring convenience loss but earning rewards $r_t$), and $μ_t$ is expected price appreciation. The first-order conditions partition wealth between liquid and staked positions.
+
+**Equilibrium fixed point.** With homogeneous agents, individual $θ_t$ equals aggregate $Θ_t$. The reward rate $r_t$ is a function of $Θ_t$ (rewards dilute as more capital stakes), which in turn determines $Θ_t$ through agents' optimization. Equilibrium is the fixed point:
+
+$$
+\Theta^*_t = \theta^*(r^*_t), \quad r^*_t = r(\Theta^*_t)
+$$
+
+**Market clearing price.** Token price emerges from supply available to liquidity demand:
+
+$$
+P_t = \frac{(1-\Theta_t)\, S_t\, A_t}{Q^*_t}\left(\frac{1-\alpha}{r^f - \mu_t - \Gamma_t}\right)^{\alpha}
+$$
+
+**Stochastic demand.** Aggregate demand follows geometric Brownian motion with potentially time-varying drift and volatility:
+
+$$
+\frac{dS_t}{S_t} = \mu^S\, dt + \sigma^S\, dZ^S_t
+$$
+
+**The methodological gap.** This framework specifies the equilibrium Θ*_t and the resulting P_t for given protocol parameters. It does not specify how Θ_t *evolves* between equilibria, how it responds to off-equilibrium shocks, or how persistent deviations from the rational benchmark behave under the bounded attention and lagged adjustment of real participants. Equivalently: the framework gives us conditions on equilibria but not transition dynamics.
+
+Phase II contributes exactly the missing pieces:
+
+1. A **behavioral specification** for dΘ/dt that interpolates between the rational equilibrium and observed dynamics.
+2. A **calibrated** instantiation of that specification against 2024–2025 Avalanche data.
+3. A **systematic search** over the protocol parameters (governance surface) that determine where $Θ*{_t}$ lies and how robustly the system reaches it.
+
+The remainder of this briefing specifies how each is executed.
+
+---
+
+#### 2. Behavioral Specification: Building dΘ/dt
+
+The first-order conditions describe what an optimizing agent *should* do at equilibrium. They do not describe response *speed*, lagged adjustment, capital constraints, or the bounded rationality of real participants. Phase II models the staking flow as a bounded sigmoid response to the spread between native APR and external opportunity cost:
+
+$$
+\frac{d\Theta_t}{dt} = \kappa(\Theta_t)\,\tanh\!\left(r(\Theta_t) - r^{\text{ext}}_t - \pi(\Theta_t)\right)
+$$
+
+where:
+
+- r($Θ_t$) is the native APR derived from the protocol's reward function
+- $r^{ext_t}$ is the external opportunity cost (DeFi yields, treasury rates), entered as a scenario variable
+- $π(Θ_t)$ is the risk premium for illiquidity, price risk, and validator/operational risk
+- $κ(Θ_t)$ is the response sensitivity, bounded above by available capital and rebalancing speed
+
+**Why bounded sigmoid.** The functional form is not arbitrary. (i) Real flows are bounded above by available capital and below by zero in each direction. (ii) Smooth, differentiable response is required for stability analysis and for the regression methods used downstream. (iii) The S-curve shape captures the empirical observation that small APR differentials produce muted response while large ones saturate against capital constraints. (iv) The form interpolates between two limiting cases that the agent-optimization framework already understands: at small spreads, it approximates linear response (matching local first-order behavior); at large spreads, it saturates (matching capital constraints).
+
+The choice of tanh specifically over logistic, arctangent, or piecewise-linear alternatives is empirical. **The functional form is treated as a calibration target, not a fixed assumption.** Milestone 1 fits multiple candidate forms and selects on goodness-of-fit against held-out data.
+
+**Behavioral parameters as state variables.** This is the central methodological commitment of Phase II versus Phase I.
+
+| Parameter | Phase I Treatment | Phase II Treatment |
+| --- | --- | --- |
+| `STAKING_SENSITIVITY` | Fixed at 0.1 | State variable: κ as function of spread |
+| `OPPORTUNITY_COST` | Fixed at 5% | State variable: r^ext_t from scenario |
+| `AVG_RESTAKE_RATE` | Fixed at 67% | State variable: function of compounding incentive |
+| `COMMISSION_RATE` | Constant | Distribution parameter, varies across validators |
+
+Each Phase I constant is replaced in Phase II by a fitted function with explicit uncertainty bounds. This is what allows the simulation outputs to support inference rather than illustration.
+
+---
+
+#### 3. Calibration Protocol
+
+Calibration is the precondition for everything that follows. A miscalibrated behavioral model produces a parameter sweep that describes an imagined system rather than the real one. Calibration is therefore treated as a gating criterion: PSUU sweeps do not begin until validation passes.
+
+**Data ingestion (M1).** Avalanche-provided historical data spanning 2024–2025: validator and delegator stake/unstake events, reward distributions, lockup duration distributions, validator entry/exit, and commission rates. Complemented with publicly available external data: ETH staking yields, lending market rates, and AVAX price history. A data manifest documents sources, transformations, and quality metrics.
+
+**Fit procedure.** For each behavioral parameter:
+
+1. Construct the empirical analogue from on-chain data (e.g., observed daily net staking flow as a fraction of circulating supply, paired with the contemporaneous APR–external yield spread).
+2. Fit candidate functional forms (tanh, logistic, piecewise-linear) by maximum likelihood, using residual structure to inform error bounds.
+3. Cross-validate against held-out 2025 data to detect overfit.
+4. Carry forward the fitted function plus its parameter uncertainty as the calibrated specification.
+
+**Validation thresholds.** A backtest initializes the model at January 2025 state and simulates forward through December 2025. The simulated trajectory is compared to observed history:
+
+| Metric | Target |
+| --- | --- |
+| Trajectory correlation (Pearson r) | > 0.90 |
+| RMSE on staking ratio | < 2 percentage points |
+| Direction accuracy (% of timesteps trends match) | > 85% |
+| Turning point phase alignment | Within ± 7 days |
+
+**If validation fails.** Re-fit functional forms; widen uncertainty bounds on parameters; revisit assumptions about the relevant opportunity cost basket. Validation must pass before proceeding to Milestone 2.
+
+**Output of M1.** A behavioral specification grounded in 2024–2025 Avalanche dynamics, with explicit uncertainty bounds on each parameter, ready to feed Monte Carlo runs in PSUU.
+
+---
+
+#### 4. PSUU Applied to the Staking Subsystem
+
+Parameter Selection Under Uncertainty (PSUU) is the systematic search over the governance surface that produces actionable parameter recommendations. For staking specifically, the structure is:
+
+**Governance surface (controllable parameters).**
+
+| Parameter | Current | Sweep Range |
+| --- | --- | --- |
+| t_min (minimum lockup) | 2 weeks | 1 week – 3 months |
+| t_max (maximum lockup) | 1 year | 6 months – 2 years |
+| Y_min (APR at t_min) | ~6% | 4% – 8% |
+| Y_max (APR at t_max) | ~8% | 6% – 12% |
+| α_v (validator share) | ~80% | 60% – 90% |
+
+**Environmental scenarios.** External yields ({3%, 5%, 7%, 10%}), market sentiment (Bull, Neutral, Bear), and L1 adoption rate (Low, Medium, High). Organized into four scenario groups: Baseline, High Volatility, Shock Events, Sustained Stress. Each governance configuration runs across all scenarios with multiple Monte Carlo seeds to capture stochastic variation in behavioral response.
+
+**Trajectory tensor.** Approximately 50,000 trajectories: ~500 governance configurations × 20 scenarios × 5 Monte Carlo runs. Each trajectory produces 7 KPI measurements, yielding ~350,000 KPI data points indexed as T[c, s, r, k].
+
+**KPIs and goal hierarchy.**
+
+| Goal | KPIs |
+| --- | --- |
+| G1: Incentive Alignment | `VAL_PROFITABILITY`, `APR_VOLATILITY` |
+| G2: Participation Distribution | `DECENTRALIZATION`, `VALIDATOR_COUNT` |
+| G3: Network Security | `STAKING_RATIO`, `STAKING_VOLATILITY`, `NET_INFLATION` |
+
+KPIs are scored pass/fail against thresholds defined relative to the median across trajectories. Per-goal utilities aggregate the threshold-passing metrics:
+
+$$
+\pi_j(C) = \sum_{i:\, T_i \in \mathcal{T}_j} k_i\, T_i
+$$
+
+where 𝒯_j is the set of metrics assigned to goal j and k_i are importance weights.
+
+Decision trees and regression analysis over the resulting utility tensor identify which parameters most influence which goals, where threshold effects exist, and where parameters interact non-additively.
+
+**Recommendation tiers.**
+
+1. **Point estimates** — single best-guess value per parameter, for governance teams that want a default
+2. **Per-goal ranges** — bounds optimized for each goal individually, exposing trade-offs explicitly
+3. **Global ranges** — bounds satisfying all three goals simultaneously, the robust region of the design space
+
+**Canonical output statement.** Findings are reported in a standard form for direct use in governance discussions:
+
+> *Under all tested scenarios, (higher/lower) values of (parameter) have a (significant/somewhat/inconclusive/none) effect on steering the system towards fulfilling (KPI/Goal).*
+> 
+
+This format is chosen so that recommendations can be consumed by ACP discussions and Foundation decision-making without requiring re-interpretation by the analyst.
+
+---
+
+#### 5. Mechanism Iteration Interface
+
+The Phase II framework treats the reward function C(t_stake) as a *pluggable component* of the simulation rather than a fixed assumption. This is a methodological commitment: any conclusion about the current linear C should be testable against alternative specifications proposed by the Foundation or external collaborators.
+
+**Current form (linear).**
+
+$$
+C(t_{\text{stake}}) = Y_{\min} + (Y_{\max} - Y_{\min}) \cdot \frac{t_{\text{stake}} - t_{\min}}{t_{\max} - t_{\min}}
+$$
+
+**Pluggable variants.** Any function C: ℝ₊ → [Y_min, Y_max] that respects the boundary conditions and monotonicity. The framework supports:
+
+- **Piecewise-linear** — multiple segments with different slopes, allowing concentrated rewards at specific durations
+- **State-dependent** — C depends on current Θ_t, e.g., to discourage over-staking past a target ratio
+- **Node-age-weighted** — additional multiplier based on validator tenure, rewarding long-term commitment beyond lockup duration alone
+- **Activity-weighted** — multiplier based on validation reliability or other operational metrics
+
+**Evaluation turnaround.** Under five business days per mechanism proposal. Output for each proposal:
+
+- Correlation table mapping the proposed mechanism's parameters to all 7 KPIs
+- Confidence ratings on each correlation
+- Recommendation tier (point estimate / per-goal range / global range) per parameter
+- Comparison to the current linear C as baseline
+
+This workflow follows the methodology demonstrated in the Subspace Issuance Function Economic Report, where multiple issuance designs were evaluated within a unified framework against identical scenarios and KPIs. The intent is that mechanism ideation generated externally — by the Foundation, by other collaborators — feeds directly into rigorous comparative evaluation without requiring separate model rebuilds.
+
+---
+
+#### 6. The Equilibrium Trap as Methodological Constraint
+
+Phase I work surfaced an empirical regularity that shapes Phase II: native staking APR converges to approximately 5–6% across a wide range of issuance configurations. Higher issuance increases the staking ratio (more security) but lowers per-staker yield (dilution); lower issuance has the opposite effect. APR is an *output* of market clearing under behavioral arbitrage, not an *input* the protocol controls.
+
+This finding shapes Phase II in three concrete ways.
+
+**(a) The recommendation framing changes.** We do not optimize for a target APR. We characterize the security/inflation trade-off frontier — what staking ratio (and therefore what level of economic security) is achievable at what inflation cost. The goal hierarchy in §4 is structured to surface this directly: G3 (Network Security) and G1 (Incentive Alignment) are jointly considered, with the per-goal recommendation tier exposing exactly which parameter regions favor which goal.
+
+**(b) The threat model changes.** Since native APR is pegged by market clearing within a tight band, the operational risk to participation is not internal yield calibration — it is *external opportunity cost regime shifts*. If Treasury rates rise to 6%, or if a competing chain offers persistently higher real yield, native stakers will exit regardless of how the protocol parameterizes its reward function. Phase II therefore stress-tests the staking subsystem against external yield scenarios from 3% to 10%, including shock and sustained regimes.
+
+**(c) The connection to L1 utility becomes load-bearing.** If Θ*_t is constrained by external yields and APR is bounded by arbitrage, the lever for protocol value creation is *demand* — the A_t term in the price equation. L1 adoption produces fee burn and increases demand. Phase II treats L1 adoption as an environmental scenario variable rather than an endogenous outcome (full L1 modeling is out of scope for the staking engagement), but recommendations are framed to highlight which parameter regions are robust to varying L1 trajectories.
+
+The Equilibrium Trap is not a limitation of the methodology; it is a finding the methodology surfaces. Phase II's task is to characterize the trap precisely and identify the parameter regions where the trapped equilibrium is desirable.
+
+---
+
+#### 7. Working Practice
+
+**Cadence.** Four 2-month delivery blocks plus a final wrap-up month, structured around milestone reviews:
+
+- **M0 (Months 1–2)** — Kickoff, data access, success-criteria alignment, detailed work plan, mechanism interface specification
+- **M1 (Months 3–4)** — Data ingestion, model specification, behavioral calibration, preliminary validation
+- **M2 (Months 5–6)** — PSUU infrastructure, simulation execution, sensitivity analysis, Workshop #1, collaborative mechanism design
+- **M3 (Months 7–8)** — Parameter recommendations, scenario playbook, open-source release, Workshop #2, integration of review feedback
+- **Wrap-up (Month 9)** — Final revisions, training, communications support, administrative closeout
+
+**Memocracy.** Every research question, design decision, parameter choice, calibration result, and mechanism evaluation is captured as a memo at the time of decision. The corpus of memos is the project's coordination layer. Three operational consequences:
+
+1. The Foundation can audit any choice at any time without scheduling a meeting.
+2. Mechanism iterations have a permanent record — what was tried, why, what the result was, what was discarded and why.
+3. The handoff at the end of Phase II includes not just the model but the reasoning trail that produced it.
+
+**Collaboration model with the Foundation.** Eric and other Foundation reviewers are members of the methodology — not external reviewers receiving finished outputs. Specifically:
+
+- **Behavioral specification choices** (functional forms, calibration metrics, opportunity cost basket) are reviewed before fitting begins.
+- **Scenario boundaries** (external yield ranges, shock magnitudes, market sentiment definitions) are agreed at M0.
+- **Mechanism alternatives** are proposed by the Foundation or external collaborators; BCRG provides the analytical engine, not the design ideation.
+- **Recommendation framing** (which trade-offs are surfaced, how decision trees are presented, how the canonical answer template is instantiated) is iterated through Workshop #1 and incorporated before final delivery.
+
+This model is what allows the deliverable to be operationally useful rather than merely correct.
+
+---
+
+#### 8. Deliverable Architecture
+
+What ships at the end of Phase II:
+
+**Code.** Open-source repository containing the calibrated staking model, the PSUU pipeline, the mechanism evaluation interface, and the analysis notebooks. Reproducible from documentation alone — the Foundation team can re-run any analysis or extend the model as conditions evolve.
+
+**Calibration record.** The fitted behavioral specification with explicit uncertainty bounds, validation metrics on 2024–2025 data, and the data manifest documenting sources and transformations.
+
+**Parameter recommendations.** Three-tier output (point estimates, per-goal ranges, global ranges) for each governance surface parameter. Decision trees and correlation tables mapping parameters to KPIs and goals. Each finding stated in the canonical answer template.
+
+**Scenario playbook.** Conditional recommendations of the form *"If external yields move to X, the parameter region that remains robust shifts to Y."* Designed for ongoing operational use, not just one-time decision support.
+
+**Mechanism evaluations.** For each alternative reward function the Foundation or external collaborators propose during Phase II, a comparative analysis against the current linear C and against other proposals.
+
+**Memo trail.** Research questions, design decisions, surprises, and discarded directions — the audit and continuity layer.
+
+**Workshops.** Two structured sessions: a model walkthrough with preliminary findings (Workshop #1, mid-engagement) and a how-to-run-scenarios training (Workshop #2, near closeout).
+
+The intended end state: the Foundation has both the analytical framework and the tools to use it independently. The next ACP discussion on validator and delegation mechanisms can be informed by simulation evidence rather than priors. Eric's framework gains a calibrated behavioral layer it did not have before. The trade-off frontier between security and inflation is explicit, with the parameter regions that produce robust outcomes identified by name.
+
+---
+
+#### 9. Open Methodological Questions
+
+A briefing this specific should also be honest about what remains genuinely uncertain entering Milestone 0. Three open questions are flagged for early discussion:
+
+**Functional form of the response.** tanh is the working hypothesis; logistic and piecewise-linear are alternatives. The empirical fit will determine the choice, but if multiple forms fit comparably, a methodological decision is required. The default is to carry the best-fit form forward and note sensitivity to alternatives in the recommendation report.
+
+**Definition of opportunity cost.** r^ext_t in the behavioral equation is a basket — but what basket? ETH staking yields plus stablecoin lending? A weighted DeFi composite? Treasury rates as the floor? The choice affects calibration meaningfully. M0 will establish the basket definition jointly with the Foundation.
+
+**Treatment of L1 adoption.** Phase II treats L1 adoption as exogenous (a scenario variable), but L1 fee burn affects $A_t$ and therefore the price equation, which feeds back into staking incentives through $μ_t$. The Phase II scope draws the boundary at "staking subsystem with L1 dynamics as environment." Phase III could endogenize this, but for Phase II we hold the boundary firm.
+
+These are the kinds of decisions that benefit from being made deliberately at the start of the engagement rather than discovered late.
+
+---
+
+*Document maintained by the Bonding Curve Research Group. Updates and revisions captured in the project memo trail.*<!-- historical-original:end -->

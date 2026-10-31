@@ -1,0 +1,26 @@
+# Qualitative Calibration & Stakeholder Interviews
+
+Created By: Hash
+Creation Time: May 21, 2026 5:00 AM
+Last Edited Time: June 5, 2026 2:11 AM
+Sprint: Sprint 2
+
+### **The Purpose of this Research Phase**
+
+While structural econometric data and on-chain analytics can reveal *what* validators and delegators are doing, they cannot fully explain the *why*. Recent analysis (e.g., Berry/McFadden estimations of Avalanche staking preferences) confirms that market participants optimize for annualized yield (APY) over absolute income. However, aggregate data is fundamentally blind to the operational constraints, regulatory anxieties, and business model realities that drive those decisions.
+
+This document serves as the foundation for our **Qualitative Ground-Truthing** phase.
+
+### **The Methodology: Mechanism Design as a Social Process**
+
+We cannot successfully design or evaluate new reward levers (e.g., tenure-weighted boosts, dynamic GDP-linked issuance) in a theoretical vacuum. To ensure our "Heterogeneous Agent Laboratory" (cadCAD) models reality rather than just mathematical assumptions, we must treat mechanism design as an iterative, social process.
+
+Our workflow relies on three steps:
+
+1. **Discovery (The Interviews):** Gather the actual operational floors, pain points, and strategic goals from the humans running the infrastructure (SaaS Pros, OGs, Delegators).
+2. **Translation (The Formalization):** Convert those human insights into mathematical constraints and behavioral "Archetypes."
+3. **Validation (The Digital Wind Tunnel):** Use our PSUU simulation engine to stress-test the unintended consequences of the proposed reward mechanics before they ever touch Mainnet.
+
+### **The Goal**
+
+By executing these structured interviews, we ensure that the economic levers we recommend to the Avalanche Foundation are not just mathematically sound, but politically viable, operationally feasible, and truly aligned with the network's long-term sustainability goals.

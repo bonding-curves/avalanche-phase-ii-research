@@ -1,0 +1,627 @@
+{
+  "documents": {
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md": "tier-1-june-5.md",
+    "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md": "detailed-work-plan.md",
+    "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md": "qualitative-calibration.md",
+    "content/Phase II/Wiki/Research History/index.md": "README.md"
+  },
+  "files": [
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Interviews/BENQI 2026-08-31/index.md",
+      "source_sha256": "66c0f6bc0e56d8dab1bcf01c678bb7fca85cc840c621fe88f3c2139ebab95f84"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Milestones/Milestone 1/Preliminary Validation Report/index.md",
+      "source_sha256": "e6aef2e47497b9bdb7de784f42ae3cfc834a9f38547e58cfe5deadc2ba5d9202"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png",
+      "export_sha256": "ec815fc82ccbe71347067653ed16bb8b27519729e7f95f1a4980b53611c522ad",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png",
+      "source_sha256": "ec815fc82ccbe71347067653ed16bb8b27519729e7f95f1a4980b53611c522ad"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png",
+      "export_sha256": "4eb8ec3c7c4e9d6c05a3f007ec2e377f65f337df202c696b23d693245da9b689",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png",
+      "source_sha256": "4eb8ec3c7c4e9d6c05a3f007ec2e377f65f337df202c696b23d693245da9b689"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map.png",
+      "export_sha256": "b31b834d45ded72e6d27fd02be21c167869dba1da40387e5ccdc4200bfd18ae8",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map.png",
+      "source_sha256": "b31b834d45ded72e6d27fd02be21c167869dba1da40387e5ccdc4200bfd18ae8"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png",
+      "export_sha256": "ced3795377be4bc891a1fd807a2f26c6cba951bb5530e00c7beed5a00216f416",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png",
+      "source_sha256": "ced3795377be4bc891a1fd807a2f26c6cba951bb5530e00c7beed5a00216f416"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png",
+      "export_sha256": "5c143f154ae2c8f3e7a4ee5e49736f64f8dd6f965c466ddcc8cb1510b89f57cb",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png",
+      "source_sha256": "5c143f154ae2c8f3e7a4ee5e49736f64f8dd6f965c466ddcc8cb1510b89f57cb"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti.png",
+      "export_sha256": "35fd68fafe67cc97ec3ac7cb704090f0beb174f53782a5e075e7339cc4789643",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti.png",
+      "source_sha256": "35fd68fafe67cc97ec3ac7cb704090f0beb174f53782a5e075e7339cc4789643"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan.png",
+      "export_sha256": "a31a49e6229e708b949e66cad9dc6c157d88ad8e40aa99931cc341c479b97777",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan.png",
+      "source_sha256": "a31a49e6229e708b949e66cad9dc6c157d88ad8e40aa99931cc341c479b97777"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density.png",
+      "export_sha256": "c791a7c2ac708650cf04b7689e68062cca9c1fc619226c785c5a6f0736aa77d8",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density.png",
+      "source_sha256": "c791a7c2ac708650cf04b7689e68062cca9c1fc619226c785c5a6f0736aa77d8"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples.png",
+      "export_sha256": "c3347a6d766a16317a7804366350f62f794ce463d517bb88213647802aa4b7f2",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples.png",
+      "source_sha256": "c3347a6d766a16317a7804366350f62f794ce463d517bb88213647802aa4b7f2"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff.png",
+      "export_sha256": "a93e581aa1efa4fcc4a8bb43fe608e3e7a4287b305fa72d227eefc13fe43c4ea",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff.png",
+      "source_sha256": "a93e581aa1efa4fcc4a8bb43fe608e3e7a4287b305fa72d227eefc13fe43c4ea"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png",
+      "export_sha256": "65b6e8fc075c1e0ecec1990b4b7259f30662252b7ed0746238a1192611e132a7",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png",
+      "source_sha256": "65b6e8fc075c1e0ecec1990b4b7259f30662252b7ed0746238a1192611e132a7"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png",
+      "export_sha256": "29243ac425791ab731ae39c476f3d1560a4d6825103c16e742255d1aa9c6557f",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png",
+      "source_sha256": "29243ac425791ab731ae39c476f3d1560a4d6825103c16e742255d1aa9c6557f"
+    },
+    {
+      "export": "tier-1-june-5.md",
+      "export_sha256": "6942a786918a7f039a80a1d642305c5ca30f874062c5c20642d2f678770c6308",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "source_sha256": "2ed4c7fd6b151c0e798ce8bc478ae53287e6c8500f43c81513a2d9f05e6990a8"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/original-37660ed9-0ab7-800b-91d4-c2c4e5b43e03.txt",
+      "export_sha256": "65efeda904cc5ebdcfca0d4af78dcf9c7c0d47ca18d65d5d14ff8e6a2fcef9e5",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/original-37660ed9-0ab7-800b-91d4-c2c4e5b43e03.txt",
+      "source_sha256": "65efeda904cc5ebdcfca0d4af78dcf9c7c0d47ca18d65d5d14ff8e6a2fcef9e5"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "source_sha256": "1141f81d8b1854016995ca0356b23c630bd2f1d772b61f791904b6bb98dc5a86"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "source_sha256": "1cb0dafaa9f406076264edef3b5b3145fa9fab96890908cd453b2b7dd834e6bd"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "source_sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd"
+    },
+    {
+      "export": "detailed-work-plan.md",
+      "export_sha256": "0c9ae53408bbaa23a7a48c27fb853a1a0075a8285cdb8e44c206bcd8673cb343",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md",
+      "source_sha256": "018366e649fb097eb6b9b739110967ab689843db0657d7d642ce85491e6bb72f"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/historical/detailed-work-plan/original-35360ed9-0ab7-80ed-93ce-df089f5b3350.txt",
+      "export_sha256": "caac4b1be867543a43ca93c013efd775d6cbd51d98f2c5ef101a511e4b8c317a",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/original-35360ed9-0ab7-80ed-93ce-df089f5b3350.txt",
+      "source_sha256": "caac4b1be867543a43ca93c013efd775d6cbd51d98f2c5ef101a511e4b8c317a"
+    },
+    {
+      "export": "qualitative-calibration.md",
+      "export_sha256": "2f86463bb1c9c8b515a94e10028f8ffbacc13586e9ee2e573d07481e7a76140e",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md",
+      "source_sha256": "652475c57bf51861207b6d59afa182b96fe54533b017c76742cd31f352132de1"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/historical/qualitative-calibration/original-36760ed9-0ab7-8091-81aa-c833e5e89366.txt",
+      "export_sha256": "c3286cf6d317957eada4aa33e5f6e9167c5a8cc03c2dc10665702f4ecc018e53",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/original-36760ed9-0ab7-8091-81aa-c833e5e89366.txt",
+      "source_sha256": "c3286cf6d317957eada4aa33e5f6e9167c5a8cc03c2dc10665702f4ecc018e53"
+    },
+    {
+      "export": "README.md",
+      "export_sha256": "6eebc78bea258533171bfd169e701b8870aeb5df18fbc7d6b2e0a026b9c65ce0",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "source_sha256": "7280a05940c7d9b2ccffabb69c23921a23e516fe30410a0f491189a624bd299a"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Research History/manifest.json",
+      "export_sha256": "4f8bc075f2229a30db5e20b577e186ecfcf88975fd1c720dbf16453a0cd90238",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "source_sha256": "47e18b6512f83a0cea62cae8f7d01260b1c32a2f4939186c7a3441481da542bb"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "docs/review/2026-10-30/evidence.md",
+      "source_sha256": "c71ad43fc9f214c720666fc2b20230e76c8eb5ce35a35ef4fed86795f97bc47f"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "docs/review/2026-10-30/modeling.md",
+      "source_sha256": "2db87da425982a374c11c2db623379d94ffc0a36f2e842b4f367c899c7f9b9f0"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "docs/review/2026-10-30/results.md",
+      "source_sha256": "b19aff2b2422628d44c3e0fee9e80c759550aba584feaed2396c84464792ccb1"
+    }
+  ],
+  "output": "docs/research-history",
+  "references": [
+    {
+      "destination": "docs/research-history/detailed-work-plan.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/detailed-work-plan/",
+      "rewritten": "detailed-work-plan.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md"
+    },
+    {
+      "destination": "docs/research-history/qualitative-calibration.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/qualitative-calibration/",
+      "rewritten": "qualitative-calibration.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md"
+    },
+    {
+      "destination": "docs/research-history/tier-1-june-5.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/",
+      "rewritten": "tier-1-june-5.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology",
+      "rewritten": "../review/2026-10-30/modeling.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/evidence.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence",
+      "rewritten": "../review/2026-10-30/evidence.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/results.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results",
+      "rewritten": "../review/2026-10-30/results.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Research History/manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Research%20History/manifest.json",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Research History/manifest.json"
+    },
+    {
+      "destination": "content/Phase II/Interviews/BENQI 2026-08-31/index.md",
+      "fragment": "",
+      "href": "/Phase-II/Interviews/BENQI-2026-08-31/",
+      "rewritten": "../../content/Phase%20II/Interviews/BENQI%202026-08-31/index.md",
+      "source": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md",
+      "target": "content/Phase II/Interviews/BENQI 2026-08-31/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "rewritten": "../review/2026-10-30/modeling.md#3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "source": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Memos/historical/qualitative-calibration/original-36760ed9-0ab7-8091-81aa-c833e5e89366.txt",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/qualitative-calibration/original-36760ed9-0ab7-8091-81aa-c833e5e89366.txt",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/historical/qualitative-calibration/original-36760ed9-0ab7-8091-81aa-c833e5e89366.txt",
+      "source": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/original-36760ed9-0ab7-8091-81aa-c833e5e89366.txt"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Research History/manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Research%20History/manifest.json",
+      "source": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md",
+      "target": "content/Phase II/Wiki/Research History/manifest.json"
+    },
+    {
+      "destination": "docs/research-history/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md",
+      "target": "content/Phase II/Wiki/Research History/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "rewritten": "../review/2026-10-30/modeling.md#3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "source": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "content/Phase II/Milestones/Milestone 1/Preliminary Validation Report/index.md",
+      "fragment": "14-how-this-test-relates-to-the-proposal",
+      "href": "/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/#14-how-this-test-relates-to-the-proposal",
+      "rewritten": "../../content/Phase%20II/Milestones/Milestone%201/Preliminary%20Validation%20Report/index.md#14-how-this-test-relates-to-the-proposal",
+      "source": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md",
+      "target": "content/Phase II/Milestones/Milestone 1/Preliminary Validation Report/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "1-the-reward-formula-links-duration-to-the-issuance-budget",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#1-the-reward-formula-links-duration-to-the-issuance-budget",
+      "rewritten": "../review/2026-10-30/modeling.md#1-the-reward-formula-links-duration-to-the-issuance-budget",
+      "source": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Memos/historical/detailed-work-plan/original-35360ed9-0ab7-80ed-93ce-df089f5b3350.txt",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/detailed-work-plan/original-35360ed9-0ab7-80ed-93ce-df089f5b3350.txt",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/historical/detailed-work-plan/original-35360ed9-0ab7-80ed-93ce-df089f5b3350.txt",
+      "source": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/original-35360ed9-0ab7-80ed-93ce-df089f5b3350.txt"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Research History/manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Research%20History/manifest.json",
+      "source": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md",
+      "target": "content/Phase II/Wiki/Research History/manifest.json"
+    },
+    {
+      "destination": "docs/research-history/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md",
+      "target": "content/Phase II/Wiki/Research History/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "4-the-response-to-reward-is-separate-from-habitual-behaviour",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#4-the-response-to-reward-is-separate-from-habitual-behaviour",
+      "rewritten": "../review/2026-10-30/modeling.md#4-the-response-to-reward-is-separate-from-habitual-behaviour",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/results.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results",
+      "rewritten": "../review/2026-10-30/results.md",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/original-37660ed9-0ab7-800b-91d4-c2c4e5b43e03.txt",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/original-37660ed9-0ab7-800b-91d4-c2c4e5b43e03.txt",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/original-37660ed9-0ab7-800b-91d4-c2c4e5b43e03.txt",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/original-37660ed9-0ab7-800b-91d4-c2c4e5b43e03.txt"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Research History/manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Research%20History/manifest.json",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Research History/manifest.json"
+    },
+    {
+      "destination": "docs/research-history/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Research History/index.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples.png"
+    },
+    {
+      "destination": "docs/research-history/tier-1-june-5.md",
+      "fragment": "historical-reference-1",
+      "href": "#historical-reference-1",
+      "rewritten": "tier-1-june-5.md#historical-reference-1",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff.png",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff.png"
+    },
+    {
+      "destination": "docs/research-history/tier-1-june-5.md",
+      "fragment": "historical-reference-2",
+      "href": "#historical-reference-2",
+      "rewritten": "tier-1-june-5.md#historical-reference-2",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+    },
+    {
+      "destination": "docs/research-history/tier-1-june-5.md",
+      "fragment": "historical-reference-3",
+      "href": "#historical-reference-3",
+      "rewritten": "tier-1-june-5.md#historical-reference-3",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+    },
+    {
+      "destination": "docs/research-history/tier-1-june-5.md",
+      "fragment": "historical-reference-4",
+      "href": "#historical-reference-4",
+      "rewritten": "tier-1-june-5.md#historical-reference-4",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+    },
+    {
+      "destination": "docs/research-history/tier-1-june-5.md",
+      "fragment": "historical-reference-5",
+      "href": "#historical-reference-5",
+      "rewritten": "tier-1-june-5.md#historical-reference-5",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+    },
+    {
+      "destination": "docs/research-history/tier-1-june-5.md",
+      "fragment": "historical-reference-6",
+      "href": "#historical-reference-6",
+      "rewritten": "tier-1-june-5.md#historical-reference-6",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+    },
+    {
+      "destination": "docs/research-history/tier-1-june-5.md",
+      "fragment": "historical-reference-1",
+      "href": "#historical-reference-1",
+      "rewritten": "tier-1-june-5.md#historical-reference-1",
+      "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png",
+      "field": "/entries/2/assets/0/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/07-differential-spec.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map.png",
+      "field": "/entries/2/assets/1/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/05-system-map.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png",
+      "field": "/entries/2/assets/2/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png",
+      "field": "/entries/2/assets/3/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png",
+      "field": "/entries/2/assets/4/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png",
+      "field": "/entries/2/assets/5/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png",
+      "field": "/entries/2/assets/6/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti.png",
+      "field": "/entries/2/assets/7/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/08-spaghetti.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan.png",
+      "field": "/entries/2/assets/8/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/09-fan.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density.png",
+      "field": "/entries/2/assets/9/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/10-density.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples.png",
+      "field": "/entries/2/assets/10/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/11-small-multiples.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples.png"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff.png",
+      "field": "/entries/2/assets/11/file",
+      "fragment": "",
+      "rewritten": "../Briefs/historical/tier-1-june-5/figures/12-paired-diff.png",
+      "source": "content/Phase II/Wiki/Research History/manifest.json",
+      "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff.png"
+    }
+  ],
+  "schema": "research-review-export/v1",
+  "upstream_artifacts": []
+}

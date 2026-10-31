@@ -1,0 +1,128 @@
+{
+  "schema": "research-history/v1",
+  "snapshot_label": "2026-07-01",
+  "edition_date": "2026-10-30",
+  "entries": [
+    {
+      "id": "36760ed9-0ab7-8091-81aa-c833e5e89366",
+      "title": "Qualitative Calibration & Stakeholder Interviews",
+      "page": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md",
+      "original": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/original-36760ed9-0ab7-8091-81aa-c833e5e89366.txt",
+      "original_sha256": "c3286cf6d317957eada4aa33e5f6e9167c5a8cc03c2dc10665702f4ecc018e53",
+      "original_bytes": 1980,
+      "creator": "Hash",
+      "created": "May 21, 2026 5:00 AM",
+      "edited": "June 5, 2026 2:11 AM",
+      "timezone": null,
+      "kind": "methods note",
+      "document_date": null,
+      "model_version": null,
+      "assets": []
+    },
+    {
+      "id": "35360ed9-0ab7-80ed-93ce-df089f5b3350",
+      "title": "Detailed Work Plan",
+      "page": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md",
+      "original": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/original-35360ed9-0ab7-80ed-93ce-df089f5b3350.txt",
+      "original_sha256": "caac4b1be867543a43ca93c013efd775d6cbd51d98f2c5ef101a511e4b8c317a",
+      "original_bytes": 21136,
+      "creator": "Shawn Anderson",
+      "created": "May 1, 2026 3:24 PM",
+      "edited": "May 8, 2026 10:24 AM",
+      "timezone": null,
+      "kind": "work plan",
+      "document_date": null,
+      "model_version": null,
+      "assets": []
+    },
+    {
+      "id": "37660ed9-0ab7-800b-91d4-c2c4e5b43e03",
+      "title": "Tier-1 Results & Notebook Series — Meeting Prep 2026-06-05",
+      "page": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+      "original": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/original-37660ed9-0ab7-800b-91d4-c2c4e5b43e03.txt",
+      "original_sha256": "65efeda904cc5ebdcfca0d4af78dcf9c7c0d47ca18d65d5d14ff8e6a2fcef9e5",
+      "original_bytes": 24077,
+      "creator": "Shawn Anderson",
+      "created": "June 5, 2026 1:21 AM",
+      "edited": "July 1, 2026 1:34 AM",
+      "timezone": null,
+      "kind": "meeting brief",
+      "document_date": "2026-06-05",
+      "model_version": "0.3.2 (reported in source)",
+      "assets": [
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/07-differential-spec.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png",
+          "sha256": "5c143f154ae2c8f3e7a4ee5e49736f64f8dd6f965c466ddcc8cb1510b89f57cb",
+          "bytes": 256499
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/05-system-map.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map.png",
+          "sha256": "b31b834d45ded72e6d27fd02be21c167869dba1da40387e5ccdc4200bfd18ae8",
+          "bytes": 210792
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/01-theta-quad-vs-linear.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear.png",
+          "sha256": "ec815fc82ccbe71347067653ed16bb8b27519729e7f95f1a4980b53611c522ad",
+          "bytes": 473669
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/02-profitability-quad-vs-linear.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear.png",
+          "sha256": "4eb8ec3c7c4e9d6c05a3f007ec2e377f65f337df202c696b23d693245da9b689",
+          "bytes": 334957
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/06-actual-curve-pair.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair.png",
+          "sha256": "ced3795377be4bc891a1fd807a2f26c6cba951bb5530e00c7beed5a00216f416",
+          "bytes": 388502
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/13-nb04-daily-series-panel.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel.png",
+          "sha256": "65b6e8fc075c1e0ecec1990b4b7259f30662252b7ed0746238a1192611e132a7",
+          "bytes": 634810
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/14-nb01-supply-and-yield.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield.png",
+          "sha256": "29243ac425791ab731ae39c476f3d1560a4d6825103c16e742255d1aa9c6557f",
+          "bytes": 544881
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/08-spaghetti.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti.png",
+          "sha256": "35fd68fafe67cc97ec3ac7cb704090f0beb174f53782a5e075e7339cc4789643",
+          "bytes": 867168
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/09-fan.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan.png",
+          "sha256": "a31a49e6229e708b949e66cad9dc6c157d88ad8e40aa99931cc341c479b97777",
+          "bytes": 540401
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/10-density.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density.png",
+          "sha256": "c791a7c2ac708650cf04b7689e68062cca9c1fc619226c785c5a6f0736aa77d8",
+          "bytes": 599528
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/11-small-multiples.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples.png",
+          "sha256": "c3347a6d766a16317a7804366350f62f794ce463d517bb88213647802aa4b7f2",
+          "bytes": 639879
+        },
+        {
+          "source_href": "Tier-1 Results & Notebook Series — Meeting Prep 20/12-paired-diff.png",
+          "file": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff.png",
+          "sha256": "a93e581aa1efa4fcc4a8bb43fe608e3e7a4287b305fa72d227eefc13fe43c4ea",
+          "bytes": 588808
+        }
+      ]
+    }
+  ]
+}

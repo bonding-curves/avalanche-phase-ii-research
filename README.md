@@ -35,6 +35,7 @@ Release as of 28 October 2026: staking model v0.8.0, tagged `model-v0.8.0`. The 
 | Review the mathematics and evidence | Read the [model README](src/avalanche_research/model/README.md), the [v0.7 model specification](<content/Phase II/Milestones/Milestone 1/1-3 Staking Model Spec/index.md>) and the [v0.8.0 selection evidence](results/model-v0.8.0-selection/README.md) |
 | Install, run or extend the package | Follow [Quick start](#quick-start), then the model README's [run instructions](src/avalanche_research/model/README.md#run-it) and [change recipes](src/avalanche_research/model/README.md#change-it) |
 | Locate a contractual deliverable | Open the [milestone index](<content/Phase II/Milestones/index.md>) |
+| Follow the earlier research | Read the [research history](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/docs/research-history/README.md) for original May and June texts, figures and later context |
 
 Inspect the wiki and repository structure without research inputs:
 

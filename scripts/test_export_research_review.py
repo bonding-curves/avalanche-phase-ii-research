@@ -189,6 +189,13 @@ aliases:
                    + r"\operatorname{Var}(X)" + "\n```\n")
         self.assertEqual(self.exporter().run()["status"], "pass")
 
+    def test_historical_editions_keep_their_distinct_status(self):
+        self.write("evidence.md", '---\ntitle: "Earlier work"\nkind: archival-edition\n---\nHistorical claims.\n')
+        self.exporter().run()
+        exported = (self.output / "evidence.md").read_text()
+        self.assertTrue(exported.startswith("# Earlier work\n\nHistorical claims."))
+        self.assertNotIn("Draft for review", exported)
+
     def test_ambiguous_alias_fails(self):
         self.write("results.md", "---\naliases: [older-route]\n---\n# Result\n")
         self.write("evidence.md", "[Ambiguous](/older-route)\n")
