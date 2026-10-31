@@ -147,6 +147,8 @@ try {
             (await dialog.locator("svg.graph-svg a[href]").count()) > 0,
             "SVG graph has no navigable nodes",
           )
+          const nodeSize = await dialog.locator("svg.graph-svg circle").first().boundingBox()
+          assert.ok(nodeSize.width >= 3.9, "Graph nodes disappear when fitted to the viewport")
           await page.screenshot({ path: `/tmp/quartz-graph-${site.id}-${scenario.id}.png` })
           const circle = await dialog.locator("svg.graph-svg circle").first().boundingBox()
           await page.mouse.move(circle.x + circle.width / 2, circle.y + circle.height / 2)

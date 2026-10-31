@@ -180,6 +180,7 @@ export function renderSvgGraph(
     )
   }
   if (options.zoom) {
+    let labelScale = 1
     const behavior = zoom<SVGSVGElement, unknown>()
       .extent([
         [0, 0],
@@ -192,7 +193,16 @@ export function renderSvgGraph(
       .on("end", () => {
         zoomView = undefined
       })
-      .on("zoom", (event) => viewport.attr("transform", event.transform.toString()))
+      .on("zoom", (event) => {
+        viewport.attr("transform", event.transform.toString())
+        if (large && labelScale !== event.transform.k) {
+          labelScale = event.transform.k
+          anchors
+            .select("circle")
+            .attr("r", (node) => Math.max(options.radius(node), 2 / labelScale))
+          labels.attr("transform", `scale(${1 / labelScale})`)
+        }
+      })
     svg.call(behavior)
     const spanX =
       Math.max(...nodes.map((node) => node.x ?? 0)) -
