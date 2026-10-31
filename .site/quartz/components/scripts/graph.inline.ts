@@ -14,13 +14,14 @@ import {
   drag,
   zoom,
 } from "d3"
-import { Text, Graphics, Application, Container, Circle } from "pixi.js"
+import { Text, Graphics, Application, Container, Circle, RendererType } from "pixi.js"
 // Pixi's CSP adapter replaces generated functions with interpreted implementations.
 import "pixi.js/unsafe-eval"
 import { Group as TweenGroup, Tween as Tweened } from "@tweenjs/tween.js"
 import { registerEscapeHandler, removeAllChildren } from "./util"
 import { FullSlug, SimpleSlug, getFullSlug, resolveRelative, simplifySlug } from "../../util/path"
 import { D3Config } from "../Graph"
+import { renderSvgGraph } from "./graph-svg"
 
 type GraphicsInfo = {
   color: string
@@ -56,13 +57,41 @@ type NodeRenderData = GraphicsInfo & {
 
 const localStorageKey = "graph-visited"
 function getVisited(): Set<SimpleSlug> {
-  return new Set(JSON.parse(localStorage.getItem(localStorageKey) ?? "[]"))
+  try {
+    const visited: unknown = JSON.parse(localStorage.getItem(localStorageKey) ?? "[]")
+    return new Set(
+      Array.isArray(visited)
+        ? visited.filter((slug): slug is SimpleSlug => typeof slug === "string")
+        : [],
+    )
+  } catch {
+    return new Set()
+  }
 }
 
 function addToVisited(slug: SimpleSlug) {
   const visited = getVisited()
   visited.add(slug)
-  localStorage.setItem(localStorageKey, JSON.stringify([...visited]))
+  try {
+    localStorage.setItem(localStorageKey, JSON.stringify([...visited]))
+  } catch {
+    return
+  }
+}
+
+let graphDataRequest: Promise<Record<string, ContentDetails>> | undefined
+
+function loadGraphData(fullSlug: FullSlug, retry: boolean) {
+  if (retry) {
+    const root = resolveRelative(fullSlug, "/" as SimpleSlug).replace(/\/$/, "")
+    graphDataRequest = fetch(
+      new URL(`${root}/static/contentIndex.json`, window.location.href),
+    ).then((response) => {
+      if (!response.ok) throw new Error(`Graph data request failed (${response.status})`)
+      return response.json()
+    })
+  }
+  return (graphDataRequest ??= fetchData)
 }
 
 type TweenNode = {
@@ -70,10 +99,14 @@ type TweenNode = {
   stop: () => void
 }
 
-async function renderGraph(graph: HTMLElement, fullSlug: FullSlug) {
+async function renderGraph(
+  graph: HTMLElement,
+  fullSlug: FullSlug,
+  signal: AbortSignal,
+  retry: boolean,
+) {
   const slug = simplifySlug(fullSlug)
   const visited = getVisited()
-  removeAllChildren(graph)
 
   let {
     drag: enableDrag,
@@ -92,11 +125,13 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug) {
   } = JSON.parse(graph.dataset["cfg"]!) as D3Config
 
   const data: Map<SimpleSlug, ContentDetails> = new Map(
-    Object.entries<ContentDetails>(await fetchData).map(([k, v]) => [
+    Object.entries<ContentDetails>(await loadGraphData(fullSlug, retry)).map(([k, v]) => [
       simplifySlug(k as FullSlug),
       v,
     ]),
   )
+  signal.throwIfAborted()
+  removeAllChildren(graph)
   const links: SimpleLinkData[] = []
   const tags: SimpleSlug[] = []
   const validLinks = new Set(data.keys())
@@ -351,8 +386,39 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug) {
   tweens.forEach((tween) => tween.stop())
   tweens.clear()
 
+  const svgFallback = () => {
+    simulation.stop()
+    return renderSvgGraph(graph, graphData.nodes, graphData.links, {
+      width,
+      height,
+      focused: graph.classList.contains("graph-container"),
+      current: slug,
+      visited,
+      drag: enableDrag,
+      zoom: enableZoom,
+      scale,
+      repelForce,
+      centerForce,
+      linkDistance,
+      fontSize,
+      radius: (node) => nodeRadius(node as NodeData),
+      href: (node) => resolveRelative(fullSlug, node.id as SimpleSlug),
+      navigate: (node) => {
+        const target = resolveRelative(fullSlug, node.id as SimpleSlug)
+        window.spaNavigate(new URL(target, window.location.href))
+      },
+    })
+  }
+
   const app = new Application()
-  await app.init({
+  let appDestroyed = false
+  const destroyApp = () => {
+    if (app.renderer && !appDestroyed) {
+      appDestroyed = true
+      app.destroy()
+    }
+  }
+  const initialization = app.init({
     width,
     height,
     antialias: true,
@@ -363,6 +429,33 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug) {
     resolution: window.devicePixelRatio,
     eventMode: "static",
   })
+  let initializationTimer: ReturnType<typeof setTimeout> | undefined
+  let cancelInitialization = () => {}
+  try {
+    await Promise.race([
+      initialization,
+      new Promise<never>((_resolve, reject) => {
+        initializationTimer = setTimeout(() => reject(new Error("Graph renderer timed out")), 8000)
+        cancelInitialization = () => reject(signal.reason)
+        signal.addEventListener("abort", cancelInitialization, { once: true })
+      }),
+    ])
+  } catch (error) {
+    simulation.stop()
+    void initialization.then(destroyApp, () => {})
+    signal.throwIfAborted()
+    console.warn("Graph GPU initialization failed, using SVG", error)
+    return svgFallback()
+  } finally {
+    clearTimeout(initializationTimer)
+    signal.removeEventListener("abort", cancelInitialization)
+  }
+  if (signal.aborted) {
+    simulation.stop()
+    destroyApp()
+    signal.throwIfAborted()
+  }
+  graph.dataset.renderer = "pixi"
   graph.appendChild(app.canvas)
   app.canvas.setAttribute("role", "img")
   app.canvas.setAttribute("aria-label", "Force-directed graph of linked research notes")
@@ -528,6 +621,28 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug) {
   }
 
   let stopAnimation = false
+  let fallbackCleanup: (() => void) | undefined
+  const canvas = app.canvas
+  const handleContextLoss = (event?: Event) => {
+    event?.preventDefault()
+    if (stopAnimation || signal.aborted) return
+    stopAnimation = true
+    simulation.stop()
+    canvas.removeEventListener("webglcontextlost", handleContextLoss)
+    destroyApp()
+    try {
+      fallbackCleanup = svgFallback()
+    } catch (error) {
+      console.error("Graph SVG rendering failed", error)
+      showGraphError(graph, () => graph.dispatchEvent(new Event("graph-retry")))
+    }
+  }
+  canvas.addEventListener("webglcontextlost", handleContextLoss)
+  if (app.renderer.type === RendererType.WEBGPU) {
+    void (app.renderer as import("pixi.js").WebGPURenderer).gpu.device.lost.then(() => {
+      handleContextLoss()
+    })
+  }
   function animate(time: number) {
     if (stopAnimation) return
     for (const n of nodeRenderData) {
@@ -549,14 +664,79 @@ async function renderGraph(graph: HTMLElement, fullSlug: FullSlug) {
     }
 
     tweens.forEach((t) => t.update(time))
-    app.renderer.render(stage)
+    try {
+      app.renderer.render(stage)
+    } catch (error) {
+      console.warn("Graph GPU rendering failed, using SVG", error)
+      handleContextLoss()
+      return
+    }
     requestAnimationFrame(animate)
   }
 
   requestAnimationFrame(animate)
   return () => {
     stopAnimation = true
-    app.destroy()
+    simulation.stop()
+    tweens.forEach((tween) => tween.stop())
+    canvas.removeEventListener("webglcontextlost", handleContextLoss)
+    fallbackCleanup?.()
+    if (!fallbackCleanup) destroyApp()
+  }
+}
+
+function showGraphError(graph: HTMLElement, retry: () => void) {
+  const message = document.createElement("p")
+  message.setAttribute("role", "alert")
+  message.textContent = "Graph unavailable."
+  const button = document.createElement("button")
+  button.type = "button"
+  button.textContent = "Retry graph"
+  button.addEventListener("click", retry, { once: true })
+  graph.replaceChildren(message, button)
+  delete graph.dataset.renderer
+}
+
+function startGraph(graph: HTMLElement, fullSlug: FullSlug) {
+  let controller: AbortController | undefined
+  let cleanup: (() => void) | undefined
+  let disposed = false
+  const render = (retry = false) => {
+    if (disposed) return
+    controller?.abort()
+    cleanup?.()
+    cleanup = undefined
+    const current = new AbortController()
+    controller = current
+    graph.setAttribute("aria-busy", "true")
+    graph.textContent = "Loading graph…"
+    void renderGraph(graph, fullSlug, current.signal, retry).then(
+      (dispose) => {
+        if (current.signal.aborted || !graph.isConnected) {
+          dispose()
+          return
+        }
+        cleanup = dispose
+        graph.removeAttribute("aria-busy")
+      },
+      (error: unknown) => {
+        if (current.signal.aborted || !graph.isConnected) return
+        console.error("Graph rendering failed", error)
+        graph.removeAttribute("aria-busy")
+        showGraphError(graph, () => render(true))
+      },
+    )
+  }
+  const retry = () => render(true)
+  graph.addEventListener("graph-retry", retry)
+  render()
+  return () => {
+    disposed = true
+    controller?.abort()
+    cleanup?.()
+    graph.removeEventListener("graph-retry", retry)
+    graph.removeAttribute("aria-busy")
+    removeAllChildren(graph)
   }
 }
 
@@ -577,21 +757,21 @@ function cleanupGlobalGraphs() {
   globalGraphCleanups = []
 }
 
-document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
+document.addEventListener("nav", (e: CustomEventMap["nav"]) => {
   const slug = e.detail.url
   addToVisited(simplifySlug(slug))
 
-  async function renderLocalGraph() {
+  function renderLocalGraph() {
     cleanupLocalGraphs()
     const localGraphContainers = document.getElementsByClassName("graph-container")
     for (const container of localGraphContainers) {
-      localGraphCleanups.push(await renderGraph(container as HTMLElement, slug))
+      localGraphCleanups.push(startGraph(container as HTMLElement, slug))
     }
   }
 
-  await renderLocalGraph()
   const handleThemeChange = () => {
-    void renderLocalGraph()
+    renderLocalGraph()
+    if (containers.some((container) => container.classList.contains("active"))) renderGlobalGraph()
   }
 
   document.addEventListener("themechange", handleThemeChange)
@@ -600,7 +780,17 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
   })
 
   const containers = [...document.getElementsByClassName("global-graph-outer")] as HTMLElement[]
-  async function renderGlobalGraph() {
+  const dialogHost = document.createElement("div")
+  dialogHost.className = "graph"
+  dialogHost.append(...containers)
+  document.body.append(dialogHost)
+  window.addCleanup(() => dialogHost.remove())
+  let previousFocus: HTMLElement | null = null
+  function renderGlobalGraph() {
+    if (!containers.some((container) => container.classList.contains("active"))) {
+      previousFocus = document.activeElement as HTMLElement | null
+    }
+    cleanupGlobalGraphs()
     const slug = getFullSlug(window)
     for (const container of containers) {
       container.classList.add("active")
@@ -610,14 +800,15 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
       }
 
       const graphContainer = container.querySelector(".global-graph-container") as HTMLElement
-      registerEscapeHandler(container, hideGlobalGraph)
       if (graphContainer) {
-        globalGraphCleanups.push(await renderGraph(graphContainer, slug))
+        globalGraphCleanups.push(startGraph(graphContainer, slug))
       }
+      container.querySelector<HTMLButtonElement>(".close-graph")?.focus()
     }
   }
 
   function hideGlobalGraph() {
+    const wasOpen = containers.some((container) => container.classList.contains("active"))
     cleanupGlobalGraphs()
     for (const container of containers) {
       container.classList.remove("active")
@@ -626,9 +817,10 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
         sidebar.style.zIndex = ""
       }
     }
+    if (wasOpen) previousFocus?.focus()
   }
 
-  async function shortcutHandler(e: HTMLElementEventMap["keydown"]) {
+  function shortcutHandler(e: HTMLElementEventMap["keydown"]) {
     if (e.key === "g" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
       e.preventDefault()
       const anyGlobalGraphOpen = containers.some((container) =>
@@ -638,10 +830,38 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
     }
   }
 
+  containers.forEach((container) => registerEscapeHandler(container, hideGlobalGraph))
+
   const containerIcons = document.getElementsByClassName("global-graph-icon")
   Array.from(containerIcons).forEach((icon) => {
     icon.addEventListener("click", renderGlobalGraph)
     window.addCleanup(() => icon.removeEventListener("click", renderGlobalGraph))
+  })
+
+  const mobileButton = document.createElement("button")
+  mobileButton.type = "button"
+  mobileButton.dataset.openGraph = ""
+  mobileButton.textContent = "Graph view"
+  mobileButton.setAttribute("aria-haspopup", "dialog")
+  mobileButton.addEventListener("click", renderGlobalGraph)
+  document.querySelector(".article-title")?.after(mobileButton)
+  const updateMobileButton = () => {
+    mobileButton.hidden = Array.from(containerIcons).some((icon) => {
+      const bounds = icon.getBoundingClientRect()
+      return (
+        bounds.width > 0 &&
+        bounds.left >= 0 &&
+        bounds.right <= window.innerWidth &&
+        getComputedStyle(icon).visibility === "visible"
+      )
+    })
+  }
+  updateMobileButton()
+  window.addEventListener("resize", updateMobileButton)
+  window.addCleanup(() => {
+    window.removeEventListener("resize", updateMobileButton)
+    mobileButton.removeEventListener("click", renderGlobalGraph)
+    mobileButton.remove()
   })
 
   document.querySelectorAll(".close-graph").forEach((button) => {
@@ -655,4 +875,5 @@ document.addEventListener("nav", async (e: CustomEventMap["nav"]) => {
     cleanupLocalGraphs()
     cleanupGlobalGraphs()
   })
+  renderLocalGraph()
 })
