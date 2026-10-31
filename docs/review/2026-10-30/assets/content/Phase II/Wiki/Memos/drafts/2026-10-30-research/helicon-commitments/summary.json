@@ -1,0 +1,28 @@
+{
+  "Before Helicon": {
+    "commitments": 440,
+    "nodes": 309,
+    "gross_committed_avax": 107646660.88931328,
+    "scheduled_avax_days": 5313025746.642067,
+    "median_duration_days": 17.786689814814814,
+    "stake_weighted_duration_days": 49.35615933414914,
+    "under_7d_commitments": 0,
+    "under_7d_count_share": 0.0,
+    "under_7d_stake_share": 0.0,
+    "under_7d_avax_days_share": 0.0,
+    "exact_coordinate_duplicates": 48
+  },
+  "After Helicon": {
+    "commitments": 514,
+    "nodes": 342,
+    "gross_committed_avax": 117480226.6304853,
+    "scheduled_avax_days": 6169884864.173762,
+    "median_duration_days": 15.944045138888889,
+    "stake_weighted_duration_days": 52.51849644093826,
+    "under_7d_commitments": 109,
+    "under_7d_count_share": 0.21206225680933852,
+    "under_7d_stake_share": 0.08707346167703112,
+    "under_7d_avax_days_share": 0.003333582978753716,
+    "exact_coordinate_duplicates": 76
+  }
+}

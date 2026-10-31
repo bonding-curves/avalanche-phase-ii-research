@@ -1,10 +1,10 @@
 # Avalanche research handoff
 
-Start with the [modeling memo](../review/2026-10-30/modeling.md) to understand the staking model and simulation setup. For a first run, use the [small worked experiment](../../examples/first-experiment/README.md), whose input snapshot is included. To check the reported finding, use the central-case replay below. Both run without Snowflake or data-provider credentials.
+Start with the [research brief](../review/2026-10-30/brief.md) for the findings and next review questions, or the [modeling memo](../review/2026-10-30/modeling.md) for model and simulation setup. For a first run, use the [small worked experiment](../../examples/first-experiment/README.md), whose input snapshot is included. To check the reported finding, use the central-case replay below. Both run without Snowflake or data-provider credentials.
 
 | Task | Entry point |
 | --- | --- |
-| Read | [Modeling memo](../review/2026-10-30/modeling.md), [evidence](../review/2026-10-30/evidence.md) and [draft results](../review/2026-10-30/results.md) |
+| Read | [Brief](../review/2026-10-30/brief.md), [modeling memo](../review/2026-10-30/modeling.md), [evidence](../review/2026-10-30/evidence.md) and [draft results](../review/2026-10-30/results.md) |
 | Browse | [Local wiki setup](../../SETUP.md#8-run-the-research-site), then the wiki's Figures and Research History pages. The [historical reading copies](../research-history/README.md) also work on GitHub |
 | Reproduce | [Reported central case](../../examples/report-reproduction/README.md): 50 paired one-year comparisons, a checked 12.1 MB input download, percentile table and rebuilt trajectory figure |
 | Research | [One research cycle](../../examples/research-cycle/README.md): declared hypothesis, execution, numerical assessment and separate methodology reflection |

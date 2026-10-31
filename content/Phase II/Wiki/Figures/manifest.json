@@ -78,25 +78,25 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
-          "bytes": 21358,
+          "sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3",
+          "bytes": 17994,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
@@ -112,7 +112,7 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -178,25 +178,25 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
-          "bytes": 21358,
+          "sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3",
+          "bytes": 17994,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
@@ -214,7 +214,7 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -429,7 +429,7 @@
       "classification_basis": "October methodology explicitly describes model v0.8.0. Per-figure evidence and horizons are refined below.",
       "producing_source": "scripts/figures/research_explanatory_figures.py",
       "availability": "Built",
-      "caption": "Figure 5. Classification tree for 4,096 independent one-year ramp runs from the first sweep, pooling four outside yields and renewal and entry responses from 0 to 0.1. Minimum consumption rate supplies most splits. One lower-rate branch also splits on renewal response at 0.041. Boxes show run counts and the share meeting every working threshold. Leaf shares differ from shares pooled over all responses. The marked response estimate is preliminary. Source: the included figure manifest.",
+      "caption": "Figure 5. Classification tree for 4,096 independent one-year ramp runs from the first sweep, pooling four outside yields and renewal and entry responses from 0 to 0.1. Minimum consumption rate supplies most splits. One lower-rate branch also splits on renewal response at 0.041. Boxes show run counts and the share meeting every working threshold. Leaf shares differ from shares pooled over all responses. The marked “measured” response is a preliminary regression-informed setting. Source: the included figure manifest.",
       "assets": [
         {
           "path": "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-08-f222.png",
@@ -475,7 +475,7 @@
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md",
           "alt": "Decision tree showing where sampled runs meet every working goal.",
-          "caption": "Figure 5. Classification tree for 4,096 independent one-year ramp runs from the first sweep, pooling four outside yields and renewal and entry responses from 0 to 0.1. Minimum consumption rate supplies most splits. One lower-rate branch also splits on renewal response at 0.041. Boxes show run counts and the share meeting every working threshold. Leaf shares differ from shares pooled over all responses. The marked response estimate is preliminary. Source: the included figure manifest."
+          "caption": "Figure 5. Classification tree for 4,096 independent one-year ramp runs from the first sweep, pooling four outside yields and renewal and entry responses from 0 to 0.1. Minimum consumption rate supplies most splits. One lower-rate branch also splits on renewal response at 0.041. Boxes show run counts and the share meeting every working threshold. Leaf shares differ from shares pooled over all responses. The marked “measured” response is a preliminary regression-informed setting. Source: the included figure manifest."
         }
       ],
       "classification_sources": [
@@ -488,31 +488,31 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
-          "bytes": 21358,
+          "sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3",
+          "bytes": 17994,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -1032,7 +1032,7 @@
       "classification_basis": "October methodology explicitly describes model v0.8.0. Per-figure evidence and horizons are refined below.",
       "producing_source": "scripts/figures/research_explanatory_figures.py",
       "availability": "Built",
-      "caption": "Figure 2. Scaled CRPS for stake and validator count at three horizons. Blue is v0.8.0, and lower is better. The model leads the six benchmarks for stake, while a benchmark leads for count. Scores average 200 model runs at each eligible development origin.",
+      "caption": "Figure 2. Scaled CRPS for stake and validator count at three horizons. Blue is v0.8.0, and lower is better. The model leads the six benchmarks for stake, while a benchmark leads for count. Each origin uses a 200-run forecast distribution. Displayed scores average across eligible development origins.",
       "assets": [
         {
           "path": "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-07-f221.png",
@@ -1078,7 +1078,7 @@
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md",
           "alt": "Forecast scores against six benchmarks",
-          "caption": "Figure 2. Scaled CRPS for stake and validator count at three horizons. Blue is v0.8.0, and lower is better. The model leads the six benchmarks for stake, while a benchmark leads for count. Scores average 200 model runs at each eligible development origin."
+          "caption": "Figure 2. Scaled CRPS for stake and validator count at three horizons. Blue is v0.8.0, and lower is better. The model leads the six benchmarks for stake, while a benchmark leads for count. Each origin uses a 200-run forecast distribution. Displayed scores average across eligible development origins."
         }
       ],
       "classification_sources": [
@@ -1091,31 +1091,31 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
-          "bytes": 21358,
+          "sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3",
+          "bytes": 17994,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -1255,31 +1255,31 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
-          "bytes": 21358,
+          "sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3",
+          "bytes": 17994,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -1487,8 +1487,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
-          "bytes": 21358,
+          "sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3",
+          "bytes": 17994,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -1769,7 +1769,7 @@
       "producing_command": "rsvg-convert --width 1310 --height 942 --output issuance-stake-tradeoff.png issuance-stake-tradeoff.svg",
       "producing_source": "scripts/figures/research_explanatory_figures.py",
       "availability": "Built",
-      "caption": "Figure 4. First-sweep ramp results at one year. Teal points are half-point minimum-rate bin means, with shaded 10th to 90th percentiles of stake retained. The black point and error bars show simulated medians and marginal 10th to 90th percentiles across 50 pairs at the preliminary working responses and 5% annual outside yield. Both comparisons use the historical reward formula as the reference and an early ramp start. Source: the existing sweep and central-case artifacts.",
+      "caption": "Figure 4. First-sweep ramp results at one year. Teal points are half-point minimum-rate bin means, with shaded 10th to 90th percentiles of stake retained. The black point and error bars show simulated medians and marginal 10th to 90th percentiles across 50 pairs at the preliminary working responses and 5% annual outside yield. Both comparisons use the historical reward formula as the reference and an early ramp start. The inherited “measured” label denotes preliminary regression-informed response settings. Source: the existing sweep and central-case artifacts.",
       "assets": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png",
@@ -1814,20 +1814,20 @@
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md",
           "alt": "Issuance saved against validator stake retained across ramp settings.",
-          "caption": "Figure 4. First-sweep ramp results at one year. Teal points are half-point minimum-rate bin means, with shaded 10th to 90th percentiles of stake retained. The black point and error bars show simulated medians and marginal 10th to 90th percentiles across 50 pairs at the preliminary working responses and 5% annual outside yield. Both comparisons use the historical reward formula as the reference and an early ramp start. Source: the existing sweep and central-case artifacts."
+          "caption": "Figure 4. First-sweep ramp results at one year. Teal points are half-point minimum-rate bin means, with shaded 10th to 90th percentiles of stake retained. The black point and error bars show simulated medians and marginal 10th to 90th percentiles across 50 pairs at the preliminary working responses and 5% annual outside yield. Both comparisons use the historical reward formula as the reference and an early ramp start. The inherited “measured” label denotes preliminary regression-informed response settings. Source: the existing sweep and central-case artifacts."
         }
       ],
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
-          "bytes": 21358,
+          "sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3",
+          "bytes": 17994,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -1841,11 +1841,11 @@
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
@@ -1861,7 +1861,7 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -1939,8 +1939,8 @@
       "usages": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
-          "title": "30 October research discussion",
-          "question": "What should the Foundation and BCRG discuss and decide at the 30 October research meeting?",
+          "title": "Avalanche staking research brief",
+          "question": "What does the staking research show and what should the next review settle?",
           "href": "../Memos/drafts/2026-10-30-research/brief",
           "file_href": "../Memos/drafts/2026-10-30-research/brief.md",
           "alt": "Mean utilities for four reward designs across five goals and the combined score.",
@@ -1950,8 +1950,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
-          "bytes": 21358,
+          "sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3",
+          "bytes": 17994,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -1998,7 +1998,7 @@
       "producing_command": "rsvg-convert --width 1439 --height 2112 --output daily-model.png daily-model.svg",
       "producing_source": "scripts/figures/research_explanatory_figures.py",
       "availability": "Built",
-      "caption": "Figure 3. Renewal, return, arrival, continuation, rewards and assembly run in that order. Green stages draw stochastic decisions. Gray stages apply accounting. The final checks stop a run on invalid stake, inconsistent totals or supply violations. This existing diagram is traced from the v0.8.0 implementation.",
+      "caption": "Figure 3. Renewal, return, arrival, duration and stake, rewards, and assembly run in that order. Green stages draw stochastic decisions. Gray stages apply accounting. The final checks stop a run on invalid stake, inconsistent totals or supply violations. This existing diagram is traced from the v0.8.0 implementation.",
       "assets": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png",
@@ -2043,31 +2043,31 @@
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md",
           "alt": "One simulated day in model v0.8.0",
-          "caption": "Figure 3. Renewal, return, arrival, continuation, rewards and assembly run in that order. Green stages draw stochastic decisions. Gray stages apply accounting. The final checks stop a run on invalid stake, inconsistent totals or supply violations. This existing diagram is traced from the v0.8.0 implementation."
+          "caption": "Figure 3. Renewal, return, arrival, duration and stake, rewards, and assembly run in that order. Green stages draw stochastic decisions. Gray stages apply accounting. The final checks stop a run on invalid stake, inconsistent totals or supply violations. This existing diagram is traced from the v0.8.0 implementation."
         }
       ],
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
-          "bytes": 28787,
+          "sha256": "87f927eb2fd43f66a182656fbcac669465b7575ddd272eb644dd913aae8e260b",
+          "bytes": 21056,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
@@ -2083,7 +2083,7 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -2347,7 +2347,7 @@
       "producing_command": "rsvg-convert --width 1386 --height 1501 --output central-record-comparison.png central-record-comparison.svg",
       "producing_source": "scripts/figures/research_explanatory_figures.py",
       "availability": "Built",
-      "caption": "Figure 1. Recorded paths through 26 October 2026 and 50 paired runs from 18 November 2025. Lines are simulation medians and bands span the 10th to 90th percentiles, at renewal response 0.025 and entry response 0.04. The reference adopts ACP-285 at Helicon. Simulated supply includes validator issuance and a burn assumption, while delegated issuance is omitted. The overlay is descriptive and does not replace the separate held-back evaluation.",
+      "caption": "Figure 1. Recorded paths through 26 October 2026 and 50 paired runs from 18 November 2025. Lines are simulation medians and bands span the 10th to 90th percentiles, at renewal response 0.025 and entry response 0.04. The reference adopts ACP-285 at Helicon. Simulated supply includes validator issuance and a burn assumption, while delegated issuance is omitted. Recorded endpoint labels refer to 26 October, while simulated endpoints refer to 18 November. The overlay is descriptive and does not replace the separate held-back evaluation.",
       "assets": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png",
@@ -2392,20 +2392,20 @@
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md",
           "alt": "Recorded validator stake, count and supply alongside the central simulated paths.",
-          "caption": "Figure 1. Recorded paths through 26 October 2026 and 50 paired runs from 18 November 2025. Lines are simulation medians and bands span the 10th to 90th percentiles, at renewal response 0.025 and entry response 0.04. The reference adopts ACP-285 at Helicon. Simulated supply includes validator issuance and a burn assumption, while delegated issuance is omitted. The overlay is descriptive and does not replace the separate held-back evaluation."
+          "caption": "Figure 1. Recorded paths through 26 October 2026 and 50 paired runs from 18 November 2025. Lines are simulation medians and bands span the 10th to 90th percentiles, at renewal response 0.025 and entry response 0.04. The reference adopts ACP-285 at Helicon. Simulated supply includes validator issuance and a burn assumption, while delegated issuance is omitted. Recorded endpoint labels refer to 26 October, while simulated endpoints refer to 18 November. The overlay is descriptive and does not replace the separate held-back evaluation."
         }
       ],
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
-          "bytes": 21358,
+          "sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3",
+          "bytes": 17994,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -2419,11 +2419,11 @@
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
@@ -2439,7 +2439,7 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -2585,25 +2585,25 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
-          "bytes": 28787,
+          "sha256": "87f927eb2fd43f66a182656fbcac669465b7575ddd272eb644dd913aae8e260b",
+          "bytes": 21056,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
@@ -2619,7 +2619,7 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -2963,25 +2963,25 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
-          "bytes": 28787,
+          "sha256": "87f927eb2fd43f66a182656fbcac669465b7575ddd272eb644dd913aae8e260b",
+          "bytes": 21056,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
@@ -2997,7 +2997,7 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -5812,8 +5812,8 @@
       "usages": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
-          "title": "30 October research discussion",
-          "question": "What should the Foundation and BCRG discuss and decide at the 30 October research meeting?",
+          "title": "Avalanche staking research brief",
+          "question": "What does the staking research show and what should the next review settle?",
           "href": "../Memos/drafts/2026-10-30-research/brief",
           "file_href": "../Memos/drafts/2026-10-30-research/brief.md",
           "alt": "Objectives, KPIs, acceptance thresholds and preference weights as successive evaluation choices.",
@@ -5823,25 +5823,25 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
-          "bytes": 28787,
+          "sha256": "87f927eb2fd43f66a182656fbcac669465b7575ddd272eb644dd913aae8e260b",
+          "bytes": 21056,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
@@ -5857,7 +5857,7 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -8270,7 +8270,7 @@
       ]
     },
     {
-      "key": "asset-291f16dfe06d27e9",
+      "key": "asset-b19e49b41bc00785",
       "ids": [],
       "title": "Proposed research schedule",
       "models": [
@@ -8284,20 +8284,20 @@
       "classification_basis": "October methodology explicitly describes model v0.8.0. Per-figure evidence and horizons are refined below.",
       "producing_source": "scripts/figures/research_explanatory_figures.py",
       "availability": "Built",
-      "caption": "Figure 5. Proposed schedule from the 30 October walkthrough to January delivery. Work periods develop recommendations and the scenario playbook. Dates and responsibilities remain to be confirmed.",
+      "caption": "Figure 5. The repository was shared on 30 October. Reading and comments target 2–6 November, with 27 November proposed for the workshop. December and January dates are planning targets. Meeting invitations and workshop attendance remain to confirm.",
       "assets": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png",
-          "sha256": "291f16dfe06d27e9acf77cdf67661de8f87be3a86ee4c1aa3934541b468a631d",
-          "bytes": 180263,
+          "sha256": "b19e49b41bc0078512a54019f65e1e9ca6479519dc58f9b763943230c507f10d",
+          "bytes": 189605,
           "format": "PNG",
           "href": "../Memos/drafts/2026-10-30-research/assets/proposed-schedule.png",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/proposed-schedule.png"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg",
-          "sha256": "093b5d375ad4a02fed73495ba8b818d18a4cbc312427711dfaa520e86c70da92",
-          "bytes": 8411,
+          "sha256": "0348a71f1cb6e512483b5c21945461f46e5cefe79b13444b02a6758faec9275d",
+          "bytes": 8458,
           "format": "SVG",
           "href": "../Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg"
@@ -8306,16 +8306,16 @@
       "downloads": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png",
-          "sha256": "291f16dfe06d27e9acf77cdf67661de8f87be3a86ee4c1aa3934541b468a631d",
-          "bytes": 180263,
+          "sha256": "b19e49b41bc0078512a54019f65e1e9ca6479519dc58f9b763943230c507f10d",
+          "bytes": 189605,
           "format": "PNG",
           "href": "../Memos/drafts/2026-10-30-research/assets/proposed-schedule.png",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/proposed-schedule.png"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg",
-          "sha256": "093b5d375ad4a02fed73495ba8b818d18a4cbc312427711dfaa520e86c70da92",
-          "bytes": 8411,
+          "sha256": "0348a71f1cb6e512483b5c21945461f46e5cefe79b13444b02a6758faec9275d",
+          "bytes": 8458,
           "format": "SVG",
           "href": "../Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg"
@@ -8324,36 +8324,36 @@
       "usages": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
-          "title": "30 October research discussion",
-          "question": "What should the Foundation and BCRG discuss and decide at the 30 October research meeting?",
+          "title": "Avalanche staking research brief",
+          "question": "What does the staking research show and what should the next review settle?",
           "href": "../Memos/drafts/2026-10-30-research/brief",
           "file_href": "../Memos/drafts/2026-10-30-research/brief.md",
           "alt": "Proposed work periods and workshops from 30 October 2026 through final delivery on 15 January 2027.",
-          "caption": "Figure 5. Proposed schedule from the 30 October walkthrough to January delivery. Work periods develop recommendations and the scenario playbook. Dates and responsibilities remain to be confirmed."
+          "caption": "Figure 5. The repository was shared on 30 October. Reading and comments target 2–6 November, with 27 November proposed for the workshop. December and January dates are planning targets. Meeting invitations and workshop attendance remain to confirm."
         }
       ],
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
-          "bytes": 28787,
+          "sha256": "87f927eb2fd43f66a182656fbcac669465b7575ddd272eb644dd913aae8e260b",
+          "bytes": 21056,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
         },
         {
           "path": "scripts/figures/research_explanatory_figures.py",
-          "sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
-          "bytes": 14489,
-          "published_copy": "content/Phase II/Wiki/Figures/sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt",
-          "file_href": "sources/ee01c12522ebf6e3-research_explanatory_figures.py.txt"
+          "sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
+          "bytes": 14487,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt",
+          "file_href": "sources/764e20ec732717d2-research_explanatory_figures.py.txt"
         }
       ],
       "source_records": [
@@ -8369,7 +8369,7 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
-          "sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+          "sha256": "6d59275214be9a68eee288f9c9beffc012d1c387394c6244ea38d66aa73b69b1",
           "bytes": 5234,
           "href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
           "file_href": "../Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
@@ -8782,7 +8782,7 @@
       "producing_command": "uv run --group notebook --with matplotlib==3.10.8 python scripts/figures/helicon_report_exports.py 'content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments'",
       "producing_source": "scripts/figures/helicon_report_exports.py",
       "availability": "Built",
-      "caption": "Figure 2. The same commitments, weighted by scheduled AVAX-days. Kernel density estimation smooths their distribution using common bandwidths of 1.5 days and 0.12 log₁₀-AVAX. Density is normalized within each era. Smoothing below 14 days before Helicon and 2 days after is hidden. The plots describe the record and do not isolate Helicon's effect. Density definition and exports.",
+      "caption": "Figure 2. The same commitments, weighted by scheduled AVAX-days. Kernel density estimation smooths their distribution using common bandwidths of 1.5 days and 0.12 log₁₀-AVAX. Density is normalized within each era. Smoothing below 14 days before Helicon and 2 days after is hidden. The plots describe the record and do not isolate Helicon's effect. Density definition and source.",
       "assets": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-kde.png",
@@ -8838,12 +8838,12 @@
       "usages": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
-          "title": "30 October research discussion",
-          "question": "What should the Foundation and BCRG discuss and decide at the 30 October research meeting?",
+          "title": "Avalanche staking research brief",
+          "question": "What does the staking research show and what should the next review settle?",
           "href": "../Memos/drafts/2026-10-30-research/brief",
           "file_href": "../Memos/drafts/2026-10-30-research/brief.md",
           "alt": "AVAX-day weighted density before and after Helicon, on the same duration and stake axes.",
-          "caption": "Figure 2. The same commitments, weighted by scheduled AVAX-days. Kernel density estimation smooths their distribution using common bandwidths of 1.5 days and 0.12 log₁₀-AVAX. Density is normalized within each era. Smoothing below 14 days before Helicon and 2 days after is hidden. The plots describe the record and do not isolate Helicon's effect. Density definition and exports."
+          "caption": "Figure 2. The same commitments, weighted by scheduled AVAX-days. Kernel density estimation smooths their distribution using common bandwidths of 1.5 days and 0.12 log₁₀-AVAX. Density is normalized within each era. Smoothing below 14 days before Helicon and 2 days after is hidden. The plots describe the record and do not isolate Helicon's effect. Density definition and source."
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/index.md",
@@ -8858,8 +8858,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/index.md",
-          "sha256": "d22914b69aacff7aa0a23e37a5accf0e8998e320570c0c673e571beb5817877f",
-          "bytes": 3686,
+          "sha256": "e53479e197465e147aa8639c9058093f67b3a3c0ed183d653909f8313e5e4640",
+          "bytes": 3700,
           "href": "../Memos/drafts/2026-10-30-research/helicon-commitments/report-exports",
           "file_href": "../Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/index.md"
         },
@@ -10699,8 +10699,8 @@
       "usages": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
-          "title": "30 October research discussion",
-          "question": "What should the Foundation and BCRG discuss and decide at the 30 October research meeting?",
+          "title": "Avalanche staking research brief",
+          "question": "What does the staking research show and what should the next review settle?",
           "href": "../Memos/drafts/2026-10-30-research/brief",
           "file_href": "../Memos/drafts/2026-10-30-research/brief.md",
           "alt": "New validator commitments before and after Helicon, with duration, stake and AVAX-day histograms.",
@@ -10719,8 +10719,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/index.md",
-          "sha256": "d22914b69aacff7aa0a23e37a5accf0e8998e320570c0c673e571beb5817877f",
-          "bytes": 3686,
+          "sha256": "e53479e197465e147aa8639c9058093f67b3a3c0ed183d653909f8313e5e4640",
+          "bytes": 3700,
           "href": "../Memos/drafts/2026-10-30-research/helicon-commitments/report-exports",
           "file_href": "../Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/index.md"
         },
@@ -12332,8 +12332,8 @@
     },
     {
       "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
-      "title": "30 October research discussion",
-      "question": "What should the Foundation and BCRG discuss and decide at the 30 October research meeting?",
+      "title": "Avalanche staking research brief",
+      "question": "What does the staking research show and what should the next review settle?",
       "href": "../Memos/drafts/2026-10-30-research/brief",
       "file_href": "../Memos/drafts/2026-10-30-research/brief.md"
     },

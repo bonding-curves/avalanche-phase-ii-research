@@ -21,15 +21,22 @@
   "criteria_source": "methodology.md sections 7.2 and 7.3; brief.md section 3",
   "schedule": [
     {
-      "label": "Model walkthrough",
+      "label": "Repository shared",
       "start": "2026-10-30",
-      "dates": "30 Oct",
+      "dates": "30 Oct · sent",
       "kind": "milestone"
     },
     {
-      "label": "Workshop 1: evaluation criteria",
-      "start": "2026-11-13",
-      "dates": "13 Nov",
+      "label": "Reading and comments",
+      "start": "2026-11-02",
+      "end": "2026-11-06",
+      "dates": "2–6 Nov · target",
+      "kind": "work"
+    },
+    {
+      "label": "Modeling workshop",
+      "start": "2026-11-27",
+      "dates": "27 Nov · proposed",
       "kind": "workshop"
     },
     {
@@ -47,20 +54,14 @@
       "kind": "work"
     },
     {
-      "label": "Workshop 2: review",
-      "start": "2027-01-08",
-      "dates": "8 Jan",
-      "kind": "workshop"
-    },
-    {
-      "label": "Final delivery",
+      "label": "Final delivery target",
       "start": "2027-01-15",
       "dates": "15 Jan",
       "kind": "milestone"
     }
   ],
-  "schedule_status": "Proposed dates from the meeting brief, not confirmed commitments. No owner assigned.",
-  "schedule_source": "brief.md sections 3 and 4; results.md section 2.7",
+  "schedule_status": "Repository link sent, as reported by Shawn. Reading links on 2 November and comments by 6 November are Shawn's targets. Moved review invitation and proposed 27 November workshop remain unconfirmed. December and January are planning targets.",
+  "schedule_source": "Shawn-supplied 29 October Slack review conversation, reported 30 October handoff message and the existing brief's later delivery targets.",
   "reward_formula": {
     "model": "v0.8.0",
     "code_commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc",

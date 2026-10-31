@@ -110,8 +110,8 @@ def schedule(assets, inputs):
     fig = plt.figure(figsize=(11.4, 5.2))
     heading(
         fig,
-        "Proposed research schedule",
-        "October 2026 to January 2027 · dates and responsibilities remain to be confirmed",
+        "Research review and delivery",
+        "Repository shared · review and workshop dates proposed · later delivery targets",
     )
     ax = fig.add_axes([0.385, 0.16, 0.56, 0.61])
     labels = []
@@ -168,7 +168,7 @@ def schedule(assets, inputs):
     fig.text(
         0.04,
         0.04,
-        "Workshops settle criteria and review results. Work periods develop recommendations and the scenario playbook.",
+        "30 Oct sent. Review targets 2–6 Nov. Workshop proposed for 27 Nov. Later dates remain planning targets.",
         fontsize=11,
         color=MUTED,
     )

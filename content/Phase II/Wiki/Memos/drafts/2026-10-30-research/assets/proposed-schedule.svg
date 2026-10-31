@@ -37,18 +37,26 @@ z
 " style="fill: #ffffff"/>
    </g>
    <g id="patch_3">
-    <path d="M 493.164 189.066057 
-L 541.044 189.066057 
-L 541.044 175.290514 
-L 493.164 175.290514 
+    <path d="M 354.312 152.814629 
+L 373.464 152.814629 
+L 373.464 139.039086 
+L 354.312 139.039086 
 z
 " clip-path="url(#p7da9181fb1)" style="fill: #087f8c; opacity: 0.85"/>
    </g>
    <g id="patch_4">
-    <path d="M 655.956 225.317486 
-L 708.624 225.317486 
-L 708.624 211.541943 
-L 655.956 211.541943 
+    <path d="M 493.164 225.317486 
+L 541.044 225.317486 
+L 541.044 211.541943 
+L 493.164 211.541943 
+z
+" clip-path="url(#p7da9181fb1)" style="fill: #087f8c; opacity: 0.85"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 655.956 261.568914 
+L 708.624 261.568914 
+L 708.624 247.793371 
+L 655.956 247.793371 
 z
 " clip-path="url(#p7da9181fb1)" style="fill: #087f8c; opacity: 0.85"/>
    </g>
@@ -91,37 +99,37 @@ L 641.592 86.112
     <g id="ytick_1">
      <g id="line2d_7"/>
      <g id="text_4">
-      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="114.234491" transform="rotate(-0 306.008 114.234491)">Model walkthrough</text>
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="114.234491" transform="rotate(-0 306.008 114.234491)">Repository shared</text>
      </g>
     </g>
     <g id="ytick_2">
      <g id="line2d_8"/>
      <g id="text_5">
-      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="150.48592" transform="rotate(-0 306.008 150.48592)">Workshop 1: evaluation criteria</text>
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="150.48592" transform="rotate(-0 306.008 150.48592)">Reading and comments</text>
      </g>
     </g>
     <g id="ytick_3">
      <g id="line2d_9"/>
      <g id="text_6">
-      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="186.737348" transform="rotate(-0 306.008 186.737348)">Recommendations and scenarios</text>
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="186.737348" transform="rotate(-0 306.008 186.737348)">Modeling workshop</text>
      </g>
     </g>
     <g id="ytick_4">
      <g id="line2d_10"/>
      <g id="text_7">
-      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="222.988777" transform="rotate(-0 306.008 222.988777)">Finalize recommendations and playbook</text>
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="222.988777" transform="rotate(-0 306.008 222.988777)">Recommendations and scenarios</text>
      </g>
     </g>
     <g id="ytick_5">
      <g id="line2d_11"/>
      <g id="text_8">
-      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="259.240205" transform="rotate(-0 306.008 259.240205)">Workshop 2: review</text>
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="259.240205" transform="rotate(-0 306.008 259.240205)">Finalize recommendations and playbook</text>
      </g>
     </g>
     <g id="ytick_6">
      <g id="line2d_12"/>
      <g id="text_9">
-      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="295.491634" transform="rotate(-0 306.008 295.491634)">Final delivery</text>
+      <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #536176" x="306.008" y="295.491634" transform="rotate(-0 306.008 295.491634)">Final delivery target</text>
      </g>
     </g>
    </g>
@@ -144,7 +152,10 @@ z
     </g>
    </g>
    <g id="text_10">
-    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="348.948" y="112.710741" transform="rotate(-0 348.948 112.710741)">30 Oct</text>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="348.948" y="112.710741" transform="rotate(-0 348.948 112.710741)">30 Oct · sent</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #23354d" x="363.888" y="132.926857" transform="rotate(-0 363.888 132.926857)">2–6 Nov · target</text>
    </g>
    <g id="PathCollection_2">
     <defs>
@@ -156,27 +167,19 @@ z
 " style="stroke: #b85c00"/>
     </defs>
     <g clip-path="url(#p7da9181fb1)">
-     <use xlink:href="#m2d8ad9717c" x="406.98" y="145.926857" style="fill: #b85c00; stroke: #b85c00"/>
+     <use xlink:href="#m2d8ad9717c" x="474.012" y="182.178286" style="fill: #b85c00; stroke: #b85c00"/>
     </g>
-   </g>
-   <g id="text_11">
-    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="415.98" y="148.96217" transform="rotate(-0 415.98 148.96217)">13 Nov</text>
    </g>
    <g id="text_12">
-    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #23354d" x="517.104" y="169.178286" transform="rotate(-0 517.104 169.178286)">1–11 Dec</text>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="483.012" y="185.213598" transform="rotate(-0 483.012 185.213598)">27 Nov · proposed</text>
    </g>
    <g id="text_13">
-    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #23354d" x="682.29" y="205.429714" transform="rotate(-0 682.29 205.429714)">4–15 Jan</text>
-   </g>
-   <g id="PathCollection_3">
-    <g clip-path="url(#p7da9181fb1)">
-     <use xlink:href="#m2d8ad9717c" x="675.108" y="254.681143" style="fill: #b85c00; stroke: #b85c00"/>
-    </g>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #23354d" x="517.104" y="205.429714" transform="rotate(-0 517.104 205.429714)">1–11 Dec</text>
    </g>
    <g id="text_14">
-    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="684.108" y="257.716455" transform="rotate(-0 684.108 257.716455)">8 Jan</text>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #23354d" x="682.29" y="241.681143" transform="rotate(-0 682.29 241.681143)">4–15 Jan</text>
    </g>
-   <g id="PathCollection_4">
+   <g id="PathCollection_3">
     <g clip-path="url(#p7da9181fb1)">
      <use xlink:href="#m87048aee6e" x="708.624" y="290.932571" style="fill: #3566a3; stroke: #3566a3"/>
     </g>
@@ -186,13 +189,13 @@ z
    </g>
   </g>
   <g id="text_16">
-   <text style="font-weight: 700; font-size: 19px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="32.832" y="33.157031" transform="rotate(-0 32.832 33.157031)">Proposed research schedule</text>
+   <text style="font-weight: 700; font-size: 19px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #23354d" x="32.832" y="33.157031" transform="rotate(-0 32.832 33.157031)">Research review and delivery</text>
   </g>
   <g id="text_17">
-   <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #536176" x="32.832" y="55.918125" transform="rotate(-0 32.832 55.918125)">October 2026 to January 2027 · dates and responsibilities remain to be confirmed</text>
+   <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #536176" x="32.832" y="55.918125" transform="rotate(-0 32.832 55.918125)">Repository shared · review and workshop dates proposed · later delivery targets</text>
   </g>
   <g id="text_18">
-   <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #536176" x="32.832" y="359.424" transform="rotate(-0 32.832 359.424)">Workshops settle criteria and review results. Work periods develop recommendations and the scenario playbook.</text>
+   <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #536176" x="32.832" y="359.424" transform="rotate(-0 32.832 359.424)">30 Oct sent. Review targets 2–6 Nov. Workshop proposed for 27 Nov. Later dates remain planning targets.</text>
   </g>
  </g>
  <defs>

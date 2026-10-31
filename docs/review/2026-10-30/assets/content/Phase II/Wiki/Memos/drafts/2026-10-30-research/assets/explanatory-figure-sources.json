@@ -1,8 +1,8 @@
 {
   "generator": "../../../../../../../scripts/figures/research_explanatory_figures.py",
-  "generator_sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
+  "generator_sha256": "764e20ec732717d203b6c7533a514343d99d0ec398e2196c841a0973e86a170c",
   "inputs_file": "explanatory-figure-inputs.json",
-  "inputs_sha256": "e605f21ec7b2cc8e4f50234da0935d9e43c2ba7877db746636d1c16a04c966d2",
+  "inputs_sha256": "4ad9104a2b212b7d105c5ea264a62104b9a26d3db290d6cdb003d0429285e81b",
   "numerical_evidence_sha256": "9eaf0b31d0317593fca08c0c60d47e7c55728c9b1beae21a8b8cc352ad4cf53e",
   "model": "v0.8.0",
   "conditional_results_source": {
@@ -23,11 +23,11 @@
     },
     {
       "file": "proposed-schedule.png",
-      "sha256": "291f16dfe06d27e9acf77cdf67661de8f87be3a86ee4c1aa3934541b468a631d"
+      "sha256": "b19e49b41bc0078512a54019f65e1e9ca6479519dc58f9b763943230c507f10d"
     },
     {
       "file": "proposed-schedule.svg",
-      "sha256": "093b5d375ad4a02fed73495ba8b818d18a4cbc312427711dfaa520e86c70da92"
+      "sha256": "0348a71f1cb6e512483b5c21945461f46e5cefe79b13444b02a6758faec9275d"
     },
     {
       "file": "reward-duration.png",

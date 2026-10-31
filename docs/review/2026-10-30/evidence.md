@@ -26,6 +26,8 @@ The [central-case source record](assets/content/Phase%20II/Wiki/Memos/drafts/202
 
 The following counts come from the independent A and B blocks of the first ramp sweep at 365 days. The bands include their lower boundary and exclude the upper boundary. All four outside yields, 3%, 5%, 7% and 10% annually, are pooled.
 
+The [pooled utility table](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv) peaks at mean combined score 0.772074 in the 6% to below 6.5% minimum-rate bin, with 409 runs. It pools responses from 0 to 0.1. The conditional windows below use different response populations, so their pass shares cannot be attached to that pooled score as if both described the same runs.
+
 The near-central window uses renewal response 0.01–0.04 and entry response 0.02–0.06, inclusive. The wider window uses renewal response 0.01–0.06 and leaves entry unrestricted within the original 0–0.1 range.
 
 | Response window | Minimum consumption rate | All-goal passes | Runs | Pass share |
@@ -56,6 +58,12 @@ The alternative band from 7.25% to below 7.75% passes in 41 of 49 near-central r
 These are sample proportions under the original five-goal specification. The result does not assign probabilities to which response coefficient is correct. Each sample retains its own denominator.
 
 The JSON includes the integer counts for every individual goal as well as the all-goal count. Its source utility artifact has SHA-256 88abb18296b1ffc1e35fd12a74baefd2d1425f4c3fe92ecc4f5d88666baac1b6. The stored scoring configuration identifies its inputs but omits the producing code commit. The package preserves that missing identity explicitly rather than inferring it from a later checkout.
+
+## Longer horizons
+
+The five- and ten-year scenarios compare historical-schedule ACP-285 with nearly unchanged minimum rates from 9.75% to 10%. For the 205 sampled pairs in each comparison slice, median validator reward promises saved are about 13.8% at five years and 16.1% at ten years. Retained own stake is about 92.5% and 89.4%, respectively. The comparator is approximate because this bin includes rates below 10%. These are historical-schedule outcomes divided by the near-unchanged-floor outcomes, reversing the perspective of the early-start central comparison.
+
+These exploratory results have no forecast validation at their stated horizons. The [Milestone 2 analysis](../../../content/Phase%20II/Milestones/Milestone%202/Sensitivity%20Analysis%20Report/index.md#26-risk-surface-map) retains the broader interpretation. They should not be used to extrapolate the one-year central effect or declare a remaining issuance-budget lifetime.
 
 ## Response estimates
 
@@ -88,6 +96,19 @@ The release's forecast label in the CSV is v0.8-a stake return u. Scores use 200
 The 180-day improvement has a one-sided corrected p-value of approximately 0.0397 in the reported Diebold-Mariano comparison. It is evidence about development forecasts. It is not a completed held-back evaluation or direct validation of reward-policy effects.
 
 ## Post-Helicon observations
+
+The brief's scatter and density pairs use equal half-open windows: 19 August 06:00 to 22 September 15:00 UTC, and 22 September 15:00 to 27 October 00:00 UTC. Each lasts 34 days and 9 hours. Assignment follows commitment start time. Delegations and later automatic-renewal cycles are excluded.
+
+| Gross commitment measure | Before Helicon | After Helicon |
+| --- | ---: | ---: |
+| New transactions | 440 | 514 |
+| Distinct nodes | 309 | 342 |
+| AVAX committed | 107.65 million | 117.48 million |
+| Scheduled AVAX-days | 5.31 billion | 6.17 billion |
+
+The [954-row extract](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/commitments.csv), [exact summary](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/summary.json) and [provenance](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/provenance.json) support those totals. Post-Helicon periods shorter than seven days account for 109 of 514 commitments (21.2%) and 0.33% of AVAX-days. The same capital can enter more than one commitment, and scheduled AVAX-days include future days.
+
+The scatter uses logarithmic duration and stake axes, with bubble area proportional to the square root of scheduled AVAX-days. The density plot smooths in linear days and log stake, using common widths of 1.5 days and 0.12 log₁₀-AVAX. It is normalized within each era before hiding tails below 14 days pre-Helicon and 2 days post-Helicon. Hidden tails are not redistributed. Marginal bars retain exact AVAX-day shares. The [export specification](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/export-spec.json) preserves the display choices.
 
 The descriptive quantities below use the P-Chain record through 26 October 2026, as shown in the recorded [stake and validator counts](assets/content/Phase%20II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107.png), [short commitments](assets/content/Phase%20II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108.png) and [renewals](assets/content/Phase%20II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110.png). Their populations and windows differ from those of the simulation experiments.
 
@@ -140,29 +161,46 @@ The methodology defines each symbol beside its first use. This register collects
 
 ## Reproduction
 
-The repository supports code inspection, installation and recomputation of the committed selection verdict without access to historical provider data. With repository access and uv installed:
+The [handoff guide](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/docs/handoff/README.md) provides locked installation and the local wiki instructions. Different tasks have different input requirements.
 
-~~~sh
-git clone --branch milestone-2 https://github.com/AVL-Foundation/ext-bcrg-validator-research.git
-cd ext-bcrg-validator-research
-git checkout model-v0.8.0
-uv sync --locked --group model
-uv run python scripts/model_v080_selection.py verdict
-~~~
+| Task | Delivered capability |
+| --- | --- |
+| Inspect the model and compute rewards | Source and data-free commands in the setup guide |
+| Run a first experiment | Included compact snapshot and expected results in the [worked example](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/examples/first-experiment/README.md) |
+| Reproduce the central report comparison | Checked 12.1 MB input download, tagged source, original draw bank, table and figure in the [central-case replay](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/examples/report-reproduction/README.md) |
+| Check goals and figures | Included aggregate JSON, CSV, PNG, editable SVG and source records |
+| Repeat another historical sweep | Separate pinned data, fitted draws, experiment specification and analysis artifacts still required |
 
-The included JSON and CSV files allow checking the displayed counts, ratios and forecast summaries. They contain aggregate evidence and omit individual validator records.
-
-The central-case replay supplies its compact inputs, original draw bank, tagged source and comparison checks. Other historical simulations still need their pinned staking tables, fitted-parameter draws, experiment specifications and analysis code. A data pin checks input bytes already present. It does not download those snapshots. The [setup guide](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/SETUP.md) records that distribution requirement. The package reports no completed held-back score and performs no new scoring of the reserved period.
-
+A data pin verifies bytes already present and does not download them. The central replay supplies an obtainable bundle and records its own source and environment. The original execution-time driver identity remains unresolved. No completed score of the reserved Granite-to-Helicon period is reported.
 
 ## Explanatory figures
 
-The reward-duration plot illustrates the formula at a fixed supply counter. The conditional pass heatmap redraws the frozen integer counts above. The accompanying figure-source record also retains two earlier briefing diagrams. Their proposed dates are not a current meeting schedule. Figure [inputs](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json), [output hashes](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json), [reward values](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv) and [pass counts](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv) are included. These figures require no simulation or new scoring.
+The reward-duration plot illustrates the formula at a fixed supply counter. The conditional pass heatmap redraws the frozen integer counts above. The evaluation diagram presents choices for the workshop. The schedule distinguishes the sent handoff from proposed meetings and later work targets. Figure [inputs](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json), [output hashes](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json), [reward values](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv) and [pass counts](assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv) are included. These figures require no simulation or new scoring.
 
 From the repository root:
 
 ```bash
-uv run --frozen --group notebook --with matplotlib==3.10.8 python \
+uv run --frozen --group notebook python \
   scripts/figures/research_explanatory_figures.py \
   'content/Phase II/Wiki/Memos/drafts/2026-10-30-research'
 ```
+
+The Helicon report pairs rebuild from the included extract without provider access:
+
+```bash
+uv run --frozen --group notebook python scripts/figures/helicon_report_exports.py \
+  'content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments'
+```
+
+The detailed goal heatmap and its brief summary also rebuild from frozen aggregates:
+
+```bash
+uv run --frozen --group notebook python scripts/figures/reward_rule_report_figures.py \
+  'content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons'
+```
+
+## Interpretation corrections
+
+The entry cap applies to the expected daily arrival mean, rather than each realized count. The [arrival implementation](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/model-v0.8.0/src/avalanche_research/model/parts/arrivals.py) draws from a negative-binomial distribution that can exceed 100. Earlier wording did not make this distinction.
+
+The long-horizon percentages compare historical-schedule ACP-285 against near-unchanged floors. Earlier wording left that direction implicit beside the early-start experiment. The current memos identify each comparator separately. Labels saying “measured” in the inherited trade-off and decision-tree figures refer to preliminary regression-informed response settings.

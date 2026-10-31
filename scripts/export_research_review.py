@@ -24,6 +24,7 @@ from urllib.parse import quote, unquote, urlsplit
 SOURCE_DIRECTORY = "content/Phase II/Wiki/Memos/drafts/2026-10-30-research"
 DOCUMENTS = {f"{SOURCE_DIRECTORY}/{name}.md": exported for name, exported in (
     ("methodology", "modeling.md"), ("evidence", "evidence.md"), ("results", "results.md"),
+    ("brief", "brief.md"),
 )}
 MANIFEST = "export-manifest.json"
 POINTERS = {"file", "editable_file", "inputs_file", "source_receipt", "generator", "script", "path", "source_file"}

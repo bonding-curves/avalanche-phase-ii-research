@@ -1,63 +1,59 @@
 ---
-title: "30 October research discussion"
-description: "Meeting brief: the post-Helicon record, the model and Milestone 2 findings, Workshop 1 and the Milestone 3 plan."
+title: "Avalanche staking research brief"
+description: "The post-Helicon record, conditional reward comparisons and the next review decisions."
 date: 2026-10-30
 status: draft
 kind: brief
-reader: "Avalanche Foundation and Ava Labs meeting participants"
-question: "What should the Foundation and BCRG discuss and decide at the 30 October research meeting?"
+reader: "Avalanche Foundation and Ava Labs researchers and decision makers"
+question: "What does the staking research show and what should the next review settle?"
 ---
 
 Date: 30 October 2026\
 To: Avalanche Foundation and Ava Labs\
-From: Bonding Curve Research Group\
-Subject: Reward-design research and the next evaluation priorities
+From: Bonding Curve Research Group (BCRG)\
+Subject: Staking research and the next review
 
-Avalanche's reward-design research can now connect proposed formulas to explicit estimates of issuance and validator participation. The discussion brings the post-Helicon record together with the modeling system and its first comparisons. The decisions concern which outcomes matter most, what evidence is needed next and how to organize the workshops.
+The model compares reward formulas on issuance and validator participation. The latest work combines the observed post-Helicon record, conditional simulation results and a runnable repository. The next review should settle how to judge the trade-offs and which evidence to strengthen.
 
-The [methodology memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology) explains the system. The [Sensitivity Analysis Report](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results) develops the results and their conditions.
+The [modeling memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology) explains the system. The [results memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results) develops the findings.
 
-## 1. The post-Helicon record shows more stake on fewer validators
+## 1. Commitments increased after Helicon while active validators declined
 
-Validator own stake closed 26 October at 170.26 million AVAX, 4.27 million above its Helicon-day close, while the active validator count fell from 606 to 590. Stake and validator count therefore tell different stories about participation.
+Equal windows around Helicon contain 514 new commitments from 342 nodes after the upgrade, compared with 440 from 309 nodes before. Scheduled AVAX-days rise from 5.31 billion to 6.17 billion. These gross commitments include repeated capital and future days. Active stake gives a different view: own stake closed 26 October at 170.26 million AVAX, up 4.27 million since Helicon, while active validators fell from 606 to 590. [Data and definitions](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#post-helicon-observations).
 
-Commitments shorter than seven days made about 26%–27% of weekly new validator commitments during 6–26 October. Across commitments started since Helicon, they held only 0.33% of AVAX-days, where one AVAX-day is one AVAX staked for one day. Their frequency alone overstates their importance to committed capital.
-
-Renewal within fourteen days was 86.2% for 320 nodes ending between Helicon and 12 October, compared with 85.6% of 1,235 endings in the preceding 90 days, using the same fourteen-day follow-up. These descriptive observations do not isolate the upgrade's effect. The model uses a separate seven-day renewal definition. [Data and definitions](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#post-helicon-observations).
-
-Figures 1 and 2 compare new commitments in equal windows around Helicon. The scatter shows individual commitments, while the density plot shows where their scheduled AVAX-days concentrate.
+Figures 1 and 2 show individual commitments and the distribution of their scheduled AVAX-days, where one AVAX-day is one AVAX committed for one day. Sub-seven-day periods account for 21.2% of post-upgrade commitments but only 0.33% of AVAX-days. These observations describe the record and do not isolate Helicon's effect.
 
 ![New validator commitments before and after Helicon, with duration, stake and AVAX-day histograms.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-scatter.png)
-*Figure 1. Equal 34-day, 9-hour windows around 22 September 2026, 15:00 UTC, through 26 October. Each point is a commitment. Bubble area is proportional to the square root of scheduled AVAX-days. Both axes are logarithmic. Bars show each era's AVAX-day shares. These are gross commitments, including future days and potentially repeated capital, rather than net stake added. [Data and methods](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/).*
+*Figure 1. Equal 34-day, 9-hour windows around 22 September 2026, 15:00 UTC, through 26 October. Each point is a commitment. Bubble area is proportional to the square root of scheduled AVAX-days. Both axes are logarithmic. Bars show each era's AVAX-day shares. These are gross commitments, including future days and potentially repeated capital, rather than net stake added. [Data and methods](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#post-helicon-observations).*
 
 ![AVAX-day weighted density before and after Helicon, on the same duration and stake axes.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-kde.png)
-*Figure 2. The same commitments, weighted by scheduled AVAX-days. Kernel density estimation smooths their distribution using common bandwidths of 1.5 days and 0.12 log₁₀-AVAX. Density is normalized within each era. Smoothing below 14 days before Helicon and 2 days after is hidden. The plots describe the record and do not isolate Helicon's effect. [Density definition and exports](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/).*
+*Figure 2. The same commitments, weighted by scheduled AVAX-days. Kernel density estimation smooths their distribution using common bandwidths of 1.5 days and 0.12 log₁₀-AVAX. Density is normalized within each era. Smoothing below 14 days before Helicon and 2 days after is hidden. The plots describe the record and do not isolate Helicon's effect. [Density definition and source](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#post-helicon-observations).*
 
 ## 2. The model compares reward formulas on issuance and stake
 
-Each reward design runs beside the historical chain formula under the same conditions and random draws. The heatmap summarizes four designs across the five working goals. The ramp scores better on issuance, while the alternatives score better on participation. The combined score expresses their balance under BCRG's working weights.
+At working responses, starting ACP-285's ramp early saves a median 12.8% of validator reward promises over one year while retaining 98.7% of the historical twin's own stake. The scenario advances adoption from September 2026 to November 2025 and simulates through 18 November 2026. The [50-pair comparison](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#central-case) is conditional on response assumptions and 5% outside yield.
+
+Figure 3 summarizes four designs across five working goals. The [detailed setting comparison](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#25-sensitivity-analysis) scores highest at a minimum consumption rate from 6% to below 6.5%. Higher-rate bands pass the participation safeguards more often. A preferred average and a satisfactory minimum are different choices.
 
 ![Mean utilities for four reward designs across five goals and the combined score.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/mechanism-utilities.png)
 *Figure 3. Run-weighted mean utilities at one year across 16,384 design runs. Outside yields and behavioural responses are pooled. Combined weights are equal for the first four goals and half for duration. A high combined score does not guarantee that every goal passes. [Mechanisms, KPIs and experiments](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#7-experiments-turn-trajectories-into-design-comparisons).*
 
-## 3. Workshop 1 should settle the evaluation criteria
+## 3. The workshop should settle the evaluation criteria
 
-The proposed 13 November workshop should settle the objectives and participation safeguards, then the key performance indicators, or KPIs, thresholds and preference weights. Figure 4 shows that sequence.
+Figure 4 separates the Foundation's objectives from the measures, acceptance conditions and preference weights used to evaluate them. The current thresholds and weights are BCRG's exploratory choices.
 
 ![Objectives, KPIs, acceptance thresholds and preference weights as successive evaluation choices.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.png)
 *Figure 4. Proposed evaluation choices for Workshop 1. The existing results use BCRG's working thresholds and weights. The Foundation can select its own criteria. [Goals, measures and scoring](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#72-goals-guide-which-outcomes-the-experiments-measure).*
 
-**Q1.** Which measures should lead: inflation on which supply base, use of the remaining issuance budget and stake-weighted duration? Which participation measures should act as safeguards?
+**Q1.** Which issuance and duration measures should lead, and which stake, count and concentration thresholds should act as safeguards?
 
-**Q2.** Can we confirm the 13 November workshop, its participants and a 60-minute format?
+## 4. Review the setup before choosing the next experiment
 
-## 4. Milestone 3 should evaluate the next mechanism against those criteria
-
-The proposed Milestone 3 schedule places evaluation criteria before recommendations and scenario planning. Figure 5 shows the work periods, workshop reviews and final delivery target.
+The [repository handoff](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/docs/handoff/README.md) has been shared with Eric. It includes setup, local wiki and gallery instructions, an included-input example and the central-result replay. Figure 5 updates the proposed sequence.
 
 ![Proposed work periods and workshops from 30 October 2026 through final delivery on 15 January 2027.](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png)
-*Figure 5. Proposed schedule from the 30 October walkthrough to January delivery. Work periods develop recommendations and the scenario playbook. Dates and responsibilities remain to be confirmed.*
+*Figure 5. The repository was shared on 30 October. Reading and comments target 2–6 November, with 27 November proposed for the workshop. December and January dates are planning targets. Meeting invitations and workshop attendance remain to confirm.*
 
-Revenue-funded rewards are a useful next mechanism because they directly address the transition from issuance to protocol revenue. Their evaluation needs an explicit funding source and a formula for revenue shortfalls.
+The reading targets are polished links from Shawn on 2 November and comments integrated by 6 November. Eric and the Foundation team can review the setup and results beforehand. The moved review invitation and proposed 27 November workshop still need confirmation. Later dates in the figure remain planning targets.
 
-**Q3.** Should revenue-funded rewards be the next mechanism evaluated? If so, the preparation will specify the revenue stream, the shortfall formula and a Foundation reviewer. The delivery schedule and the person running the model also need confirmation.
+**Q2.** Which mechanism should follow the review? Revenue-funded rewards are one candidate, requiring a named funding stream, a shortfall policy and a Foundation reviewer.

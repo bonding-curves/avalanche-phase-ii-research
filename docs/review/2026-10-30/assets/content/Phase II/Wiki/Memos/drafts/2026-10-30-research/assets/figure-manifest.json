@@ -72,9 +72,9 @@
     },
     {
       "file": "proposed-schedule.png",
-      "sha256": "291f16dfe06d27e9acf77cdf67661de8f87be3a86ee4c1aa3934541b468a631d",
+      "sha256": "b19e49b41bc0078512a54019f65e1e9ca6479519dc58f9b763943230c507f10d",
       "editable_file": "proposed-schedule.svg",
-      "editable_sha256": "093b5d375ad4a02fed73495ba8b818d18a4cbc312427711dfaa520e86c70da92",
+      "editable_sha256": "0348a71f1cb6e512483b5c21945461f46e5cefe79b13444b02a6758faec9275d",
       "reused_without_modification": false,
       "kind": "proposed schedule",
       "source_receipt": "explanatory-figure-sources.json"

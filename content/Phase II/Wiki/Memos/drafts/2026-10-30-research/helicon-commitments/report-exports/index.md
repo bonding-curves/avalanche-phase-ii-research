@@ -30,7 +30,7 @@ Suggested caption: **Where scheduled AVAX-days concentrate.** Density is weighte
 
 The KDE is calculated in days and log stake and normalised to 100% per era before the display mask. Hidden tails are not redistributed, so the visible density integrates to less than 100%. Other smoothed tails can extend beyond observed commitments.
 
-Both pairs compare equal 34-day, 9-hour windows around 22 September 2026, 15:00 UTC, through 26 October. These are gross scheduled commitments, including future days and potentially repeated capital. The comparison does not establish a causal effect. See the [data, definitions and methods](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/) for exact windows and exclusions.
+Both pairs compare equal 34-day, 9-hour windows around 22 September 2026, 15:00 UTC, through 26 October. These are gross scheduled commitments, including future days and potentially repeated capital. The comparison does not establish a causal effect. See the [data, definitions and methods](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#post-helicon-observations) for exact windows and exclusions.
 
 ## Reproduction
 
