@@ -233,7 +233,15 @@ export function transformLink(src: FullSlug, target: string, opts: TransformOpti
     return targetSlug as RelativeURL
   } else {
     const folderTail = isFolderPath(targetSlug) ? "/" : ""
-    const canonicalSlug = stripSlashes(targetSlug.slice(".".length))
+    let canonicalSlug = stripSlashes(targetSlug.slice(".".length))
+    if (target.startsWith("./")) {
+      const srcDir = src.endsWith("/index")
+        ? src.slice(0, -"/index".length)
+        : src.includes("/")
+          ? src.slice(0, src.lastIndexOf("/"))
+          : ""
+      canonicalSlug = stripSlashes(joinSegments(srcDir, target.slice(2)))
+    }
     let [targetCanonical, targetAnchor] = splitAnchor(canonicalSlug)
 
     if (opts.strategy === "shortest") {

@@ -14,27 +14,27 @@ The Helicon upgrade of 22 September 2026 allowed commitments of 48 hours and act
 
 Validators' own stake closed 26 October at 170.26M AVAX, 4.27M AVAX above its Helicon-day close, held by 590 active validators against 606.
 
-![Figure 1](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107.png)
+![Figure 1](./figure-01-f107.png)
 *Figure 1. Validators' own stake fell 24.40M AVAX to a low on 8 October, then rose to close 26 October 4.27M AVAX above its Helicon-day level, held by 16 fewer validators.*
 
 Short first cycles, of 48 hours to under 7 days, made 26% to 27% of each week's new validator commitments from 6 to 26 October.
 
-![Figure 2](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108.png)
+![Figure 2](./figure-02-f108.png)
 *Figure 2. Nearly every short commitment since Helicon lasts exactly two days, so short commitments hold 8.7% of the stake committed since Helicon and 0.33% of its AVAX-days, an AVAX-day being one AVAX staked for one day.*
 
 Stakes started since Helicon, delegations included, are promised 38,929 AVAX, or 3.5%, less than the old 10% minimum rate would pay. The stakes started on 26 October, mostly about 16 days long, earn a stake-weighted 4.70% of stake a year against 5.17% under the old rate.
 
-![Figure 3](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-03-f109.png)
+![Figure 3](./figure-03-f109.png)
 *Figure 3. The saving against the old rate grows as the ramp proceeds, and stakes started on 15 and 20 October, when large validators committed for 79 to 365 days, make 19,204 AVAX of it.*
 
 Of 320 validator nodes whose staking ended from Helicon to 12 October, 86.2% staked again within 14 days, twice the model's 7-day window, against 85.6% of 1,235 endings in the 90 days before Helicon.
 
-![Figure 4](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110.png)
+![Figure 4](./figure-04-f110.png)
 *Figure 4. Renewal within 14 days held near 86% through the first three weeks of the ramp, while the 77 nodes that left after Helicon held 17.7M AVAX and the 61 that arrived brought 21.3M AVAX.*
 
 Bitwise's BAVA exchange-traded fund started 25 validator commitments after Helicon, all 15.1 to 19.1 days long.
 
-![Figure 5](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-05-f111.png)
+![Figure 5](./figure-05-f111.png)
 *Figure 5. No BAVA commitment since Helicon is shorter than the old 14-day minimum, and the three exchange-traded funds whose holdings are published daily held 6.15M AVAX together on 26 October.*
 
 ## 2. The Foundation's thresholds choose ACP-285's minimum rate
