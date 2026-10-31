@@ -3,4 +3,5 @@
 # Research archives and derived content must retain their recorded byte hashes.
 sources/** -text
 content/** -text
+docs/review/** -text
 *.pdf binary
