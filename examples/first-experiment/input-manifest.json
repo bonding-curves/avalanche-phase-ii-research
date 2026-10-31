@@ -1,0 +1,74 @@
+{
+  "information_cutoff_utc": "2025-11-18T23:59:59Z",
+  "limitations": [
+    "This compact derived snapshot is independently frozen. Full parent dataset availability is not required to run the example.",
+    "A fresh fit is part of this worked example. No prior fitted numerical object is reused.",
+    "No post-origin realized outcomes are distributed or evaluated.",
+    "Four paired paths do not establish predictive validity, policy optimality or a confidence interval.",
+    "Reward response coefficients are user-declared assumptions, not estimates learned by this example."
+  ],
+  "origin": "2025-11-18",
+  "parent_dataset": {
+    "bytes": 692906576,
+    "dataset_id": "derived.staking-periods",
+    "run": "staking-periods-2026-09-30",
+    "sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8"
+  },
+  "parent_receipts_sha256": {
+    "capture/capture.json": "1e68db3feeb8ab4f8beadc085258894d84d6f6f28bd9d25f83a132e0664b53a7",
+    "dataset/build.json": "002205ad6b39e6ee56437eceb74fc7232e7e71cbb388d5ba76686b45c90214cc",
+    "dataset/check.json": "c976ad9808c2531ffa235f0b705f190d2ca4e552a0d698a1828482611c638ed6"
+  },
+  "preparation": {
+    "default_draws": 4,
+    "draw_seed": 0,
+    "historical_report_reproduction": false,
+    "new_example_fit": true,
+    "pickle_dependency": false,
+    "variant": "v0.8.0"
+  },
+  "protocol_counter": {
+    "basis": "P-Chain reward counter, including open promises. Not realized ledger supply.",
+    "bytes": 169,
+    "file": "inputs/counter.csv",
+    "integration": "The freshly prepared validator-only model receives this earlier observation as its configured starting counter. No fitted coefficient or source row is changed.",
+    "observation_clock": "Immediately before the referenced commitment at23:56:46 UTC; not a proven complete end-of-day counter at23:59:59 UTC",
+    "observed_at_utc": "2025-11-18T23:56:46Z",
+    "seconds_before_origin_cutoff": 193,
+    "selection": "Latest source commitment by start_time DESC, transaction_hash with accepted_at and start_time at or before the cutoff and non-NULL supply_before_navax. Original row is a delegator commitment; it is not fitted or simulated.",
+    "sha256": "f1bd24ba14895684d78b57e0c05c753a7a47268e898eff263ed8bea282f2ae5a",
+    "value_navax": 465370216397635557
+  },
+  "schema": "first-experiment-inputs/v1",
+  "snapshot": {
+    "bytes": 3648981,
+    "columns": [
+      "transaction_hash",
+      "role",
+      "node_id",
+      "accepted_at",
+      "start_time",
+      "end_time",
+      "stake_navax",
+      "supply_before_navax"
+    ],
+    "file": "inputs/validators.parquet",
+    "filter": "role = 'validator' AND accepted_at <= TIMESTAMP '2025-11-18 23:59:59' AND stake_navax IS NOT NULL",
+    "order": [
+      "start_time",
+      "transaction_hash"
+    ],
+    "pending_future_starts": 0,
+    "rows": 52934,
+    "scope": "Validator commitment terms available by the cutoff, including scheduled end dates after it. No realized reward, payment, removal or later acceptance outcomes are selected.",
+    "sha256": "c84e2e9ba33cb1178bcc66d2d3a3b093c023dd8d8c3609868ea51b4fdc6e7d31"
+  },
+  "source_pin": "data/pins/p2-model-v0.8.json",
+  "source_pin_sha256": "47a6f4af2b7bab7d2b2aae45b2a62c7c67ed5ca26c9123151132742b208d4dee",
+  "verification": {
+    "parent_bytes_authenticated_at_snapshot_creation": true,
+    "snapshot_hash_checked_on_every_run": true,
+    "source_keys_unique": true,
+    "source_null_and_clock_checks": true
+  }
+}

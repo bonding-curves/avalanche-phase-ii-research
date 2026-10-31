@@ -1,0 +1,25 @@
+{
+  "experiment": "E-first-experiment-reward-saving",
+  "minimum_observations": 2,
+  "observations": 4,
+  "outcome": "supported",
+  "rules": [
+    {
+      "contradict": {
+        "op": "lt",
+        "value": 0
+      },
+      "id": "positive-promised-reward-saving",
+      "metric": "/metrics/rewards_saved_avax",
+      "outcome": "supported",
+      "support": {
+        "op": "gt",
+        "value": 0
+      },
+      "value": 12390.240814679244
+    }
+  ],
+  "schema": "research-cycle-analysis/v1",
+  "source": "summary.json",
+  "source_sha256": "df772f75431e9208d53ffee62cfa5cd3e235b041bd0f0c2e9485dd95ff68b78e"
+}

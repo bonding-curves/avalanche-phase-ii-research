@@ -203,7 +203,7 @@ Following Tier-1 analysis: the Tier-2 robustness pass (top-N configurations × 4
 
 ### Historical references
 
-The original links below name an earlier repository layout. Their availability has not been established. The text above links here, and the original export retains every URL.
+The original links below name earlier project references. Their availability has not been established. The text above links here, and the original export retains every URL.
 
 #### Historical reference 1
 

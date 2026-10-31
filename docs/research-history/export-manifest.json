@@ -1,7 +1,12 @@
 {
   "documents": {
     "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md": "tier-1-june-5.md",
+    "content/Phase II/Wiki/Memos/historical/behavioral-transitions/index.md": "behavioral-transitions.md",
+    "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md": "data-access-follow-up.md",
+    "content/Phase II/Wiki/Memos/historical/data-access-setup/index.md": "data-access-setup.md",
     "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md": "detailed-work-plan.md",
+    "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md": "methodological-pivot.md",
+    "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/index.md": "milestone-1-foundation.md",
     "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md": "qualitative-calibration.md",
     "content/Phase II/Wiki/Research History/index.md": "README.md"
   },
@@ -102,10 +107,10 @@
     },
     {
       "export": "tier-1-june-5.md",
-      "export_sha256": "6942a786918a7f039a80a1d642305c5ca30f874062c5c20642d2f678770c6308",
+      "export_sha256": "1d6849b15cfec683110f54b69077e532c451644527932d0fdc2092d92a7213a7",
       "kind": "export",
       "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
-      "source_sha256": "2ed4c7fd6b151c0e798ce8bc478ae53287e6c8500f43c81513a2d9f05e6990a8"
+      "source_sha256": "5c107a5a32c1419c9606e91593397eea575367330fe0e2eef21af703c119dd9e"
     },
     {
       "export": "assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/original-37660ed9-0ab7-800b-91d4-c2c4e5b43e03.txt",
@@ -130,6 +135,41 @@
       "source_sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd"
     },
     {
+      "export": "behavioral-transitions.md",
+      "export_sha256": "05b9304fbdcaae1d00ad95dc3ff04ec14b3fe058ad8755be9aedcc8af7d07ab5",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/behavioral-transitions/index.md",
+      "source_sha256": "1f5aa6b288d130a843981f5722fbadb956616c82171eeee8ab51a69907b548b0"
+    },
+    {
+      "export": "data-access-follow-up.md",
+      "export_sha256": "96f223ed42758baf9d3df9d4b4a569a3bcc72cc486bedd0ecbc6a10bbf5c4452",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "source_sha256": "df79dab2c0061e99761806fe6e5e75756b324d1a763aee4509e0b837df6ac870"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/historical/data-access-follow-up/source-36860ed9-0ab7-803d-8b4d-e8e78e38178e.txt",
+      "export_sha256": "1b5235c6912a340b5a1c6c20405d47dafd83b8a37a5a990b581a31fe0173b785",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/source-36860ed9-0ab7-803d-8b4d-e8e78e38178e.txt",
+      "source_sha256": "1b5235c6912a340b5a1c6c20405d47dafd83b8a37a5a990b581a31fe0173b785"
+    },
+    {
+      "export": "data-access-setup.md",
+      "export_sha256": "4095480e21e06ed948b3b0a06583826893f5f6b0b96d8acf24df5991a3966332",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-setup/index.md",
+      "source_sha256": "61ad6f546c087921ff00aa52f8eb94fb5ef5f33b07697a42bf1a315988508770"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/historical/data-access-setup/source-35360ed9-0ab7-80f2-81df-d0a087d3d58d.txt",
+      "export_sha256": "5af766b99d9a1a01c4f92ea205399c2b9496d021c93fd838ae6319fb340383a5",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-setup/source-35360ed9-0ab7-80f2-81df-d0a087d3d58d.txt",
+      "source_sha256": "5af766b99d9a1a01c4f92ea205399c2b9496d021c93fd838ae6319fb340383a5"
+    },
+    {
       "export": "detailed-work-plan.md",
       "export_sha256": "0c9ae53408bbaa23a7a48c27fb853a1a0075a8285cdb8e44c206bcd8673cb343",
       "kind": "export",
@@ -142,6 +182,34 @@
       "kind": "export",
       "source": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/original-35360ed9-0ab7-80ed-93ce-df089f5b3350.txt",
       "source_sha256": "caac4b1be867543a43ca93c013efd775d6cbd51d98f2c5ef101a511e4b8c317a"
+    },
+    {
+      "export": "methodological-pivot.md",
+      "export_sha256": "7eff6eb014c0e67a31ffed57056605b010297e227e8c506f3ddee0480c9c95c9",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md",
+      "source_sha256": "b8bec990e6aae4cbfad66af2e1767942441afe219e2e23f3c90a4846db4ad770"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/historical/methodological-pivot/original-36360ed9-0ab7-8098-9aa6-f1fc709c9fb0.txt",
+      "export_sha256": "f00d4d9e47fa1d54afea3d6cf72c050cedae3e87840636d4b37970c3b45e1b54",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/methodological-pivot/original-36360ed9-0ab7-8098-9aa6-f1fc709c9fb0.txt",
+      "source_sha256": "f00d4d9e47fa1d54afea3d6cf72c050cedae3e87840636d4b37970c3b45e1b54"
+    },
+    {
+      "export": "milestone-1-foundation.md",
+      "export_sha256": "3a7e50e016cbe5018ceba18255c00fbd89f4ab74ef6d73e5265ce1633c0ec369",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/index.md",
+      "source_sha256": "1cfaccc4e4fde8b88c9d7b0a92c7d2dba3e56165eb7f80902b6c1752e17dca80"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/historical/milestone-1-foundation/source-35460ed9-0ab7-8048-a7e5-cd5c8879f271.txt",
+      "export_sha256": "7c75f70ef520c09a760a0e82a6225e2ae82a6996b0536e6ab31177b1843d3140",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/source-35460ed9-0ab7-8048-a7e5-cd5c8879f271.txt",
+      "source_sha256": "7c75f70ef520c09a760a0e82a6225e2ae82a6996b0536e6ab31177b1843d3140"
     },
     {
       "export": "qualitative-calibration.md",
@@ -159,17 +227,17 @@
     },
     {
       "export": "README.md",
-      "export_sha256": "6eebc78bea258533171bfd169e701b8870aeb5df18fbc7d6b2e0a026b9c65ce0",
+      "export_sha256": "eb15126f602f26a1fce8d9d8ed25390f9018ef604c40ed0db6155ed3f107deac",
       "kind": "export",
       "source": "content/Phase II/Wiki/Research History/index.md",
-      "source_sha256": "7280a05940c7d9b2ccffabb69c23921a23e516fe30410a0f491189a624bd299a"
+      "source_sha256": "a20ec92e47e1f2bf5db656a6092919093d3fcd35ef1cf020eec67f145d010a4a"
     },
     {
       "export": "assets/content/Phase II/Wiki/Research History/manifest.json",
-      "export_sha256": "4f8bc075f2229a30db5e20b577e186ecfcf88975fd1c720dbf16453a0cd90238",
+      "export_sha256": "b1d3f3aa89549f30223e57235495c411ff20410cd21e96c4bb3765e74ab264d4",
       "kind": "export",
       "source": "content/Phase II/Wiki/Research History/manifest.json",
-      "source_sha256": "47e18b6512f83a0cea62cae8f7d01260b1c32a2f4939186c7a3441481da542bb"
+      "source_sha256": "1b853e5272b4eefc34458b421658cad378f480fcc4010cec209eb0467d3e43bb"
     },
     {
       "kind": "repository-reference",
@@ -198,12 +266,52 @@
       "target": "content/Phase II/Wiki/Memos/historical/detailed-work-plan/index.md"
     },
     {
+      "destination": "docs/research-history/data-access-setup.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/data-access-setup/",
+      "rewritten": "data-access-setup.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-setup/index.md"
+    },
+    {
+      "destination": "docs/research-history/milestone-1-foundation.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/milestone-1-foundation/",
+      "rewritten": "milestone-1-foundation.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/index.md"
+    },
+    {
+      "destination": "docs/research-history/methodological-pivot.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/methodological-pivot/",
+      "rewritten": "methodological-pivot.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md"
+    },
+    {
       "destination": "docs/research-history/qualitative-calibration.md",
       "fragment": "",
       "href": "/Phase-II/Wiki/Memos/historical/qualitative-calibration/",
       "rewritten": "qualitative-calibration.md",
       "source": "content/Phase II/Wiki/Research History/index.md",
       "target": "content/Phase II/Wiki/Memos/historical/qualitative-calibration/index.md"
+    },
+    {
+      "destination": "docs/research-history/behavioral-transitions.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/behavioral-transitions/",
+      "rewritten": "behavioral-transitions.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/behavioral-transitions/index.md"
+    },
+    {
+      "destination": "docs/research-history/data-access-follow-up.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/data-access-follow-up/",
+      "rewritten": "data-access-follow-up.md",
+      "source": "content/Phase II/Wiki/Research History/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md"
     },
     {
       "destination": "docs/research-history/tier-1-june-5.md",
@@ -524,6 +632,222 @@
       "rewritten": "tier-1-june-5.md#historical-reference-1",
       "source": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
       "target": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology",
+      "rewritten": "../review/2026-10-30/modeling.md",
+      "source": "content/Phase II/Wiki/Memos/historical/behavioral-transitions/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Research History/manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Research%20History/manifest.json",
+      "source": "content/Phase II/Wiki/Memos/historical/behavioral-transitions/index.md",
+      "target": "content/Phase II/Wiki/Research History/manifest.json"
+    },
+    {
+      "destination": "docs/research-history/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Memos/historical/behavioral-transitions/index.md",
+      "target": "content/Phase II/Wiki/Research History/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "rewritten": "../review/2026-10-30/modeling.md#3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "source": "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Memos/historical/methodological-pivot/original-36360ed9-0ab7-8098-9aa6-f1fc709c9fb0.txt",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/methodological-pivot/original-36360ed9-0ab7-8098-9aa6-f1fc709c9fb0.txt",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/historical/methodological-pivot/original-36360ed9-0ab7-8098-9aa6-f1fc709c9fb0.txt",
+      "source": "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/methodological-pivot/original-36360ed9-0ab7-8098-9aa6-f1fc709c9fb0.txt"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Research History/manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Research%20History/manifest.json",
+      "source": "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md",
+      "target": "content/Phase II/Wiki/Research History/manifest.json"
+    },
+    {
+      "destination": "docs/research-history/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md",
+      "target": "content/Phase II/Wiki/Research History/index.md"
+    },
+    {
+      "destination": "docs/research-history/methodological-pivot.md",
+      "fragment": "historical-reference-1",
+      "href": "#historical-reference-1",
+      "rewritten": "methodological-pivot.md#historical-reference-1",
+      "source": "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "4-the-response-to-reward-is-separate-from-habitual-behaviour",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#4-the-response-to-reward-is-separate-from-habitual-behaviour",
+      "rewritten": "../review/2026-10-30/modeling.md#4-the-response-to-reward-is-separate-from-habitual-behaviour",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-setup/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Memos/historical/data-access-setup/source-35360ed9-0ab7-80f2-81df-d0a087d3d58d.txt",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/data-access-setup/source-35360ed9-0ab7-80f2-81df-d0a087d3d58d.txt",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/historical/data-access-setup/source-35360ed9-0ab7-80f2-81df-d0a087d3d58d.txt",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-setup/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-setup/source-35360ed9-0ab7-80f2-81df-d0a087d3d58d.txt"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Research History/manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Research%20History/manifest.json",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-setup/index.md",
+      "target": "content/Phase II/Wiki/Research History/manifest.json"
+    },
+    {
+      "destination": "docs/research-history/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-setup/index.md",
+      "target": "content/Phase II/Wiki/Research History/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "1-the-reward-formula-links-duration-to-the-issuance-budget",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#1-the-reward-formula-links-duration-to-the-issuance-budget",
+      "rewritten": "../review/2026-10-30/modeling.md#1-the-reward-formula-links-duration-to-the-issuance-budget",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Memos/historical/data-access-follow-up/source-36860ed9-0ab7-803d-8b4d-e8e78e38178e.txt",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/data-access-follow-up/source-36860ed9-0ab7-803d-8b4d-e8e78e38178e.txt",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/historical/data-access-follow-up/source-36860ed9-0ab7-803d-8b4d-e8e78e38178e.txt",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/source-36860ed9-0ab7-803d-8b4d-e8e78e38178e.txt"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Research History/manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Research%20History/manifest.json",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Research History/manifest.json"
+    },
+    {
+      "destination": "docs/research-history/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Research History/index.md"
+    },
+    {
+      "destination": "docs/research-history/data-access-follow-up.md",
+      "fragment": "historical-reference-1",
+      "href": "#historical-reference-1",
+      "rewritten": "data-access-follow-up.md#historical-reference-1",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md"
+    },
+    {
+      "destination": "docs/research-history/data-access-follow-up.md",
+      "fragment": "historical-reference-2",
+      "href": "#historical-reference-2",
+      "rewritten": "data-access-follow-up.md#historical-reference-2",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md"
+    },
+    {
+      "destination": "docs/research-history/data-access-follow-up.md",
+      "fragment": "historical-reference-3",
+      "href": "#historical-reference-3",
+      "rewritten": "data-access-follow-up.md#historical-reference-3",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md"
+    },
+    {
+      "destination": "docs/research-history/data-access-follow-up.md",
+      "fragment": "historical-reference-1",
+      "href": "#historical-reference-1",
+      "rewritten": "data-access-follow-up.md#historical-reference-1",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md"
+    },
+    {
+      "destination": "docs/research-history/data-access-follow-up.md",
+      "fragment": "historical-reference-4",
+      "href": "#historical-reference-4",
+      "rewritten": "data-access-follow-up.md#historical-reference-4",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md"
+    },
+    {
+      "destination": "docs/research-history/data-access-follow-up.md",
+      "fragment": "historical-reference-5",
+      "href": "#historical-reference-5",
+      "rewritten": "data-access-follow-up.md#historical-reference-5",
+      "source": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology#3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "rewritten": "../review/2026-10-30/modeling.md#3-five-decisions-turn-the-historical-record-into-daily-behaviour",
+      "source": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "content/Phase II/Milestones/Milestone 1/Preliminary Validation Report/index.md",
+      "fragment": "status",
+      "href": "/Phase-II/Milestones/Milestone-1/Preliminary-Validation-Report/#status",
+      "rewritten": "../../content/Phase%20II/Milestones/Milestone%201/Preliminary%20Validation%20Report/index.md#status",
+      "source": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/index.md",
+      "target": "content/Phase II/Milestones/Milestone 1/Preliminary Validation Report/index.md"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Memos/historical/milestone-1-foundation/source-35460ed9-0ab7-8048-a7e5-cd5c8879f271.txt",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/historical/milestone-1-foundation/source-35460ed9-0ab7-8048-a7e5-cd5c8879f271.txt",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/historical/milestone-1-foundation/source-35460ed9-0ab7-8048-a7e5-cd5c8879f271.txt",
+      "source": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/index.md",
+      "target": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/source-35460ed9-0ab7-8048-a7e5-cd5c8879f271.txt"
+    },
+    {
+      "destination": "docs/research-history/assets/content/Phase II/Wiki/Research History/manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Research%20History/manifest.json",
+      "source": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/index.md",
+      "target": "content/Phase II/Wiki/Research History/manifest.json"
+    },
+    {
+      "destination": "docs/research-history/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Research-History/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/index.md",
+      "target": "content/Phase II/Wiki/Research History/index.md"
     },
     {
       "destination": "docs/research-history/assets/content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec.png",

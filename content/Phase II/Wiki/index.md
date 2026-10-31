@@ -5,6 +5,9 @@ description: "The research as it is communicated: the Foundation's Essential Rea
 
 | Section | What it holds |
 | --- | --- |
+| [Reproduce](/Phase-II/Wiki/Reproduce/) | A small paired model experiment with included inputs, expected results and a chart |
+| [Research](/Phase-II/Wiki/Research/) | A bounded question-to-result cycle and separate reflection on methods and direction |
+| [Figures](/Phase-II/Wiki/Figures/) | Delivered figures filtered by model, document, family, horizon and evidence status |
 | [Briefs](/Phase-II/Wiki/Briefs/) | One brief per call with the Foundation: takeaways, discussion items with a question for the Foundation, and next steps. Each is what goes into Notion before the call |
 | [Memos](/Phase-II/Wiki/Memos/) | One finding each, chart first, with its number, unit, source run, and what it means for a decision |
 | [Research History](/Phase-II/Wiki/Research-History/) | Earlier plans, methods notes and meeting briefs, with their original text and later research context |

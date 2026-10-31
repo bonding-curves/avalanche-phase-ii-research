@@ -1,0 +1,1198 @@
+{
+  "schema": "avalanche-figure-classifications/v1",
+  "classification_policy": "Model identities follow explicit source statements, never dates. Evidence labels describe scope, not scientific approval. Legacy aliases are frozen delivered-byte matches; additional delivered filenames retain fNNN IDs. Missing metadata remains unspecified.",
+  "legacy_ids_by_sha256": {
+    "ff4165f97f1f130728b32a57ba5e85a841ae8e0e2261a819e2ba84c6bfe451be": [
+      "f054"
+    ],
+    "eed915ff05fa53afe91d1bab1d017b791e23f9ea831c37ed311b84516c31d217": [
+      "f055"
+    ],
+    "fa852eebc3acc0ef07a707a438e368ffdfd4b070297cccfa74dee8dd8f79f695": [
+      "f056"
+    ],
+    "1afdeb84e7ba9431c0b14bd390a68ef97e7db8bc7ab1268b79f746b56b8c4bf3": [
+      "f057"
+    ],
+    "ab3b7195ec5719777c40a9a0b9036dd5c88d68004bf859989355ce2b4aac755d": [
+      "f058"
+    ],
+    "f43746ef126cfc2f589154c186544c504609ad4c19080c236361bbb4280e9a83": [
+      "f059"
+    ],
+    "52beb74f8618e917fc24674f23e577bebabfb24203b0575c04f41826ff86bd0b": [
+      "f060"
+    ],
+    "9fbc4f311fa00ef0855e1ffe36cdc5f5f6114b00ab1634c65e44324cf35c690d": [
+      "f061"
+    ],
+    "e5bb0da9c37407fba2152a54b14117d20f083fb67f7b2cf10e7d8853e90ebb7f": [
+      "f072",
+      "f140"
+    ],
+    "5a67a85d67a6c7b284fc786bb540e8a0f01f1c802626a1d764c5281a05dde74a": [
+      "f078",
+      "f146"
+    ],
+    "50c54856831884e228ea693f4d900b11a53e73a4f9264b28b7e55c4c57cb26af": [
+      "f107"
+    ],
+    "d44ba91dcec71aa72691b65cde7b9dffb10878fd47c41876df75d6b6198b4c25": [
+      "f108"
+    ],
+    "b030cba49a6f327b8b24867113aa29cd5e195f9a3ffc727053fa4bed649a6352": [
+      "f109"
+    ],
+    "5af04d4c3507a1cd63cd427c118cbf50addd454acc33ed3f112a5f72923104e3": [
+      "f110"
+    ],
+    "0e906fc485c27c62773e7d16f2093d0ea3daa834fc1f00341d6cd2fa927a376b": [
+      "f111"
+    ],
+    "def2df632325acad8223bf0db302db9e91cfaaae7caf5ad977085d83f2421a7b": [
+      "f241",
+      "f242"
+    ]
+  },
+  "rules": [
+    {
+      "prefix": "content/Phase I/",
+      "models": [
+        "Unspecified"
+      ],
+      "family": "Historical research",
+      "evidence": "Historical-only",
+      "sources": [
+        "content/Phase I/index.md"
+      ],
+      "classification_basis": "Phase I source context. No model version is assigned from its date.",
+      "horizons": [
+        "Unspecified"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Wiki/Collections/",
+      "models": [
+        "Unspecified"
+      ],
+      "family": "Reference illustration",
+      "evidence": "Reference material",
+      "sources": [
+        "content/Phase II/Wiki/Collections/Essential Readings/index.md"
+      ],
+      "classification_basis": "Delivered reference material. Its model and evidence identities are not assumed to match the released staking model.",
+      "horizons": [
+        "Unspecified"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Milestones/Milestone 0/",
+      "models": [
+        "Not applicable"
+      ],
+      "family": "Research process",
+      "evidence": "Reference material",
+      "sources": [
+        "content/Phase II/Milestones/Milestone 0/index.md"
+      ],
+      "classification_basis": "Proposal illustrations describe the research plan, not a released model result.",
+      "horizons": [
+        "Not applicable"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Milestones/Milestone 1/1-1 Data Ingestion/",
+      "models": [
+        "Empirical"
+      ],
+      "family": "Data coverage",
+      "evidence": "Empirical (descriptive)",
+      "sources": [
+        "content/Phase II/Milestones/Milestone 1/1-1 Data Ingestion/index.md"
+      ],
+      "classification_basis": "Data-ingestion report describes the source pipeline and its coverage.",
+      "horizons": [
+        "Unspecified"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Milestones/Milestone 1/1-3 Staking Model Spec/",
+      "models": [
+        "v0.7"
+      ],
+      "family": "Model structure",
+      "evidence": "Historical-only",
+      "sources": [
+        "content/Phase II/Milestones/Milestone 1/1-3 Staking Model Spec/index.md"
+      ],
+      "classification_basis": "The specification identifies its diagrams as model v0.7 at tag model-v0.7.0.",
+      "horizons": [
+        "Not applicable"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/",
+      "models": [
+        "v0.8 candidate"
+      ],
+      "family": "Behavioural calibration",
+      "evidence": "Historical-only",
+      "sources": [
+        "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/index.md"
+      ],
+      "classification_basis": "The calibration report identifies the tested candidate at commit 1c891a4; it is not silently relabelled v0.8.0.",
+      "horizons": [
+        "Unspecified"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Milestones/Milestone 1/Preliminary Validation Report/",
+      "models": [
+        "v0.7"
+      ],
+      "family": "Forecast validation",
+      "evidence": "Historical-only",
+      "sources": [
+        "content/Phase II/Milestones/Milestone 1/Preliminary Validation Report/index.md"
+      ],
+      "classification_basis": "The report explicitly tests model v0.7; its conclusions are historical.",
+      "horizons": [
+        "Unspecified"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/",
+      "models": [
+        "v0.8.0"
+      ],
+      "family": "Sensitivity analysis",
+      "evidence": "Simulation (conditional)",
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "The delivered Sensitivity Analysis Report explicitly identifies model v0.8.0. Per-figure horizons remain unspecified unless separately recorded.",
+      "horizons": [
+        "Unspecified"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/",
+      "models": [
+        "Unspecified"
+      ],
+      "family": "Brief illustration",
+      "evidence": "Unspecified",
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ],
+      "classification_basis": "Delivered with the submitted brief. Classification requires the particular figure context.",
+      "horizons": [
+        "Unspecified"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/",
+      "models": [
+        "v0.3.2"
+      ],
+      "family": "Historical sweep",
+      "evidence": "Historical-only",
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md"
+      ],
+      "classification_basis": "The archived text names model 0.3.2 and discloses uncalibrated behaviour and omitted supply growth. These are historical simulation results.",
+      "horizons": [
+        "365 days"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/",
+      "models": [
+        "v0.8.0"
+      ],
+      "family": "Research illustration",
+      "evidence": "Simulation (conditional)",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+      ],
+      "classification_basis": "October methodology explicitly describes model v0.8.0. Per-figure evidence and horizons are refined below.",
+      "horizons": [
+        "Unspecified"
+      ]
+    },
+    {
+      "prefix": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/",
+      "models": [
+        "Empirical"
+      ],
+      "family": "Commitment distribution",
+      "evidence": "Empirical (descriptive)",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/index.md"
+      ],
+      "classification_basis": "Matched pre/post Helicon observations of gross scheduled commitments; descriptive, not a causal-effect estimate.",
+      "horizons": [
+        "Matched 34-day 9-hour windows"
+      ]
+    },
+    {
+      "prefix": "src/avalanche_research/model/images/",
+      "models": [
+        "v0.8.0"
+      ],
+      "family": "Model structure",
+      "evidence": "Model structure",
+      "sources": [
+        "src/avalanche_research/model/README.md"
+      ],
+      "classification_basis": "Structure diagram delivered with the v0.8 model code.",
+      "horizons": [
+        "Not applicable"
+      ]
+    }
+  ],
+  "figures": {
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model": {
+      "title": "One simulated day",
+      "family": "Model structure",
+      "horizons": [
+        "Daily step"
+      ],
+      "evidence": "Model structure",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows": {
+      "title": "Validator periods, nodes and supply",
+      "family": "Model structure",
+      "horizons": [
+        "Not applicable"
+      ],
+      "evidence": "Model structure",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration": {
+      "title": "Reward rate against commitment duration",
+      "family": "Reward formula",
+      "horizons": [
+        "Duration curve"
+      ],
+      "evidence": "Analytical illustration",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison": {
+      "title": "Recorded and simulated validator paths",
+      "family": "Trajectories",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-trajectories": {
+      "title": "Central paired validator trajectories",
+      "family": "Trajectories",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores": {
+      "title": "Forecast scores against six benchmarks",
+      "family": "Forecast validation",
+      "horizons": [
+        "30 days",
+        "90 days",
+        "180 days"
+      ],
+      "evidence": "Development validation",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/utility-heatmap": {
+      "title": "Goal utilities across reward designs",
+      "family": "Goal utilities",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree": {
+      "title": "Conditions associated with passing every working goal",
+      "family": "Decision tree",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff": {
+      "title": "Issuance saved and validator stake retained",
+      "family": "Policy trade-off",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass": {
+      "title": "All-goal pass shares by rate and response window",
+      "family": "Pass-share heatmap",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria": {
+      "title": "From objectives to evaluation criteria",
+      "family": "Evaluation process",
+      "horizons": [
+        "Not applicable"
+      ],
+      "evidence": "Proposed evaluation",
+      "models": [
+        "Not applicable"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule": {
+      "title": "Proposed research schedule",
+      "family": "Schedule",
+      "horizons": [
+        "30 Oct 2026–15 Jan 2027"
+      ],
+      "evidence": "Proposed schedule",
+      "models": [
+        "Not applicable"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities": {
+      "title": "Goal utilities by reward-design setting",
+      "family": "Goal utilities",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/mechanism-utilities": {
+      "title": "Mean goal utilities across four reward designs",
+      "family": "Goal utilities",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/central-trajectories": {
+      "title": "Central paired validator trajectories",
+      "family": "Trajectories",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-scatter": {
+      "title": "Validator commitment duration and stake around Helicon",
+      "producing_command": "uv run --group notebook --with matplotlib==3.10.8 python scripts/figures/helicon_report_exports.py 'content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments'",
+      "producing_source": "scripts/figures/helicon_report_exports.py",
+      "family": "Scatter and marginals",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/index.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/export-spec.json",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/provenance.json"
+      ],
+      "related_files": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/commitments.csv",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-report-figures.pdf"
+      ]
+    },
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-kde": {
+      "title": "Scheduled AVAX-day density around Helicon",
+      "producing_command": "uv run --group notebook --with matplotlib==3.10.8 python scripts/figures/helicon_report_exports.py 'content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments'",
+      "producing_source": "scripts/figures/helicon_report_exports.py",
+      "family": "Density and marginals",
+      "sources": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/index.md",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/export-spec.json",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/provenance.json"
+      ],
+      "related_files": [
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/commitments.csv",
+        "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/helicon-commitments/report-exports/helicon-report-figures.pdf"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/di1-stake-and-count": {
+      "title": "Validator own stake and active count",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Empirical time series",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107": {
+      "title": "Validator own stake and active count",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Empirical time series",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/di2-short-commitments": {
+      "title": "Short commitments, stake and AVAX-days",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Commitment distribution",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108": {
+      "title": "Short commitments, stake and AVAX-days",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Commitment distribution",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/di3-ramp-reward": {
+      "title": "Reward saving through the ACP-285 ramp",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Reward accounting",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-03-f109": {
+      "title": "Reward saving through the ACP-285 ramp",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Reward accounting",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/di4-renewals-exits": {
+      "title": "Validator renewal, exits and arrivals",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Renewal and flows",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110": {
+      "title": "Validator renewal, exits and arrivals",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Renewal and flows",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/di5-etf-validators": {
+      "title": "BAVA commitments and ETF holdings",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Institutional validators",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-05-f111": {
+      "title": "BAVA commitments and ETF holdings",
+      "classification_basis": "The submitted brief describes the figure as observed chain/ETF records, with no simulation model identity assigned.",
+      "family": "Institutional validators",
+      "horizons": [
+        "Observed through 26 Oct 2026"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/fig2-model": {
+      "title": "Staking model structure",
+      "family": "Model structure",
+      "horizons": [
+        "Not applicable"
+      ],
+      "evidence": "Model structure",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/fig4-design-comparison": {
+      "title": "Reward-design comparison",
+      "family": "Sensitivity analysis",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ]
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/fig2-model": {
+      "title": "Staking model structure",
+      "family": "Model structure",
+      "horizons": [
+        "Not applicable"
+      ],
+      "evidence": "Model structure",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ]
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/fig4-design-comparison": {
+      "title": "Reward-design comparison",
+      "family": "Sensitivity analysis",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/01-theta-quad-vs-linear": {
+      "title": "Staking-ratio distributions by reward curve",
+      "family": "Distribution",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/02-profitability-quad-vs-linear": {
+      "title": "Validator profitability by reward curve",
+      "family": "Distribution",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/05-system-map": {
+      "title": "Historical parameter-to-goal system map",
+      "family": "Model structure",
+      "horizons": [
+        "Not applicable"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/06-actual-curve-pair": {
+      "title": "Historical linear and quadratic reward schedules",
+      "family": "Reward formula",
+      "horizons": [
+        "Duration curve"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/07-differential-spec": {
+      "title": "Historical cadCAD differential model specification",
+      "family": "Model structure",
+      "horizons": [
+        "Daily step"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/08-spaghetti": {
+      "title": "Historical individual staking trajectories",
+      "family": "Trajectories",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/09-fan": {
+      "title": "Historical staking-ratio quantile fans",
+      "family": "Trajectories",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/10-density": {
+      "title": "Historical trajectory density",
+      "family": "Trajectory density",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/11-small-multiples": {
+      "title": "Historical trajectories by commitment duration",
+      "family": "Small multiples",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/12-paired-diff": {
+      "title": "Historical paired reward-curve differences",
+      "family": "Paired comparison",
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/13-nb04-daily-series-panel": {
+      "title": "Historical daily staking-data panel",
+      "family": "Empirical time series",
+      "horizons": [
+        "Historical observed window"
+      ],
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/figures/14-nb01-supply-and-yield": {
+      "title": "Historical supply and staking-yield context",
+      "family": "Empirical time series",
+      "horizons": [
+        "Historical observed window"
+      ],
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Wiki/Briefs/historical/tier-1-june-5/index.md",
+        "content/Phase II/Wiki/Research History/manifest.json"
+      ]
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-01-f242": {
+      "title": "Six years of Avalanche staking",
+      "family": "Empirical time series",
+      "horizons": [
+        "Historical observed window"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-02-f244": {
+      "title": "Staking-reward cost and gross inflation",
+      "family": "Empirical time series",
+      "horizons": [
+        "Historical observed window"
+      ],
+      "evidence": "Empirical (descriptive)",
+      "models": [
+        "Empirical"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-03-f220": {
+      "title": "Validator stocks, flows and fitted components",
+      "family": "Model structure",
+      "horizons": [
+        "Not applicable"
+      ],
+      "evidence": "Model structure",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-04-f229": {
+      "title": "The daily simulation and its invariants",
+      "family": "Model structure",
+      "horizons": [
+        "Daily step"
+      ],
+      "evidence": "Model structure",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-05-f219": {
+      "title": "Pinned data and model evidence lineage",
+      "family": "Data lineage",
+      "horizons": [
+        "Not applicable"
+      ],
+      "evidence": "Model structure",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-06-L3": {
+      "title": "Issuance and stake across longer horizons",
+      "family": "Long-horizon trajectories",
+      "horizons": [
+        "Multiple years"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-06-f012": {
+      "title": "Working objectives, goals and scored measures",
+      "family": "Evaluation process",
+      "horizons": [
+        "Not applicable"
+      ],
+      "evidence": "Proposed evaluation",
+      "models": [
+        "Not applicable"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-07-f012": {
+      "title": "Working objectives, goals and scored measures",
+      "family": "Evaluation process",
+      "horizons": [
+        "Not applicable"
+      ],
+      "evidence": "Proposed evaluation",
+      "models": [
+        "Not applicable"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-07-f221": {
+      "title": "Forecast skill for stake and validator count",
+      "family": "Forecast validation",
+      "horizons": [
+        "30 days",
+        "90 days",
+        "180 days"
+      ],
+      "evidence": "Development validation",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-08-f221": {
+      "title": "Forecast skill for stake and validator count",
+      "family": "Forecast validation",
+      "horizons": [
+        "30 days",
+        "90 days",
+        "180 days"
+      ],
+      "evidence": "Development validation",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-08-f222": {
+      "title": "Decision tree for passing every working goal",
+      "family": "Decision tree",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-09-f222": {
+      "title": "Decision tree for passing every working goal",
+      "family": "Decision tree",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-09-f223": {
+      "title": "Combined utility by minimum rate and response",
+      "family": "Goal utilities",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-10-f223": {
+      "title": "Combined utility by minimum rate and response",
+      "family": "Goal utilities",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-10-f224": {
+      "title": "Goal utilities against minimum consumption rate",
+      "family": "Goal utilities",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-11-f224": {
+      "title": "Goal utilities against minimum consumption rate",
+      "family": "Goal utilities",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-11-f225": {
+      "title": "Issuance saved against validator stake retained",
+      "family": "Policy trade-off",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-12-f046": {
+      "title": "Rate ranges meeting the working goals",
+      "family": "Acceptance ranges",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-12-f225": {
+      "title": "Issuance saved against validator stake retained",
+      "family": "Policy trade-off",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-13-L3": {
+      "title": "Issuance and stake across longer horizons",
+      "family": "Long-horizon trajectories",
+      "horizons": [
+        "Multiple years"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-13-f046": {
+      "title": "Rate ranges meeting the working goals",
+      "family": "Acceptance ranges",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "models": [
+        "v0.8.0"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ],
+      "classification_basis": "Classification follows the corresponding delivered report caption and retained figure identity. Unused export copies are not counted as embedded document uses."
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/pass-rates-365": {
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ]
+    },
+    "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/response-ramp-365": {
+      "horizons": [
+        "365 days"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md"
+      ]
+    },
+    "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/renewal-by-tenure": {
+      "title": "Renewal by validator tenure against the v0.7 probability",
+      "family": "Renewal and tenure",
+      "models": [
+        "Empirical",
+        "v0.7"
+      ],
+      "horizons": [
+        "7-day renewal window"
+      ],
+      "evidence": "Historical-only",
+      "sources": [
+        "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/index.md"
+      ],
+      "classification_basis": "The delivered Figure 2 caption identifies empirical endings and the single renewal-probability band from model v0.7, rather than the v0.8 candidate fit."
+    },
+    "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/renewal-terms": {
+      "horizons": [
+        "Not applicable"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/index.md"
+      ]
+    },
+    "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/return-hazard": {
+      "horizons": [
+        "Not applicable"
+      ],
+      "sources": [
+        "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/index.md"
+      ]
+    },
+    "content/Phase II/Wiki/Reproduce/first-experiment": {
+      "title": "First paired 30-day staking experiment",
+      "models": [
+        "v0.8.0"
+      ],
+      "family": "Worked experiment",
+      "horizons": [
+        "30 days"
+      ],
+      "evidence": "New worked experiment (conditional)",
+      "classification_basis": "New worked experiment; conditional simulation, not historical report or predictive validation. Browser capture of the Bokeh-generated default figure at 900 by 460 pixels; no recalculation of data.",
+      "caption": "Browser capture of the Bokeh-generated default figure at 900 by 460 pixels; no recalculation of data. New worked experiment; conditional simulation, not historical report or predictive validation.",
+      "caption_basis": "Published worked-experiment figure sidecar, preview_method and evidence_status fields.",
+      "sources": [
+        "content/Phase II/Wiki/Reproduce/first-experiment-figure.json"
+      ],
+      "producing_source": "scripts/first_experiment.py",
+      "producing_command": "uv run --frozen --group model --group notebook python scripts/first_experiment.py --output release/first-experiment",
+      "related_files": [
+        "content/Phase II/Wiki/Reproduce/first-experiment-comparison.csv"
+      ]
+    }
+  }
+}

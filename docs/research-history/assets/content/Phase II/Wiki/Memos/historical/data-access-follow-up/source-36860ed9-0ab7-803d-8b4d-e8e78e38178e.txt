@@ -1,0 +1,274 @@
+# Data Access Follow-up
+
+Created By: Shawn Anderson
+Creation Time: May 22, 2026 9:57 AM
+Last Edited Time: May 22, 2026 9:58 AM
+Sprint: Sprint 2
+
+## Abstract
+
+The Phase II simulation needs four kinds of facts about the Avalanche network to answer the questions the Foundation has asked us to answer: what is happening on-chain, what AVAX is worth in dollars, what a participant could earn instead, and who the validators are as individuals. These four kinds of facts live in four different places, are updated at four different cadences, and serve four different questions in the analysis. The on-chain record sits in a Snowflake data warehouse provisioned by the Foundation. AVAX market data sits in CoinGecko. The macroeconomic opportunity-cost benchmark sits in the St. Louis Fed's FRED database. Validator-level metadata sits in Snowpeer's public API. Each source is wrapped in a uniform adapter so the simulation can read from any of them through one consistent interface, and each query gets cached locally so historical reads are reproducible across the team. Across the four sources, every column of the project's data schema has a working data path. The end-to-end pipeline hydrates with one command over a 365-day window covering the first year after the Etna upgrade. Two open asks remain with the Foundation: a paid CoinGecko key to extend the window backward into 2024 for a full pre/post-Etna comparison, and a fix-or-document decision on one Snowpeer endpoint that returns zero where a number is expected. The brief that follows motivates each source against the question it answers, describes the architecture that ties them together, names every column in the data schema and where it comes from, and traces how each source serves each notebook in the research arc that runs from Notebook 02 through Notebook 09.
+
+## 1. The questions that drive the data
+
+Three observations about the simulation set the data requirements.
+
+First, the simulation models the behaviour of real people making real economic decisions about real money. Validators and delegators face fiat-denominated costs (servers, electricity, audit fees, the opportunity cost of capital) and earn rewards denominated in AVAX, a volatile asset. Whether to enter, stay, or exit depends on the spread between the AVAX-denominated yield and the dollar-denominated alternative. Modelling that spread requires both the AVAX price (for the yield side) and a credible dollar-denominated benchmark (for the alternative side).
+
+Second, the simulation runs in a context that changed materially on December 16, 2024. The Etna upgrade restructured Avalanche's validator economics by eliminating the 2,000 AVAX minimum stake for L1 validators and replacing it with a monthly fee paid in AVAX. The change created what we call a **two-tier validator economy**: Primary Network validators still hold 2,000 AVAX minimum and earn AVAX rewards, while L1 validators pay 1.33 AVAX per month and earn L1-specific rewards. Any honest simulation of post-Etna Avalanche must reflect both tiers, which means the data sources must distinguish them.
+
+Third, the simulation will not deliver value if it produces a parameter recommendation that the analyst cannot defend. Defensibility means the simulation must reproduce observed reality within tolerance before its forward projections carry weight. This is the **calibration requirement**: the simulated trajectory of every state variable must match the observed trajectory across the calibration window. The calibration target itself comes from data; without a credible target there is no calibration.
+
+These three observations converge on a four-source data architecture. **Snowflake** provides on-chain ground truth (the calibration target for state evolution and behavioural flows). **CoinGecko** provides AVAX market data (the fiat-conversion layer that translates AVAX rewards into participant decisions). **FRED** provides the US Fed Funds Effective Rate (the macro opportunity-cost benchmark Hash named as canonical in the May 2 Manifest V1.0 reference). **Snowpeer** provides validator-level metadata (the heterogeneity layer that exposes individual validator economics and decentralisation patterns).
+
+## 2. Background
+
+### 2.1 The simulation methodology in plain terms
+
+The Phase II simulation models the staking subsystem as a **dynamical system**, by which we mean a set of state variables (stocks of staked AVAX, counts of validators and delegators, AVAX price, etc.) that evolve over time according to specified rules (the protocol's reward formula, validators' decisions to enter or exit, exogenous price shocks). The simulation steps the state forward one day at a time and records the trajectory.
+
+The simulation engine is **cadCAD**, a Python framework for dynamical-systems modelling developed by BlockScience, and its modern successor **radCAD**, developed by CADLabs. The cadCAD discipline organises the model into four layers: **Policies** (the decisions of agents and protocol, modelled as functions that emit signals), **Mechanisms** (functions that take policy signals and update the state), **States** (the variables representing system quantities), and **Metrics** (computed from state variables to assess system health). Three of these four layers create empirical requirements. States need initial values from observation. Policies need calibration against observed decision patterns. Metrics need observed trajectories to compare against.
+
+### 2.2 Parameter Selection Under Uncertainty
+
+The analytical method that converts the calibrated simulation into actionable parameter recommendations is **Parameter Selection Under Uncertainty (PSUU)**, the methodology developed by BlockScience and documented in their blog and reference implementation. PSUU proceeds in six steps: identify system goals (from stakeholder analysis), identify control parameters (the protocol's adjustable knobs), identify environmental parameters (the exogenous facts the protocol cannot control), define metrics (computable from state variables), run the simulation across the parameter subspace, and select optimal parameters by characterising basins of attraction under uncertainty.
+
+Each PSUU step depends on data. System goals come from the Foundation's strategic priorities, operationalised through stakeholder analysis. Control parameters are the protocol's adjustable knobs (the five Phase II governance levers, the broader mechanism iteration interface). Environmental parameters are the exogenous facts the protocol cannot control (macro rates, competing DeFi yields, AVAX market price). Metrics must match definitions the Foundation cares about, and validating them requires observed trajectories.
+
+### 2.3 The post-Etna inflection
+
+The Etna upgrade, filed as **ACP-77** (Avalanche Community Proposal 77, "Reinventing Subnets"), activated on December 16, 2024 and is the single most consequential structural change to Avalanche's validator economics since mainnet launch. The change eliminated the 2,000 AVAX minimum stake for L1 validators and replaced it with a continuous P-Chain fee of 1.33 AVAX per month, creating the two-tier validator economy described in §1.
+
+The data window choice flows from the Etna inflection. A 365-day window starting from 2025-05-22 captures the full first post-Etna year and provides enough observations to calibrate behavioural parameters against the new fee structure. The pre-Etna baseline is valuable for contrast and depends on the CoinGecko Pro key ask in §9.
+
+### 2.4 The reward formula and its calibration challenge
+
+The Avalanche staking reward formula from the Avalanche Native Token Dynamics whitepaper (Ava Labs, 2020) is:
+
+```
+Reward = (MaximumSupply − Supply) × (Stake / Supply) × (StakingPeriod / MintingPeriod) × EffectiveConsumptionRate
+```
+
+In plain language: a validator's reward equals the remaining reward pool (maximum supply minus already-distributed supply), scaled by their share of the total supply that is staked, prorated by their chosen stake duration as a fraction of the year, and multiplied by a duration-dependent yield factor.
+
+The formula depends on the AVAX supply, the total stake, and the chosen staking period. The simulation must reproduce this formula and validate the simulated yields against observed yields. Each input maps to a data source: Snowflake supplies stake and supply trajectories, CoinGecko supplies the AVAX price that converts yield from native to fiat, Snowpeer supplies the per-validator average uptime that scales realised rewards against potential rewards, and FRED supplies the opportunity-cost rate that contextualises the yield against the risk-free alternative.
+
+The calibration challenge runs deeper than the formula suggests because validator behaviour is endogenous. Validators choose their staking period in response to the reward premium for longer commitments (approximately 11.11% bonus for one-year versus continuous two-week restaking, from the whitepaper). They choose whether to enter or exit in response to the spread between AVAX yield and alternatives. The data must support modelling both the formula and the behavioural response to the formula, which is why the four sources together are required rather than any single source.
+
+## 3. Architecture
+
+Every external source is wrapped in a `DataSource` adapter that exposes a single method, `query(query_id, **params) → Polars DataFrame`. The same interface serves every adapter, so the calling code never branches on which source it is reading from. A content-addressed cache wraps any adapter and writes `data/bronze/<source>/<date>/<sha256>.parquet` with a manifest sidecar. Pinned queries live at `queries/<source>/<query_id>.{sql,json}`, which separates the query text from the calling code and makes every parameterised query a versioned artefact. CI runs against a fixture-backed `FauxAdapter` so no test touches secrets and any contributor can run the full suite locally without provisioning.
+
+The pipeline produces two derived layers from the raw source reads. The **bronze layer** at `data/bronze/` holds the raw parquets keyed by source plus query plus query hash. The **silver layer** at `data/silver/` holds the joined, conformed manifest that the simulation consumes directly. Hydration runs through `workflows/pipelines/hydrate_manifest.py`, which reads from bronze (or queries upstream when cache misses), conforms each source's output to the manifest schema, and writes three joinable parquets keyed on `timestamp`. The hydrated manifest at `data/silver/manifest_joined.parquet` is the canonical input to every downstream calibration and analysis notebook.
+
+Three design properties matter for downstream work. **Uniformity** means the rest of the codebase reasons about data sources interchangeably. **Caching** means every read is reproducible and auditable; a cached parquet plus its manifest sidecar fully describe a historical query. **Faux fallback** means a new contributor can clone the repo and run the test suite in minutes without provisioning any external credentials.
+
+## 4. The four data sources
+
+### 4.1 Snowflake — on-chain ground truth
+
+Snowflake answers the question: what actually happened on the Avalanche network? Every validator entry, every delegation, every reward distribution, every fee burn, every P-Chain transaction is recorded in the on-chain ledger. The simulation must reproduce these trajectories within calibration tolerance, and only the on-chain record can serve as ground truth.
+
+[REDACTED: access account, user, role or workstation configuration]
+
+What the simulation reads from Snowflake: validator and delegator entry events (`AddValidatorTx`, `AddPermissionlessDelegatorTx`) and their counterparts at exit, indexed by day; total stake trajectory derived from cumulative net flows; reward emission events for the daily APR derivation; fee burn events for the deflationary mechanism component of the tokenomics. These trajectories feed the calibration target for the simulation's behavioural policies (Notebook 05) and the validation comparison for the simulated state evolution (Notebook 02).
+
+Adapter: `adapters/snowflake.py`. Three queries pinned and smoke-passing: `daily_validator_count`, `daily_delegator_count`, `daily_total_stake`. Status: live.
+
+### 4.2 CoinGecko — price and supply
+
+CoinGecko answers the question: what was the AVAX market price and circulating supply at each moment in the calibration window? Validator economic decisions are denominated in fiat (operational costs are USD-denominated; alternative yields are USD-denominated; the participant's wealth is fiat-anchored), so any model of validator behaviour must convert between native AVAX rewards and the fiat values that drive decisions. CoinGecko provides the conversion factor.
+
+Configuration: public REST API at `api.coingecko.com/api/v3` against the free public tier, rate-limited at approximately 30 calls per minute. No API key required at Phase 2 scale. Pro tier (~$129 per month) unlocks historical depth beyond 365 days.
+
+What the simulation reads from CoinGecko: daily AVAX price in USD across the calibration window, and daily AVAX circulating supply (used in the reward formula's `Supply` term). Both series feed initial states and validation targets across the entire notebook series. The Pro upgrade specifically extends the backtest window backward into 2024 for full pre/post-Etna comparison.
+
+Adapter: `adapters/coingecko.py`. One query pinned: `avax_market_chart`, daily resolution, 365-day window. Status: live.
+
+### 4.3 FRED — opportunity-cost benchmark
+
+FRED answers the question: what was the macro opportunity cost a participant faced when choosing whether to stake AVAX or hold a risk-free dollar-denominated asset? Hash named the US Fed Funds Effective Rate as the canonical macro opportunity-cost benchmark in the 2026-05-02 Manifest V1.0 reference, anchoring the project's choice. A validator or delegator weighing whether to stake faces the implicit alternative of holding Treasury-yielding USD; the spread between AVAX staking yield and the Fed Funds rate is a first-order determinant of staking participation.
+
+Configuration: Federal Reserve Economic Data REST API at `api.stlouisfed.org/fred`. Free API key, five-minute self-serve registration at `https://fred.stlouisfed.org/docs/api/api_key.html`. The calibrated series is `FEDFUNDS` (Fed Funds Effective Rate). Treasury yields and inflation expectations available as supplementary series.
+
+What the simulation reads from FRED: the daily Fed Funds Effective Rate across the calibration window, feeding `economic_signals.opportunity_cost_rate`. The Cong, He, and Tang (2025) "Tokenomics of Staking" paper develops the theoretical link between staking-yield-versus-opportunity-cost spreads and equilibrium staking ratios; FRED provides the empirical opportunity-cost term that closes the link.
+
+Adapter: `adapters/fred.py`. One query pinned: `fed_funds_effective_rate`. Status: live. Most recent observation 2026-04-01 = 3.64%.
+
+### 4.4 Snowpeer — validator-level metadata
+
+Snowpeer answers the question: who are the individual validators, where are they geographically, what software versions do they run, how reliable have they been, and how is their stake distributed across delegators? The Snowflake on-chain record knows that validator `NodeID-X` started at time `T` with stake `S`; it does not know that the validator operates from Germany on a Hetzner instance running avalanchego v1.11.10 with 97.8% lifetime uptime. The simulation needs heterogeneity at the validator level to model the extinction dynamics that drive validator count and decentralisation outcomes.
+
+[REDACTED: workstation-specific tooling reference]
+
+What the simulation reads from Snowpeer: per-validator average uptime, weighted by stake, for the `validator_uptime_mean` state variable. Per-validator subnet membership for filtering Primary Network from L1s post-Etna. Validator-by-country distribution for the decentralisation KPI track. Top-ISP and software-version distributions for the network-resilience KPI track. The current AVAX price and staking APR as cross-checks against CoinGecko and Snowflake-derived values respectively.
+
+Adapter: `adapters/snowpeer.py` (250 lines), wrapping the three observed response-shape patterns: `scalar_object`, `list_at_path`, and `paginated_list_at_path`. Path-parameter substitution defaults `subnetID` to the Primary Network. Status: live.
+
+One known endpoint issue: `/v1/monetary/circulating-supply` consistently returns `{"amount": 0}` with and without `?network=mainnet`. The behaviour is suspected stale cache on the Snowpeer side. The pipeline falls back to deriving circulating supply from CoinGecko's `market_cap_usd ÷ price_usd`.
+
+Pinned queries in production:
+
+| Query ID | Endpoint | Fills manifest column |
+| --- | --- | --- |
+| `current_avax_price` | `/v1/monetary/current-avax-price` | `economic_signals.avax_price_usd` (cross-check) |
+| `subnet_total_stake` | `/v1/subnets/{id}/total-stake` | `network_state.total_staked_avax` (cross-check) |
+| `subnet_staking_apr` | `/v1/subnets/{id}/staking-apr` | `economic_signals.staking_reward_rate_apr` |
+| `subnet_validator_count` | `/v1/subnets/{id}/validator-count` | `network_state.active_validator_count` (canonical) |
+| `subnet_unique_delegator_count` | `/v1/subnets/{id}/unique-delegator-count` | `network_state.active_delegator_count` (canonical) |
+| `validators_with_uptime` | `/v1/validators?subnetID=...&fields=avgUptime,weight,...` | `network_state.validator_uptime_mean` |
+
+## 5. Manifest column coverage
+
+The data manifest at `data/manifest/schema.yaml` defines 14 columns across three tables. Each column has one canonical source of truth:
+
+| # | Column | Source path | Status |
+| --- | --- | --- | --- |
+| 1 | `network_state.timestamp` | All sources, conformed at hydration | live |
+| 2 | `network_state.total_staked_avax` | Snowflake `P_TRANSACTIONS` (cumulative gross; Sprint-3 derives actives) | live, cumulative-gross |
+| 3 | `network_state.active_validator_count` | Snowflake daily distinct starts (Sprint-3 derives actives) | live, daily-start |
+| 4 | `network_state.active_delegator_count` | Snowflake daily distinct starts (Sprint-3 derives actives) | live, daily-start |
+| 5 | `network_state.validator_uptime_mean` | Snowpeer `/v1/validators`, stake-weighted | live (constant propagation) |
+| 6 | `economic_signals.timestamp` | CoinGecko (daily) | live |
+| 7 | `economic_signals.avax_price_usd` | CoinGecko `/market_chart` | live (365-day window) |
+| 8 | `economic_signals.avax_circulating_supply` | CoinGecko `market_cap ÷ price` | live (365-day window) |
+| 9 | `economic_signals.staking_reward_rate_apr` | Snowpeer `/subnets/.../staking-apr` constant | live (Sprint-3 derives daily series) |
+| 10 | `economic_signals.opportunity_cost_rate` | FRED `FEDFUNDS` daily | live |
+| 11 | `behavioral_flows.timestamp` | Snowflake (daily) | live |
+| 12 | `behavioral_flows.stake_entry_avax` | Snowflake `P_TRANSACTIONS` (Add* events) | live |
+| 13 | `behavioral_flows.stake_exit_avax` | Snowflake `P_TRANSACTIONS` (Remove* events query pending) | stub = 0 |
+| 14 | `behavioral_flows.net_flow_avax` | Derived `entry − exit` | live (= entry until exits land) |
+
+14 of 14 columns have a working data path. Three columns carry interim approximations: `total_staked_avax` reads as cumulative-gross until exits net; `validator_uptime_mean` propagates a current constant until the Snowpeer time series endpoints are pinned; `staking_reward_rate_apr` propagates a constant until the daily series derives from `rewards_emitted ÷ active_total_staked`. All three approximations have a known closure path in the Sprint 3 backlog (§11).
+
+## 6. The research journey
+
+The four data sources serve the analytical arc that runs from Notebook 02 through Notebook 09 of the BCRG Phase II series ([series-outline.md](https://www.notion.so/series-outline.md)). Every notebook names which sources it draws from and which manifest columns it requires.
+
+Notebook 02 (cadCAD Model Construction) establishes the simulation skeleton, defines the state variables and system parameters, and walks the reader through the canonical 4-layer pattern applied to the Avalanche staking subsystem. Data dependencies: initial-state observations across all four sources, plus a worked toy trajectory illustrated against plausible default parameters. Sources: Snowflake (initial validator counts, stake), CoinGecko (initial AVAX price, supply), FRED (initial opportunity-cost rate), Snowpeer (initial validator uptime mean).
+
+Notebook 03 (PSUU Framework) operationalises the Foundation's 7 Foundation Goals into measurable KPIs and presents the PSUU pipeline end-to-end. Each KPI formula resolves to a pure function over manifest columns. Data dependencies: the 14 columns provide the KPI evaluation surface, and the design space construction draws on the protocol parameters described in Notebook 01 plus the environmental scenarios derived from the CoinGecko price history.
+
+Notebook 04 (Data Substrate) makes the data architecture in this brief into a notebook artefact, with code that exercises every adapter, every pinned query, and every silver-layer parquet. The notebook serves the same role this brief serves but is executable: a reader who runs the notebook end-to-end produces every parquet in `data/silver/` and verifies the manifest hydrates with the expected row counts.
+
+Notebook 05 (Behavioural Specification) develops the first-principles derivation of the tanh response form that Notebook 02 introduced at placeholder level. Calibration target: the observed daily entry and exit flows from Snowflake `P_TRANSACTIONS`. Data dependencies: Snowflake behavioural flows (entries and exits), CoinGecko price for fiat-denominated decision-making, FRED for opportunity-cost weighting, Snowpeer for validator-type heterogeneity.
+
+Notebook 06 (Calibration) runs the calibrated model against the manifest and reports goodness-of-fit metrics. Data dependencies: the full manifest serves as the calibration target. The notebook produces the calibrated parameter set that subsequent PSUU sweeps consume.
+
+Notebook 07 (provisional, scope locked at the six-notebook milestone close) covers Hash N.'s heterogeneous-agent extension, drawing on the per-validator state Notebook 02 already carries.
+
+Notebook 08 (provisional) applies cadCAD-tools and cadCAD_machine_search to characterise KPI sensitivity to parameter shocks and to refine the calibration through automated parameter search.
+
+Notebook 09 (provisional) synthesises the analytical results into concrete intervention recommendations for the Avalanche Foundation, framed in terms of Donella Meadows' 12 Leverage Points and tied to the seven Foundation Goals introduced in Notebook 01.
+
+Every notebook commits its joined-manifest snapshot to a versioned location so the analytical results are reproducible across the team and across time. The provenance chain runs from primary source (Snowflake, CoinGecko, FRED, Snowpeer) through bronze cache (content-addressed parquet) through silver layer (joined manifest) through notebook (analytical artefact) to recommendation (Foundation deliverable).
+
+## 7. Silver layer state
+
+Hydrating the manifest writes three parquets at `data/silver/` joinable on `timestamp`:
+
+| Table | Rows | Columns | Source coverage |
+| --- | --- | --- | --- |
+| `network_state_history.parquet` | 365 | 5 | Snowflake + Snowpeer (uptime constant) |
+| `economic_signals.parquet` | 366 | 5 | CoinGecko + Snowpeer (APR constant) + FRED |
+| `staking_behavioral_flows.parquet` | 365 | 4 | Snowflake (entries; exits stub) |
+| `manifest_joined.parquet` | 365 | 12 | Inner join on `timestamp`, no nulls |
+
+Per-source row counts and timing land at `data/silver/_hydration_report.md`. Bronze cache at `data/bronze/<source>/<YYYY-MM-DD>/<sha16>.parquet` with manifest sidecars. Lineage at `data/_lineage.jsonl`. One command hydrates the lot: `python -m workflows.pipelines.hydrate_manifest`. Default window 2025-05-22 → 2026-05-22 (365-day post-Etna). Override with `--start` and `--end`.
+
+## 8. How any team member gets access
+
+Two steps to a green doctor.
+
+[REDACTED: access account, user, role or workstation configuration]
+
+[REDACTED: access account, user, role or workstation configuration]
+
+[REDACTED: access account, user, role or workstation configuration]
+
+## 9. Open dependencies
+
+Two asks remain with the Avalanche Foundation, in priority order:
+
+1. **CoinGecko Pro key** (approximately $129 per month) to expand the backtest window backward into 2024-2025 and cover the full pre-Etna baseline against the post-Etna 365-day window. The Pro tier unlocks `days=max` on the `/coins/{id}/market_chart` endpoint, which the free tier paywalls. With the Pro tier, the full ACP-77 inflection becomes visible across the calibration window.
+2. **Snowpeer `/v1/monetary/circulating-supply` ETA** with the Snowpeer team. The endpoint returns `{"amount": 0}` consistently. Either the endpoint gets fixed and the simulation adopts it as canonical, or the Foundation flags it won't-fix and the project documents CoinGecko's derivation as the canonical source.
+
+## 10. Verification
+
+```bash
+# 1. Doctor (preflight)
+python scripts/doctor.py
+# Expected: all-green
+
+# 2. All-adapters smoke
+python scripts/all_adapters_smoke.py
+# Expected: snowflake, coingecko, fred, snowpeer, faux all green
+
+# 3. Hydrate the silver layer end-to-end
+python -m workflows.pipelines.hydrate_manifest
+# Outputs: data/silver/{network_state_history,economic_signals,
+#                       staking_behavioral_flows,manifest_joined}.parquet
+
+# 4. Run the exploratory data analysis
+bash scripts/export/export-all.sh
+# Outputs: notebooks/research/exports/01-eda-foundations.ipynb
+```
+
+All four commands are idempotent and complete in under five minutes on a stock laptop with credentials cached.
+
+## 11. Sprint 3 follow-up
+
+Six items live in the Sprint 3 backlog, ordered by KPI impact:
+
+1. **Daily exits queries.** Pin `daily_validator_exits.sql` and `daily_delegator_exits.sql` to derive canonical Remove-event counts. Unblocks `behavioral_flows.stake_exit_avax` and the active-total reconstruction. The cumulative-gross approximation on `total_staked_avax` falls when exits net against entries.
+2. **Calendar cross-join for active counts.** Add a calendar cross-join in `workflows/pipelines/conform.py` to produce true daily active counts as `validators where start_time ≤ d < end_time`. The current daily-start approximation overcounts on days with many starts and undercounts on days with many ends.
+3. **Daily APR series.** Derive the daily staking-reward-rate series from Snowflake `rewards_emitted ÷ active_total_staked`, replacing the Snowpeer current-constant propagation. The reward formula recovers post-Etna calibration accuracy when the APR moves day-by-day rather than projecting today's constant backward across the window.
+4. **ACP-77 burn-reduction parameter.** Promote the burn-reduction multiplier from a hardcoded `baseline * 0.85` in `avalanche_model/logic.py` to a fitted parameter `acp77_burn_reduction_pct`. The calibration loop then identifies the multiplier from observed reward emissions rather than carrying the literature estimate as a fixed assumption.
+5. **Snowpeer enrichment queries.** Pin `validator_count_by_country`, `top_isps`, `versions_by_stake`, and `validator_expirations_by_month`. Each unlocks a decentralisation KPI for the strategic-recommendations workstream.
+6. **CoinGecko Pro window expansion.** Gated on the Pro key ask above; expands the backtest window to 2024-01-01 for the full pre/post-Etna comparison.
+
+The Sprint 2 close memo (Memo 002, target 2026-05-29) covers the calibration validation against this data substrate, the tanh sensitivity = 5.0 baseline assessment, and the HAM scaffold framing for Sprint 3.
+
+## References
+
+### Primary Avalanche sources
+
+- BCRG Phase II grant proposal v2.5: [https://bonding-curves.github.io/avalanche-research/phase2/proposal/grant_proposal_v2.5](https://bonding-curves.github.io/avalanche-research/phase2/proposal/grant_proposal_v2.5)
+- Avalanche Native Token Dynamics Whitepaper (Ava Labs, 2020): [https://assets.website-files.com/5d80307810123f5ffbb34d6e/6008d7bc56430d6b8792b8d1_Avalanche Native Token Dynamics.pdf](https://assets.website-files.com/5d80307810123f5ffbb34d6e/6008d7bc56430d6b8792b8d1_Avalanche%20Native%20Token%20Dynamics.pdf)
+- ACP-77 (Etna upgrade, Reinventing Subnets): [https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md)
+- ACP-273 (Reduce Minimum Validator Staking Duration): [https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/273-reduce-minimum-staking-duration/README.md](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/273-reduce-minimum-staking-duration/README.md)
+- Messari, State of Avalanche Q4 2025: [https://messari.io/report/state-of-avalanche-q4-2025](https://messari.io/report/state-of-avalanche-q4-2025)
+- Reflexivity Research, Avalanche Q4 2024 Overview: [https://www.reflexivityresearch.com/all-reports/avalanche-q4-2024-overview](https://www.reflexivityresearch.com/all-reports/avalanche-q4-2024-overview)
+
+### Academic and theoretical sources
+
+- Cong, He, and Tang (2025), "The Tokenomics of Staking", NBER Working Paper 33640: [https://www.nber.org/papers/w33640](https://www.nber.org/papers/w33640)
+- Lu (2026a), "Equilibrium Tokenomics Framework": [`docs/research/avalanche-foundation/2026-03-19-equilibrium-tokenomics-framework.md`](https://www.notion.so/research/avalanche-foundation/2026-03-19-equilibrium-tokenomics-framework.md)
+- Lu (2026b), "Tokenomics of Staking (ACP-275, ACP-285)": [`docs/research/avalanche-foundation/2026-04-28-tokenomics-of-staking-acp275-acp285.md`](https://www.notion.so/research/avalanche-foundation/2026-04-28-tokenomics-of-staking-acp275-acp285.md)
+- Donella Meadows, "Leverage Points: Places to Intervene in a System": [https://donellameadows.org/wp-content/userfiles/Leverage_Points.pdf](https://donellameadows.org/wp-content/userfiles/Leverage_Points.pdf)
+
+### Methodology sources
+
+- BlockScience, "How to Perform Parameter Selection Under Uncertainty": [https://blog.block.science/how-to-perform-parameter-selection-under-uncertainty/](https://blog.block.science/how-to-perform-parameter-selection-under-uncertainty/)
+- BlockScience Subspace reference implementation: [https://github.com/BlockScience/subspace](https://github.com/BlockScience/subspace)
+- cadCAD core repository: [https://github.com/cadCAD-org/cadCAD](https://github.com/cadCAD-org/cadCAD)
+- cadCAD demos (4-layer pattern definition): [https://github.com/cadCAD-org/demos](https://github.com/cadCAD-org/demos)
+- CADLabs Project Template: [https://github.com/CADLabs/CADLabs-Project-Template](https://github.com/CADLabs/CADLabs-Project-Template)
+- CADLabs ethereum-economic-model (Masterclass reference): [https://github.com/CADLabs/ethereum-economic-model](https://github.com/CADLabs/ethereum-economic-model)
+- CADLabs fei-protocol-model (stakeholder-goal-KPI pipeline): [https://github.com/CADLabs/fei-protocol-model](https://github.com/CADLabs/fei-protocol-model)
+
+### Data source documentation
+
+- Snowflake Marketplace (Avalanche Primary Network Data): [https://app.snowflake.com/marketplace](https://app.snowflake.com/marketplace)
+- CoinGecko API documentation: [https://docs.coingecko.com/v3.0.1/reference/introduction](https://docs.coingecko.com/v3.0.1/reference/introduction)
+- FRED Fed Funds Effective Rate series: [https://fred.stlouisfed.org/series/FEDFUNDS](https://fred.stlouisfed.org/series/FEDFUNDS)
+- FRED API key documentation: [https://fred.stlouisfed.org/docs/api/api_key.html](https://fred.stlouisfed.org/docs/api/api_key.html)
+- Snowpeer API surface: [https://api.snowpeer.io/docs](https://api.snowpeer.io/docs)
+
+### Project artefacts
+
+- Series outline: [`docs/series-outline.md`](https://www.notion.so/series-outline.md)
+- Writing guidelines: [`docs/writing-guidelines.md`](https://www.notion.so/writing-guidelines.md)
+[REDACTED: workstation-specific tooling reference]
+[REDACTED: workstation-specific tooling reference]
+- Project manifest schema: [`data/manifest/schema.yaml`](https://www.notion.so/data/manifest/schema.yaml)

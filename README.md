@@ -6,7 +6,7 @@ The model follows individual validator staking periods through renewal, departur
 
 [![Model v0.8.0: historical staking events supply the behaviour blocks, six ordered daily stages update the state, and daily outputs supply the performance measures](src/avalanche_research/model/images/v0.8-structure.png)](src/avalanche_research/model/README.md)
 
-Release as of 28 October 2026: staking model v0.8.0, tagged `model-v0.8.0`. The Foundation copy is on [`milestone-2`](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/milestone-2). Installation checks and the model description work without data. Repeating a simulation requires pinned input snapshots that are not yet distributed with this repository.
+Released staking model: v0.8.0, tagged `model-v0.8.0`. The Foundation copy is on [`milestone-2`](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/milestone-2). A small paired experiment includes its input snapshot. Full historical report reruns require their separate pinned inputs and experiment artifacts.
 
 ## Contents
 
@@ -27,7 +27,7 @@ Release as of 28 October 2026: staking model v0.8.0, tagged `model-v0.8.0`. The 
 
 ## Start here
 
-**Model and simulation setup:** read the [30 October pre-read](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/docs/review/2026-10-30/modeling.md). It explains the model, fixes one central experiment and links to the supporting evidence. No installation is needed to read it.
+Start with the [research handoff](docs/handoff/README.md) for model setup, the local wiki, a runnable example and one research cycle. The [modeling memo](docs/review/2026-10-30/modeling.md) can be read without installation.
 
 | Your task | Entry point |
 | --- | --- |
@@ -35,7 +35,8 @@ Release as of 28 October 2026: staking model v0.8.0, tagged `model-v0.8.0`. The 
 | Review the mathematics and evidence | Read the [model README](src/avalanche_research/model/README.md), the [v0.7 model specification](<content/Phase II/Milestones/Milestone 1/1-3 Staking Model Spec/index.md>) and the [v0.8.0 selection evidence](results/model-v0.8.0-selection/README.md) |
 | Install, run or extend the package | Follow [Quick start](#quick-start), then the model README's [run instructions](src/avalanche_research/model/README.md#run-it) and [change recipes](src/avalanche_research/model/README.md#change-it) |
 | Locate a contractual deliverable | Open the [milestone index](<content/Phase II/Milestones/index.md>) |
-| Follow the earlier research | Read the [research history](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/docs/research-history/README.md) for original May and June texts, figures and later context |
+| Run a complete comparison | Use the [worked experiment](examples/first-experiment/README.md), with included inputs, expected results and a chart |
+| Follow the earlier research | Read the [research history](docs/research-history/README.md) for May and June sources, figures and later context |
 
 Inspect the wiki and repository structure without research inputs:
 
@@ -58,7 +59,7 @@ uv run avalanche model describe
 uv run pytest -q
 ```
 
-The description starts with `PASS | model describe | 13 mechanisms` and prints the protocol settings and upgrade schedule. The checked fresh installation without input data passes 2,127 tests and skips 37 in about four minutes. Those checks establish installation and tested software behaviour. Forecast evaluation is recorded separately in [Analysis and evidence](#analysis-and-evidence).
+The description starts with `PASS | model describe | 13 mechanisms` and prints the protocol settings and upgrade schedule. Installation tests check software behaviour, with external-data tests skipped when their inputs are absent. Forecast evaluation is recorded separately in [Analysis and evidence](#analysis-and-evidence).
 
 Read the saved notebook outputs in JupyterLab:
 
@@ -156,9 +157,9 @@ The [v0.8.0 selection verdict](results/model-v0.8.0-selection/verdict.json) can 
 
 ## Data availability
 
-Input files are too large for Git and are not stored here. The [data guide](data/README.md), [catalog](data/data-catalog.json) and [pins](data/pins/) identify the required datasets and recorded inputs.
+Full historical input files are too large for Git and are not stored here. The [data guide](data/README.md), [catalog](data/data-catalog.json) and [pins](data/pins/) identify the required datasets and recorded inputs.
 
-The pinned snapshots are not yet distributed with this repository. Building a new snapshot from a source does not recreate an earlier pinned input. Without the required runs, notebook execution stops at its first missing-data dependency. Saved outputs remain readable. [SETUP.md](SETUP.md) describes the run layout and the notebook verification command for use after the inputs arrive.
+The [worked experiment](examples/first-experiment/README.md) includes a compact authenticated validator snapshot and needs no provider access. The full pinned snapshots for historical report reruns are not distributed here. Building a new snapshot does not recreate an earlier input. Without the required runs, notebook execution stops at its first missing-data dependency. Saved outputs remain readable. [SETUP.md](SETUP.md) describes both paths.
 
 ## Deliverables and resources
 

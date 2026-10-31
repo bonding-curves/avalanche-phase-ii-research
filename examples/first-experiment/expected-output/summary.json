@@ -1,0 +1,144 @@
+{
+  "artifacts": {
+    "comparison.csv": {
+      "bytes": 647,
+      "sha256": "fbea54f24ff5b9c1f22a4c8a4d27662a4acf19bf3f857a918d8b1237a338606e"
+    },
+    "configuration.json": {
+      "bytes": 549,
+      "sha256": "2dae3d37bf5ef879865b6127c42d421e467447ac34280e4b453cc8a04e5f7cfa"
+    },
+    "daily.csv": {
+      "bytes": 26619,
+      "sha256": "a2848aaa49e515d9dd61d1fdfa28a98a7a87055cbe95f75f067c5faeb1ce228d"
+    },
+    "figure.html": {
+      "bytes": 1278660,
+      "sha256": "a2fa8b289e25d20b8c2a3cc2233a194ca269a24d808c4bbb1a3a33563647c32d"
+    },
+    "parameter-draws.csv": {
+      "bytes": 2632,
+      "sha256": "20ace82cf9596135825e3cbdb9c0b343e479897de91c217693c3eb560e6f7f7d"
+    }
+  },
+  "checkout_commit": "f82ddf6ca899317be160e247509370df642cf293",
+  "controls": {
+    "neutral_response_stake_paths_equal": true,
+    "paired_seed_and_parameter_rows": true,
+    "protocol_counter_conservation": true
+  },
+  "design": {
+    "activation": "2025-11-19T00:00:00+00:00",
+    "counter_basis": "P-Chain reward counter recorded immediately before the referenced 23:56:46 UTC commitment, 193 seconds before the origin cutoff; not a proven complete end-of-day counter or realized supply",
+    "counter_observed_at_utc": "2025-11-18T23:56:46Z",
+    "draw_seed": 0,
+    "entry_response": 0.5,
+    "origin": "2025-11-18",
+    "ramp_days": 90,
+    "renewal_response": 0.5,
+    "runs": 4,
+    "schema": "first-experiment-config/v1",
+    "seed": 20261030,
+    "target_min_rate": 0.075,
+    "timesteps": 30
+  },
+  "environment": {
+    "bokeh": "3.9.2",
+    "cadCAD": "0.5.3",
+    "duckdb": "1.5.5",
+    "numpy": "2.5.3",
+    "pandas": "2.3.3",
+    "param": "2.4.2",
+    "python": "3.13.14",
+    "scipy": "1.18.1"
+  },
+  "expected_result": "matches_frozen_example_with_declared_tolerance",
+  "inputs": {
+    "counter.csv": {
+      "bytes": 169,
+      "sha256": "f1bd24ba14895684d78b57e0c05c753a7a47268e898eff263ed8bea282f2ae5a"
+    },
+    "input-manifest.json": {
+      "bytes": 3462,
+      "sha256": "782f3cbdea62214c8ce046d52d9ad2778eb55efa11529c1ed1377e2fcce06458"
+    },
+    "validators.parquet": {
+      "bytes": 3648981,
+      "sha256": "c84e2e9ba33cb1178bcc66d2d3a3b093c023dd8d8c3609868ea51b4fdc6e7d31"
+    }
+  },
+  "metrics": {
+    "baseline_final_stake_avax": 164206230.3308614,
+    "baseline_promised_rewards_avax": 466777.59969231626,
+    "candidate_final_stake_avax": 163932933.1263019,
+    "candidate_promised_rewards_avax": 454387.358877637,
+    "rewards_saved_avax": 12390.240814679244,
+    "stake_retained_ratio": 0.998336824452825
+  },
+  "model": {
+    "class": "avalanche_research.model.stake_lifecycle.StakeLifecycle",
+    "specification_hashes": {
+      "baseline": "519ac0837275c61d",
+      "candidate": "023fe2d49f7d0e3a",
+      "ramp_neutral": "f98e42b6d8c6c1b4"
+    },
+    "variant": "v0.8.0",
+    "version": "0.8.0"
+  },
+  "observation_scheme": "arithmetic means of per-pair summaries; ratio is mean of per-pair candidate/baseline final stake",
+  "pair_count": 4,
+  "reward_measure": "sum of full promised rewards for commitments begun during the horizon, not rewards paid within it",
+  "schema": "first-experiment-result/v1",
+  "scope": "new simulated validator-own-stake experiment; pre-boundary fitting only; no observed post-origin outcomes",
+  "source_sha256": {
+    "scripts/first_experiment.py": "4093bdf396f88c1160ad17e0668e71475c3afcc48ea938ec2cdc5bc5b1520df5",
+    "src/avalanche_research/__init__.py": "c4e2c3b6b5b78d10e6632278a7fda4c9c59ac20a554d69030bad0ed4485e68cb",
+    "src/avalanche_research/core/__init__.py": "ee2bf86c0edffac14fc8f47d41d5001b7bd3eb145230df46860f5e10382eb505",
+    "src/avalanche_research/core/aliases.py": "8cdadcae6bd906f13b5913d98fb5d8b80a27b835786b56d7c9ded762d7801d2e",
+    "src/avalanche_research/core/clock.py": "bf6dfb1285eaf53e73c5a88e312519b59bce2d87e5d9fde7f8a9ac9e82ab8081",
+    "src/avalanche_research/core/errors.py": "6acc987d06630ed1e1ff6b5d325afc9e147fe9c530314d758251d1942c435fa3",
+    "src/avalanche_research/core/lockbox.py": "c9e4d1b6082cc9103071dde9b8cd3c4e03ab9c2e40cf48bebe2f249122d4c2f9",
+    "src/avalanche_research/core/units.py": "9ff96c5592e1abbc4fef125948cad78a2707b85306a420b2dcc02e30acee1430",
+    "src/avalanche_research/domain/__init__.py": "116a26561f1c1257f365d1717254b7529643dd2d824f1f83b1f589ce3d8bd9aa",
+    "src/avalanche_research/domain/protocol/__init__.py": "1efb4e11c250c8cf0267418a5b2a61114073c887f5a0f5cf3ffe474930256f8e",
+    "src/avalanche_research/domain/protocol/types.py": "8355f661185c0976e8c7d2423e0b72ce83bb72752b74f90147c0a0779f5c3c33",
+    "src/avalanche_research/mechanisms/__init__.py": "9670fc9637427b1c0a1cf975c4ac5c8906d4090f2379b43df030d64f475520e2",
+    "src/avalanche_research/mechanisms/admission.py": "42c3ec473634e8bd481207337b052f2329a2cae2caa987439b760d74a3cf7ba6",
+    "src/avalanche_research/mechanisms/reward.py": "9cfa0982ad9e629c17066b1c06b089a9a948ee496a2df1cc46de9d84c8d1fb60",
+    "src/avalanche_research/model/__init__.py": "089023918949eba27a44ba50683ae729e504d9938c77560a9774b864c5d07873",
+    "src/avalanche_research/model/blocks.py": "ad22d145f4094042749da14bb49137212d09b26a18834744b3f3dade77035711",
+    "src/avalanche_research/model/delegated_lifecycle.py": "6d15fc14218fa689dda0e0ecad491b13e0e28feec6fd851a0b1587bb52ecc66a",
+    "src/avalanche_research/model/delegation_blocks.py": "3030d4a140d3807ca9320bb3f7ae9a64e01f6a859fe21340693c2a1212ea7159",
+    "src/avalanche_research/model/engine.py": "8a4bf04cb6f700a0a796250a561728f103b189febc8b416e158ba5f567acc4b4",
+    "src/avalanche_research/model/fitted_blocks.py": "8e4f96bbf695b03d6c09c60a991a73344dd88b8f97743f1c80f28ab70ee67903",
+    "src/avalanche_research/model/fitted_lifecycle.py": "eab7c1e811c26836bab37bce23e95940fb539107a6643229bce47b8118725f0e",
+    "src/avalanche_research/model/lifecycle.py": "07a9a7e79d690e9dbee56000c5dc2fda9922dfec577401fa3ae2d3edce1cbc35",
+    "src/avalanche_research/model/operator_events.py": "a49463f2ab125803e24b4c47be292774d462e8ee2a99f18d2401996a80e12833",
+    "src/avalanche_research/model/parts/__init__.py": "24affedb2e817c9150810abd3a15712d330e093b4c8ec4af42786919e7cc9bc4",
+    "src/avalanche_research/model/parts/arrivals.py": "09daa51e6381111c99c24c19bb0f4297f502b1962924984b4d858289ec21077f",
+    "src/avalanche_research/model/parts/base.py": "28b2d11933b76f40d8349b3fa3cd2eb884d3eee5ee687a9bddc1b5119aded8f8",
+    "src/avalanche_research/model/parts/continuation.py": "b60365865ecf9c279de99ed18d0ecda986af704ed5f5fabf6acf7fce0d00323b",
+    "src/avalanche_research/model/parts/delegations.py": "0f11e21e591271efb71d667d967dd7ffc7508a931cff3b4d95796e251f2cda3a",
+    "src/avalanche_research/model/parts/duration_transition.py": "51743ef8a4df30c51211e29b541a9ee154e8a6ee166d1fb95fa5d0797db543d2",
+    "src/avalanche_research/model/parts/renewal.py": "756e8d8c3d8ed0c4ff5a56d025bd552e62bdfc29b9bdf698cf828da16dc5f490",
+    "src/avalanche_research/model/parts/return_hazard.py": "4bc6ab0563042dc4e7d53dc6fef7b1594880b5159e9f654c551ef2e1a818e6ef",
+    "src/avalanche_research/model/parts/returns.py": "a29e2143db389a51d9e9979ad0864c9526a725d87109a440ae9715cda01ef740",
+    "src/avalanche_research/model/parts/stages.py": "d4c489b0653301dc58ef727519f82cd6ff548330068fa3940d212b06043bd813",
+    "src/avalanche_research/model/parts/stake_choice.py": "75b7bb14221763a9aa29528fa608c7d4cccf2978d9554766413cd8020485f858",
+    "src/avalanche_research/model/replay.py": "5f3043a8634a03cfc1d91fd5b430d890edaf53730d1320cac867d12823874cae",
+    "src/avalanche_research/model/response.py": "ccd10778ebbe69063032dfb482a3ac111b521a6dae1a00ae9cc8d12c8355c0e3",
+    "src/avalanche_research/model/stake_lifecycle.py": "5370383a07564974793c0aee0a289ce0c5b954559dd5cab803886b2b4e809462",
+    "src/avalanche_research/model/streams.py": "e913a847dc738500551d05bca62b4946a956bdd99f018b078846d6e0605939e8",
+    "src/avalanche_research/model/variants.py": "9f062e62981b43df173a6308304ab10b28066f81f6d1473cd75c682d1438af4c"
+  },
+  "status": "complete",
+  "timing": {
+    "fit_and_simulation_seconds": 1.4573,
+    "prepare_seconds": 0.3996
+  },
+  "tolerance": {
+    "absolute_avax": 1e-06,
+    "absolute_ratio": 1e-10,
+    "relative": 1e-08
+  }
+}

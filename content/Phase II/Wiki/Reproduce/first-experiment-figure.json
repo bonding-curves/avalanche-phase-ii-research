@@ -1,0 +1,29 @@
+{
+  "schema": "worked-experiment-figure/v1",
+  "figure": "first-experiment.png",
+  "table": "first-experiment-comparison.csv",
+  "interactive": "first-experiment.html",
+  "model": "v0.8.0",
+  "horizon_days": 30,
+  "evidence_status": "New worked experiment; conditional simulation, not historical report or predictive validation",
+  "producer": "scripts/first_experiment.py",
+  "data_and_html_command": "uv run --frozen --group model --group notebook python scripts/first_experiment.py --output release/first-experiment",
+  "preview_method": "Browser capture of the Bokeh-generated default figure at 900 by 460 pixels; no recalculation of data",
+  "source_plot": "examples/first-experiment/expected-output/figure.html",
+  "source_data": "examples/first-experiment/expected-output/daily.csv",
+  "source_summary": "examples/first-experiment/expected-output/summary.json",
+  "files": {
+    "first-experiment.png": {
+      "sha256": "64eee6cb9576b09cf1117f6dea0deb4e50a41dfb3e7c41f7b1448c3907fef3c9",
+      "bytes": 40944
+    },
+    "first-experiment-comparison.csv": {
+      "sha256": "fbea54f24ff5b9c1f22a4c8a4d27662a4acf19bf3f857a918d8b1237a338606e",
+      "bytes": 647
+    },
+    "first-experiment.html": {
+      "sha256": "a2fa8b289e25d20b8c2a3cc2233a194ca269a24d808c4bbb1a3a33563647c32d",
+      "bytes": 1278660
+    }
+  }
+}

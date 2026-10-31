@@ -1,0 +1,15 @@
+{
+  "schema": "first-experiment-config/v1",
+  "origin": "2025-11-18",
+  "timesteps": 30,
+  "runs": 4,
+  "seed": 20261030,
+  "draw_seed": 0,
+  "activation": "2025-11-19T00:00:00+00:00",
+  "target_min_rate": 0.075,
+  "ramp_days": 90,
+  "renewal_response": 0.5,
+  "entry_response": 0.5,
+  "counter_observed_at_utc": "2025-11-18T23:56:46Z",
+  "counter_basis": "P-Chain reward counter recorded immediately before the referenced 23:56:46 UTC commitment, 193 seconds before the origin cutoff; not a proven complete end-of-day counter or realized supply"
+}

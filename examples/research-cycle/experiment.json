@@ -1,0 +1,23 @@
+{
+  "schema": "research-cycle-experiment/v1",
+  "id": "E-first-experiment-reward-saving",
+  "hypotheses": ["H-first-experiment-reward-saving"],
+  "driver": "first-experiment",
+  "driver_config": "examples/first-experiment/config.json",
+  "scope": "development",
+  "evidence_role": "Worked development and reproduction cycle with packaged expected results, not blinded confirmation or a new policy finding.",
+  "timeout_seconds": 300,
+  "analysis": {
+    "source": "summary.json",
+    "observations": "/pair_count",
+    "minimum_observations": 2,
+    "rules": [
+      {
+        "id": "positive-promised-reward-saving",
+        "metric": "/metrics/rewards_saved_avax",
+        "support": {"op": "gt", "value": 0},
+        "contradict": {"op": "lt", "value": 0}
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "analysis_sha256": "c74c9b82b1869488206b6c7b8482dd07716783d24e419844aaed7aec0bbd5712",
+  "attempt": 1,
+  "continuation_question": "Does the sign persist across separately declared development-only reward-response settings, and what additional paired uncertainty would be needed before a consequential claim?",
+  "experiment": "E-first-experiment-reward-saving",
+  "hypothesis": "H-first-experiment-reward-saving",
+  "interpretation": "Preregistered numeric assessment. Narrative interpretation is a separate authored task.",
+  "outcome": "supported",
+  "prediction": {
+    "statement": "The recorded mean paired promised-reward saving is positive, with at least two pairs.",
+    "test": "Evaluate summary.json pair_count >= 2 and metrics.rewards_saved_avax > 0. A negative saving contradicts the prediction. Exactly zero or fewer than two pairs is inconclusive. Execution or authentication failure is invalid and yields no scientific insight."
+  },
+  "schema": "research-cycle-insight/v1",
+  "scope": "Development-only worked example with its recorded frozen pre-boundary input, released implementation, fitted settings, horizon and seeds. This is a conditional model comparison, not a causal estimate or a replication of the historical Milestone 2 experiments. Packaged expected results are available, so this is not a blinded confirmatory evaluation. A positive point estimate does not establish statistical significance or robust saving across response settings."
+}

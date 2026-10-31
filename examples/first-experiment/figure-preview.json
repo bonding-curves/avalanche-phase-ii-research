@@ -1,0 +1,29 @@
+{
+  "artifacts": {
+    "expected-output/comparison.csv": {
+      "bytes": 647,
+      "sha256": "fbea54f24ff5b9c1f22a4c8a4d27662a4acf19bf3f857a918d8b1237a338606e"
+    },
+    "expected-output/daily.csv": {
+      "bytes": 26619,
+      "sha256": "a2848aaa49e515d9dd61d1fdfa28a98a7a87055cbe95f75f067c5faeb1ce228d"
+    },
+    "expected-output/figure.html": {
+      "bytes": 1278660,
+      "sha256": "a2fa8b289e25d20b8c2a3cc2233a194ca269a24d808c4bbb1a3a33563647c32d"
+    },
+    "figure-preview.png": {
+      "bytes": 40944,
+      "sha256": "64eee6cb9576b09cf1117f6dea0deb4e50a41dfb3e7c41f7b1448c3907fef3c9"
+    }
+  },
+  "paired_summary": "expected-output/comparison.csv",
+  "plotted_data": "expected-output/daily.csv",
+  "preview": "figure-preview.png",
+  "rendered_from": "expected-output/figure.html",
+  "schema": "first-experiment-figure-preview/v1",
+  "viewport": {
+    "height": 460,
+    "width": 900
+  }
+}

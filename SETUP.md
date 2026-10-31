@@ -51,7 +51,7 @@ This installs the package with its test tools (the `dev` group, installed by def
 uv run pytest -q
 ```
 
-The checked fresh installation without input data passes 2,127 tests and skips 37 in about four minutes. The input data is needed for the model-run example in step 7, rather than for these installation checks.
+The suite checks software behaviour. Tests requiring external input runs skip when those runs are absent. Step 7 also provides a complete small simulation with its own included inputs.
 
 ## 5. Query the model from the command line
 
@@ -102,9 +102,18 @@ JupyterLab opens in the browser. Open a notebook and read it without running it.
 
 Do not choose **Run All** before the input set is in place. The notebooks read the staking periods built from the Avalanche Foundation's Snowflake data share, which are too large for Git. Run without them, a notebook stops at its first data cell with a `DataError` that names the missing run, for example `no built run for derived.staking-periods named staking-periods-2026-09-30`. Reading the saved outputs requires no cell execution. Use a separate copy if you want to experiment without changing the delivered notebooks.
 
-## 7. Run the notebooks with data
+## 7. Run a model experiment or the notebooks
 
-The model's pinned input sets are not yet distributed with this repository. A command that fetches and checks them is planned with the code transfer of Milestone 3. When you have an input set, extract it into `data/runs/`, so each run is one folder such as `data/runs/staking-periods-2026-09-30/`. Then check it and run the model and mechanism notebooks:
+The [worked experiment](examples/first-experiment/README.md) includes a compact input snapshot and expected results. It needs no Snowflake or API credentials:
+
+```sh
+uv run --frozen --group model --group notebook python scripts/first_experiment.py --output release/first-experiment
+uv run --frozen --group model --group notebook python scripts/first_experiment.py --output release/first-experiment --check
+```
+
+Both commands report `status: pass`. Open `release/first-experiment/figure.html` in a browser. The guide explains its four paired comparisons, assumptions and checks. Use a new output directory for a new experiment. The [research-cycle guide](examples/research-cycle/README.md) adds a declared hypothesis, numerical assessment and separate methodology reflection.
+
+The full historical inputs for the notebooks and report reruns are separate from that compact example and are not yet distributed with this repository. When you have their pinned input set, extract it into `data/runs/`, so each run is one folder such as `data/runs/staking-periods-2026-09-30/`. Then check it and run the model and mechanism notebooks:
 
 ```sh
 uv run python scripts/verify_notebooks.py

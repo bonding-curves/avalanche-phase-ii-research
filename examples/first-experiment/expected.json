@@ -1,0 +1,99 @@
+{
+  "design": {
+    "activation": "2025-11-19T00:00:00+00:00",
+    "counter_basis": "P-Chain reward counter recorded immediately before the referenced 23:56:46 UTC commitment, 193 seconds before the origin cutoff; not a proven complete end-of-day counter or realized supply",
+    "counter_observed_at_utc": "2025-11-18T23:56:46Z",
+    "draw_seed": 0,
+    "entry_response": 0.5,
+    "origin": "2025-11-18",
+    "ramp_days": 90,
+    "renewal_response": 0.5,
+    "runs": 4,
+    "schema": "first-experiment-config/v1",
+    "seed": 20261030,
+    "target_min_rate": 0.075,
+    "timesteps": 30
+  },
+  "inputs": {
+    "counter.csv": {
+      "bytes": 169,
+      "sha256": "f1bd24ba14895684d78b57e0c05c753a7a47268e898eff263ed8bea282f2ae5a"
+    },
+    "input-manifest.json": {
+      "bytes": 3462,
+      "sha256": "782f3cbdea62214c8ce046d52d9ad2778eb55efa11529c1ed1377e2fcce06458"
+    },
+    "validators.parquet": {
+      "bytes": 3648981,
+      "sha256": "c84e2e9ba33cb1178bcc66d2d3a3b093c023dd8d8c3609868ea51b4fdc6e7d31"
+    }
+  },
+  "metrics": {
+    "baseline_final_stake_avax": 164206230.3308614,
+    "baseline_promised_rewards_avax": 466777.59969231626,
+    "candidate_final_stake_avax": 163932933.1263019,
+    "candidate_promised_rewards_avax": 454387.358877637,
+    "rewards_saved_avax": 12390.240814679244,
+    "stake_retained_ratio": 0.998336824452825
+  },
+  "model": {
+    "class": "avalanche_research.model.stake_lifecycle.StakeLifecycle",
+    "specification_hashes": {
+      "baseline": "519ac0837275c61d",
+      "candidate": "023fe2d49f7d0e3a",
+      "ramp_neutral": "f98e42b6d8c6c1b4"
+    },
+    "variant": "v0.8.0",
+    "version": "0.8.0"
+  },
+  "pair_count": 4,
+  "pairs": [
+    {
+      "baseline_final_stake_avax": 168554339.76199672,
+      "baseline_promised_rewards_avax": 448505.146513703,
+      "candidate_final_stake_avax": 168431773.24724507,
+      "candidate_promised_rewards_avax": 435356.824034698,
+      "neutral_stake_path_equal": true,
+      "rewards_saved_avax": 13148.322479004972,
+      "run": 1,
+      "stake_retained_ratio": 0.9992728367900541
+    },
+    {
+      "baseline_final_stake_avax": 161151796.07232723,
+      "baseline_promised_rewards_avax": 499503.802006425,
+      "candidate_final_stake_avax": 161119750.6269004,
+      "candidate_promised_rewards_avax": 489746.074370365,
+      "neutral_stake_path_equal": true,
+      "rewards_saved_avax": 9757.727636059979,
+      "run": 2,
+      "stake_retained_ratio": 0.9998011474509881
+    },
+    {
+      "baseline_final_stake_avax": 157236588.2253445,
+      "baseline_promised_rewards_avax": 417706.393456119,
+      "candidate_final_stake_avax": 156810282.91086963,
+      "candidate_promised_rewards_avax": 407908.845822925,
+      "neutral_stake_path_equal": true,
+      "rewards_saved_avax": 9797.547633194015,
+      "run": 3,
+      "stake_retained_ratio": 0.9972887651704582
+    },
+    {
+      "baseline_final_stake_avax": 169882197.26377717,
+      "baseline_promised_rewards_avax": 501395.056793018,
+      "candidate_final_stake_avax": 169369925.72019258,
+      "candidate_promised_rewards_avax": 484537.69128256,
+      "neutral_stake_path_equal": true,
+      "rewards_saved_avax": 16857.36551045801,
+      "run": 4,
+      "stake_retained_ratio": 0.9969845483997998
+    }
+  ],
+  "schema": "first-experiment-expected/v1",
+  "scope": "New worked example; not a reconstruction of earlier report trajectories or predictive validation.",
+  "tolerance": {
+    "absolute_avax": 1e-06,
+    "absolute_ratio": 1e-10,
+    "relative": 1e-08
+  }
+}

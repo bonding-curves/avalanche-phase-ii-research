@@ -92,7 +92,7 @@ def review_presentation(text: str) -> str:
         value = re.sub(r"\s+#.*$", "", value)
     if not isinstance(value, str) or not value.strip() or "\n" in value or "\r" in value:
         raise ExportError("review title must be a nonempty single-line string")
-    historical = re.search(r"^kind: (?:archival-edition|research-history)$", front[1], re.MULTILINE)
+    historical = re.search(r"^kind: (?:archival-edition|historical-record|research-history)$", front[1], re.MULTILINE)
     status = "" if historical else "*Draft for review.*\n\n"
     return f"# {value}\n\n{status}" + text[front.end():].lstrip("\n")
 

@@ -9,8 +9,8 @@ Choose a route by the question being investigated. Follow a source's own model a
 | Locate inputs | [Data guide](../../../../data/README.md), catalog and pins | Recorded provenance and actual local availability. A pin identifies bytes but does not retrieve them |
 | Specify an experiment | [Sweep design](../../../../scripts/m2_sweep_design.py), [reward implementations](../../../../src/avalanche_research/mechanisms/) and [KPI definitions](../../../../src/avalanche_research/model/kpis.py) | Question, hypothesis, controlled formula change, comparator, scenarios, draws, seeds and output definitions |
 | Assess predictive evidence | [Model-selection evidence](../../../../results/model-v0.8.0-selection/README.md) | Development versus held-back evaluation, horizons, baselines and interval coverage |
-| Find a figure or document | Wiki tree, [review package](../../../../docs/review/2026-10-30/modeling.md) and its export manifest | The model and result identity, caption, drawn-data source and actual available assets |
-| Recover historical context | [Memo index](../../../../content/Phase%20II/Wiki/Memos/index.md) and [brief index](../../../../content/Phase%20II/Wiki/Briefs/index.md) | Original source and submission evidence, later corrections and archive coverage |
+| Find a figure or document | [Figure gallery](../../../../content/Phase%20II/Wiki/Figures/index.md), wiki tree and [review package](../../../../docs/review/2026-10-30/modeling.md) | The model and result identity, caption, drawn-data source and actual available assets |
+| Recover historical context | [Research history](../../../../docs/research-history/README.md), [memo index](../../../../content/Phase%20II/Wiki/Memos/index.md) and [brief index](../../../../content/Phase%20II/Wiki/Briefs/index.md) | Original source and submission evidence, later corrections and archive coverage |
 
 ## Match the measure to the population
 
@@ -35,4 +35,4 @@ uv run --frozen avalanche model describe
 
 The description lists protocol settings and upgrade inventory. It does not fit behaviour or validate a result. Read the producing code identity in each result's evidence record, since a document can describe an earlier implementation than the current checkout.
 
-The current review package supports reading and data-free inspection. Historical simulation reproduction also requires the pinned snapshots, fitted draws and experiment artifacts identified by its evidence guide. Check their availability before choosing a rerun as the next step.
+The [worked experiment](../../../../examples/first-experiment/README.md) includes its compact input snapshot and expected results. The [research-cycle guide](../../../../examples/research-cycle/README.md) connects a prediction to execution, assessment and a separate methodology reflection. Full historical report reruns still require the separate pinned snapshots, fitted draws and experiment artifacts identified by the evidence guide.

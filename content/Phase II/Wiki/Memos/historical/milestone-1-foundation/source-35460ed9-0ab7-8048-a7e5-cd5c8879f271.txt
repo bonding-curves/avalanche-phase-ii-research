@@ -1,0 +1,41 @@
+# Milestone 1 Foundation
+
+Created By: Hash
+Creation Time: May 2, 2026 3:29 PM
+Description: This marks our formal transition from building the "Digital Memory" of the system to stress-testing its resilience.
+Last Edited Time: May 8, 2026 9:43 AM
+Sprint: Sprint 2
+Status: Draft
+
+---
+
+### **Project Update:**
+
+**The Quick Take:**
+
+> We’ve officially moved from building the foundation to launching simulations. By drafting **Manifest V1.0**, we’ve traded "placeholder math" for a unified research dataset. Every simulation we run from here on is calibrated against real-world price history, Fed rates, and P-Chain flows.
+> 
+
+**What’s under the hood:**
+
+- **Data Integrity:** We’ve synced AVAX spot prices, FED rates, and actual stake entries/exits to prevent historical drift.
+- **Agent Logic:** Our `tanh` response model is now fit to the data with a **5.0 Sensitivity** and **0.002 Midpoint**.
+- **Scaling:** Solved the kernel OOM crashes. The system can now handle the **1.3M trajectory sweep** via memory-stable batching.
+- **ACP-77 Ready:** The model is set up to run head-to-head comparisons between current rewards and the proposed ACP-77 fee-burn logic.
+
+**Current Status:**
+
+- **Milestone 1:** Under Review
+[REDACTED: development branch and review assignment]
+
+**Action Items for Shawn:**
+
+- [ ]  Check the 15% yield reduction logic in `Logic.py`.
+- [ ]  Sign off on the **5.0 sensitivity** baseline.
+- [ ]  Review the Parquet outputs once the background sweep finishes.
+
+> 
+> 
+> 
+> **Version 1.0 | Memocratic Record**
+>

@@ -123,6 +123,159 @@
           "bytes": 588808
         }
       ]
+    },
+    {
+      "id": "36760ed9-0ab7-80a8-beab-c67949ff4a93",
+      "title": "Behavioral Modeling and Dynamical Transitions in Token Staking Markets",
+      "page": "content/Phase II/Wiki/Memos/historical/behavioral-transitions/index.md",
+      "original": null,
+      "original_sha256": "288fabb08886068af907c18ef3d391219a2c744f3c5ac966ae70f9ed7c577685",
+      "original_bytes": 9483,
+      "source_form": "metadata-only",
+      "creator": "Hash",
+      "created": "May 21, 2026 6:02 PM",
+      "edited": "June 5, 2026 2:11 AM",
+      "timezone": null,
+      "kind": "methods note",
+      "document_date": null,
+      "model_version": null,
+      "assets": []
+    },
+    {
+      "id": "36360ed9-0ab7-8098-9aa6-f1fc709c9fb0",
+      "title": "Research Methodological Pivot",
+      "page": "content/Phase II/Wiki/Memos/historical/methodological-pivot/index.md",
+      "original": "content/Phase II/Wiki/Memos/historical/methodological-pivot/original-36360ed9-0ab7-8098-9aa6-f1fc709c9fb0.txt",
+      "original_sha256": "f00d4d9e47fa1d54afea3d6cf72c050cedae3e87840636d4b37970c3b45e1b54",
+      "original_bytes": 9011,
+      "source_form": "original",
+      "creator": "Hash",
+      "created": "May 17, 2026 6:30 PM",
+      "edited": "May 21, 2026 3:40 AM",
+      "timezone": null,
+      "kind": "methods note",
+      "document_date": null,
+      "model_version": null,
+      "assets": []
+    },
+    {
+      "id": "35360ed9-0ab7-80f2-81df-d0a087d3d58d",
+      "title": "Data Access Setup",
+      "page": "content/Phase II/Wiki/Memos/historical/data-access-setup/index.md",
+      "original": "content/Phase II/Wiki/Memos/historical/data-access-setup/source-35360ed9-0ab7-80f2-81df-d0a087d3d58d.txt",
+      "original_sha256": "86ed7671ac37dd2ef53798b0cba32b25ec99eee494e1a8ac7389247409c95d75",
+      "original_bytes": 6398,
+      "source_form": "redacted",
+      "creator": "Shawn Anderson",
+      "created": "May 1, 2026 4:13 PM",
+      "edited": "May 8, 2026 10:09 AM",
+      "timezone": null,
+      "kind": "research update",
+      "document_date": null,
+      "model_version": null,
+      "assets": [],
+      "text_sha256": "5af766b99d9a1a01c4f92ea205399c2b9496d021c93fd838ae6319fb340383a5",
+      "text_bytes": 5647,
+      "redactions": [
+        {
+          "source_line": 35,
+          "reason": "access account, user, role or workstation configuration"
+        },
+        {
+          "source_line": 88,
+          "reason": "access account, user, role or workstation configuration"
+        },
+        {
+          "source_line": 89,
+          "reason": "access account, user, role or workstation configuration"
+        },
+        {
+          "source_line": 92,
+          "reason": "access account, user, role or workstation configuration"
+        },
+        {
+          "source_line": 104,
+          "reason": "access account, user, role or workstation configuration"
+        },
+        {
+          "source_line": 111,
+          "reason": "unavailable implementation reference"
+        }
+      ]
+    },
+    {
+      "id": "36860ed9-0ab7-803d-8b4d-e8e78e38178e",
+      "title": "Data Access Follow-up",
+      "page": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/index.md",
+      "original": "content/Phase II/Wiki/Memos/historical/data-access-follow-up/source-36860ed9-0ab7-803d-8b4d-e8e78e38178e.txt",
+      "original_sha256": "b386c689849728060e205a8f4b2be9d9616ad8e924c90eb43f9ad86ab212b7c4",
+      "original_bytes": 34158,
+      "source_form": "redacted",
+      "creator": "Shawn Anderson",
+      "created": "May 22, 2026 9:57 AM",
+      "edited": "May 22, 2026 9:58 AM",
+      "timezone": null,
+      "kind": "research update",
+      "document_date": null,
+      "model_version": null,
+      "assets": [],
+      "text_sha256": "1b5235c6912a340b5a1c6c20405d47dafd83b8a37a5a990b581a31fe0173b785",
+      "text_bytes": 32360,
+      "redactions": [
+        {
+          "source_line": 72,
+          "reason": "access account, user, role or workstation configuration"
+        },
+        {
+          "source_line": 102,
+          "reason": "workstation-specific tooling reference"
+        },
+        {
+          "source_line": 183,
+          "reason": "access account, user, role or workstation configuration"
+        },
+        {
+          "source_line": 185,
+          "reason": "access account, user, role or workstation configuration"
+        },
+        {
+          "source_line": 187,
+          "reason": "access account, user, role or workstation configuration"
+        },
+        {
+          "source_line": 272,
+          "reason": "workstation-specific tooling reference"
+        },
+        {
+          "source_line": 273,
+          "reason": "workstation-specific tooling reference"
+        }
+      ]
+    },
+    {
+      "id": "35460ed9-0ab7-8048-a7e5-cd5c8879f271",
+      "title": "Milestone 1 Foundation",
+      "page": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/index.md",
+      "original": "content/Phase II/Wiki/Memos/historical/milestone-1-foundation/source-35460ed9-0ab7-8048-a7e5-cd5c8879f271.txt",
+      "original_sha256": "9b86dd21f42e07a4cbc6ac61d41029640b2ab52304d389732efd11a7d71ea97a",
+      "original_bytes": 1614,
+      "source_form": "redacted",
+      "creator": "Hash",
+      "created": "May 2, 2026 3:29 PM",
+      "edited": "May 8, 2026 9:43 AM",
+      "timezone": null,
+      "kind": "research update",
+      "document_date": null,
+      "model_version": null,
+      "assets": [],
+      "text_sha256": "7c75f70ef520c09a760a0e82a6225e2ae82a6996b0536e6ab31177b1843d3140",
+      "text_bytes": 1534,
+      "redactions": [
+        {
+          "source_line": 29,
+          "reason": "development branch and review assignment"
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Avalanche research figures</title>
+<style>
+:root{color-scheme:light;--ink:#202127;--muted:#62646c;--line:#dcdde2;--red:#b91f2c;--paper:#f7f7f8}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 Arial,Helvetica,sans-serif}
+main{max-width:1400px;margin:auto;padding:36px 32px}a{color:var(--red);text-underline-offset:3px}a:hover{text-decoration-thickness:2px}
+header{max-width:930px;margin-bottom:26px}h1{font-size:36px;line-height:1.15;letter-spacing:-.8px;margin:8px 0 14px}header p{margin:8px 0;color:var(--muted)}
+.eyebrow{text-transform:uppercase;font-size:11px;font-weight:bold;letter-spacing:1.1px;color:var(--muted);margin:0 0 8px}.toolbar{background:white;border:1px solid var(--line);border-radius:8px;padding:20px;margin:0 0 20px}
+.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}label{font-size:12px;letter-spacing:.25px;font-weight:bold;display:block}input,select,button{font:inherit}input,select{display:block;width:100%;margin-top:5px;min-height:43px;border:1px solid #adafb7;border-radius:4px;background:white;color:var(--ink);padding:8px 10px}select{font-size:14px}button{cursor:pointer;padding:9px 15px;border:1px solid #aeb0b7;border-radius:4px;background:white;color:var(--ink)}button:hover{background:#f1f1f4}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #4b82b9;outline-offset:3px}.toolbar-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:16px}.toolbar-footer p{margin:0;color:var(--muted);font-size:14px}.toolbar-footer div{display:flex;gap:8px}.notice{font-size:13px;color:var(--muted);margin:12px 0 0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}.card{background:white;border:1px solid var(--line);border-radius:8px;overflow:hidden}.card[hidden]{display:none}.preview{height:230px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);padding:12px;background:#fff}.preview a{display:flex;align-items:center;justify-content:center;width:100%;height:100%}.preview img{max-width:100%;max-height:100%;object-fit:contain}.body{padding:20px}.body h2{font-size:19px;line-height:1.3;letter-spacing:-.2px;margin:0 0 10px}.body p{font-size:14px;margin:10px 0}.body .scope{color:var(--muted);font-size:12px}.body .actions{font-size:13px}.body .eyebrow{font-size:10px;margin:0 0 10px}.body details{border-top:1px solid var(--line);padding-top:12px;margin-top:15px;font-size:13px}.body details p{font-size:13px}.body summary{cursor:pointer;font-weight:bold}.body ul{padding-left:18px}.body li{margin:8px 0;overflow-wrap:anywhere}.body h3{font-size:13px;margin:18px 0 6px}.gaps{color:var(--muted)}.hash,pre{overflow-wrap:anywhere;white-space:pre-wrap;font-size:11px!important;font-family:monospace}pre{background:#f2f2f4;padding:10px}.empty{background:white;border:1px solid var(--line);padding:40px;text-align:center;border-radius:8px}.empty h2{margin:0 0 10px}.empty[hidden]{display:none}footer{margin-top:32px;color:var(--muted);font-size:13px}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:24px}}
+@media(max-width:620px){.grid{grid-template-columns:1fr}main{padding:20px 14px}.filters{grid-template-columns:1fr}h1{font-size:29px}.toolbar-footer{align-items:flex-start;flex-direction:column}.preview{height:240px}}
+</style>
+<main>
+<header><p class="eyebrow">Avalanche · Research library</p><h1>Figures and their evidence</h1>
+<p>Find a figure, inspect its scientific scope, and follow it back to the documents that use it. Open the original at full size for detailed labels.</p>
+<p>Model v0.8.0 is selected initially. Choose all models for empirical records, earlier models and reference illustrations. Historical results retain their original assumptions.</p></header>
+<section class="toolbar" aria-label="Figure filters">
+<div class="filters">
+<label>Search<input id="q" type="search" placeholder="Title, caption, ID or source document" autocomplete="off"></label>
+<label>Model identity<select id="model"><option value="">All models</option></select></label>
+<label>Figure family<select id="family"><option value="">All families</option></select></label>
+<label>Used in document<select id="usage"><option value="">All documents</option></select></label>
+<label>Horizon<select id="horizon"><option value="">All horizons</option></select></label>
+<label>Evidence status<select id="evidence"><option value="">All evidence</option></select></label>
+</div>
+<div class="toolbar-footer"><p id="count" role="status" aria-live="polite">All delivered figures. Enable JavaScript to filter.</p><div><button id="reset" type="button">Clear filters</button><button id="share" type="button">Copy view link</button></div></div>
+<p class="notice">Filters change this view only. They do not run the model or rebuild plots. Missing metadata is stated on each card.</p>
+</section>
+<section id="empty" class="empty" hidden><h2>No figures match these filters</h2><p>Try a broader model, family or search, or clear the filters.</p><button id="empty-reset" type="button">Clear filters</button></section>
+<section class="grid" id="gallery" aria-label="Research figures"><!-- GALLERY_CARDS --></section>
+<footer>Source: tracked delivered assets and their current document uses. “Built” means the image is available, not that its conclusions are validated. <a href="manifest.json">Download the figure manifest</a>.</footer>
+</main>
+<script>
+"use strict";
+const manifest=/* GALLERY_DATA */;
+const figures=manifest.figures;
+const keys=["q","model","family","usage","horizon","evidence"];
+const controls=Object.fromEntries(keys.map(key=>[key,document.getElementById(key)]));
+const cards=new Map([...document.querySelectorAll(".card")].map(card=>[card.dataset.key,card]));
+const extract={model:f=>f.models,family:f=>[f.family],usage:f=>f.usages.map(u=>u.path),horizon:f=>f.horizons,evidence:f=>[f.evidence]};
+const usageTitles=new Map(figures.flatMap(f=>f.usages.map(u=>[u.path,u.title])));
+for(const key of keys.filter(k=>k!=="q")){
+ const values=[...new Set(figures.flatMap(extract[key]))].sort((a,b)=>(usageTitles.get(a)||a).localeCompare(usageTitles.get(b)||b));
+ for(const value of values){const option=document.createElement("option");option.value=value;option.textContent=key==="usage"?(usageTitles.get(value)+" · "+value.split("/").slice(-2).join("/")):value;controls[key].append(option);}
+}
+if(location.protocol==="file:"){
+ for(const link of document.querySelectorAll("[data-file-href]"))link.href=link.dataset.fileHref;
+ for(const image of document.querySelectorAll("[data-file-src]"))image.src=image.dataset.fileSrc;
+}
+function restore(){
+ const params=new URLSearchParams(location.search);
+ for(const key of keys)controls[key].value=params.get(key)||"";
+ if(!location.search)controls.model.value="v0.8.0";
+ render(false);
+}
+function render(update=true){
+ const query=controls.q.value.trim().toLocaleLowerCase();let shown=0;
+ for(const figure of figures){
+  const haystack=[figure.title,figure.caption,...figure.ids,...figure.models,figure.family,figure.evidence,...figure.usages.flatMap(u=>[u.title,u.caption,u.path,u.question||""])].join(" ").toLocaleLowerCase();
+  const matches=(!query||query.split(/\s+/).every(word=>haystack.includes(word)))&&keys.filter(k=>k!=="q").every(key=>!controls[key].value||extract[key](figure).includes(controls[key].value));
+  cards.get(figure.key).hidden=!matches;if(matches)shown++;
+ }
+ document.getElementById("count").textContent=`${shown} of ${figures.length} figures`;
+ document.getElementById("empty").hidden=shown!==0;
+ if(update){const url=new URL(location.href);url.search="";for(const key of keys)if(controls[key].value)url.searchParams.set(key,controls[key].value);if(!url.search)url.search="?all=1";history.replaceState(null,"",url);}
+}
+function reset(){for(const control of Object.values(controls))control.value="";render();}
+for(const control of Object.values(controls))control.addEventListener(control.type==="search"?"input":"change",()=>render());
+document.getElementById("reset").addEventListener("click",reset);
+document.getElementById("empty-reset").addEventListener("click",reset);
+document.getElementById("share").addEventListener("click",async()=>{
+ render();const button=document.getElementById("share");
+ try{await navigator.clipboard.writeText(location.href);button.textContent="View link copied";}catch{window.prompt("Copy this view link",location.href);}
+ setTimeout(()=>button.textContent="Copy view link",2000);
+});
+window.addEventListener("popstate",restore);restore();
+</script>
+</html>

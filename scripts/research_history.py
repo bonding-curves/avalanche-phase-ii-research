@@ -4,9 +4,9 @@ python scripts/research_history.py
 python scripts/research_history.py --export
 python scripts/research_history.py --export --check
 
-Original UTF-8 Markdown is retained as .txt to preserve its bytes without
-publishing a second, unqualified research page. Rendered editions change only
-heading depth, local image routes and the presentation of historical links.
+Original or explicitly redacted UTF-8 source editions are retained as .txt.
+Metadata-only records carry no source body. Rendered editions change heading
+depth, metadata line breaks, image routes, currency escapes and historical links.
 """
 
 from __future__ import annotations
@@ -48,7 +48,9 @@ def original_edition(root: Path, entry: dict) -> str:
         asset = assets.get(unquote(href))
         if asset:
             target = route(asset["file"])
-        elif href.startswith("https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/main/"):
+        elif (href.startswith(("https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/main/",
+                               "https://www.notion.so/"))
+              or not href.startswith(("http://", "https://", "#", "mailto:"))):
             number = references.setdefault(href, len(references) + 1)
             target = f"#historical-reference-{number}"
         else:
@@ -59,9 +61,10 @@ def original_edition(root: Path, entry: dict) -> str:
     text = re.sub(r"^(#{1,4}) ", lambda match: "##" + match[1] + " ", text, flags=re.MULTILINE)
     text = re.sub(r"^((?:Created By|Creation Time|Description|Last Edited Time|Sprint|Status|"
                   r"\*\*(?:Date|To|From|Subject)\*\*):[^\n]+)\n", r"\1  \n", text, flags=re.MULTILINE)
+    text = re.sub(r"(?<!\\)\$(129)(?= per month)", r"\\$\1", text)
     if references:
         text = text.rstrip("\n") + "\n\n### Historical references\n\n"
-        text += ("The original links below name an earlier repository layout. Their availability "
+        text += ("The original links below name earlier project references. Their availability "
                  "has not been established. The text above links here, and the original export "
                  "retains every URL.\n\n")
         text += "\n\n".join(f'#### Historical reference {number}\n\n`{url}`'
@@ -75,23 +78,39 @@ def verify(root: Path) -> dict:
         raise ValueError("unknown research-history schema")
     seen = set()
     assets = 0
+    forms = {"original": 0, "redacted": 0, "metadata-only": 0}
     for entry in manifest["entries"]:
         identity = str(uuid.UUID(entry["id"]))
-        if identity in seen or not entry["original"].endswith(f"original-{identity}.txt"):
+        form = entry.get("source_form", "original")
+        if identity in seen or form not in forms:
             raise ValueError("duplicate or inconsistent source identity")
         seen.add(identity)
+        forms[form] += 1
+        page = safe(root, entry["page"]).read_text()
+        if f"source_id: {identity}\n" not in page.split("\n---", 1)[0]:
+            raise ValueError("edition source identity differs")
+        if form == "metadata-only":
+            if entry.get("original") is not None or START in page or END in page:
+                raise ValueError("metadata-only record must not contain an original body")
+            if "Metadata record only" not in page:
+                raise ValueError("metadata-only status must be visible")
+            continue
+        prefix = "source" if form == "redacted" else "original"
+        if not entry["original"].endswith(f"{prefix}-{identity}.txt"):
+            raise ValueError("source text identity differs")
         raw = safe(root, entry["original"]).read_bytes()
-        if len(raw) != entry["original_bytes"] or hashlib.sha256(raw).hexdigest() != entry["original_sha256"]:
+        expected_bytes = entry["text_bytes"] if form == "redacted" else entry["original_bytes"]
+        expected_hash = entry["text_sha256"] if form == "redacted" else entry["original_sha256"]
+        if len(raw) != expected_bytes or hashlib.sha256(raw).hexdigest() != expected_hash:
             raise ValueError(f"original bytes differ: {entry['original']}")
+        if form == "redacted" and ("Redacted source edition" not in page or "[REDACTED:" not in raw.decode()):
+            raise ValueError("redacted status and omissions must be visible")
         source = raw.decode("utf-8")
         if source.splitlines()[0] != "# " + entry["title"]:
             raise ValueError("original title differs")
         for label, key in (("Created By", "creator"), ("Creation Time", "created"), ("Last Edited Time", "edited")):
             if not re.search(r"^" + label + ": " + re.escape(entry[key]) + r"$", source, re.MULTILINE):
                 raise ValueError(f"source metadata differs: {label}")
-        page = safe(root, entry["page"]).read_text()
-        if f"source_id: {identity}\n" not in page.split("\n---", 1)[0]:
-            raise ValueError("edition source identity differs")
         if page.count(START) != 1 or page.count(END) != 1:
             raise ValueError("edition must contain one bounded original")
         actual = page.split(START, 1)[1].split(END, 1)[0]
@@ -102,7 +121,7 @@ def verify(root: Path) -> dict:
             if len(body) != asset["bytes"] or hashlib.sha256(body).hexdigest() != asset["sha256"]:
                 raise ValueError(f"historical figure differs: {asset['file']}")
             assets += 1
-    return {"status": "pass", "editions": len(seen), "figures": assets}
+    return {"status": "pass", "entries": len(seen), "figures": assets, "source_forms": forms}
 
 
 def export(root: Path, check: bool = False) -> dict:
