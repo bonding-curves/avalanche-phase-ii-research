@@ -49,6 +49,7 @@ export function renderSvgGraph(
   options: SvgOptions,
 ): () => void {
   const { width, height, focused } = options
+  const large = nodes.length > 500
   let dragView: Window | undefined
   let zoomView: Window | undefined
   graph.replaceChildren()
@@ -147,21 +148,24 @@ export function renderSvgGraph(
       forceCollide<SvgNode>((node) => Math.max(10, options.radius(node))).iterations(3),
     )
     .on("tick", update)
-  if (focused) simulation.stop()
+  if (focused || large) {
+    simulation.stop()
+    if (large && !focused) simulation.tick(20)
+  }
   if (options.drag) {
     anchors.call(
       drag<SVGAElement, SvgNode>()
         .container(() => world.node()!)
         .on("start", (event, node) => {
           if (event.sourceEvent?.type === "mousedown") dragView = event.sourceEvent.view
-          if (!focused && !event.active) simulation.alphaTarget(0.3).restart()
+          if (!focused && !large && !event.active) simulation.alphaTarget(0.3).restart()
           node.fx = node.x
           node.fy = node.y
         })
         .on("drag", (event, node) => {
           node.fx = event.x
           node.fy = event.y
-          if (focused) {
+          if (focused || large) {
             node.x = event.x
             node.y = event.y
             update()
@@ -181,7 +185,7 @@ export function renderSvgGraph(
         [0, 0],
         [width, height],
       ])
-      .scaleExtent([0.25, 4])
+      .scaleExtent([large ? 0.05 : 0.25, 4])
       .on("start", (event) => {
         if (event.sourceEvent?.type === "mousedown") zoomView = event.sourceEvent.view
       })
@@ -190,7 +194,17 @@ export function renderSvgGraph(
       })
       .on("zoom", (event) => viewport.attr("transform", event.transform.toString()))
     svg.call(behavior)
-    const initial = options.scale || 1
+    const spanX =
+      Math.max(...nodes.map((node) => node.x ?? 0)) -
+      Math.min(...nodes.map((node) => node.x ?? 0)) +
+      60
+    const spanY =
+      Math.max(...nodes.map((node) => node.y ?? 0)) -
+      Math.min(...nodes.map((node) => node.y ?? 0)) +
+      60
+    const initial = large
+      ? Math.min(options.scale || 1, width / spanX, height / spanY)
+      : options.scale || 1
     svg.call(
       behavior.transform,
       zoomIdentity

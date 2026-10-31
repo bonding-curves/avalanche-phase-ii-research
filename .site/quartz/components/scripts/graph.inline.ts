@@ -188,14 +188,22 @@ async function renderGraph(
       tags: data.get(url)?.tags ?? [],
     }
   })
+  const nodeByIdMap = new Map(nodes.map((node) => [node.id, node]))
   const graphData: { nodes: NodeData[]; links: LinkData[] } = {
     nodes,
     links: links
       .filter((l) => neighbourhood.has(l.source) && neighbourhood.has(l.target))
       .map((l) => ({
-        source: nodes.find((n) => n.id === l.source)!,
-        target: nodes.find((n) => n.id === l.target)!,
+        source: nodeByIdMap.get(l.source)!,
+        target: nodeByIdMap.get(l.target)!,
       })),
+  }
+  const degreeMap = new Map<SimpleSlug, number>()
+  for (const link of graphData.links) {
+    degreeMap.set(link.source.id, (degreeMap.get(link.source.id) ?? 0) + 1)
+    if (link.target.id !== link.source.id) {
+      degreeMap.set(link.target.id, (degreeMap.get(link.target.id) ?? 0) + 1)
+    }
   }
 
   const width = graph.offsetWidth
@@ -243,10 +251,7 @@ async function renderGraph(
   }
 
   function nodeRadius(d: NodeData) {
-    const numLinks = graphData.links.filter(
-      (l) => l.source.id === d.id || l.target.id === d.id,
-    ).length
-    return 2 + Math.sqrt(numLinks)
+    return 2 + Math.sqrt(degreeMap.get(d.id) ?? 0)
   }
 
   let hoveredNodeId: string | null = null
@@ -409,6 +414,8 @@ async function renderGraph(
       },
     })
   }
+
+  if (graphData.nodes.length > 500) return svgFallback()
 
   const app = new Application()
   let appDestroyed = false
