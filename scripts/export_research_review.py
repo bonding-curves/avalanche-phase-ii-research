@@ -346,6 +346,8 @@ class Exporter:
     def plan(self) -> tuple[dict[Path, bytes], dict]:
         self.index()
         for source, destination in self.documents.items():
+            if re.search(r"\\operatorname\b", visible(self.read(source).decode())):
+                raise ExportError(f"GitHub rejects operatorname: {self.relative(source)}; use mathrm")
             self.exports[destination] = self.rewrite(source, destination)
         done = set()
         while self.assets - done:

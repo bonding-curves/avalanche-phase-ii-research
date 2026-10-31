@@ -176,6 +176,19 @@ aliases:
             self.exporter().run()
         self.assertFalse(self.output.exists())
 
+    def test_github_rejected_math_fails_before_writing(self):
+        self.write("evidence.md", r"$$\operatorname{Var}(X)=1$$" + "\n")
+        with self.assertRaisesRegex(ExportError, "GitHub rejects operatorname"):
+            self.exporter().run()
+        self.assertFalse(self.output.exists())
+        self.write("evidence.md", r"$$\mathrm{Var}(X)=1$$" + "\n")
+        self.assertEqual(self.exporter().run()["status"], "pass")
+
+    def test_documented_macro_in_code_is_not_rendered_math(self):
+        self.write("evidence.md", r"Use `\operatorname` in TeX." + "\n\n```tex\n"
+                   + r"\operatorname{Var}(X)" + "\n```\n")
+        self.assertEqual(self.exporter().run()["status"], "pass")
+
     def test_ambiguous_alias_fails(self):
         self.write("results.md", "---\naliases: [older-route]\n---\n# Result\n")
         self.write("evidence.md", "[Ambiguous](/older-route)\n")

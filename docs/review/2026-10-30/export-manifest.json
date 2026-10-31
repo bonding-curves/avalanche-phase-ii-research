@@ -276,10 +276,10 @@
     },
     {
       "export": "modeling.md",
-      "export_sha256": "4f46d954d16086bbb5ac31e0fb71c26189fc49a5a50a53f0751225db471c706b",
+      "export_sha256": "2db87da425982a374c11c2db623379d94ffc0a36f2e842b4f367c899c7f9b9f0",
       "kind": "export",
       "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-      "source_sha256": "2cd9abd355eaad3a647aa741382430c590e975fba92cd3359bea92d88baf6211"
+      "source_sha256": "1cb0dafaa9f406076264edef3b5b3145fa9fab96890908cd453b2b7dd834e6bd"
     },
     {
       "export": "results.md",

@@ -104,7 +104,7 @@ The logistic model turns a weighted combination of predictors into a probability
 For arrivals, the fitted mean $\lambda$ is the expected number of first-ever validators per day. The dispersion $k$ controls how variable that count is:
 
 $$
-\operatorname{Var}(\text{daily arrivals})=\lambda+\lambda^2/k.
+\mathrm{Var}(\text{daily arrivals})=\lambda+\lambda^2/k.
 $$
 
 The origin's [fitted arrival values](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/arrivals.csv) are about 3.89 arrivals a day and dispersion 0.493. They imply variance 3.89 + 3.89²/0.493 ≈ 34.6, almost nine times the mean. A Poisson count would require the variance to equal the mean and would understate those daily fluctuations.
