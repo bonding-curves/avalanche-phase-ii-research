@@ -54,6 +54,7 @@ from . import validators_api
 from . import weeks
 from . import yields
 from .catalog import DataError, canonical_bytes, load_catalog, now
+from .research import research
 from .model import MODEL_VERSION, RELEASED_MODEL, protocol
 from .model import backtest as model_backtest
 from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
@@ -180,6 +181,9 @@ def show_version(context: click.Context, parameter: click.Parameter, value: bool
               help="Show the package version, the released model and the code commit, then exit.")
 def cli() -> None:
     """Inspect and reproduce Avalanche Phase II research."""
+
+
+cli.add_command(research)
 
 
 @cli.group()

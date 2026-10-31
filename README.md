@@ -36,6 +36,15 @@ Release as of 28 October 2026: staking model v0.8.0, tagged `model-v0.8.0`. The 
 | Install, run or extend the package | Follow [Quick start](#quick-start), then the model README's [run instructions](src/avalanche_research/model/README.md#run-it) and [change recipes](src/avalanche_research/model/README.md#change-it) |
 | Locate a contractual deliverable | Open the [milestone index](<content/Phase II/Milestones/index.md>) |
 
+Inspect the wiki and repository structure without research inputs:
+
+```sh
+uv run --frozen avalanche research tree wiki
+uv run --frozen avalanche research tree repo
+```
+
+Use `--depth 3` for more detail or `both --json` for machine-readable context. The [research orientation skill](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/.agents/skills/avalanche-research-orientation/SKILL.md) combines these commands with a guide to the model, evidence and research methodology. Invoke it as `$avalanche-research-orientation` in Codex, or read its `SKILL.md` in another agent.
+
 ## Quick start
 
 You need repository access, `git` and [uv](https://docs.astral.sh/uv/). [SETUP.md](SETUP.md) gives the fresh-machine instructions, including Graphviz for model diagrams and Node.js for the research site.

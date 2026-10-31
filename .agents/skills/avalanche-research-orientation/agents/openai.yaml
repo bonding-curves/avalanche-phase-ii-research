@@ -1,0 +1,4 @@
+interface:
+  display_name: "Avalanche Research Orientation"
+  short_description: "Find the wiki, code, model and evidence for research"
+  default_prompt: "Use $avalanche-research-orientation to show the wiki and repository trees and locate the evidence relevant to my research question."
