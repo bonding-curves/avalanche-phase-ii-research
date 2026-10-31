@@ -1,0 +1,671 @@
+{
+  "documents": {
+    "content/Phase II/Wiki/Manual/advanced.md": "advanced.md",
+    "content/Phase II/Wiki/Manual/analysis.md": "analysis.md",
+    "content/Phase II/Wiki/Manual/architecture.md": "architecture.md",
+    "content/Phase II/Wiki/Manual/cli.md": "cli.md",
+    "content/Phase II/Wiki/Manual/components.md": "components.md",
+    "content/Phase II/Wiki/Manual/data.md": "data.md",
+    "content/Phase II/Wiki/Manual/datasets.md": "datasets.md",
+    "content/Phase II/Wiki/Manual/experiments.md": "experiments.md",
+    "content/Phase II/Wiki/Manual/foundations.md": "foundations.md",
+    "content/Phase II/Wiki/Manual/index.md": "README.md",
+    "content/Phase II/Wiki/Manual/modeling.md": "modeling.md",
+    "content/Phase II/Wiki/Manual/modules.md": "modules.md",
+    "content/Phase II/Wiki/Manual/usage.md": "usage.md",
+    "content/Phase II/Wiki/Manual/workshop.md": "workshop.md"
+  },
+  "files": [
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Wiki/Figures/index.md",
+      "source_sha256": "2d5030ed9c943eac7ad34e63354ba1836c2edd68c9012310cdc0ea3eed95131e"
+    },
+    {
+      "export": "advanced.md",
+      "export_sha256": "f266e82c5c374de932cc2bade540e68a7618900c313eecee7a7d33b305841328",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/advanced.md",
+      "source_sha256": "201f81882d34383af6862305b35be6546cf3eaf7fabb963a0a076e3ab29a7a88"
+    },
+    {
+      "export": "analysis.md",
+      "export_sha256": "b93d04b0fc7595a7fe2d2d49814d26c034a87be57c7ec5574e5c4646ed2ea880",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/analysis.md",
+      "source_sha256": "966db0af6f84b63991afe01c2adf5519c88f93e02ce48ea3f2500e0d6aab0ed2"
+    },
+    {
+      "export": "architecture.md",
+      "export_sha256": "57dff50bf73f578910a73b2f3a410157458640625acbb8cf1931cc3779b5e512",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/architecture.md",
+      "source_sha256": "431966df8cfcb52c81c5dcce6a2aedfc301f8c9f5a6fb475d3c178d9aa0e02a3"
+    },
+    {
+      "export": "cli.md",
+      "export_sha256": "15b4a7110b413b7c7f672cfdaaa18566962f9e9bd4dfeebbecd9e3cd8fccfb51",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/cli.md",
+      "source_sha256": "71d3cd3998d5a1e84c4fab3a6cce0edffb789b1899977e182c18f83e8616a040"
+    },
+    {
+      "export": "components.md",
+      "export_sha256": "37d7329b30e1eaffd804667196187b9c516fd985bfc7e24992a1951a1a3ebba8",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/components.md",
+      "source_sha256": "f0796167b684033a7f705ed770de70f9d5d0f3d8b14274ba9e09c3608033e876"
+    },
+    {
+      "export": "data.md",
+      "export_sha256": "c3bce8f18ee67e957c50d76a5ca7c3c23de7a29e9c9a1c9d63abd3a8fc607fad",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/data.md",
+      "source_sha256": "2dfaea33d110c2554dd0dd01aff8bcb78b5a795df843b5d346adf4da80739575"
+    },
+    {
+      "export": "datasets.md",
+      "export_sha256": "e7a5b61ae4fc40e01cfbd4ca52a4ad60bba6b33d14ca17cfb6a669210149dd2f",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/datasets.md",
+      "source_sha256": "91c06434e2ba0303539bc84aa989ae15a47dc1f0368e503b7909a3676605242b"
+    },
+    {
+      "export": "experiments.md",
+      "export_sha256": "344d4f6b0c4453ea096f0b136dc161ce6959ae261e900f5e2f134fce69a217d9",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/experiments.md",
+      "source_sha256": "82ab8f621b07cba57586284737b87b9c144f3d23dfe103b6ae46055e75e946be"
+    },
+    {
+      "export": "foundations.md",
+      "export_sha256": "c831cc225cf88f176fa9f4d4415ce89d23896f59ed5772adca80c5d3ec8db2d8",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/foundations.md",
+      "source_sha256": "6de0e66173b6c665648e5a8c697a9df8ef75a050be09e40a6513bd7f989bd0a3"
+    },
+    {
+      "export": "README.md",
+      "export_sha256": "72ecacd398bfedb13193986b3fca575fa94f9c08113f46bdcec0f7d97f12edb7",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "source_sha256": "9106d33d07b9a88dfda38f0ccf1970241029865c545908c315bfa77cb9b653b9"
+    },
+    {
+      "export": "modeling.md",
+      "export_sha256": "68eb9698d3af7e7f84be9fb3baca19b032aca51074ed5c771cd3e584c58fb4e1",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/modeling.md",
+      "source_sha256": "ae4b39a3e524200ae9f5ef8b1ccf1e1f274b76518324713bbca3510bc4875546"
+    },
+    {
+      "export": "modules.md",
+      "export_sha256": "a15f7fd33361d63ff0d993cd14bc04d274bbe913016066d54b5a0c5d7ad053c5",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/modules.md",
+      "source_sha256": "1c9be6b990bf49ec154779aed9f46707c836f088b44867849b67b4fd289cddd5"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Manual/reference-inventory.json",
+      "export_sha256": "a3f6eb832d10df907b0200715bd96dbf2b2bbc77326e149a91ab30d7514afb81",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/reference-inventory.json",
+      "source_sha256": "a3f6eb832d10df907b0200715bd96dbf2b2bbc77326e149a91ab30d7514afb81"
+    },
+    {
+      "export": "usage.md",
+      "export_sha256": "32029d1da5d312ac97ddc352521bae1859dcccfedf61f59bc76a3138548e4438",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/usage.md",
+      "source_sha256": "428ae58aab238fdaecc04cd657aaecec637393961ec61749a3e3d1efdf591c16"
+    },
+    {
+      "export": "workshop.md",
+      "export_sha256": "e254b7ddd67519716257024bdddf73f9a4e568a3f403ff2a716b4b6437cb2df4",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "source_sha256": "0a04757853b4ffca975a5b33a5697d5664bb18b933e170bcc6adbc089062c9f7"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "export_sha256": "cd0a8c5cbd1c2b87f228ecc3e58291f47fb949042de69f10c363a234c14513ab",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "source_sha256": "cd0a8c5cbd1c2b87f228ecc3e58291f47fb949042de69f10c363a234c14513ab"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "export_sha256": "9222d2283a78902b08298781fedbd3530c9657a6dbcbaae8869c832d66b889cd",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "source_sha256": "9222d2283a78902b08298781fedbd3530c9657a6dbcbaae8869c832d66b889cd"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "export_sha256": "37f6c1e10af0600c571d707aeab84e1fb526c1d378e12b60ce4d34494dd3efb4",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "source_sha256": "37f6c1e10af0600c571d707aeab84e1fb526c1d378e12b60ce4d34494dd3efb4"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
+      "source_sha256": "098cb986c148c95148ac212565a16fe1d2eba5814cd7bf5fb6292d940b20c872"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "source_sha256": "fe83e231662a39f99a607ed6022b13447485f2cdae9a01a481969dd7f98ad5e5"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "source_sha256": "87f927eb2fd43f66a182656fbcac669465b7575ddd272eb644dd913aae8e260b"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "source_sha256": "4f91df9fbf597d8745255759045f9fa3a3c1bc640721b28caf43ebf7e23e62c3"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "export_sha256": "5dc740f5ddfb169d8cdc0b849c26e929c2d1cb4c63076ddc57a5bb8a3e1be97b",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "source_sha256": "5dc740f5ddfb169d8cdc0b849c26e929c2d1cb4c63076ddc57a5bb8a3e1be97b"
+    }
+  ],
+  "output": "docs/manual",
+  "references": [
+    {
+      "destination": "docs/manual/foundations.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/foundations",
+      "rewritten": "foundations.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/foundations.md"
+    },
+    {
+      "destination": "docs/manual/modeling.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/modeling",
+      "rewritten": "modeling.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/modeling.md"
+    },
+    {
+      "destination": "docs/manual/architecture.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/architecture",
+      "rewritten": "architecture.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/architecture.md"
+    },
+    {
+      "destination": "docs/manual/components.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/components",
+      "rewritten": "components.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/components.md"
+    },
+    {
+      "destination": "docs/manual/data.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/data",
+      "rewritten": "data.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/data.md"
+    },
+    {
+      "destination": "docs/manual/experiments.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/experiments",
+      "rewritten": "experiments.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/experiments.md"
+    },
+    {
+      "destination": "docs/manual/analysis.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/analysis",
+      "rewritten": "analysis.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/analysis.md"
+    },
+    {
+      "destination": "docs/manual/usage.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/usage",
+      "rewritten": "usage.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/usage.md"
+    },
+    {
+      "destination": "docs/manual/advanced.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/advanced",
+      "rewritten": "advanced.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/advanced.md"
+    },
+    {
+      "destination": "docs/manual/workshop.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/workshop",
+      "rewritten": "workshop.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/workshop.md"
+    },
+    {
+      "destination": "docs/manual/cli.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/cli",
+      "rewritten": "cli.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/cli.md"
+    },
+    {
+      "destination": "docs/manual/modules.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/modules",
+      "rewritten": "modules.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/modules.md"
+    },
+    {
+      "destination": "docs/manual/datasets.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/datasets",
+      "rewritten": "datasets.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Manual/datasets.md"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/brief",
+      "rewritten": "../../content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology",
+      "rewritten": "../../content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results",
+      "rewritten": "../../content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence",
+      "rewritten": "../../content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "source": "content/Phase II/Wiki/Manual/index.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/manual/data.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/data",
+      "rewritten": "data.md",
+      "source": "content/Phase II/Wiki/Manual/foundations.md",
+      "target": "content/Phase II/Wiki/Manual/data.md"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
+      "fragment": "1-commitments-increased-after-helicon-while-active-validators-declined",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/brief#1-commitments-increased-after-helicon-while-active-validators-declined",
+      "rewritten": "../../content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/brief.md#1-commitments-increased-after-helicon-while-active-validators-declined",
+      "source": "content/Phase II/Wiki/Manual/foundations.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/foundations.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "docs/manual/architecture.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/architecture",
+      "rewritten": "architecture.md",
+      "source": "content/Phase II/Wiki/Manual/modeling.md",
+      "target": "content/Phase II/Wiki/Manual/architecture.md"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "fragment": "response-estimates",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#response-estimates",
+      "rewritten": "../../content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/evidence.md#response-estimates",
+      "source": "content/Phase II/Wiki/Manual/modeling.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/manual/analysis.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/analysis",
+      "rewritten": "analysis.md",
+      "source": "content/Phase II/Wiki/Manual/modeling.md",
+      "target": "content/Phase II/Wiki/Manual/analysis.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/modeling.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "docs/manual/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "source": "content/Phase II/Wiki/Manual/architecture.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png"
+    },
+    {
+      "destination": "docs/manual/modules.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/modules",
+      "rewritten": "modules.md",
+      "source": "content/Phase II/Wiki/Manual/architecture.md",
+      "target": "content/Phase II/Wiki/Manual/modules.md"
+    },
+    {
+      "destination": "docs/manual/advanced.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/advanced",
+      "rewritten": "advanced.md",
+      "source": "content/Phase II/Wiki/Manual/architecture.md",
+      "target": "content/Phase II/Wiki/Manual/advanced.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/architecture.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/components.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "docs/manual/modules.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/modules",
+      "rewritten": "modules.md",
+      "source": "content/Phase II/Wiki/Manual/components.md",
+      "target": "content/Phase II/Wiki/Manual/modules.md"
+    },
+    {
+      "destination": "docs/manual/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "source": "content/Phase II/Wiki/Manual/components.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png"
+    },
+    {
+      "destination": "docs/manual/datasets.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/datasets",
+      "rewritten": "datasets.md",
+      "source": "content/Phase II/Wiki/Manual/data.md",
+      "target": "content/Phase II/Wiki/Manual/datasets.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/data.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/experiments.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "docs/manual/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "source": "content/Phase II/Wiki/Manual/analysis.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "fragment": "26-risk-surface-map",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#26-risk-surface-map",
+      "rewritten": "../../content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/results.md#26-risk-surface-map",
+      "source": "content/Phase II/Wiki/Manual/analysis.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "docs/manual/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "source": "content/Phase II/Wiki/Manual/analysis.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results",
+      "rewritten": "../../content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "source": "content/Phase II/Wiki/Manual/analysis.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/analysis.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/usage.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "docs/manual/cli.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/cli",
+      "rewritten": "cli.md",
+      "source": "content/Phase II/Wiki/Manual/usage.md",
+      "target": "content/Phase II/Wiki/Manual/cli.md"
+    },
+    {
+      "destination": "docs/manual/datasets.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/datasets",
+      "rewritten": "datasets.md",
+      "source": "content/Phase II/Wiki/Manual/usage.md",
+      "target": "content/Phase II/Wiki/Manual/datasets.md"
+    },
+    {
+      "destination": "docs/manual/experiments.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/experiments",
+      "rewritten": "experiments.md",
+      "source": "content/Phase II/Wiki/Manual/usage.md",
+      "target": "content/Phase II/Wiki/Manual/experiments.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/advanced.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "docs/manual/README.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/",
+      "rewritten": "README.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/index.md"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/brief",
+      "rewritten": "../../content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/brief.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Figures/index.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Figures/",
+      "rewritten": "../../content/Phase%20II/Wiki/Figures/index.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Figures/index.md"
+    },
+    {
+      "destination": "docs/manual/foundations.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/foundations",
+      "rewritten": "foundations.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/foundations.md"
+    },
+    {
+      "destination": "docs/manual/architecture.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/architecture",
+      "rewritten": "architecture.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/architecture.md"
+    },
+    {
+      "destination": "docs/manual/modeling.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/modeling",
+      "rewritten": "modeling.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/modeling.md"
+    },
+    {
+      "destination": "docs/manual/data.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/data",
+      "rewritten": "data.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/data.md"
+    },
+    {
+      "destination": "docs/manual/components.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/components",
+      "rewritten": "components.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/components.md"
+    },
+    {
+      "destination": "docs/manual/usage.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/usage",
+      "rewritten": "usage.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/usage.md"
+    },
+    {
+      "destination": "docs/manual/experiments.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/experiments",
+      "rewritten": "experiments.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/experiments.md"
+    },
+    {
+      "destination": "docs/manual/analysis.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/analysis",
+      "rewritten": "analysis.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/analysis.md"
+    },
+    {
+      "destination": "docs/manual/advanced.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/advanced",
+      "rewritten": "advanced.md",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/advanced.md"
+    },
+    {
+      "destination": "docs/manual/components.md",
+      "fragment": "discuss-design-decisions-with-their-consequences",
+      "href": "/Phase-II/Wiki/Manual/components#discuss-design-decisions-with-their-consequences",
+      "rewritten": "components.md#discuss-design-decisions-with-their-consequences",
+      "source": "content/Phase II/Wiki/Manual/workshop.md",
+      "target": "content/Phase II/Wiki/Manual/components.md"
+    },
+    {
+      "destination": "docs/manual/usage.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/usage",
+      "rewritten": "usage.md",
+      "source": "content/Phase II/Wiki/Manual/cli.md",
+      "target": "content/Phase II/Wiki/Manual/usage.md"
+    },
+    {
+      "destination": "docs/manual/assets/content/Phase II/Wiki/Manual/reference-inventory.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/reference-inventory.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Manual/reference-inventory.json",
+      "source": "content/Phase II/Wiki/Manual/cli.md",
+      "target": "content/Phase II/Wiki/Manual/reference-inventory.json"
+    },
+    {
+      "destination": "docs/manual/architecture.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/architecture",
+      "rewritten": "architecture.md",
+      "source": "content/Phase II/Wiki/Manual/modules.md",
+      "target": "content/Phase II/Wiki/Manual/architecture.md"
+    },
+    {
+      "destination": "docs/manual/components.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Manual/components",
+      "rewritten": "components.md",
+      "source": "content/Phase II/Wiki/Manual/modules.md",
+      "target": "content/Phase II/Wiki/Manual/components.md"
+    }
+  ],
+  "schema": "research-review-export/v1",
+  "upstream_artifacts": []
+}

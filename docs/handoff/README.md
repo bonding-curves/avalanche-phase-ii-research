@@ -4,6 +4,7 @@ Start with the [research brief](../review/2026-10-30/brief.md) for the findings 
 
 | Task | Entry point |
 | --- | --- |
+| Understand and operate | [Research manual](../manual/README.md): foundations, every model component, complete CLI walkthrough, advanced methods and [workshop guide](../manual/workshop.md) |
 | Read | [Brief](../review/2026-10-30/brief.md), [modeling memo](../review/2026-10-30/modeling.md), [evidence](../review/2026-10-30/evidence.md) and [draft results](../review/2026-10-30/results.md) |
 | Browse | [Local wiki setup](../../SETUP.md#8-run-the-research-site), then the wiki's Figures and Research History pages. The [historical reading copies](../research-history/README.md) also work on GitHub |
 | Reproduce | [Reported central case](../../examples/report-reproduction/README.md): 50 paired one-year comparisons, a checked 12.1 MB input download, percentile table and rebuilt trajectory figure |

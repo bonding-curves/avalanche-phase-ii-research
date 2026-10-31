@@ -1032,7 +1032,7 @@
       "classification_basis": "October methodology explicitly describes model v0.8.0. Per-figure evidence and horizons are refined below.",
       "producing_source": "scripts/figures/research_explanatory_figures.py",
       "availability": "Built",
-      "caption": "Figure 2. Scaled CRPS for stake and validator count at three horizons. Blue is v0.8.0, and lower is better. The model leads the six benchmarks for stake, while a benchmark leads for count. Each origin uses a 200-run forecast distribution. Displayed scores average across eligible development origins.",
+      "caption": "Figure 2. Scaled CRPS at 30, 90 and 180 days, with lower values better. Each origin uses a 200-run forecast distribution, then scores are averaged over eligible development origins. Blue identifies v0.8.0. The committed selection evidence records the comparisons.",
       "assets": [
         {
           "path": "content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/figure-07-f221.png",
@@ -1070,6 +1070,15 @@
           "file_href": "../../Milestones/Milestone%202/Sensitivity%20Analysis%20Report/index.md",
           "alt": "Figure 7",
           "caption": "Figure 7. Model v0.8.0 forecasts validator stake better than six benchmarks at 30, 90 and 180 days, scoring 4.41, 5.15 and 5.54 against the best benchmark's 5.38, 5.69 and 7.54. It forecasts the validator count third best at 30 days and second best at 90 and 180 days, scoring 5.32, 10.95 and 22.58 against the best benchmark's 4.63, 9.67 and 19.07. The benchmarks are persistence, recent drift, a weekly autoregression, the first two spread by past changes, and a local-level model. Each score is the mean CRPS over 19, 18 and 17 forecast origins before 19 November 2025, in units of the mean one-day change in stake or count before each origin."
+        },
+        {
+          "path": "content/Phase II/Wiki/Manual/analysis.md",
+          "title": "7. Results need both analysis and evaluation",
+          "question": "How are trajectories converted into conclusions and judged for their intended use?",
+          "href": "../Manual/analysis",
+          "file_href": "../Manual/analysis.md",
+          "alt": "Forecast distribution scores for own stake and validator count.",
+          "caption": "Figure 2. Scaled CRPS at 30, 90 and 180 days, with lower values better. Each origin uses a 200-run forecast distribution, then scores are averaged over eligible development origins. Blue identifies v0.8.0. The committed selection evidence records the comparisons."
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
@@ -1428,7 +1437,7 @@
       "evidence": "Simulation (conditional)",
       "classification_basis": "October methodology explicitly describes model v0.8.0. Per-figure evidence and horizons are refined below.",
       "availability": "Built",
-      "caption": "Figure 3. Mean utilities for 16,384 design runs at one year, with 4,096 per design family. Cells pool outside yields of 3%, 5%, 7% and 10% annually and renewal and entry responses from 0 to 0.1. The combined score weights the first four goals equally and duration at half their weight. A utility is a preference score. It is distinct from the share passing a threshold. Source: the included frozen goal-utility aggregates.",
+      "caption": "Figure 1. Frozen means for 16,384 independent design runs at one year, with 4,096 per family. G1–G4 have equal combined weights and G5 half their weight. Response settings and four outside yields are pooled. Utility is a preference score, rather than an all-goal pass probability.",
       "assets": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
@@ -1474,6 +1483,15 @@
         }
       ],
       "usages": [
+        {
+          "path": "content/Phase II/Wiki/Manual/analysis.md",
+          "title": "7. Results need both analysis and evaluation",
+          "question": "How are trajectories converted into conclusions and judged for their intended use?",
+          "href": "../Manual/analysis",
+          "file_href": "../Manual/analysis.md",
+          "alt": "Utilities by design setting for five goals and their combined score.",
+          "caption": "Figure 1. Frozen means for 16,384 independent design runs at one year, with 4,096 per family. G1–G4 have equal combined weights and G5 half their weight. Response settings and four outside yields are pooled. Utility is a preference score, rather than an all-goal pass probability."
+        },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
           "title": "Sensitivity Analysis Report",
@@ -2526,7 +2544,7 @@
       "classification_basis": "October methodology explicitly describes model v0.8.0. Per-figure evidence and horizons are refined below.",
       "producing_source": "scripts/figures/research_explanatory_figures.py",
       "availability": "Built",
-      "caption": "Figure 1. Formula illustration at a supply counter of 465 million AVAX, a supply cap of 720 million AVAX and a 12% maximum consumption rate. Curves start at each configuration's minimum duration: 14 days before Helicon and 2 days after. Orange uses the 7.5% minimum reached after the 90-day ramp. Values precede integer rounding. Source: the v0.8.0 reward implementation.",
+      "caption": "Figure 2. Annualized potential reward as a percentage of stake at a fixed 465 million AVAX supply counter. The curves compare the pre-Helicon formula with the completed ACP-285 ramp, before integer rounding. Payment still depends on eligibility.",
       "assets": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
@@ -2572,6 +2590,15 @@
         }
       ],
       "usages": [
+        {
+          "path": "content/Phase II/Wiki/Manual/components.md",
+          "title": "4. The daily model, component by component",
+          "question": "How are the fitted components constructed, executed and evaluated?",
+          "href": "../Manual/components",
+          "file_href": "../Manual/components.md",
+          "alt": "Potential rewards depend on commitment duration and the reward formula.",
+          "caption": "Figure 2. Annualized potential reward as a percentage of stake at a fixed 465 million AVAX supply counter. The curves compare the pre-Helicon formula with the completed ACP-285 ramp, before integer rounding. Payment still depends on eligibility."
+        },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
           "title": "Modeling Avalanche's staking economy",
@@ -2912,7 +2939,7 @@
       "producing_command": "rsvg-convert --width 1439 --height 1355 --output stocks-and-flows.png stocks-and-flows.svg",
       "producing_source": "scripts/figures/research_explanatory_figures.py",
       "availability": "Built",
-      "caption": "Figure 2. Stocks and flows in model v0.8.0. Filled boxes persist between days, solid arrows move periods or AVAX, and dashed arrows carry information. Renewal and entry responses remain preliminary working settings. Source: the released implementation, with figure identity in the evidence manifest.",
+      "caption": "Figure 1. Stocks and flows for model v0.8.0. Solid arrows move periods or AVAX and dashed arrows pass information. Response settings are preliminary. The source figure is retained from the modeling memo.",
       "assets": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
@@ -2950,6 +2977,15 @@
         }
       ],
       "usages": [
+        {
+          "path": "content/Phase II/Wiki/Manual/architecture.md",
+          "title": "3. Modules compose the research system",
+          "question": "What does each layer contain, and how do the layers work together?",
+          "href": "../Manual/architecture",
+          "file_href": "../Manual/architecture.md",
+          "alt": "Validator periods, population movements and reward accounting.",
+          "caption": "Figure 1. Stocks and flows for model v0.8.0. Solid arrows move periods or AVAX and dashed arrows pass information. Response settings are preliminary. The source figure is retained from the modeling memo."
+        },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
           "title": "Modeling Avalanche's staking economy",
@@ -12329,6 +12365,104 @@
       "question": "",
       "href": "../Collections",
       "file_href": "../Collections/index.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/advanced.md",
+      "title": "9. Extensions need a question and a test",
+      "question": "Which advanced techniques are supported and what would future capabilities require?",
+      "href": "../Manual/advanced",
+      "file_href": "../Manual/advanced.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/analysis.md",
+      "title": "7. Results need both analysis and evaluation",
+      "question": "How are trajectories converted into conclusions and judged for their intended use?",
+      "href": "../Manual/analysis",
+      "file_href": "../Manual/analysis.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/architecture.md",
+      "title": "3. Modules compose the research system",
+      "question": "What does each layer contain, and how do the layers work together?",
+      "href": "../Manual/architecture",
+      "file_href": "../Manual/architecture.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/cli.md",
+      "title": "Complete CLI reference",
+      "question": "What does the checked source implement?",
+      "href": "../Manual/cli",
+      "file_href": "../Manual/cli.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/components.md",
+      "title": "4. The daily model, component by component",
+      "question": "How are the fitted components constructed, executed and evaluated?",
+      "href": "../Manual/components",
+      "file_href": "../Manual/components.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/data.md",
+      "title": "5. Data identity and accounting preserve meaning",
+      "question": "What is captured, transformed, measured and checked before a model runs?",
+      "href": "../Manual/data",
+      "file_href": "../Manual/data.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/datasets.md",
+      "title": "Dataset dispatch reference",
+      "question": "What does the checked source implement?",
+      "href": "../Manual/datasets",
+      "file_href": "../Manual/datasets.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/experiments.md",
+      "title": "6. An experiment makes the comparison explicit",
+      "question": "How is a hypothesis turned into a bounded, reproducible simulation design?",
+      "href": "../Manual/experiments",
+      "file_href": "../Manual/experiments.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/foundations.md",
+      "title": "1. The network gives staking its economic purpose",
+      "question": "What are blockchain, Avalanche, AVAX, validators and staking, and how do they define the research question?",
+      "href": "../Manual/foundations",
+      "file_href": "../Manual/foundations.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/index.md",
+      "title": "Avalanche staking research manual",
+      "question": "How does the economic system connect to the model, its evidence and its use?",
+      "href": "../Manual",
+      "file_href": "../Manual/index.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/modeling.md",
+      "title": "2. A model connects a question to a test",
+      "question": "Why use this model, how is it specified, and what evidence can support it?",
+      "href": "../Manual/modeling",
+      "file_href": "../Manual/modeling.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/modules.md",
+      "title": "Complete Python module reference",
+      "question": "What does the checked source implement?",
+      "href": "../Manual/modules",
+      "file_href": "../Manual/modules.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/usage.md",
+      "title": "8. Use the CLI from orientation to a checked result",
+      "question": "How do all commands and the worked workflows fit together?",
+      "href": "../Manual/usage",
+      "file_href": "../Manual/usage.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Manual/workshop.md",
+      "title": "10. Teach the complete research system",
+      "question": "How can the team understand, operate and critically evaluate the model together?",
+      "href": "../Manual/workshop",
+      "file_href": "../Manual/workshop.md"
     },
     {
       "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/brief.md",

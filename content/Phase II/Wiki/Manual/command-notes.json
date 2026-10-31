@@ -1,0 +1,87 @@
+{
+  "avalanche data build": {
+    "inputs": "Capture directory --from, registered dataset ID, new --output.",
+    "effects": "Creates normalized Parquet and build receipts. --preview resolves local inputs/writes without creating output; no capture retrieval.",
+    "credentials": "None for local normalization of an existing capture."
+  },
+  "avalanche data check": {
+    "inputs": "Capture directory, optional built dataset and optional repeatable built reference directories.",
+    "effects": "When --dataset is supplied writes or replaces its check.json, even though command is named check. Without --dataset reports capture-only validation. Multiple --against allowed for metrics or builderhub primary dataset; otherwise at most one. Non-pass status exits 1.",
+    "credentials": "None for checks over delivered local captures and references."
+  },
+  "avalanche data derive": {
+    "inputs": "Derived dataset ID and existing built upstream runs. --input DATASET_ID=RUN overrides otherwise-newest selection.",
+    "effects": "Creates derived capture/build/Parquet receipts in a new output run. No --preview option. Rejects modules without derive. Newest selection is not a frozen research input unless pinned explicitly.",
+    "credentials": "No generic provider credentials for local derived builds; fetch needed upstream runs separately."
+  },
+  "avalanche data describe": {
+    "inputs": "Known source or dataset ID.",
+    "effects": "Read-only; unknown ID is an error.",
+    "credentials": "None."
+  },
+  "avalanche data fetch": {
+    "inputs": "Registered dataset ID, new output path, source-specific repeated KEY=VALUE params; some captures require built upstream runs.",
+    "effects": "Without --preview makes network/provider requests and creates immutable capture files/receipts in a new directory. May consume API limits or billable query resources. --preview resolves requests/writes without network; may read local catalog/upstream run metadata.",
+    "credentials": "Source-dependent: Snowflake named connection avalanche (AVALANCHE_SNOWFLAKE_CONNECTION overrides name). Optional AVALANCHE_DATA_API_KEY for glacier-api host. SEC captures require AVALANCHE_SEC_CONTACT identity. Other supported endpoints commonly public; inspect selected module/source contract."
+  },
+  "avalanche data freshness": {
+    "inputs": "Live configured sources plus existing local walk runs.",
+    "effects": "Live Snowflake queries, P-Chain/Tenderly/Data API/metrics requests and local Parquet reads. Can use provider quota/query resources. No output-file option; unreadable or >36-hour-old sources become findings. Not an offline status command.",
+    "credentials": "Snowflake named connection and access to referenced share tables; optional Data API key."
+  },
+  "avalanche data list": {
+    "inputs": "Local catalog JSON.",
+    "effects": "Read-only; prints declared implemented sources/datasets. Not a provider connectivity test.",
+    "credentials": "None."
+  },
+  "avalanche data manifest": {
+    "inputs": "Local catalog JSON.",
+    "effects": "Read-only; reports declarations, not existing run inventory.",
+    "credentials": "None."
+  },
+  "avalanche data pin": {
+    "inputs": "One or more dataset IDs with built runs whose recorded check status passes; optional explicit DATASET=RUN; local Git object/ref for code binding.",
+    "effects": "Creates data/pins/NAME.json, hashes Parquets and records capture identities. Refuses an existing pin. Defaults to newest run per dataset. --code-ref requires --code-commit and must point to that commit.",
+    "credentials": "None."
+  },
+  "avalanche data pin-check": {
+    "inputs": "Existing pin, its local built Parquets/receipts/check records, and any bound Git objects/refs.",
+    "effects": "Read-only; hashes inputs and checks stored check.json status. Does not rerun each dataset checker and does not download missing snapshots. Changed/missing inputs or code bindings produce attention and exit 1.",
+    "credentials": "None."
+  },
+  "avalanche data runs": {
+    "inputs": "Existing data/runs receipts; dataset ID is optional.",
+    "effects": "Read-only; scans run metadata, does not fetch missing datasets.",
+    "credentials": "None."
+  },
+  "avalanche model check": {
+    "inputs": "Built primary-validator-stakes, primary-delegator-stakes and primary-staking-supply dataset directories.",
+    "effects": "Reads local Parquets, recomputes potential protocol rewards by regime and reports mismatches. No check.json write in this CLI callback. May scan many rows; does not validate behavioral forecasts.",
+    "credentials": "None for local captured reward reconstruction."
+  },
+  "avalanche model describe": {
+    "inputs": "Source-linked protocol constants/upgrade definitions.",
+    "effects": "Read-only; describes protocol parameters/mechanisms, not fitted responses or a full model specification.",
+    "credentials": "None."
+  },
+  "avalanche model reward": {
+    "inputs": "AVAX stake, days duration, UTC start and AVAX supply. Parser accepts nonnegative numbers; protocol applies further validity rules.",
+    "effects": "Data-free deterministic potential reward calculation. Converts AVAX to integer nAVAX and days to integer seconds using round. Does not predict validator behavior, check uptime or pay/submit a reward.",
+    "credentials": "None."
+  },
+  "avalanche model run": {
+    "inputs": "Existing pin and pinned input datasets; valid pre-lockbox --origin; registered model variant; output directory.",
+    "effects": "Fits/prepares and simulates one scenario as a one-row sweep, writes Parquet output plus sweep receipt, may use worker processes and substantial CPU/RAM. Defaults v0.8.0, 20 runs, 180 days, seed 0, auto workers. No dry-run/preview flag.",
+    "credentials": "None for offline simulation after inputs are available. Pin never retrieves snapshots."
+  },
+  "avalanche model sweep": {
+    "inputs": "Existing JSON design, its pin and pinned local datasets, optional hash-bound rows/draws files and KPI design; optional --pin override.",
+    "effects": "Executes design rows across selected registered variants/origins/settings, with row Parquets and receipt; may fit, simulate and reduce KPIs. Existing valid rows can be skipped/resumed by runner contract. Controls for runs/days/seeds/workers live in design, not CLI flags. No dry-run/preview flag.",
+    "credentials": "None for offline simulation after inputs are available."
+  },
+  "avalanche research tree": {
+    "inputs": "Git checkout with project markers. Optional root/view/depth.",
+    "effects": "Read-only; Git-index path inventory and current working-tree frontmatter. Default excludes untracked/missing/symlink/runtime/private-cache paths; optional nonignored untracked inventory excludes data. Default wiki depth 4 and repo depth 2; explicit --depth exposes nested files. No data contents or network. Tree schema differs from standard CLI result envelope.",
+    "credentials": "None."
+  }
+}

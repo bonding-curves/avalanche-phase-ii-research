@@ -5,6 +5,7 @@ description: "The research as it is communicated: the Foundation's Essential Rea
 
 | Section | What it holds |
 | --- | --- |
+| [Manual](/Phase-II/Wiki/Manual/) | Foundations, architecture, component explanations, CLI walkthrough, analysis and workshop guide |
 | [Reproduce](/Phase-II/Wiki/Reproduce/) | A small paired model experiment with included inputs, expected results and a chart |
 | [Research](/Phase-II/Wiki/Research/) | A bounded question-to-result cycle and separate reflection on methods and direction |
 | [Figures](/Phase-II/Wiki/Figures/) | Delivered figures filtered by model, document, family, horizon and evidence status |
