@@ -1,0 +1,37 @@
+{
+  "model": "v0.8.0",
+  "horizon_days": 365,
+  "goal_utilities": {
+    "file": "goal-utilities.csv",
+    "sha256": "1a95f6f06a51f57d6f3e2ee22e87f9fbc2d13fbf22ad0f76c2253dffa86aeb97",
+    "source": "Frozen model v0.8.0 first-sweep one-year utility aggregates, copied unchanged",
+    "rows": 31,
+    "design_runs": 16384,
+    "scope": "A/B blocks, four design families and four annual outside yields pooled; utility means by setting cell; not all sweep trajectories",
+    "display": "Family and numeric parameter order; five goal columns plus original combined score; no rescoring",
+    "source_specification_sha256": "e5d472932a74c59d17387a34f90cdb7e68a68a6661bbfad2900ffb4c73bff19f",
+    "source_wide_sha256": "1e6dec5218fee2e3b820dddc08db742070d851ff26dd6f48391009c9ac3b1bca",
+    "producing_code_commit": null,
+    "source_identity_note": "Stored scoring configuration records input hashes but omits its producing-code commit."
+  },
+  "central_trajectories": {
+    "file": "central-trajectories.png",
+    "sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1",
+    "source": "Existing central-case plot from the research memo set, reused without modification"
+  },
+  "mechanism_summary": {
+    "file": "mechanism-utilities.csv",
+    "sha256": "650e1ba05713c1f1a7d9c31df20afde48f1baf51a0bb5261c4244e3ac00a30df",
+    "aggregation": "Within each family, mean of each original utility weighted by setting-cell run count; no rescoring",
+    "design_runs_per_family": 4096,
+    "outputs": [
+      "mechanism-utilities.png",
+      "mechanism-utilities.svg"
+    ]
+  },
+  "display_terminology": {
+    "change": "Readable labels use reward formula. Numerical mappings and frozen aggregate scores are unchanged.",
+    "utility_mapping_file": "utility-mappings.json",
+    "utility_mapping_sha256": "84fb9ac22885a6ae5e674abe12df6e88164a5dcc4f659210ef8ac2d4581be25b"
+  }
+}

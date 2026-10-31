@@ -27,9 +27,11 @@ Release as of 28 October 2026: staking model v0.8.0, tagged `model-v0.8.0`. The 
 
 ## Start here
 
+**Model and simulation setup:** read the [30 October pre-read](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/docs/review/2026-10-30/modeling.md). It explains the model, fixes one central experiment and links to the supporting evidence. No installation is needed to read it.
+
 | Your task | Entry point |
 | --- | --- |
-| Assess a reward-policy comparison | Read [Economic model](#economic-model), then the [Sensitivity Analysis Report](<content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md>) for the experiment, working goals and findings |
+| Assess a reward-policy comparison | Read [Economic model](#economic-model), then the [results memo](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/docs/review/2026-10-30/results.md) for the experiment, working goals and findings |
 | Review the mathematics and evidence | Read the [model README](src/avalanche_research/model/README.md), the [v0.7 model specification](<content/Phase II/Milestones/Milestone 1/1-3 Staking Model Spec/index.md>) and the [v0.8.0 selection evidence](results/model-v0.8.0-selection/README.md) |
 | Install, run or extend the package | Follow [Quick start](#quick-start), then the model README's [run instructions](src/avalanche_research/model/README.md#run-it) and [change recipes](src/avalanche_research/model/README.md#change-it) |
 | Locate a contractual deliverable | Open the [milestone index](<content/Phase II/Milestones/index.md>) |
@@ -81,7 +83,7 @@ The research uses five working goals. Their thresholds and weights express polic
 
 A utility converts a measure to a score between zero and one using a stated floor and target. The report distinguishes a setting with the highest weighted score from a range meeting the thresholds in a specified share of sampled runs. A sampled pass share describes the experiment's chosen conditions. It is not an estimated probability of real-world success.
 
-The [report's goal definitions](<content/Phase II/Milestones/Milestone 2/Sensitivity Analysis Report/index.md#6-five-goals-score-every-run-against-one-working-objective>) give the thresholds, weights and comparison horizons. In v0.8.0, rewards change commitment length only through the composition of participants. The longer-staking measure therefore needs separate interpretation from a directly modelled duration response.
+The [report's goal definitions](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/docs/review/2026-10-30/results.md#23-kpi-computation) give the thresholds, weights and comparison horizons. In v0.8.0, rewards change commitment length only through the composition of participants. The longer-staking measure therefore needs separate interpretation from a directly modelled duration response.
 
 ## Model terminology
 

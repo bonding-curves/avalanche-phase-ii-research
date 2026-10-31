@@ -1,0 +1,12 @@
+configuration,duration_days,consumption_rate,annualized_reward_percent_of_stake
+Before Helicon: 10% minimum consumption rate,14,0.10076712328767123,5.525939019001325
+Before Helicon: 10% minimum consumption rate,30,0.10164383561643836,5.5740167918692
+Before Helicon: 10% minimum consumption rate,90,0.10493150684931507,5.754308440123729
+Before Helicon: 10% minimum consumption rate,180,0.10986301369863014,6.024745912505523
+Before Helicon: 10% minimum consumption rate,365,0.12,6.580645161290322
+After the ramp: 7.5% minimum consumption rate,2,0.07524657534246575,4.126425099425541
+After the ramp: 7.5% minimum consumption rate,14,0.07672602739726027,4.207556341140079
+After the ramp: 7.5% minimum consumption rate,30,0.0786986301369863,4.315731330092797
+After the ramp: 7.5% minimum consumption rate,90,0.0860958904109589,4.721387538665488
+After the ramp: 7.5% minimum consumption rate,180,0.0971917808219178,5.3298718515245245
+After the ramp: 7.5% minimum consumption rate,365,0.12,6.580645161290322

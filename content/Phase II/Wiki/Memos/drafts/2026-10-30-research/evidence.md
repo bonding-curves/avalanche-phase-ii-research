@@ -1,20 +1,20 @@
 ---
 title: "Evidence and reproduction"
-description: "Numerical evidence, source identities and reproduction requirements for the two research memos and meeting brief."
-date: 2026-10-29
+description: "Numerical evidence, source identities and reproduction requirements for the model setup and results memos."
+date: 2026-10-30
 status: draft
 kind: reference
 reader: "Researchers checking the accompanying memos"
 question: "Which calculations and sources support the reported findings, and what is needed to repeat them?"
 ---
 
-The numerical exhibits below support the [methodology memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology), [Sensitivity Analysis Report](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results) and [meeting brief](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/brief). The package includes the aggregate values, regression output tables and figure bytes used for review. Repeating the full simulations additionally requires the historical input snapshots.
+The numerical exhibits below support the [modeling memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology) and [results memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results). The package includes the aggregate values, regression output tables and figure bytes used for review. Repeating the full simulations additionally requires the historical input snapshots.
 
 ## Central case
 
 The central result uses model v0.8.0, origin 18 November 2025, horizon 365 days, a 90-day ramp to a 7.5% minimum consumption rate, renewal response 0.025, entry response 0.04 and an annual outside yield of 5%. Each of 50 design runs shares its seed and fitted-parameter draw with its twin using the chain’s formula.
 
-The twin follows the historical protocol schedule. ACP-285 starts on day 308, and its 90-day ramp ends after the one-year horizon. The proposed design begins its ramp on the origin. These results describe an early-start comparison.
+The twin follows the historical protocol schedule. Helicon activates at 15:00 UTC on 22 September 2026, calendar day 308. Daily noon pricing first uses the activated configuration on day 309. Its 90-day ramp ends after the one-year horizon. The proposed design activates at 16:00 UTC on the origin date, before initialization at the end of that day. Its first simulated pricing is at noon the next day. These results describe an early-start comparison.
 
 | Paired quantity | 10th percentile | Median | 90th percentile |
 | --- | ---: | ---: | ---: |
@@ -24,7 +24,7 @@ The twin follows the historical protocol schedule. ACP-285 starts on day 308, an
 
 The summaries are percentiles of per-pair ratios. Dividing the median of one set of absolute trajectories by another median gives a different statistic.
 
-The [numerical evidence JSON](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json) records the producing code commit, input identities and original result hash. The central trajectory artifact has SHA-256 d7a2a2db3e52fc16446252f80e9e41e006a82383e4d0406e0730bdc65cf18e7f. It is 7,087,697 bytes.
+The [central-case source record](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json) preserves the exact pin, draw-table hash, cells and 50 seed/draw mappings. It distinguishes the producing model from the execution checkout and records the missing driver revision. The [numerical evidence JSON](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json) records the producing code commit, input identities and original result hash. The central trajectory artifact has SHA-256 d7a2a2db3e52fc16446252f80e9e41e006a82383e4d0406e0730bdc65cf18e7f. It is 7,087,697 bytes.
 
 ## Conditional goal regions
 
@@ -93,7 +93,7 @@ The 180-day improvement has a one-sided corrected p-value of approximately 0.039
 
 ## Post-Helicon observations
 
-The brief's descriptive quantities use the P-Chain record through 26 October 2026, as documented in the [existing data brief](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/). Their populations and windows differ from those of the simulation experiments.
+The descriptive quantities below use the P-Chain record through 26 October 2026, as shown in the recorded [stake and validator counts](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107.png), [short commitments](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108.png) and [renewals](/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110.png). Their populations and windows differ from those of the simulation experiments.
 
 | Observation | Definition |
 | --- | --- |
@@ -161,7 +161,7 @@ Full simulation reproduction also needs the pinned historical staking tables, fi
 
 ## Explanatory figures
 
-The reward-duration plot illustrates the formula at a fixed supply counter. The conditional pass heatmap redraws the frozen integer counts above. The two brief diagrams show proposed evaluation choices and dates. Their [inputs](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json), [output hashes](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json), [reward values](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv) and [pass counts](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv) are included. These figures require no simulation or new scoring.
+The reward-duration plot illustrates the formula at a fixed supply counter. The conditional pass heatmap redraws the frozen integer counts above. The accompanying figure-source record also retains two earlier briefing diagrams. Their proposed dates are not a current meeting schedule. Figure [inputs](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json), [output hashes](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json), [reward values](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv) and [pass counts](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv) are included. These figures require no simulation or new scoring.
 
 From the repository root:
 

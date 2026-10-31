@@ -1,0 +1,472 @@
+{
+  "schema": "central-case-publication-provenance/v1",
+  "verified_on": "2026-10-30",
+  "scope": "Read-only recovery of original metadata and stored output; no model execution, fitting or protected scoring. Derived safe summary; original receipt contains local paths and is not copied verbatim.",
+  "original_bindings": {
+    "receipt": {
+      "artifact": "receipt.json",
+      "bytes": 3275,
+      "sha256": "173947d5e1b2de865d7d7f94dc04ab442b89fad0a58d02e74941124ede77f1cf"
+    },
+    "cells": {
+      "artifact": "cells.json",
+      "bytes": 1760,
+      "sha256": "64731dadc0a180b3852b1b887308cf4dd258eac7189ed05eaabbc2b880c39eee"
+    },
+    "trajectories": {
+      "artifact": "trajectories.parquet",
+      "bytes": 7087697,
+      "sha256": "d7a2a2db3e52fc16446252f80e9e41e006a82383e4d0406e0730bdc65cf18e7f"
+    },
+    "input_pin": {
+      "artifact": "p2-model-v0.8.json",
+      "bytes": 929,
+      "sha256": "47a6f4af2b7bab7d2b2aae45b2a62c7c67ed5ca26c9123151132742b208d4dee"
+    },
+    "draw_table": {
+      "artifact": "draws.parquet",
+      "bytes": 4981095,
+      "sha256": "0e4a238778597b44e33b1be31a6179b715d67de0d2dd773ad6faca12331df75d"
+    },
+    "sweep_design": {
+      "artifact": "design.json",
+      "bytes": 1614,
+      "sha256": "924456465aa62cfed75f11742231fc885b96f27ec940692f32e3940ee2b9ffde"
+    }
+  },
+  "model_identity": {
+    "model": "v0.8.0",
+    "tag": "model-v0.8.0",
+    "model_source_commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc",
+    "runner_checkout_commit": "76bc75898629e035401f6ad54d9b2aa1d2c2c873",
+    "source_loading_declared_in_receipt": "Archive of model tag source placed first on Python import path.",
+    "execution_driver_commit": null,
+    "driver_binding_limit": "Execution receipt does not freeze a driver commit/hash. Current driver agrees with recorded settings and seed/draw mapping, but its present hash is not an authenticated execution-time identity.",
+    "current_driver_snapshot": {
+      "artifact": "trajectories_run.py",
+      "bytes": 19227,
+      "sha256": "9111a3f833f717d0e620ab349e0d5a68846e901828747a3df9dbebba89b9a6f5"
+    },
+    "observed_instrumentation_equality_check": {
+      "key": 0,
+      "cell": "chain-r0.05",
+      "variables": [
+        "active_validators",
+        "active_validator_stake_navax",
+        "supply_navax",
+        "issued_navax"
+      ],
+      "values": 1464,
+      "equal": true,
+      "offered_rate_30d_equal": true
+    }
+  },
+  "simulation_setup": {
+    "population": "Primary Network validator own-stake periods; delegations omitted",
+    "origin": "2025-11-18",
+    "initialization_cutoff_utc": "2025-11-18T23:59:59Z",
+    "time_step_days": 1,
+    "horizon_days": 365,
+    "day_zero_date": "2025-11-18",
+    "day_one_date": "2025-11-19",
+    "final_date": "2026-11-18",
+    "reward_pricing_time_utc": "12:00:00",
+    "selected_design_cell": "ramp-7.5-central",
+    "selected_reference_cell": "chain-central",
+    "selected_cells": {
+      "ramp-7.5-central": {
+        "family": "ramp",
+        "mechanism": {
+          "name": "ACP285Ramp",
+          "activation": "2025-11-18T16:00:00+00:00",
+          "ramp_days": 90,
+          "target_min_rate": 0.075
+        },
+        "response": 0.025,
+        "entry": 0.04,
+        "twin": "chain-central",
+        "outside_yield_pp": 5.0,
+        "fitted_outside_yield_pp": 4.144417670682732
+      },
+      "chain-central": {
+        "family": "chain",
+        "mechanism": {
+          "name": "ChainReward"
+        },
+        "response": 0.025,
+        "entry": 0.04,
+        "twin": null,
+        "outside_yield_pp": 5.0,
+        "fitted_outside_yield_pp": 4.144417670682732
+      }
+    },
+    "pairing": {
+      "pairs": 50,
+      "each_pair_shares": [
+        "seed",
+        "draw"
+      ],
+      "key_range_inclusive": [
+        0,
+        49
+      ],
+      "seed_range_inclusive": [
+        1,
+        50
+      ],
+      "draw_row_range_zero_based_inclusive": [
+        0,
+        49
+      ],
+      "mapping": "For key k: draw-table row k and model seed k+1; applied to both selected cells.",
+      "pair_records": [
+        {
+          "key": 0,
+          "seed": 1,
+          "draw_row_zero_based": 0
+        },
+        {
+          "key": 1,
+          "seed": 2,
+          "draw_row_zero_based": 1
+        },
+        {
+          "key": 2,
+          "seed": 3,
+          "draw_row_zero_based": 2
+        },
+        {
+          "key": 3,
+          "seed": 4,
+          "draw_row_zero_based": 3
+        },
+        {
+          "key": 4,
+          "seed": 5,
+          "draw_row_zero_based": 4
+        },
+        {
+          "key": 5,
+          "seed": 6,
+          "draw_row_zero_based": 5
+        },
+        {
+          "key": 6,
+          "seed": 7,
+          "draw_row_zero_based": 6
+        },
+        {
+          "key": 7,
+          "seed": 8,
+          "draw_row_zero_based": 7
+        },
+        {
+          "key": 8,
+          "seed": 9,
+          "draw_row_zero_based": 8
+        },
+        {
+          "key": 9,
+          "seed": 10,
+          "draw_row_zero_based": 9
+        },
+        {
+          "key": 10,
+          "seed": 11,
+          "draw_row_zero_based": 10
+        },
+        {
+          "key": 11,
+          "seed": 12,
+          "draw_row_zero_based": 11
+        },
+        {
+          "key": 12,
+          "seed": 13,
+          "draw_row_zero_based": 12
+        },
+        {
+          "key": 13,
+          "seed": 14,
+          "draw_row_zero_based": 13
+        },
+        {
+          "key": 14,
+          "seed": 15,
+          "draw_row_zero_based": 14
+        },
+        {
+          "key": 15,
+          "seed": 16,
+          "draw_row_zero_based": 15
+        },
+        {
+          "key": 16,
+          "seed": 17,
+          "draw_row_zero_based": 16
+        },
+        {
+          "key": 17,
+          "seed": 18,
+          "draw_row_zero_based": 17
+        },
+        {
+          "key": 18,
+          "seed": 19,
+          "draw_row_zero_based": 18
+        },
+        {
+          "key": 19,
+          "seed": 20,
+          "draw_row_zero_based": 19
+        },
+        {
+          "key": 20,
+          "seed": 21,
+          "draw_row_zero_based": 20
+        },
+        {
+          "key": 21,
+          "seed": 22,
+          "draw_row_zero_based": 21
+        },
+        {
+          "key": 22,
+          "seed": 23,
+          "draw_row_zero_based": 22
+        },
+        {
+          "key": 23,
+          "seed": 24,
+          "draw_row_zero_based": 23
+        },
+        {
+          "key": 24,
+          "seed": 25,
+          "draw_row_zero_based": 24
+        },
+        {
+          "key": 25,
+          "seed": 26,
+          "draw_row_zero_based": 25
+        },
+        {
+          "key": 26,
+          "seed": 27,
+          "draw_row_zero_based": 26
+        },
+        {
+          "key": 27,
+          "seed": 28,
+          "draw_row_zero_based": 27
+        },
+        {
+          "key": 28,
+          "seed": 29,
+          "draw_row_zero_based": 28
+        },
+        {
+          "key": 29,
+          "seed": 30,
+          "draw_row_zero_based": 29
+        },
+        {
+          "key": 30,
+          "seed": 31,
+          "draw_row_zero_based": 30
+        },
+        {
+          "key": 31,
+          "seed": 32,
+          "draw_row_zero_based": 31
+        },
+        {
+          "key": 32,
+          "seed": 33,
+          "draw_row_zero_based": 32
+        },
+        {
+          "key": 33,
+          "seed": 34,
+          "draw_row_zero_based": 33
+        },
+        {
+          "key": 34,
+          "seed": 35,
+          "draw_row_zero_based": 34
+        },
+        {
+          "key": 35,
+          "seed": 36,
+          "draw_row_zero_based": 35
+        },
+        {
+          "key": 36,
+          "seed": 37,
+          "draw_row_zero_based": 36
+        },
+        {
+          "key": 37,
+          "seed": 38,
+          "draw_row_zero_based": 37
+        },
+        {
+          "key": 38,
+          "seed": 39,
+          "draw_row_zero_based": 38
+        },
+        {
+          "key": 39,
+          "seed": 40,
+          "draw_row_zero_based": 39
+        },
+        {
+          "key": 40,
+          "seed": 41,
+          "draw_row_zero_based": 40
+        },
+        {
+          "key": 41,
+          "seed": 42,
+          "draw_row_zero_based": 41
+        },
+        {
+          "key": 42,
+          "seed": 43,
+          "draw_row_zero_based": 42
+        },
+        {
+          "key": 43,
+          "seed": 44,
+          "draw_row_zero_based": 43
+        },
+        {
+          "key": 44,
+          "seed": 45,
+          "draw_row_zero_based": 44
+        },
+        {
+          "key": 45,
+          "seed": 46,
+          "draw_row_zero_based": 45
+        },
+        {
+          "key": 46,
+          "seed": 47,
+          "draw_row_zero_based": 46
+        },
+        {
+          "key": 47,
+          "seed": 48,
+          "draw_row_zero_based": 47
+        },
+        {
+          "key": 48,
+          "seed": 49,
+          "draw_row_zero_based": 48
+        },
+        {
+          "key": 49,
+          "seed": 50,
+          "draw_row_zero_based": 49
+        }
+      ],
+      "original_full_run_cells": [
+        "chain-central",
+        "ramp-6-central",
+        "ramp-7.5-central",
+        "ramp-9-central",
+        "tenure-10-central",
+        "quadratic-2-central"
+      ],
+      "original_full_run_paths": 300,
+      "selected_paths": 100,
+      "snapshots_per_path_including_initial": 366
+    },
+    "intervention_clock": {
+      "configured_activation_utc": "2025-11-18T16:00:00Z",
+      "ramp_days": 90,
+      "target_min_consumption_rate": 0.075,
+      "first_simulated_pricing_utc": "2025-11-19T12:00:00Z",
+      "first_pricing_hours_after_configured_activation": 20
+    },
+    "reference_clock": {
+      "historical_helicon_activation_utc": "2026-09-22T15:00:00Z",
+      "activation_calendar_day_index": 308,
+      "first_post_activation_noon_step_index": 309,
+      "first_post_activation_noon_utc": "2026-09-23T12:00:00Z",
+      "qualification": "Daily model prices starts at noon. Calendar activation day and the first step priced after activation are distinct."
+    },
+    "response_units": "Renewal log odds and arrival log rate per percentage point of annual reward rate on a 30-day stake."
+  },
+  "inputs": {
+    "pin_name": "p2-model-v0.8",
+    "pin_relative_path": "data/pins/p2-model-v0.8.json",
+    "pin_rows": [
+      {
+        "bytes": 692906576,
+        "capture_id": "capture:derived:2026-09-30T17:25:46Z:e0b8a7f3be51",
+        "captured_at": "2026-09-30T17:25:46Z",
+        "check": "pass",
+        "dataset_id": "derived.staking-periods",
+        "parquet": "staking-periods.parquet",
+        "run": "staking-periods-2026-09-30",
+        "sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8"
+      },
+      {
+        "bytes": 233039,
+        "capture_id": "capture:derived:2026-09-30T18:42:56Z:7e2248466077",
+        "captured_at": "2026-09-30T18:42:56Z",
+        "check": "pass",
+        "dataset_id": "derived.avax-monetary-daily",
+        "parquet": "avax-monetary-daily.parquet",
+        "run": "avax-monetary-daily-2026-09-30",
+        "sha256": "838a3df7e74bec49cdc198c1432d39654a529a3dac9f20909be0ee37236dfe3e"
+      }
+    ],
+    "staking_periods_run": "staking-periods-2026-09-30",
+    "validation_limit": "Pin-file bytes match receipt. This check did not rehash the large historical input Parquet files.",
+    "fitted_outside_yield_percent_per_year": 4.144417670682732,
+    "fitted_outside_yield_observation_days": 249,
+    "fitted_outside_yield_source_pin": {
+      "artifact": "p4-opportunity-costs.json",
+      "bytes": 3294,
+      "sha256": "3ef004b68cced86580698edc6757107746e97a90eced7230ef043aa230180384"
+    },
+    "fitted_outside_yield_source_record": {
+      "bytes": 82512,
+      "capture_id": "capture:fred:2026-10-05T20:50:59Z:8b074e52777a",
+      "captured_at": "2026-10-05T20:50:59Z",
+      "check": "pass",
+      "dataset_id": "fred.tbill-3m-daily",
+      "parquet": "tbill-3m-daily.parquet",
+      "run": "tbill-3m-daily-2026-10-05",
+      "sha256": "c9f2cd72b4dfc966278da6a3f100c695b9bdd097ad88290713d3ece504f65fb4"
+    }
+  },
+  "parameter_draws": {
+    "total_rows": 24896,
+    "selected_rows_zero_based_inclusive": [
+      0,
+      49
+    ],
+    "generation_seed": 53588821,
+    "generation_seed_label": "milestone 2 parameter draws",
+    "generation_seed_rule": "blake2b label bytes, digest_size=8; little-endian integer shifted right33bits.",
+    "renewal_shift_sd": 0.27039083689636806,
+    "renewal_shift_sd_source": "fitted on 20 quarters, 2020Q4 to 2025Q3",
+    "qualification": "The draw-table bytes are independently authenticated. Metadata names the generation seed; the table was not regenerated."
+  },
+  "publication_scope": {
+    "contains_individual_validator_records": false,
+    "contains_credentials": false,
+    "contains_large_input_or_trajectory_bytes": false,
+    "full_simulation_reproduction_available_from_this_json": false,
+    "missing_for_full_reproduction": [
+      "Original pinned input files",
+      "Complete parameter-draw file",
+      "Execution driver with an authenticated execution-time identity",
+      "Runtime environment binding beyond the receipt declaration"
+    ]
+  }
+}

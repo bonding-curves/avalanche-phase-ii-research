@@ -59,7 +59,7 @@ The checked fresh installation without input data passes 2,127 tests and skips 3
 uv run avalanche model describe
 ```
 
-This needs no data. The first line reads `PASS | model describe | 13 mechanisms`, followed by the mainnet staking parameters and the upgrade schedule the model uses.
+This needs no data. The first line reads `PASS | model describe | 13 mechanisms`, followed by the mainnet staking parameters and the upgrade schedule the model uses. The count covers the protocol inventory, including admission settings as well as reward formulas.
 
 Two other commands work without data:
 
@@ -69,6 +69,15 @@ uv run avalanche data list
 ```
 
 `avalanche model reward` computes the Primary Network potential reward for one stake. `avalanche data list` prints the data catalog's sources and datasets.
+
+For a data-free calculation, use an illustrative supply counter of 465 million AVAX:
+
+```sh
+uv run avalanche model reward --stake 2000 --duration 14 \
+  --start 2026-09-01T00:00:00 --supply 465000000
+```
+
+The potential reward is **4.239076507 AVAX**. This exercises protocol arithmetic, using a supplied counter rather than a captured chain state. It does not run a staking simulation.
 
 ## 6. Open the notebooks
 
@@ -91,7 +100,7 @@ uv run jupyter lab notebooks/
 
 JupyterLab opens in the browser. Open a notebook and read it without running it. Jupyter draws saved interactive charts only in a notebook you have trusted, which is why the first command is needed.
 
-Do not choose **Run All** before the input set is in place. The notebooks read the staking periods built from the Avalanche Foundation's Snowflake data share, which are too large for Git. Run without them, a notebook stops at its first data cell with a `DataError` that names the missing run, for example `no built run for derived.staking-periods named staking-periods-2026-09-30`. JupyterLab saves notebooks automatically, so restore the saved outputs afterward with `git checkout -- notebooks/`.
+Do not choose **Run All** before the input set is in place. The notebooks read the staking periods built from the Avalanche Foundation's Snowflake data share, which are too large for Git. Run without them, a notebook stops at its first data cell with a `DataError` that names the missing run, for example `no built run for derived.staking-periods named staking-periods-2026-09-30`. Reading the saved outputs requires no cell execution. Use a separate copy if you want to experiment without changing the delivered notebooks.
 
 ## 7. Run the notebooks with data
 

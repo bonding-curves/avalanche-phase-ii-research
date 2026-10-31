@@ -1,0 +1,101 @@
+{
+  "model": "v0.8.0",
+  "figures": [
+    {
+      "file": "daily-model.png",
+      "sha256": "26ef6d807ac231b84046031a8a2341c5e44c3144b71a3229f9b1264712715b8e",
+      "reused_without_modification": false,
+      "original_sha256": "1ecb031f1b3a57fbe44d76936b40ffd3f763bb0fb592e27c9eaa360373e37c89",
+      "modification": "Terminology labels changed from rule to formula in the editable SVG; stopping condition labelled criterion. Data and geometry unchanged.",
+      "editable_file": "daily-model.svg",
+      "editable_sha256": "1483c862b198589baefdfca6e51f9a2a6042de83eabd80fedddc47b833dfed26",
+      "render_command": "rsvg-convert --width 1439 --height 2112 --output daily-model.png daily-model.svg"
+    },
+    {
+      "file": "forecast-scores.png",
+      "sha256": "cd0a8c5cbd1c2b87f228ecc3e58291f47fb949042de69f10c363a234c14513ab",
+      "reused_without_modification": true
+    },
+    {
+      "file": "utility-heatmap.png",
+      "sha256": "9d298ad4bcd94d6a8a0b25cfeccd8d98dab2621c5e0e941b4b8b29f8cfedfaab",
+      "reused_without_modification": true
+    },
+    {
+      "file": "decision-tree.png",
+      "sha256": "16d27f3c2f6cf28e0bab7a8adda2e3ff555595fa41dbcaecec47a5de864d45a5",
+      "reused_without_modification": true
+    },
+    {
+      "file": "central-trajectories.png",
+      "sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1",
+      "reused_without_modification": true
+    },
+    {
+      "file": "stocks-and-flows.png",
+      "sha256": "37f6c1e10af0600c571d707aeab84e1fb526c1d378e12b60ce4d34494dd3efb4",
+      "reused_without_modification": false,
+      "original_sha256": "ddaee777d18543fc02e0897404de73115ed0b3db3a502b13cba24cfa893f42d6",
+      "modification": "Terminology labels changed to formula in the editable SVG; input legend shortened to fit. Data and geometry unchanged.",
+      "editable_file": "stocks-and-flows.svg",
+      "editable_sha256": "fe2e02c9c6edb6300c295fd15843ac36114d164d688a3e6d837f8106e4a61c64",
+      "render_command": "rsvg-convert --width 1439 --height 1355 --output stocks-and-flows.png stocks-and-flows.svg"
+    },
+    {
+      "file": "issuance-stake-tradeoff.png",
+      "sha256": "af0b4badfc4946aea6a7afff5097238882ab43fe6d74e7d46cfb7869ef30f985",
+      "reused_without_modification": false,
+      "original_sha256": "566835de5f43824e8cc273e45fca910cd0fdcae79ba392eeaff8406612bf60cd",
+      "modification": "Terminology labels changed from rule to formula in the editable SVG; stopping condition labelled criterion. Data and geometry unchanged.",
+      "editable_file": "issuance-stake-tradeoff.svg",
+      "editable_sha256": "1010190b3be0b55f84c1260063de7115c30dd7b9afc3f5bb33083d5277e6a787",
+      "render_command": "rsvg-convert --width 1310 --height 942 --output issuance-stake-tradeoff.png issuance-stake-tradeoff.svg"
+    },
+    {
+      "file": "central-record-comparison.png",
+      "sha256": "7a04289e49f90ce700373e935b8445bca19f1f7d4721634351b88d6e2645178b",
+      "reused_without_modification": false,
+      "original_sha256": "f6da05d0900dd7ac855b62df84f93bbf35b62c9c7afd600d476d8037ba9fc08d",
+      "modification": "Terminology labels changed from rule to formula in the editable SVG; stopping condition labelled criterion. Data and geometry unchanged.",
+      "editable_file": "central-record-comparison.svg",
+      "editable_sha256": "ffbc7575cb2c6af980c10c27b03673fd22c17c5667aa2612dfd54eaf1a8553b1",
+      "render_command": "rsvg-convert --width 1386 --height 1501 --output central-record-comparison.png central-record-comparison.svg"
+    },
+    {
+      "file": "evaluation-criteria.png",
+      "sha256": "f35723f29ae15b74295138271f5a624c65db94a28784578f1ddc4211274553ab",
+      "editable_file": "evaluation-criteria.svg",
+      "editable_sha256": "a0bde16890da1c06e145bb72789e8a1649a8281e67d1075c4f2b8b1690d7d9f8",
+      "reused_without_modification": false,
+      "kind": "proposed evaluation diagram",
+      "source_receipt": "explanatory-figure-sources.json"
+    },
+    {
+      "file": "proposed-schedule.png",
+      "sha256": "291f16dfe06d27e9acf77cdf67661de8f87be3a86ee4c1aa3934541b468a631d",
+      "editable_file": "proposed-schedule.svg",
+      "editable_sha256": "093b5d375ad4a02fed73495ba8b818d18a4cbc312427711dfaa520e86c70da92",
+      "reused_without_modification": false,
+      "kind": "proposed schedule",
+      "source_receipt": "explanatory-figure-sources.json"
+    },
+    {
+      "file": "reward-duration.png",
+      "sha256": "9222d2283a78902b08298781fedbd3530c9657a6dbcbaae8869c832d66b889cd",
+      "editable_file": "reward-duration.svg",
+      "editable_sha256": "63a53717a47180b826d238a4afb24d1549f87bb16565757dbb03fe5f8f20e863",
+      "reused_without_modification": false,
+      "kind": "analytical formula illustration",
+      "source_receipt": "explanatory-figure-sources.json"
+    },
+    {
+      "file": "conditional-goal-pass.png",
+      "sha256": "3e098febc28b2354a24c12c34a1b443fe636b5a1f87d0c82f69f41c68d1ca5b1",
+      "editable_file": "conditional-goal-pass.svg",
+      "editable_sha256": "50b52204cecd5404f7cfa7b0040de43e250cd786c15e1f9c79234e3f7f2d794f",
+      "reused_without_modification": false,
+      "kind": "frozen aggregate heatmap",
+      "source_receipt": "explanatory-figure-sources.json"
+    }
+  ]
+}

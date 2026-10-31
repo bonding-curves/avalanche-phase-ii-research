@@ -1,14 +1,14 @@
 ---
 title: "Sensitivity Analysis Report"
 description: "Milestone 2 experiments on issuance, validator participation and the reward settings that trade between them."
-date: 2026-10-29
+date: 2026-10-30
 status: draft
 kind: deliverable
 reader: "Avalanche Foundation and Ava Labs researchers and decision makers"
 question: "What do the Milestone 2 experiments establish about reward designs and the choices that follow?"
 ---
 
-Date: 29 October 2026\
+Date: 30 October 2026\
 To: Avalanche Foundation and Ava Labs\
 From: Bonding Curve Research Group\
 Subject: Milestone 2 simulation and analysis
@@ -157,7 +157,7 @@ The broader governance sweep also encounters available-supply constraints. One r
 
 ## 2.7 Workshop #1
 
-The workshop can turn the working analysis into Foundation-specific evaluation criteria. The proposed 13 November session follows the 30 October model walkthrough.
+The workshop can turn the working analysis into Foundation-specific evaluation criteria. Its date and participants remain to be confirmed.
 
 | Workshop decision | Why it matters |
 | --- | --- |
@@ -185,4 +185,4 @@ Revenue funding is a development extension, separate from the released interface
 
 The next research pass should strengthen the parts that determine the counterfactuals: renewal and entry responses, the observed mix of entrants and the response of duration to rewards. A completed held-back evaluation will add evidence about forecast levels. Delegations and available-supply feedback will broaden the economic accounting.
 
-The proposed Milestone 3 sequence develops recommendations and a scenario playbook against the Foundation's chosen criteria, with working delivery targets in December and January. The [meeting brief](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/brief) identifies the decisions needed to settle that sequence. The [evidence guide](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence) provides the numerical tables, source identities and reproduction boundary for this report.
+The proposed Milestone 3 sequence develops recommendations and a scenario playbook against the Foundation's chosen criteria, with working delivery targets in December and January. The Foundation's choice of goals and acceptance thresholds will determine that sequence. The [evidence guide](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence) provides the numerical tables, source identities and reproduction boundary for this report.

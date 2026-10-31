@@ -1,0 +1,57 @@
+{
+  "generator": "../../../../../../../scripts/figures/research_explanatory_figures.py",
+  "generator_sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
+  "inputs_file": "explanatory-figure-inputs.json",
+  "inputs_sha256": "e605f21ec7b2cc8e4f50234da0935d9e43c2ba7877db746636d1c16a04c966d2",
+  "numerical_evidence_sha256": "9eaf0b31d0317593fca08c0c60d47e7c55728c9b1beae21a8b8cc352ad4cf53e",
+  "model": "v0.8.0",
+  "conditional_results_source": {
+    "artifact": "trajectory-utilities.parquet",
+    "bytes": 7845572,
+    "sha256": "88abb18296b1ffc1e35fd12a74baefd2d1425f4c3fe92ecc4f5d88666baac1b6"
+  },
+  "conditional_results_producing_code_commit": null,
+  "scope": "Frozen aggregate counts, analytical reward illustration and proposed evaluation/schedule diagrams. No simulation, fitting or rescoring.",
+  "outputs": [
+    {
+      "file": "evaluation-criteria.png",
+      "sha256": "f35723f29ae15b74295138271f5a624c65db94a28784578f1ddc4211274553ab"
+    },
+    {
+      "file": "evaluation-criteria.svg",
+      "sha256": "a0bde16890da1c06e145bb72789e8a1649a8281e67d1075c4f2b8b1690d7d9f8"
+    },
+    {
+      "file": "proposed-schedule.png",
+      "sha256": "291f16dfe06d27e9acf77cdf67661de8f87be3a86ee4c1aa3934541b468a631d"
+    },
+    {
+      "file": "proposed-schedule.svg",
+      "sha256": "093b5d375ad4a02fed73495ba8b818d18a4cbc312427711dfaa520e86c70da92"
+    },
+    {
+      "file": "reward-duration.png",
+      "sha256": "9222d2283a78902b08298781fedbd3530c9657a6dbcbaae8869c832d66b889cd"
+    },
+    {
+      "file": "reward-duration.svg",
+      "sha256": "63a53717a47180b826d238a4afb24d1549f87bb16565757dbb03fe5f8f20e863"
+    },
+    {
+      "file": "conditional-goal-pass.png",
+      "sha256": "3e098febc28b2354a24c12c34a1b443fe636b5a1f87d0c82f69f41c68d1ca5b1"
+    },
+    {
+      "file": "conditional-goal-pass.svg",
+      "sha256": "50b52204cecd5404f7cfa7b0040de43e250cd786c15e1f9c79234e3f7f2d794f"
+    },
+    {
+      "file": "reward-duration.csv",
+      "sha256": "56d50809af1768250d5adffbaad713e74ac76270e83e024bf4fdefdb77bff20f"
+    },
+    {
+      "file": "conditional-goal-pass.csv",
+      "sha256": "4b802da1ab3acc406049025df1306a97bd33c5699544e1d6386ff1efc0ec275b"
+    }
+  ]
+}

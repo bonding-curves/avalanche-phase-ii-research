@@ -1,0 +1,452 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="518.4pt" height="487.421797pt" viewBox="0 0 518.4 487.421797" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-29T13:05:00.662005</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.9, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 487.421797 
+L 518.4 487.421797 
+L 518.4 -0 
+L 0 -0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 7.2 298.781797 
+L 511.2 298.781797 
+L 511.2 82.061797 
+L 7.2 82.061797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #f5f6f7"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 7.2 455.021797 
+L 511.2 455.021797 
+L 511.2 313.901797 
+L 7.2 313.901797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #f5f6f7"/>
+   </g>
+   <g id="text_1">
+    <text style="font-weight: 600; font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #4f545c" x="11.232" y="92.428391" transform="rotate(-0 11.232 92.428391)">VALIDATORS AND THEIR STAKING PERIODS</text>
+   </g>
+   <g id="text_2">
+    <text style="font-weight: 600; font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #4f545c" x="11.232" y="324.268391" transform="rotate(-0 11.232 324.268391)">SUPPLY</text>
+   </g>
+   <g id="patch_4">
+    <path d="M 22.32 228.221797 
+Q 97.92 228.221797 170.613112 228.221797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke: #237a57; stroke-width: 2.6; stroke-linecap: round"/>
+    <path d="M 163.613112 224.721797 
+L 170.613112 228.221797 
+L 163.613112 231.721797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #237a57; stroke: #237a57; stroke-width: 2.6; stroke-linecap: round"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 269.28 182.861797 
+Q 231.48 107.261797 194.98 180.261797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke: #237a57; stroke-width: 2.6; stroke-linecap: round"/>
+    <path d="M 201.24099 175.566054 
+L 194.98 180.261797 
+L 194.98 172.435559 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #237a57; stroke: #237a57; stroke-width: 2.6; stroke-linecap: round"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 289.44 213.101797 
+Q 327.24 213.101797 362.133112 213.101797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke: #237a57; stroke-width: 2.6; stroke-linecap: round"/>
+    <path d="M 355.133112 209.601797 
+L 362.133112 213.101797 
+L 355.133112 216.601797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #237a57; stroke: #237a57; stroke-width: 2.6; stroke-linecap: round"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 365.04 248.381797 
+Q 327.24 248.381797 292.346888 248.381797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke: #237a57; stroke-width: 2.6; stroke-linecap: round"/>
+    <path d="M 299.346888 251.881797 
+L 292.346888 248.381797 
+L 299.346888 244.881797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #237a57; stroke: #237a57; stroke-width: 2.6; stroke-linecap: round"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 465.84 228.221797 
+Q 487.26 228.221797 505.773112 228.221797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke: #6b7079; stroke-width: 2.6; stroke-linecap: round"/>
+    <path d="M 498.773112 224.721797 
+L 505.773112 228.221797 
+L 498.773112 231.721797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #6b7079; stroke: #6b7079; stroke-width: 2.6; stroke-linecap: round"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 133.2 414.701797 
+Q 259.2 414.701797 382.293112 414.701797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke: #6b7079; stroke-width: 2.6; stroke-linecap: round"/>
+    <path d="M 375.293112 411.201797 
+L 382.293112 414.701797 
+L 375.293112 418.201797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #6b7079; stroke: #6b7079; stroke-width: 2.6; stroke-linecap: round"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 218.88 263.501797 
+Q 218.88 316.421797 218.88 368.223763 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #4f545c; stroke-linecap: round"/>
+    <path d="M 221.38 363.223763 
+L 218.88 368.223763 
+L 216.38 363.223763 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #4f545c; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #4f545c; stroke-linecap: round"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 425.52 374.381797 
+Q 354.204 320.705797 280.297481 368.732592 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #4f545c; stroke-linecap: round"/>
+    <path d="M 285.852244 368.104417 
+L 280.297481 368.732592 
+L 283.127798 363.911876 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #4f545c; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #4f545c; stroke-linecap: round"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 87.84 182.861797 
+Q 87.84 203.525797 87.84 222.848156 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 3.6,2.4; stroke-dashoffset: 0; stroke: #3566a3; stroke-width: 1.2; stroke-linecap: round"/>
+    <path d="M 90.34 217.848156 
+L 87.84 222.848156 
+L 85.34 217.848156 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #3566a3; stroke-dasharray: 3.6,2.4; stroke-dashoffset: 0; stroke: #3566a3; stroke-width: 1.2; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_1">
+    <path d="M 158.4 132.461797 
+L 186.12 132.461797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 3.6,2.4; stroke-dashoffset: 0; stroke: #3566a3; stroke-width: 1.2"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 186.12 132.461797 
+Q 191.16 146.321797 195.741504 158.920932 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 3.6,2.4; stroke-dashoffset: 0; stroke: #3566a3; stroke-width: 1.2; stroke-linecap: round"/>
+    <path d="M 196.382272 153.367607 
+L 195.741504 158.920932 
+L 191.683305 155.076322 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #3566a3; stroke-dasharray: 3.6,2.4; stroke-dashoffset: 0; stroke: #3566a3; stroke-width: 1.2; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 178.56 397.061797 
+L 163.44 397.061797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #3566a3"/>
+   </g>
+   <g id="line2d_3">
+    <path d="M 163.44 397.061797 
+L 163.44 165.221797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #3566a3"/>
+   </g>
+   <g id="patch_14">
+    <path d="M 163.44 165.221797 
+Q 160.92 165.221797 159.518034 165.221797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #3566a3; stroke-linecap: round"/>
+    <path d="M 164.518034 167.721797 
+L 159.518034 165.221797 
+L 164.518034 162.721797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #3566a3; stroke-dasharray: 3,2; stroke-dashoffset: 0; stroke: #3566a3; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_4">
+    <path d="M 22.32 469.133797 
+L 33.408 469.133797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke: #237a57; stroke-width: 2"/>
+   </g>
+   <g id="line2d_5">
+    <path d="M 92.808 469.133797 
+L 103.896 469.133797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke: #6b7079; stroke-width: 2"/>
+   </g>
+   <g id="line2d_6">
+    <path d="M 190.026 469.133797 
+L 201.114 469.133797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 4.2,2.8; stroke-dashoffset: 0; stroke: #3566a3; stroke-width: 1.4"/>
+   </g>
+   <g id="line2d_7">
+    <path d="M 266.724 469.133797 
+L 277.812 469.133797 
+" clip-path="url(#p393bc9889b)" style="fill: none; stroke-dasharray: 4.2,2.8; stroke-dashoffset: 0; stroke: #4f545c; stroke-width: 1.4"/>
+   </g>
+   <g id="patch_15">
+    <path d="M 177.552 263.501797 
+L 285.408 263.501797 
+Q 289.44 263.501797 289.44 259.469797 
+L 289.44 186.893797 
+Q 289.44 182.861797 285.408 182.861797 
+L 177.552 182.861797 
+Q 173.52 182.861797 173.52 186.893797 
+L 173.52 259.469797 
+Q 173.52 263.501797 177.552 263.501797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #dfe2e6; stroke: #1b1b1b; stroke-width: 1.4; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_16">
+    <path d="M 369.072 263.501797 
+L 461.808 263.501797 
+Q 465.84 263.501797 465.84 259.469797 
+L 465.84 186.893797 
+Q 465.84 182.861797 461.808 182.861797 
+L 369.072 182.861797 
+Q 365.04 182.861797 365.04 186.893797 
+L 365.04 259.469797 
+Q 365.04 263.501797 369.072 263.501797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #dfe2e6; stroke: #1b1b1b; stroke-width: 1.4; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_17">
+    <path d="M 26.352 439.901797 
+L 129.168 439.901797 
+Q 133.2 439.901797 133.2 435.869797 
+L 133.2 373.373797 
+Q 133.2 369.341797 129.168 369.341797 
+L 26.352 369.341797 
+Q 22.32 369.341797 22.32 373.373797 
+L 22.32 435.869797 
+Q 22.32 439.901797 26.352 439.901797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #dfe2e6; stroke: #1b1b1b; stroke-width: 1.4; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_18">
+    <path d="M 389.232 434.861797 
+L 492.048 434.861797 
+Q 496.08 434.861797 496.08 430.829797 
+L 496.08 378.413797 
+Q 496.08 374.381797 492.048 374.381797 
+L 389.232 374.381797 
+Q 385.2 374.381797 385.2 378.413797 
+L 385.2 430.829797 
+Q 385.2 434.861797 389.232 434.861797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #dfe2e6; stroke: #1b1b1b; stroke-width: 1.4; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_19">
+    <path d="M 26.352 182.861797 
+L 154.368 182.861797 
+Q 158.4 182.861797 158.4 178.829797 
+L 158.4 108.773797 
+Q 158.4 104.741797 154.368 104.741797 
+L 26.352 104.741797 
+Q 22.32 104.741797 22.32 108.773797 
+L 22.32 178.829797 
+Q 22.32 182.861797 26.352 182.861797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #ebf0f6; stroke: #3566a3; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_3">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #1b1b1b" x="231.48" y="194.616312" transform="rotate(-0 231.48 194.616312)">Open staking periods</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(187.162031 207.875391)">Count and AVAX, one</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(193.471172 217.892742)">row per period. At</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(194.406328 227.910094)">the origin, 18 Nov</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(188.216719 237.937289)">2025: 819 validators,</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(203.816953 247.954641)">160.3M AVAX</text>
+   </g>
+   <g id="text_5">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(377.064453 194.616312)">Nodes out of the</text>
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(408.51168 204.472785)">set</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(383.970234 219.750391)">Each node that</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(385.362422 229.822727)">left in the past</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(385.579687 239.840078)">365 days, with</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(389.691562 249.871492)">its last stake</text>
+   </g>
+   <g id="text_7">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(26.756133 381.096312)">Room under the 720M</text>
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(56.257344 390.952785)">AVAX cap</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(36.670078 406.230391)">720M AVAX less the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(46.546875 416.247742)">counter. At the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(38.127656 426.265094)">origin: about 255M</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(66.786328 436.292289)">AVAX</text>
+   </g>
+   <g id="text_9">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #1b1b1b" x="440.64" y="386.136312" transform="rotate(-0 440.64 386.136312)">Supply counter</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(405.490781 399.395391)">AVAX the reward</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(404.282812 409.412742)">formula reads. At</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(406.441406 419.430094)">the origin: 465M</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(429.666328 429.457289)">AVAX</text>
+   </g>
+   <g id="patch_20">
+    <path d="M 182.592 442.421797 
+L 300.528 442.421797 
+Q 304.56 442.421797 304.56 438.389797 
+L 304.56 373.373797 
+Q 304.56 369.341797 300.528 369.341797 
+L 182.592 369.341797 
+Q 178.56 369.341797 178.56 373.373797 
+L 178.56 438.389797 
+Q 178.56 442.421797 182.592 442.421797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #ffffff; stroke: #6b7079; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_11">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #3566a3" transform="translate(35.814414 116.496312)">Response to the reward</text>
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #3566a3" transform="translate(80.93793 126.352785)">rate</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(39.543047 141.630391)">Swept strength: renewal</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(40.448672 151.657586)">odds and arrivals follow</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(41.021016 161.729922)">the offered rate against</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(60.418125 171.757117)">the fitted level</text>
+   </g>
+   <g id="patch_21">
+    <path d="M 369.324 472.157797 
+L 377.388 472.157797 
+Q 378.9 472.157797 378.9 470.645797 
+L 378.9 467.621797 
+Q 378.9 466.109797 377.388 466.109797 
+L 369.324 466.109797 
+Q 367.812 466.109797 367.812 467.621797 
+L 367.812 470.645797 
+Q 367.812 472.157797 369.324 472.157797 
+z
+" clip-path="url(#p393bc9889b)" style="fill: #d6d6d6; stroke: #1b1b1b; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_13">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #6b7079" x="241.56" y="381.096312" transform="rotate(-0 241.56 381.096312)">Reward formula</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(193.109062 394.355391)">Prices each new period</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(205.751953 404.372742)">from its stake, its</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(206.2575 414.390094)">duration and the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(225.207422 424.407445)">counter</text>
+   </g>
+   <g id="text_15">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #237a57" x="27.36" y="214.564539" transform="rotate(-0 27.36 214.564539)">Arrive</text>
+   </g>
+   <g id="text_16">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(27.36 240.692809)">fitted daily count of</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(27.36 250.724223)">first-ever nodes</text>
+   </g>
+   <g id="text_17">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #237a57" x="231.48" y="116.788539" transform="rotate(-0 231.48 116.788539)">Renew on the same node</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #4f545c" x="231.48" y="128.775594" transform="rotate(-0 231.48 128.775594)">fitted odds per ending period</text>
+   </g>
+   <g id="text_19">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #237a57" x="327.24" y="202.468539" transform="rotate(-0 327.24 202.468539)">Leave</text>
+   </g>
+   <g id="text_20">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(297.615234 227.567012)">the rest of the</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(295.83 237.584363)">ending periods</text>
+   </g>
+   <g id="text_21">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #237a57" x="327.24" y="263.956539" transform="rotate(-0 327.24 263.956539)">Return</text>
+   </g>
+   <g id="text_22">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #4f545c" x="327.24" y="277.957484" transform="rotate(-0 327.24 277.957484)">fitted daily chance</text>
+   </g>
+   <g id="text_23">
+    <text style="font-weight: 600; font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(474.938437 197.354117)">Expire</text>
+    <text style="font-weight: 600; font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(469.077891 207.375687)">after 365</text>
+    <text style="font-weight: 600; font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #1b1b1b" transform="translate(478.508906 217.397258)">days</text>
+   </g>
+   <g id="text_24">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #1b1b1b" x="344.88" y="404.068539" transform="rotate(-0 344.88 404.068539)">Issuance</text>
+   </g>
+   <g id="text_25">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(316.457578 424.131934)">exact, minted</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(318.8025 434.149285)">at each start</text>
+   </g>
+   <g id="text_26">
+    <g id="patch_22">
+     <path d="M 222.75 331.670609 
+L 333.007031 331.670609 
+L 333.007031 320.324984 
+L 222.75 320.324984 
+z
+" style="fill: #f5f6f7"/>
+    </g>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #4f545c" x="223.92" y="328.333578" transform="rotate(-0 223.92 328.333578)">each period started today</text>
+   </g>
+   <g id="text_27">
+    <g id="patch_23">
+     <path d="M 315.367734 342.758609 
+L 434.872266 342.758609 
+L 434.872266 331.412984 
+L 315.367734 331.412984 
+z
+" style="fill: #f5f6f7"/>
+    </g>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: middle; fill: #4f545c" x="375.12" y="339.421578" transform="rotate(-0 375.12 339.421578)">higher supply, lower reward</text>
+   </g>
+   <g id="text_28">
+    <g id="patch_24">
+     <path d="M 146.888438 364.896254 
+L 179.991562 364.896254 
+L 179.991562 343.54734 
+L 146.888438 343.54734 
+z
+" style="fill: #f5f6f7"/>
+    </g>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #3566a3" transform="translate(148.058437 351.555934)">offered</text>
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #3566a3" transform="translate(154.969453 361.573285)">rate</text>
+   </g>
+   <g id="text_29">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="36.432" y="471.476609" transform="rotate(-0 36.432 471.476609)">Fitted flow</text>
+   </g>
+   <g id="text_30">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="106.92" y="471.466766" transform="rotate(-0 106.92 471.466766)">Exact accounting</text>
+   </g>
+   <g id="text_31">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="204.138" y="471.476609" transform="rotate(-0 204.138 471.476609)">Swept input</text>
+   </g>
+   <g id="text_32">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="280.836" y="471.476609" transform="rotate(-0 280.836 471.476609)">Inputs read</text>
+   </g>
+   <g id="text_33">
+    <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="381.924" y="471.476609" transform="rotate(-0 381.924 471.476609)">Stock</text>
+   </g>
+  </g>
+  <g id="text_34">
+   <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(7.2 32.286453)">Validators' Staking Periods and AVAX Supply, Values at the Origin of 18 November 2025</text>
+   <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(7.2 42.028531)">Traced from the client code of model v0.8.0. Filled boxes carry over from day to day, thick arrows move periods or AVAX,</text>
+   <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(7.2 51.770609)">and dashed arrows carry what a step reads. The response to the reward rate is swept from 0 to 0.1 per percentage point</text>
+   <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(7.2 61.512687)">of the 30-day reward rate a year, in log-odds of renewal and in log arrivals, and was first measured on 28 October 2026</text>
+   <text style="font-size: 9px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; fill: #4f545c" transform="translate(7.2 71.254766)">at about 0.025 for renewal and 0.04 for entry.</text>
+  </g>
+  <g id="text_35">
+   <text style="font-weight: 600; font-size: 11.5px; font-family: 'Open Sans', 'Noto Sans', 'DejaVu Sans'; text-anchor: start; fill: #1b1b1b" x="7.2" y="15.938203" transform="rotate(-0 7.2 15.938203)">The Staking Model as Stocks and Flows</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p393bc9889b">
+   <rect x="7.2" y="82.061797" width="504" height="398.16"/>
+  </clipPath>
+ </defs>
+</svg>

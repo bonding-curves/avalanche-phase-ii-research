@@ -1,7 +1,7 @@
 ---
 title: "Modeling Avalanche's staking economy"
 description: "How the staking simulation represents validators, computes rewards, learns from the record and evaluates alternative reward formulas."
-date: 2026-10-29
+date: 2026-10-30
 status: draft
 aliases:
   - Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/index
@@ -10,10 +10,12 @@ reader: "Avalanche Foundation and Ava Labs researchers and decision makers"
 question: "How can a staking simulation support the design and evaluation of Avalanche's reward formulas?"
 ---
 
-Date: 29 October 2026\
+Date: 30 October 2026\
 To: Avalanche Foundation and Ava Labs\
 From: Bonding Curve Research Group\
 Subject: Modeling Avalanche's staking economy
+
+Read this memo for the model and simulation setup. The [evidence guide](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence) supplies source identities and numerical tables; the [results memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results) is an optional next read. Reading requires no installation. The [setup guide](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/SETUP.md) includes a data-free reward calculation. Historical simulation reruns require input snapshots and fitted draws that are not distributed with this package.
 
 ## Introduction
 
@@ -105,7 +107,7 @@ $$
 \operatorname{Var}(\text{daily arrivals})=\lambda+\lambda^2/k.
 $$
 
-The origin's [fitted values](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/) are about 3.89 arrivals a day and dispersion 0.493. They imply variance 3.89 + 3.89²/0.493 ≈ 34.6, almost nine times the mean. A Poisson count would require the variance to equal the mean and would understate those daily fluctuations.
+The origin's [fitted arrival values](/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/arrivals.csv) are about 3.89 arrivals a day and dispersion 0.493. They imply variance 3.89 + 3.89²/0.493 ≈ 34.6, almost nine times the mean. A Poisson count would require the variance to equal the mean and would understate those daily fluctuations.
 
 Duration and stake use empirical distributions, meaning distributions constructed from observed choices. For renewed and returning periods, the model draws a duration using the previous-duration band. The stake hurdle then draws whether the reference amount changes and, if so, the size of that change. New entrants use the minimum validator stake as their reference amount because they have no previous stake.
 
@@ -144,6 +146,23 @@ Repeated runs carry several forms of uncertainty:
 | Uncertain economic response | Experiment settings for renewal and entry responses |
 
 Fitted behaviour is drawn once for a run and then used through its simulated days. The stake hurdle remains at its fitted point estimate in v0.8.0. The distinction matters because the run distribution does not include uncertainty in every model component.
+
+### The central experiment fixes one comparison
+
+The central case compares an early ACP-285 ramp with the historical chain schedule. Both paths start from the same observed state. Their difference measures the effect of starting earlier over this horizon.
+
+| Setting | Recorded specification |
+| --- | --- |
+| Model | v0.8.0, source commit `b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc`. The execution checkout was `76bc75898629e035401f6ad54d9b2aa1d2c2c873` |
+| Inputs | Pin `p2-model-v0.8`: `staking-periods-2026-09-30` and `avax-monetary-daily-2026-09-30`. Initialization and fitting stop at 18 November 2025, 23:59:59 UTC |
+| Clock | One-day steps for 365 days, 19 November 2025 to 18 November 2026. New simulated commitments are priced at noon UTC |
+| Proposed formula | Cell `ramp-7.5-central`: `ACP285Ramp`, configured to activate at 16:00 UTC on 18 November 2025, reaching a 7.5% minimum over 90 days. The first simulated pricing is 20 hours into that ramp |
+| Reference | Cell `chain-central`: `ChainReward`, following the historical schedule. Helicon activates at 15:00 UTC on 22 September 2026, calendar day 308. Noon pricing first uses the activated configuration on day 309 |
+| Behaviour and outside yield | Renewal response 0.025 and entry response 0.04 per percentage point of annual reward yield on a 30-day stake. Outside yield is 5% annually. The fitted reference is about 4.1444% |
+| Draws and seeds | 50 pairs. Key `k`, from 0 to 49, selects row `k` of the original 24,896-row draw table and model seed `k+1`, shared by both paths. The draw-generation seed is 53,588,821 |
+| Outputs | Cumulative promised validator issuance saved, terminal own stake retained and active validators retained, each relative to its paired reference. Summaries are percentiles of per-pair ratios |
+
+The [central-case source record](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json) includes input hashes, cell settings and every pair mapping. It binds the recovered metadata to the stored output identity. The execution receipt does not bind the driver script to a specific revision, and the small record does not contain the underlying datasets or trajectories.
 
 ## 6. Forecast tests evaluate what the behavioural model predicts
 

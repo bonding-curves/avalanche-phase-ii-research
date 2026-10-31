@@ -1,0 +1,892 @@
+{
+  "schema": "avalanche-research/memo-aggregates/v1",
+  "verified_on": "2026-10-29",
+  "central": {
+    "source_result": {
+      "artifact": "trajectories.parquet",
+      "bytes": 7087697,
+      "sha256": "d7a2a2db3e52fc16446252f80e9e41e006a82383e4d0406e0730bdc65cf18e7f"
+    },
+    "source_receipt": {
+      "artifact": "receipt.json",
+      "bytes": 3275,
+      "sha256": "173947d5e1b2de865d7d7f94dc04ab442b89fad0a58d02e74941124ede77f1cf"
+    },
+    "source_cells": {
+      "artifact": "cells.json",
+      "bytes": 1760,
+      "sha256": "64731dadc0a180b3852b1b887308cf4dd258eac7189ed05eaabbc2b880c39eee"
+    },
+    "producing_code_commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc",
+    "source_checkout_commit": "76bc75898629e035401f6ad54d9b2aa1d2c2c873",
+    "model": "v0.8.0",
+    "origin": "2025-11-18",
+    "horizon_days": 365,
+    "design": {
+      "name": "ACP285Ramp",
+      "activation": "2025-11-18T16:00:00+00:00",
+      "ramp_days": 90,
+      "target_min_rate": 0.075
+    },
+    "responses": {
+      "renewal": 0.025,
+      "entry": 0.04,
+      "unit": "log odds or log arrival rate per percentage point of annual reward rate on a 30-day stake"
+    },
+    "outside_yield_percent_per_year": 5,
+    "comparator": "Paired ChainReward using the historical schedule: ACP-285 activates on day 308; identical draw and seed within each pair.",
+    "aggregation": "Percentiles of per-pair ratios; not ratios of marginal medians. Issuance is cumulative promised rewards to validator own stake; retained stake is the terminal stock.",
+    "statistics": {
+      "validator_issuance_saved": {
+        "unit": "fraction of paired chain-reference quantity",
+        "pairs": 50,
+        "p10": 0.11596752162172501,
+        "median": 0.12772115608277185,
+        "p90": 0.15388762802293676
+      },
+      "validator_own_stake_retained": {
+        "unit": "fraction of paired chain-reference quantity",
+        "pairs": 50,
+        "p10": 0.9534826116736485,
+        "median": 0.9869010225636179,
+        "p90": 0.9990032990608972
+      },
+      "active_validators_retained": {
+        "unit": "fraction of paired chain-reference quantity",
+        "pairs": 50,
+        "p10": 0.9603063850647494,
+        "median": 0.9697847536781488,
+        "p90": 0.976430068749889
+      }
+    }
+  },
+  "conditional_goal_regions": {
+    "source_result": {
+      "artifact": "trajectory-utilities.parquet",
+      "bytes": 7845572,
+      "sha256": "88abb18296b1ffc1e35fd12a74baefd2d1425f4c3fe92ecc4f5d88666baac1b6"
+    },
+    "source_run_config": {
+      "artifact": "run-config.json",
+      "bytes": 2819,
+      "sha256": "c5bbf2a14d39a3773539baa5a8f0006f5b432e9d6591750b93f0b48aabf76de7"
+    },
+    "source_utility_specification": {
+      "artifact": "utility-spec.json",
+      "bytes": 10164,
+      "sha256": "e5d472932a74c59d17387a34f90cdb7e68a68a6661bbfad2900ffb4c73bff19f"
+    },
+    "upstream_wide_sha256_recorded_in_run_config": "1e6dec5218fee2e3b820dddc08db742070d851ff26dd6f48391009c9ac3b1bca",
+    "producing_code_commit": null,
+    "producing_code_commit_qualification": "The stored utility run-config records input hashes but no producing-code commit. Do not infer runtime source identity from a later checkout.",
+    "scorer_source_snapshot": {
+      "artifact": "psuu.py",
+      "bytes": 49336,
+      "sha256": "47c81be6528d1ef0f171dd903975f8684925edcf4de8fa12404df161b4e6824b"
+    },
+    "model": "v0.8.0",
+    "origin": "2025-11-18",
+    "horizon_days": 365,
+    "blocks": [
+      "A",
+      "B"
+    ],
+    "comparator": "Each design row uses its paired historical-schedule chain reference.",
+    "policy": "Original five-goal specification, all goals gated; no new threshold or weight selection.",
+    "scope": "Slices of the stored sweep pooled over four outside yields, not exact-rate experiments or a posterior probability.",
+    "windows": [
+      {
+        "window": "near_central",
+        "renewal_response_inclusive": [
+          0.01,
+          0.04
+        ],
+        "entry_response_inclusive": [
+          0.02,
+          0.06
+        ],
+        "outside_yields_percent_per_year": [
+          3,
+          5,
+          7,
+          10
+        ],
+        "half_point_bands": [
+          {
+            "minimum_consumption_rate_low_inclusive": 0.05,
+            "minimum_consumption_rate_high_exclusive": 0.055,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 39,
+                "denominator": 54,
+                "fraction": 0.7222222222222222
+              },
+              "goalpass__G2": {
+                "numerator": 0,
+                "denominator": 54,
+                "fraction": 0.0
+              },
+              "goalpass__G3": {
+                "numerator": 54,
+                "denominator": 54,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 54,
+                "denominator": 54,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 45,
+                "denominator": 54,
+                "fraction": 0.8333333333333334
+              },
+              "goalpass__combined": {
+                "numerator": 0,
+                "denominator": 54,
+                "fraction": 0.0
+              }
+            },
+            "mean_combined_utility": 0.7868716439479949
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.055,
+            "minimum_consumption_rate_high_exclusive": 0.06,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 46,
+                "denominator": 53,
+                "fraction": 0.8679245283018868
+              },
+              "goalpass__G2": {
+                "numerator": 0,
+                "denominator": 53,
+                "fraction": 0.0
+              },
+              "goalpass__G3": {
+                "numerator": 53,
+                "denominator": 53,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 53,
+                "denominator": 53,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 46,
+                "denominator": 53,
+                "fraction": 0.8679245283018868
+              },
+              "goalpass__combined": {
+                "numerator": 0,
+                "denominator": 53,
+                "fraction": 0.0
+              }
+            },
+            "mean_combined_utility": 0.8062536197074919
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.06,
+            "minimum_consumption_rate_high_exclusive": 0.065,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 35,
+                "denominator": 50,
+                "fraction": 0.7
+              },
+              "goalpass__G2": {
+                "numerator": 13,
+                "denominator": 50,
+                "fraction": 0.26
+              },
+              "goalpass__G3": {
+                "numerator": 50,
+                "denominator": 50,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 50,
+                "denominator": 50,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 38,
+                "denominator": 50,
+                "fraction": 0.76
+              },
+              "goalpass__combined": {
+                "numerator": 7,
+                "denominator": 50,
+                "fraction": 0.14
+              }
+            },
+            "mean_combined_utility": 0.7920360483637993
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.065,
+            "minimum_consumption_rate_high_exclusive": 0.07,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 39,
+                "denominator": 42,
+                "fraction": 0.9285714285714286
+              },
+              "goalpass__G2": {
+                "numerator": 29,
+                "denominator": 42,
+                "fraction": 0.6904761904761905
+              },
+              "goalpass__G3": {
+                "numerator": 42,
+                "denominator": 42,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 42,
+                "denominator": 42,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 39,
+                "denominator": 42,
+                "fraction": 0.9285714285714286
+              },
+              "goalpass__combined": {
+                "numerator": 26,
+                "denominator": 42,
+                "fraction": 0.6190476190476191
+              }
+            },
+            "mean_combined_utility": 0.7918482975076441
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.07,
+            "minimum_consumption_rate_high_exclusive": 0.07500000000000001,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 43,
+                "denominator": 47,
+                "fraction": 0.9148936170212766
+              },
+              "goalpass__G2": {
+                "numerator": 42,
+                "denominator": 47,
+                "fraction": 0.8936170212765957
+              },
+              "goalpass__G3": {
+                "numerator": 47,
+                "denominator": 47,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 47,
+                "denominator": 47,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 43,
+                "denominator": 47,
+                "fraction": 0.9148936170212766
+              },
+              "goalpass__combined": {
+                "numerator": 38,
+                "denominator": 47,
+                "fraction": 0.8085106382978723
+              }
+            },
+            "mean_combined_utility": 0.7745498783302043
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.075,
+            "minimum_consumption_rate_high_exclusive": 0.08,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 52,
+                "denominator": 54,
+                "fraction": 0.9629629629629629
+              },
+              "goalpass__G2": {
+                "numerator": 52,
+                "denominator": 54,
+                "fraction": 0.9629629629629629
+              },
+              "goalpass__G3": {
+                "numerator": 54,
+                "denominator": 54,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 54,
+                "denominator": 54,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 51,
+                "denominator": 54,
+                "fraction": 0.9444444444444444
+              },
+              "goalpass__combined": {
+                "numerator": 48,
+                "denominator": 54,
+                "fraction": 0.8888888888888888
+              }
+            },
+            "mean_combined_utility": 0.7333106505242356
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.08,
+            "minimum_consumption_rate_high_exclusive": 0.085,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 45,
+                "denominator": 46,
+                "fraction": 0.9782608695652174
+              },
+              "goalpass__G2": {
+                "numerator": 46,
+                "denominator": 46,
+                "fraction": 1.0
+              },
+              "goalpass__G3": {
+                "numerator": 46,
+                "denominator": 46,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 46,
+                "denominator": 46,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 44,
+                "denominator": 46,
+                "fraction": 0.9565217391304348
+              },
+              "goalpass__combined": {
+                "numerator": 43,
+                "denominator": 46,
+                "fraction": 0.9347826086956522
+              }
+            },
+            "mean_combined_utility": 0.6989933664344474
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.085,
+            "minimum_consumption_rate_high_exclusive": 0.09000000000000001,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 49,
+                "denominator": 49,
+                "fraction": 1.0
+              },
+              "goalpass__G2": {
+                "numerator": 49,
+                "denominator": 49,
+                "fraction": 1.0
+              },
+              "goalpass__G3": {
+                "numerator": 49,
+                "denominator": 49,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 49,
+                "denominator": 49,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 46,
+                "denominator": 49,
+                "fraction": 0.9387755102040817
+              },
+              "goalpass__combined": {
+                "numerator": 46,
+                "denominator": 49,
+                "fraction": 0.9387755102040817
+              }
+            },
+            "mean_combined_utility": 0.6652985535844147
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.09,
+            "minimum_consumption_rate_high_exclusive": 0.095,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 52,
+                "denominator": 52,
+                "fraction": 1.0
+              },
+              "goalpass__G2": {
+                "numerator": 52,
+                "denominator": 52,
+                "fraction": 1.0
+              },
+              "goalpass__G3": {
+                "numerator": 52,
+                "denominator": 52,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 52,
+                "denominator": 52,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 51,
+                "denominator": 52,
+                "fraction": 0.9807692307692307
+              },
+              "goalpass__combined": {
+                "numerator": 51,
+                "denominator": 52,
+                "fraction": 0.9807692307692307
+              }
+            },
+            "mean_combined_utility": 0.6301311473888425
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.095,
+            "minimum_consumption_rate_high_exclusive": 0.1,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 48,
+                "denominator": 48,
+                "fraction": 1.0
+              },
+              "goalpass__G2": {
+                "numerator": 48,
+                "denominator": 48,
+                "fraction": 1.0
+              },
+              "goalpass__G3": {
+                "numerator": 31,
+                "denominator": 48,
+                "fraction": 0.6458333333333334
+              },
+              "goalpass__G4": {
+                "numerator": 34,
+                "denominator": 48,
+                "fraction": 0.7083333333333334
+              },
+              "goalpass__G5": {
+                "numerator": 47,
+                "denominator": 48,
+                "fraction": 0.9791666666666666
+              },
+              "goalpass__combined": {
+                "numerator": 29,
+                "denominator": 48,
+                "fraction": 0.6041666666666666
+              }
+            },
+            "mean_combined_utility": 0.5898399462919475
+          }
+        ],
+        "additional_7_25_to_7_75_band": {
+          "low_inclusive": 0.0725,
+          "high_exclusive": 0.0775,
+          "all_goals_numerator": 41,
+          "denominator": 49,
+          "fraction": 0.8367346938775511
+        }
+      },
+      {
+        "window": "wider_renewal",
+        "renewal_response_inclusive": [
+          0.01,
+          0.06
+        ],
+        "entry_response_inclusive": [
+          0,
+          0.1
+        ],
+        "outside_yields_percent_per_year": [
+          3,
+          5,
+          7,
+          10
+        ],
+        "half_point_bands": [
+          {
+            "minimum_consumption_rate_low_inclusive": 0.05,
+            "minimum_consumption_rate_high_exclusive": 0.055,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 117,
+                "denominator": 200,
+                "fraction": 0.585
+              },
+              "goalpass__G2": {
+                "numerator": 0,
+                "denominator": 200,
+                "fraction": 0.0
+              },
+              "goalpass__G3": {
+                "numerator": 200,
+                "denominator": 200,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 200,
+                "denominator": 200,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 169,
+                "denominator": 200,
+                "fraction": 0.845
+              },
+              "goalpass__combined": {
+                "numerator": 0,
+                "denominator": 200,
+                "fraction": 0.0
+              }
+            },
+            "mean_combined_utility": 0.7692696795881754
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.055,
+            "minimum_consumption_rate_high_exclusive": 0.06,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 143,
+                "denominator": 211,
+                "fraction": 0.6777251184834123
+              },
+              "goalpass__G2": {
+                "numerator": 1,
+                "denominator": 211,
+                "fraction": 0.004739336492890996
+              },
+              "goalpass__G3": {
+                "numerator": 211,
+                "denominator": 211,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 211,
+                "denominator": 211,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 175,
+                "denominator": 211,
+                "fraction": 0.8293838862559242
+              },
+              "goalpass__combined": {
+                "numerator": 1,
+                "denominator": 211,
+                "fraction": 0.004739336492890996
+              }
+            },
+            "mean_combined_utility": 0.7794658424044782
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.06,
+            "minimum_consumption_rate_high_exclusive": 0.065,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 136,
+                "denominator": 207,
+                "fraction": 0.6570048309178744
+              },
+              "goalpass__G2": {
+                "numerator": 31,
+                "denominator": 207,
+                "fraction": 0.1497584541062802
+              },
+              "goalpass__G3": {
+                "numerator": 207,
+                "denominator": 207,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 207,
+                "denominator": 207,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 169,
+                "denominator": 207,
+                "fraction": 0.8164251207729468
+              },
+              "goalpass__combined": {
+                "numerator": 20,
+                "denominator": 207,
+                "fraction": 0.0966183574879227
+              }
+            },
+            "mean_combined_utility": 0.7846629943736808
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.065,
+            "minimum_consumption_rate_high_exclusive": 0.07,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 149,
+                "denominator": 199,
+                "fraction": 0.7487437185929648
+              },
+              "goalpass__G2": {
+                "numerator": 81,
+                "denominator": 199,
+                "fraction": 0.40703517587939697
+              },
+              "goalpass__G3": {
+                "numerator": 199,
+                "denominator": 199,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 199,
+                "denominator": 199,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 174,
+                "denominator": 199,
+                "fraction": 0.8743718592964824
+              },
+              "goalpass__combined": {
+                "numerator": 71,
+                "denominator": 199,
+                "fraction": 0.35678391959798994
+              }
+            },
+            "mean_combined_utility": 0.7778121456667517
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.07,
+            "minimum_consumption_rate_high_exclusive": 0.07500000000000001,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 180,
+                "denominator": 206,
+                "fraction": 0.8737864077669902
+              },
+              "goalpass__G2": {
+                "numerator": 127,
+                "denominator": 206,
+                "fraction": 0.616504854368932
+              },
+              "goalpass__G3": {
+                "numerator": 206,
+                "denominator": 206,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 206,
+                "denominator": 206,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 186,
+                "denominator": 206,
+                "fraction": 0.9029126213592233
+              },
+              "goalpass__combined": {
+                "numerator": 115,
+                "denominator": 206,
+                "fraction": 0.558252427184466
+              }
+            },
+            "mean_combined_utility": 0.7621733433032909
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.075,
+            "minimum_consumption_rate_high_exclusive": 0.08,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 187,
+                "denominator": 206,
+                "fraction": 0.9077669902912622
+              },
+              "goalpass__G2": {
+                "numerator": 161,
+                "denominator": 206,
+                "fraction": 0.7815533980582524
+              },
+              "goalpass__G3": {
+                "numerator": 206,
+                "denominator": 206,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 206,
+                "denominator": 206,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 184,
+                "denominator": 206,
+                "fraction": 0.8932038834951457
+              },
+              "goalpass__combined": {
+                "numerator": 140,
+                "denominator": 206,
+                "fraction": 0.6796116504854369
+              }
+            },
+            "mean_combined_utility": 0.7275621169099633
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.08,
+            "minimum_consumption_rate_high_exclusive": 0.085,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 198,
+                "denominator": 209,
+                "fraction": 0.9473684210526315
+              },
+              "goalpass__G2": {
+                "numerator": 200,
+                "denominator": 209,
+                "fraction": 0.9569377990430622
+              },
+              "goalpass__G3": {
+                "numerator": 209,
+                "denominator": 209,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 209,
+                "denominator": 209,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 191,
+                "denominator": 209,
+                "fraction": 0.9138755980861244
+              },
+              "goalpass__combined": {
+                "numerator": 176,
+                "denominator": 209,
+                "fraction": 0.8421052631578947
+              }
+            },
+            "mean_combined_utility": 0.6934383912093086
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.085,
+            "minimum_consumption_rate_high_exclusive": 0.09000000000000001,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 192,
+                "denominator": 202,
+                "fraction": 0.9504950495049505
+              },
+              "goalpass__G2": {
+                "numerator": 201,
+                "denominator": 202,
+                "fraction": 0.995049504950495
+              },
+              "goalpass__G3": {
+                "numerator": 202,
+                "denominator": 202,
+                "fraction": 1.0
+              },
+              "goalpass__G4": {
+                "numerator": 202,
+                "denominator": 202,
+                "fraction": 1.0
+              },
+              "goalpass__G5": {
+                "numerator": 192,
+                "denominator": 202,
+                "fraction": 0.9504950495049505
+              },
+              "goalpass__combined": {
+                "numerator": 183,
+                "denominator": 202,
+                "fraction": 0.905940594059406
+              }
+            },
+            "mean_combined_utility": 0.6587623052851237
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.09,
+            "minimum_consumption_rate_high_exclusive": 0.095,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 199,
+                "denominator": 201,
+                "fraction": 0.9900497512437811
+              },
+              "goalpass__G2": {
+                "numerator": 201,
+                "denominator": 201,
+                "fraction": 1.0
+              },
+              "goalpass__G3": {
+                "numerator": 200,
+                "denominator": 201,
+                "fraction": 0.9950248756218906
+              },
+              "goalpass__G4": {
+                "numerator": 200,
+                "denominator": 201,
+                "fraction": 0.9950248756218906
+              },
+              "goalpass__G5": {
+                "numerator": 192,
+                "denominator": 201,
+                "fraction": 0.9552238805970149
+              },
+              "goalpass__combined": {
+                "numerator": 188,
+                "denominator": 201,
+                "fraction": 0.9353233830845771
+              }
+            },
+            "mean_combined_utility": 0.6261098547312334
+          },
+          {
+            "minimum_consumption_rate_low_inclusive": 0.095,
+            "minimum_consumption_rate_high_exclusive": 0.1,
+            "counts": {
+              "goalpass__G1": {
+                "numerator": 209,
+                "denominator": 209,
+                "fraction": 1.0
+              },
+              "goalpass__G2": {
+                "numerator": 209,
+                "denominator": 209,
+                "fraction": 1.0
+              },
+              "goalpass__G3": {
+                "numerator": 151,
+                "denominator": 209,
+                "fraction": 0.722488038277512
+              },
+              "goalpass__G4": {
+                "numerator": 160,
+                "denominator": 209,
+                "fraction": 0.7655502392344498
+              },
+              "goalpass__G5": {
+                "numerator": 205,
+                "denominator": 209,
+                "fraction": 0.9808612440191388
+              },
+              "goalpass__combined": {
+                "numerator": 137,
+                "denominator": 209,
+                "fraction": 0.6555023923444976
+              }
+            },
+            "mean_combined_utility": 0.5919298503689363
+          }
+        ],
+        "additional_7_25_to_7_75_band": {
+          "low_inclusive": 0.0725,
+          "high_exclusive": 0.0775,
+          "all_goals_numerator": 131,
+          "denominator": 207,
+          "fraction": 0.6328502415458938
+        }
+      }
+    ]
+  }
+}

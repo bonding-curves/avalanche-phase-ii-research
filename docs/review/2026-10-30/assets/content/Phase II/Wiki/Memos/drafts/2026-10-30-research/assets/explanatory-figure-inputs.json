@@ -1,0 +1,87 @@
+{
+  "numerical_evidence_sha256": "9eaf0b31d0317593fca08c0c60d47e7c55728c9b1beae21a8b8cc352ad4cf53e",
+  "criteria": [
+    {
+      "title": "Objectives",
+      "body": "Choose priorities: lower inflation, a longer issuance horizon,\nand longer staking commitments."
+    },
+    {
+      "title": "KPIs",
+      "body": "Measure issuance, duration and participation.\nChoose which participation measures are safeguards."
+    },
+    {
+      "title": "Acceptance\nthresholds",
+      "body": "Choose the minimum conditions a design must meet.\nBCRG’s current thresholds are working assumptions."
+    },
+    {
+      "title": "Preference\nweights",
+      "body": "Use utilities and the combined score to rank trade-offs.\nA high combined score can still fail a threshold."
+    }
+  ],
+  "criteria_source": "methodology.md sections 7.2 and 7.3; brief.md section 3",
+  "schedule": [
+    {
+      "label": "Model walkthrough",
+      "start": "2026-10-30",
+      "dates": "30 Oct",
+      "kind": "milestone"
+    },
+    {
+      "label": "Workshop 1: evaluation criteria",
+      "start": "2026-11-13",
+      "dates": "13 Nov",
+      "kind": "workshop"
+    },
+    {
+      "label": "Recommendations and scenarios",
+      "start": "2026-12-01",
+      "end": "2026-12-11",
+      "dates": "1–11 Dec",
+      "kind": "work"
+    },
+    {
+      "label": "Finalize recommendations and playbook",
+      "start": "2027-01-04",
+      "end": "2027-01-15",
+      "dates": "4–15 Jan",
+      "kind": "work"
+    },
+    {
+      "label": "Workshop 2: review",
+      "start": "2027-01-08",
+      "dates": "8 Jan",
+      "kind": "workshop"
+    },
+    {
+      "label": "Final delivery",
+      "start": "2027-01-15",
+      "dates": "15 Jan",
+      "kind": "milestone"
+    }
+  ],
+  "schedule_status": "Proposed dates from the meeting brief, not confirmed commitments. No owner assigned.",
+  "schedule_source": "brief.md sections 3 and 4; results.md section 2.7",
+  "reward_formula": {
+    "model": "v0.8.0",
+    "code_commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc",
+    "source": "https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc/src/avalanche_research/domain/protocol/__init__.py",
+    "supply_counter_avax": 465000000,
+    "supply_cap_avax": 720000000,
+    "maximum_consumption_rate": 0.12,
+    "minting_period_days": 365,
+    "interpretation": "Illustrative annualized gross reward at a constant supply counter, before integer rounding. Before Helicon versus the completed ACP-285 ramp, not a time trajectory.",
+    "configurations": [
+      {
+        "label": "Before Helicon: 10% minimum consumption rate",
+        "minimum_consumption_rate": 0.1,
+        "minimum_duration_days": 14
+      },
+      {
+        "label": "After the ramp: 7.5% minimum consumption rate",
+        "minimum_consumption_rate": 0.075,
+        "minimum_duration_days": 2
+      }
+    ]
+  },
+  "source_document_commit": "9cbea3cdc93c4656a0f40145893c54511ea30233"
+}

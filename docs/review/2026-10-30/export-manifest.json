@@ -1,0 +1,1193 @@
+{
+  "documents": {
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md": "evidence.md",
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md": "modeling.md",
+    "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md": "results.md"
+  },
+  "files": [
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Milestones/Milestone 0/Signed Grant Agreement.md",
+      "source_sha256": "81fe00fbdaf48302e99bdf549d0ac883fe22a4cdbbc3960086342060416ec43e"
+    },
+    {
+      "export": "assets/content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/results/arrivals.csv",
+      "export_sha256": "4a46c8eac46c45adf0e52c74aa4a83d19c467c485ded12b9d6c03311b1ab2be8",
+      "kind": "export",
+      "source": "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/results/arrivals.csv",
+      "source_sha256": "4a46c8eac46c45adf0e52c74aa4a83d19c467c485ded12b9d6c03311b1ab2be8"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107.png",
+      "export_sha256": "51133f56a2a905439cf78d1d4648d59a668c5850db61abc3152bafea257186d6",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107.png",
+      "source_sha256": "51133f56a2a905439cf78d1d4648d59a668c5850db61abc3152bafea257186d6"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108.png",
+      "export_sha256": "3b64df2e87d5a9230949e01c8ad40cb35afb60ff6fa4587922a711839c29e4f6",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108.png",
+      "source_sha256": "3b64df2e87d5a9230949e01c8ad40cb35afb60ff6fa4587922a711839c29e4f6"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110.png",
+      "export_sha256": "53f18615a8e3e8b673c46608723e533af12ea641d416190f4b7fbd32f3becad3",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110.png",
+      "source_sha256": "53f18615a8e3e8b673c46608723e533af12ea641d416190f4b7fbd32f3becad3"
+    },
+    {
+      "kind": "repository-reference",
+      "source": "content/Phase II/Wiki/Collections/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/Source Video.md",
+      "source_sha256": "6cf9c866434c2a8b6b0fb7668c0ce38fe8a1d901c8cf0299e881f5bccab75a7d"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "export_sha256": "b024e2f6d54e55d7c144d6ccdbf11fcc6c45ba0c9d7be2ab1aea567907ce3300",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "source_sha256": "b024e2f6d54e55d7c144d6ccdbf11fcc6c45ba0c9d7be2ab1aea567907ce3300"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png",
+      "export_sha256": "7a04289e49f90ce700373e935b8445bca19f1f7d4721634351b88d6e2645178b",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png",
+      "source_sha256": "7a04289e49f90ce700373e935b8445bca19f1f7d4721634351b88d6e2645178b"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.svg",
+      "export_sha256": "ffbc7575cb2c6af980c10c27b03673fd22c17c5667aa2612dfd54eaf1a8553b1",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.svg",
+      "source_sha256": "ffbc7575cb2c6af980c10c27b03673fd22c17c5667aa2612dfd54eaf1a8553b1"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-trajectories.png",
+      "export_sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-trajectories.png",
+      "source_sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv",
+      "export_sha256": "4b802da1ab3acc406049025df1306a97bd33c5699544e1d6386ff1efc0ec275b",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv",
+      "source_sha256": "4b802da1ab3acc406049025df1306a97bd33c5699544e1d6386ff1efc0ec275b"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png",
+      "export_sha256": "3e098febc28b2354a24c12c34a1b443fe636b5a1f87d0c82f69f41c68d1ca5b1",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png",
+      "source_sha256": "3e098febc28b2354a24c12c34a1b443fe636b5a1f87d0c82f69f41c68d1ca5b1"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.svg",
+      "export_sha256": "50b52204cecd5404f7cfa7b0040de43e250cd786c15e1f9c79234e3f7f2d794f",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.svg",
+      "source_sha256": "50b52204cecd5404f7cfa7b0040de43e250cd786c15e1f9c79234e3f7f2d794f"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png",
+      "export_sha256": "26ef6d807ac231b84046031a8a2341c5e44c3144b71a3229f9b1264712715b8e",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png",
+      "source_sha256": "26ef6d807ac231b84046031a8a2341c5e44c3144b71a3229f9b1264712715b8e"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.svg",
+      "export_sha256": "1483c862b198589baefdfca6e51f9a2a6042de83eabd80fedddc47b833dfed26",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.svg",
+      "source_sha256": "1483c862b198589baefdfca6e51f9a2a6042de83eabd80fedddc47b833dfed26"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png",
+      "export_sha256": "16d27f3c2f6cf28e0bab7a8adda2e3ff555595fa41dbcaecec47a5de864d45a5",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png",
+      "source_sha256": "16d27f3c2f6cf28e0bab7a8adda2e3ff555595fa41dbcaecec47a5de864d45a5"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-market-controls.csv",
+      "export_sha256": "c862e45a0fda29a4da1182b047d640b4a4d3877854954be7f150787bce5a1856",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-market-controls.csv",
+      "source_sha256": "c862e45a0fda29a4da1182b047d640b4a4d3877854954be7f150787bce5a1856"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-regressions.csv",
+      "export_sha256": "c1aaa9d5d43171623dfc3c163a7102804d6c90be6501a8f91331c0bde930de5b",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-regressions.csv",
+      "source_sha256": "c1aaa9d5d43171623dfc3c163a7102804d6c90be6501a8f91331c0bde930de5b"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.png",
+      "export_sha256": "f35723f29ae15b74295138271f5a624c65db94a28784578f1ddc4211274553ab",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.png",
+      "source_sha256": "f35723f29ae15b74295138271f5a624c65db94a28784578f1ddc4211274553ab"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.svg",
+      "export_sha256": "a0bde16890da1c06e145bb72789e8a1649a8281e67d1075c4f2b8b1690d7d9f8",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.svg",
+      "source_sha256": "a0bde16890da1c06e145bb72789e8a1649a8281e67d1075c4f2b8b1690d7d9f8"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json",
+      "export_sha256": "e605f21ec7b2cc8e4f50234da0935d9e43c2ba7877db746636d1c16a04c966d2",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json",
+      "source_sha256": "e605f21ec7b2cc8e4f50234da0935d9e43c2ba7877db746636d1c16a04c966d2"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "export_sha256": "bf8f2a797590c6aa2aaa001613ee92c12e97f299a0bd43264159400bd1059efc",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "source_sha256": "24b7c7c2f508347d7a8e3560904c2bb35bcbe50e6cc0dbce3e06ba8ef3278b9e"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "export_sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "source_sha256": "c684769882ff7f1506f90759b025a54c894c078ec4e8206c6d50186b8bedbdb9"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "export_sha256": "cd0a8c5cbd1c2b87f228ecc3e58291f47fb949042de69f10c363a234c14513ab",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "source_sha256": "cd0a8c5cbd1c2b87f228ecc3e58291f47fb949042de69f10c363a234c14513ab"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-summary.csv",
+      "export_sha256": "5a04bec2a34150133199fa11222603283a3469e6fa98338a459d2cd7e0c970b5",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-summary.csv",
+      "source_sha256": "5a04bec2a34150133199fa11222603283a3469e6fa98338a459d2cd7e0c970b5"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png",
+      "export_sha256": "af0b4badfc4946aea6a7afff5097238882ab43fe6d74e7d46cfb7869ef30f985",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png",
+      "source_sha256": "af0b4badfc4946aea6a7afff5097238882ab43fe6d74e7d46cfb7869ef30f985"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.svg",
+      "export_sha256": "1010190b3be0b55f84c1260063de7115c30dd7b9afc3f5bb33083d5277e6a787",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.svg",
+      "source_sha256": "1010190b3be0b55f84c1260063de7115c30dd7b9afc3f5bb33083d5277e6a787"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "export_sha256": "9eaf0b31d0317593fca08c0c60d47e7c55728c9b1beae21a8b8cc352ad4cf53e",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "source_sha256": "9eaf0b31d0317593fca08c0c60d47e7c55728c9b1beae21a8b8cc352ad4cf53e"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png",
+      "export_sha256": "291f16dfe06d27e9acf77cdf67661de8f87be3a86ee4c1aa3934541b468a631d",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png",
+      "source_sha256": "291f16dfe06d27e9acf77cdf67661de8f87be3a86ee4c1aa3934541b468a631d"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg",
+      "export_sha256": "093b5d375ad4a02fed73495ba8b818d18a4cbc312427711dfaa520e86c70da92",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg",
+      "source_sha256": "093b5d375ad4a02fed73495ba8b818d18a4cbc312427711dfaa520e86c70da92"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-market-controls.csv",
+      "export_sha256": "1dc5b093ded8b684df4a70e59a656e69151d7c53eb365c36ed0316917ceb78e1",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-market-controls.csv",
+      "source_sha256": "1dc5b093ded8b684df4a70e59a656e69151d7c53eb365c36ed0316917ceb78e1"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-regressions.csv",
+      "export_sha256": "549ba1648199de16acc8104237ce40763a4d663fd096d76b869980dfb93d04a7",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-regressions.csv",
+      "source_sha256": "549ba1648199de16acc8104237ce40763a4d663fd096d76b869980dfb93d04a7"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv",
+      "export_sha256": "56d50809af1768250d5adffbaad713e74ac76270e83e024bf4fdefdb77bff20f",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv",
+      "source_sha256": "56d50809af1768250d5adffbaad713e74ac76270e83e024bf4fdefdb77bff20f"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "export_sha256": "9222d2283a78902b08298781fedbd3530c9657a6dbcbaae8869c832d66b889cd",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "source_sha256": "9222d2283a78902b08298781fedbd3530c9657a6dbcbaae8869c832d66b889cd"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.svg",
+      "export_sha256": "63a53717a47180b826d238a4afb24d1549f87bb16565757dbb03fe5f8f20e863",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.svg",
+      "source_sha256": "63a53717a47180b826d238a4afb24d1549f87bb16565757dbb03fe5f8f20e863"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "export_sha256": "37f6c1e10af0600c571d707aeab84e1fb526c1d378e12b60ce4d34494dd3efb4",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "source_sha256": "37f6c1e10af0600c571d707aeab84e1fb526c1d378e12b60ce4d34494dd3efb4"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.svg",
+      "export_sha256": "fe2e02c9c6edb6300c295fd15843ac36114d164d688a3e6d837f8106e4a61c64",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.svg",
+      "source_sha256": "fe2e02c9c6edb6300c295fd15843ac36114d164d688a3e6d837f8106e4a61c64"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/utility-heatmap.png",
+      "export_sha256": "9d298ad4bcd94d6a8a0b25cfeccd8d98dab2621c5e0e941b4b8b29f8cfedfaab",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/utility-heatmap.png",
+      "source_sha256": "9d298ad4bcd94d6a8a0b25cfeccd8d98dab2621c5e0e941b4b8b29f8cfedfaab"
+    },
+    {
+      "export": "evidence.md",
+      "export_sha256": "c71ad43fc9f214c720666fc2b20230e76c8eb5ce35a35ef4fed86795f97bc47f",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "source_sha256": "1141f81d8b1854016995ca0356b23c630bd2f1d772b61f791904b6bb98dc5a86"
+    },
+    {
+      "export": "modeling.md",
+      "export_sha256": "4f46d954d16086bbb5ac31e0fb71c26189fc49a5a50a53f0751225db471c706b",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "source_sha256": "2cd9abd355eaad3a647aa741382430c590e975fba92cd3359bea92d88baf6211"
+    },
+    {
+      "export": "results.md",
+      "export_sha256": "b19aff2b2422628d44c3e0fee9e80c759550aba584feaed2396c84464792ccb1",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "source_sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/central-trajectories.png",
+      "export_sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/central-trajectories.png",
+      "source_sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "export_sha256": "bfa34d46c36b2319d9184f0f962aa4f48ab50b12419aaddf0f63a4a00c4c171f",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "source_sha256": "bfa34d46c36b2319d9184f0f962aa4f48ab50b12419aaddf0f63a4a00c4c171f"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv",
+      "export_sha256": "1a95f6f06a51f57d6f3e2ee22e87f9fbc2d13fbf22ad0f76c2253dffa86aeb97",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv",
+      "source_sha256": "1a95f6f06a51f57d6f3e2ee22e87f9fbc2d13fbf22ad0f76c2253dffa86aeb97"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "export_sha256": "5dc740f5ddfb169d8cdc0b849c26e929c2d1cb4c63076ddc57a5bb8a3e1be97b",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "source_sha256": "5dc740f5ddfb169d8cdc0b849c26e929c2d1cb4c63076ddc57a5bb8a3e1be97b"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/mechanism-utilities.csv",
+      "export_sha256": "650e1ba05713c1f1a7d9c31df20afde48f1baf51a0bb5261c4244e3ac00a30df",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/mechanism-utilities.csv",
+      "source_sha256": "650e1ba05713c1f1a7d9c31df20afde48f1baf51a0bb5261c4244e3ac00a30df"
+    },
+    {
+      "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/utility-mappings.json",
+      "export_sha256": "84fb9ac22885a6ae5e674abe12df6e88164a5dcc4f659210ef8ac2d4581be25b",
+      "kind": "export",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/utility-mappings.json",
+      "source_sha256": "84fb9ac22885a6ae5e674abe12df6e88164a5dcc4f659210ef8ac2d4581be25b"
+    },
+    {
+      "export": "assets/scripts/figures/research_explanatory_figures.py",
+      "export_sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa",
+      "kind": "export",
+      "source": "scripts/figures/research_explanatory_figures.py",
+      "source_sha256": "ee01c12522ebf6e30a80a0d4c8afa3cf32eeb87e6dcc5090ef38a175667ff0fa"
+    }
+  ],
+  "output": "docs/review/2026-10-30",
+  "references": [
+    {
+      "destination": "docs/review/2026-10-30/evidence.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence",
+      "rewritten": "evidence.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/results.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results",
+      "rewritten": "results.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/results.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results",
+      "rewritten": "results.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/results/arrivals.csv",
+      "fragment": "",
+      "href": "/Phase-II/Milestones/Milestone-1/1-4-Behavioral-Calibration/results/arrivals.csv",
+      "rewritten": "assets/content/Phase%20II/Milestones/Milestone%201/1-4%20Behavioral%20Calibration/results/arrivals.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Milestones/Milestone 1/1-4 Behavioral Calibration/results/arrivals.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/evidence.md",
+      "fragment": "response-estimates",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#response-estimates",
+      "rewritten": "evidence.md#response-estimates",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/results.md",
+      "fragment": "22-simulation-execution",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#22-simulation-execution",
+      "rewritten": "results.md#22-simulation-execution",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "content/Phase II/Wiki/Collections/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/Source Video.md",
+      "fragment": "three-intended-goals",
+      "href": "/Phase-II/Wiki/Collections/Essential-Readings/ACP-285-Avalanche-Community-Call-Staking-Reward-Curve-Adjustment/Source-Video#three-intended-goals",
+      "rewritten": "../../../content/Phase%20II/Wiki/Collections/Essential%20Readings/ACP%20285%20Avalanche%20Community%20Call%20Staking%20Reward%20Curve%20Adjustment/Source%20Video.md#three-intended-goals",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Collections/Essential Readings/ACP 285 Avalanche Community Call Staking Reward Curve Adjustment/Source Video.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/results.md",
+      "fragment": "23-kpi-computation",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results#23-kpi-computation",
+      "rewritten": "results.md#23-kpi-computation",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/utility-mappings.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/utility-mappings.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/utility-mappings.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/utility-mappings.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/evidence.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence",
+      "rewritten": "evidence.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology",
+      "rewritten": "modeling.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/results.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results",
+      "rewritten": "results.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-regressions.csv",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-regressions.csv",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-regressions.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-regressions.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-regressions.csv",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-regressions.csv",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-regressions.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-regressions.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-market-controls.csv",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-market-controls.csv",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-market-controls.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/renewal-market-controls.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-market-controls.csv",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-market-controls.csv",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-market-controls.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/entry-market-controls.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-summary.csv",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-summary.csv",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-summary.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-summary.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-01-f107.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-02-f108.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Briefs/2026-10-30-milestone-2/figure-04-f110.png"
+    },
+    {
+      "destination": "content/Phase II/Milestones/Milestone 0/Signed Grant Agreement.md",
+      "fragment": "",
+      "href": "/Phase-II/Milestones/Milestone-0/Signed-Grant-Agreement",
+      "rewritten": "../../../content/Phase%20II/Milestones/Milestone%200/Signed%20Grant%20Agreement.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Milestones/Milestone 0/Signed Grant Agreement.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/modeling.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology",
+      "rewritten": "modeling.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md"
+    },
+    {
+      "destination": "content/Phase II/Milestones/Milestone 0/Signed Grant Agreement.md",
+      "fragment": "",
+      "href": "/Phase-II/Milestones/Milestone-0/Signed-Grant-Agreement",
+      "rewritten": "../../../content/Phase%20II/Milestones/Milestone%200/Signed%20Grant%20Agreement.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Milestones/Milestone 0/Signed Grant Agreement.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/evidence.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence",
+      "rewritten": "evidence.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/evidence.md",
+      "fragment": "central-case",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#central-case",
+      "rewritten": "evidence.md#central-case",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "rewritten": "assets/content/Phase%20II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/evidence.md",
+      "fragment": "conditional-goal-regions",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence#conditional-goal-regions",
+      "rewritten": "evidence.md#conditional-goal-regions",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/evidence.md",
+      "fragment": "",
+      "href": "/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence",
+      "rewritten": "evidence.md",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/scripts/figures/research_explanatory_figures.py",
+      "field": "/generator",
+      "fragment": "",
+      "rewritten": "../../../../../../../scripts/figures/research_explanatory_figures.py",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "scripts/figures/research_explanatory_figures.py"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json",
+      "field": "/inputs_file",
+      "fragment": "",
+      "rewritten": "explanatory-figure-inputs.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-inputs.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.png",
+      "field": "/outputs/0/file",
+      "fragment": "",
+      "rewritten": "evaluation-criteria.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.svg",
+      "field": "/outputs/1/file",
+      "fragment": "",
+      "rewritten": "evaluation-criteria.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png",
+      "field": "/outputs/2/file",
+      "fragment": "",
+      "rewritten": "proposed-schedule.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg",
+      "field": "/outputs/3/file",
+      "fragment": "",
+      "rewritten": "proposed-schedule.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "field": "/outputs/4/file",
+      "fragment": "",
+      "rewritten": "reward-duration.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.svg",
+      "field": "/outputs/5/file",
+      "fragment": "",
+      "rewritten": "reward-duration.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png",
+      "field": "/outputs/6/file",
+      "fragment": "",
+      "rewritten": "conditional-goal-pass.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.svg",
+      "field": "/outputs/7/file",
+      "fragment": "",
+      "rewritten": "conditional-goal-pass.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv",
+      "field": "/outputs/8/file",
+      "fragment": "",
+      "rewritten": "reward-duration.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv",
+      "field": "/outputs/9/file",
+      "fragment": "",
+      "rewritten": "conditional-goal-pass.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png",
+      "field": "/figures/0/file",
+      "fragment": "",
+      "rewritten": "daily-model.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.svg",
+      "field": "/figures/0/editable_file",
+      "fragment": "",
+      "rewritten": "daily-model.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/daily-model.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png",
+      "field": "/figures/1/file",
+      "fragment": "",
+      "rewritten": "forecast-scores.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/forecast-scores.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/utility-heatmap.png",
+      "field": "/figures/2/file",
+      "fragment": "",
+      "rewritten": "utility-heatmap.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/utility-heatmap.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png",
+      "field": "/figures/3/file",
+      "fragment": "",
+      "rewritten": "decision-tree.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/decision-tree.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-trajectories.png",
+      "field": "/figures/4/file",
+      "fragment": "",
+      "rewritten": "central-trajectories.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-trajectories.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png",
+      "field": "/figures/5/file",
+      "fragment": "",
+      "rewritten": "stocks-and-flows.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.svg",
+      "field": "/figures/5/editable_file",
+      "fragment": "",
+      "rewritten": "stocks-and-flows.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/stocks-and-flows.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png",
+      "field": "/figures/6/file",
+      "fragment": "",
+      "rewritten": "issuance-stake-tradeoff.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.svg",
+      "field": "/figures/6/editable_file",
+      "fragment": "",
+      "rewritten": "issuance-stake-tradeoff.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/issuance-stake-tradeoff.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png",
+      "field": "/figures/7/file",
+      "fragment": "",
+      "rewritten": "central-record-comparison.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.svg",
+      "field": "/figures/7/editable_file",
+      "fragment": "",
+      "rewritten": "central-record-comparison.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-record-comparison.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.png",
+      "field": "/figures/8/file",
+      "fragment": "",
+      "rewritten": "evaluation-criteria.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.svg",
+      "field": "/figures/8/editable_file",
+      "fragment": "",
+      "rewritten": "evaluation-criteria.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/evaluation-criteria.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "field": "/figures/8/source_receipt",
+      "fragment": "",
+      "rewritten": "explanatory-figure-sources.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png",
+      "field": "/figures/9/file",
+      "fragment": "",
+      "rewritten": "proposed-schedule.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg",
+      "field": "/figures/9/editable_file",
+      "fragment": "",
+      "rewritten": "proposed-schedule.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/proposed-schedule.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "field": "/figures/9/source_receipt",
+      "fragment": "",
+      "rewritten": "explanatory-figure-sources.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png",
+      "field": "/figures/10/file",
+      "fragment": "",
+      "rewritten": "reward-duration.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.svg",
+      "field": "/figures/10/editable_file",
+      "fragment": "",
+      "rewritten": "reward-duration.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/reward-duration.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "field": "/figures/10/source_receipt",
+      "fragment": "",
+      "rewritten": "explanatory-figure-sources.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png",
+      "field": "/figures/11/file",
+      "fragment": "",
+      "rewritten": "conditional-goal-pass.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.svg",
+      "field": "/figures/11/editable_file",
+      "fragment": "",
+      "rewritten": "conditional-goal-pass.svg",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/conditional-goal-pass.svg"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "field": "/figures/11/source_receipt",
+      "fragment": "",
+      "rewritten": "explanatory-figure-sources.json",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/figure-manifest.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv",
+      "field": "/goal_utilities/file",
+      "fragment": "",
+      "rewritten": "goal-utilities.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/goal-utilities.csv"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/central-trajectories.png",
+      "field": "/central_trajectories/file",
+      "fragment": "",
+      "rewritten": "central-trajectories.png",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/central-trajectories.png"
+    },
+    {
+      "destination": "docs/review/2026-10-30/assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/mechanism-utilities.csv",
+      "field": "/mechanism_summary/file",
+      "fragment": "",
+      "rewritten": "mechanism-utilities.csv",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/figure-sources.json",
+      "target": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/mechanism-utilities.csv"
+    }
+  ],
+  "schema": "research-review-export/v1",
+  "upstream_artifacts": [
+    {
+      "artifact": "receipt.json",
+      "bytes": 3275,
+      "field": "/original_bindings/receipt/artifact",
+      "sha256": "173947d5e1b2de865d7d7f94dc04ab442b89fad0a58d02e74941124ede77f1cf",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "cells.json",
+      "bytes": 1760,
+      "field": "/original_bindings/cells/artifact",
+      "sha256": "64731dadc0a180b3852b1b887308cf4dd258eac7189ed05eaabbc2b880c39eee",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "trajectories.parquet",
+      "bytes": 7087697,
+      "field": "/original_bindings/trajectories/artifact",
+      "sha256": "d7a2a2db3e52fc16446252f80e9e41e006a82383e4d0406e0730bdc65cf18e7f",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "p2-model-v0.8.json",
+      "bytes": 929,
+      "field": "/original_bindings/input_pin/artifact",
+      "sha256": "47a6f4af2b7bab7d2b2aae45b2a62c7c67ed5ca26c9123151132742b208d4dee",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "draws.parquet",
+      "bytes": 4981095,
+      "field": "/original_bindings/draw_table/artifact",
+      "sha256": "0e4a238778597b44e33b1be31a6179b715d67de0d2dd773ad6faca12331df75d",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "design.json",
+      "bytes": 1614,
+      "field": "/original_bindings/sweep_design/artifact",
+      "sha256": "924456465aa62cfed75f11742231fc885b96f27ec940692f32e3940ee2b9ffde",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "trajectories_run.py",
+      "bytes": 19227,
+      "field": "/model_identity/current_driver_snapshot/artifact",
+      "sha256": "9111a3f833f717d0e620ab349e0d5a68846e901828747a3df9dbebba89b9a6f5",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "data/pins/p2-model-v0.8.json",
+      "field": "/inputs/pin_relative_path",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "p4-opportunity-costs.json",
+      "bytes": 3294,
+      "field": "/inputs/fitted_outside_yield_source_pin/artifact",
+      "sha256": "3ef004b68cced86580698edc6757107746e97a90eced7230ef043aa230180384",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "trajectory-utilities.parquet",
+      "bytes": 7845572,
+      "field": "/conditional_results_source/artifact",
+      "sha256": "88abb18296b1ffc1e35fd12a74baefd2d1425f4c3fe92ecc4f5d88666baac1b6",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/explanatory-figure-sources.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "trajectories.parquet",
+      "bytes": 7087697,
+      "field": "/central/source_result/artifact",
+      "sha256": "d7a2a2db3e52fc16446252f80e9e41e006a82383e4d0406e0730bdc65cf18e7f",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "receipt.json",
+      "bytes": 3275,
+      "field": "/central/source_receipt/artifact",
+      "sha256": "173947d5e1b2de865d7d7f94dc04ab442b89fad0a58d02e74941124ede77f1cf",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "cells.json",
+      "bytes": 1760,
+      "field": "/central/source_cells/artifact",
+      "sha256": "64731dadc0a180b3852b1b887308cf4dd258eac7189ed05eaabbc2b880c39eee",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "trajectory-utilities.parquet",
+      "bytes": 7845572,
+      "field": "/conditional_goal_regions/source_result/artifact",
+      "sha256": "88abb18296b1ffc1e35fd12a74baefd2d1425f4c3fe92ecc4f5d88666baac1b6",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "run-config.json",
+      "bytes": 2819,
+      "field": "/conditional_goal_regions/source_run_config/artifact",
+      "sha256": "c5bbf2a14d39a3773539baa5a8f0006f5b432e9d6591750b93f0b48aabf76de7",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "utility-spec.json",
+      "bytes": 10164,
+      "field": "/conditional_goal_regions/source_utility_specification/artifact",
+      "sha256": "e5d472932a74c59d17387a34f90cdb7e68a68a6661bbfad2900ffb4c73bff19f",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "status": "not-delivered"
+    },
+    {
+      "artifact": "psuu.py",
+      "bytes": 49336,
+      "field": "/conditional_goal_regions/scorer_source_snapshot/artifact",
+      "sha256": "47c81be6528d1ef0f171dd903975f8684925edcf4de8fa12404df161b4e6824b",
+      "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json",
+      "status": "not-delivered"
+    }
+  ]
+}
