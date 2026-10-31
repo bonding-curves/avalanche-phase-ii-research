@@ -1,0 +1,18 @@
+{
+  "schema": "report-reproduction-expected/v1",
+  "pair_count": 50,
+  "daily_rows": 36600,
+  "prepared_specification_sha256": "6b5c978ee2afecc179b3084a8ecb4ae97a102a15990f40e6da995f59a9abebf6",
+  "tolerance": {
+    "integer_core": "exact",
+    "realized_supply_relative": 1e-13,
+    "realized_supply_absolute_navax": 1024,
+    "ratio_relative": 1e-10,
+    "ratio_absolute": 1e-12
+  },
+  "comparison": [
+    {"quantile": "p10", "issuance_saved": 0.11596752162172501, "validator_stake_kept": 0.9534826116736485, "active_validators_kept": 0.9603063850647494},
+    {"quantile": "median", "issuance_saved": 0.12772115608277185, "validator_stake_kept": 0.9869010225636179, "active_validators_kept": 0.9697847536781488},
+    {"quantile": "p90", "issuance_saved": 0.15388762802293676, "validator_stake_kept": 0.9990032990608972, "active_validators_kept": 0.976430068749889}
+  ]
+}

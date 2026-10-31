@@ -1193,6 +1193,30 @@
       "related_files": [
         "content/Phase II/Wiki/Reproduce/first-experiment-comparison.csv"
       ]
+    },
+    "content/Phase II/Wiki/Reproduce/central-case": {
+      "title": "Central-case numerical replay: original three panels",
+      "models": [
+        "v0.8.0"
+      ],
+      "family": "Trajectories",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "classification_basis": "Numerical replay of the historical central-case paths using model v0.8.0: 36,600 daily rows and 183,000 integer core values match the selected original reference. The original execution-time driver remains unidentified. Conditional simulation, with no predictive validation or new response estimation.",
+      "caption": "The original three panels are rebuilt from reproduced paths and the pre-origin record. Supply adds validator reward promises to initial ledger supply and subtracts fixed burn, omitting delegated issuance.",
+      "caption_basis": "Published central-case reproduction tutorial, figure provenance and full replay verification.",
+      "sources": [
+        "content/Phase II/Wiki/Reproduce/central-case-figure-provenance.json",
+        "examples/report-reproduction/verification.json"
+      ],
+      "producing_source": "scripts/figures/central_case_reproduction.py",
+      "producing_command": "uv run --frozen --group model --group notebook python scripts/figures/central_case_reproduction.py --inputs release/report-inputs --result release/report-result --output release/report-figure",
+      "related_files": [
+        "content/Phase II/Wiki/Reproduce/central-case-figure-data.csv",
+        "content/Phase II/Wiki/Reproduce/central-case-comparison.csv"
+      ]
     }
   }
 }

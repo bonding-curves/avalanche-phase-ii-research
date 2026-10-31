@@ -1,8 +1,8 @@
 {
   "schema": "avalanche-figure-gallery/v1",
   "inventory_scope": "Tracked delivered content, model images and results images",
-  "registry_sha256": "f0a2e02b386f4a91ea1daca721b2f9e9364ec3e6ae717e973b5228d0580c5e09",
-  "inventory_images": 182,
+  "registry_sha256": "70fc9d6acffb57979dc84b5676b89411a0eea700e2e3d2e48fde726a4704da5c",
+  "inventory_images": 184,
   "figures": [
     {
       "key": "asset-3e098febc28b2354",
@@ -78,8 +78,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd",
-          "bytes": 21163,
+          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
+          "bytes": 21358,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -178,8 +178,8 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd",
-          "bytes": 21163,
+          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
+          "bytes": 21358,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -230,6 +230,132 @@
         "producing command not recorded",
         "no embedded use found in tracked Markdown"
       ]
+    },
+    {
+      "key": "asset-9a6e5aecdda974d2",
+      "ids": [],
+      "title": "Central-case numerical replay: original three panels",
+      "models": [
+        "v0.8.0"
+      ],
+      "family": "Trajectories",
+      "horizons": [
+        "365 days"
+      ],
+      "evidence": "Simulation (conditional)",
+      "classification_basis": "Numerical replay of the historical central-case paths using model v0.8.0: 36,600 daily rows and 183,000 integer core values match the selected original reference. The original execution-time driver remains unidentified. Conditional simulation, with no predictive validation or new response estimation.",
+      "caption_basis": "Published central-case reproduction tutorial, figure provenance and full replay verification.",
+      "producing_source": "scripts/figures/central_case_reproduction.py",
+      "producing_command": "uv run --frozen --group model --group notebook python scripts/figures/central_case_reproduction.py --inputs release/report-inputs --result release/report-result --output release/report-figure",
+      "availability": "Built",
+      "caption": "The original three panels are rebuilt from reproduced paths and the pre-origin record. Supply adds validator reward promises to initial ledger supply and subtracts fixed burn, omitting delegated issuance.",
+      "assets": [
+        {
+          "path": "content/Phase II/Wiki/Reproduce/central-case.png",
+          "sha256": "9a6e5aecdda974d2db02d22236e9e9c439cf63f845af0f2b8663056feb4a0c02",
+          "bytes": 217874,
+          "format": "PNG",
+          "href": "../Reproduce/central-case.png",
+          "file_href": "../Reproduce/central-case.png"
+        },
+        {
+          "path": "content/Phase II/Wiki/Reproduce/central-case.svg",
+          "sha256": "fe536196635e17b1dc1215a3f62f32a69e868787d01b158bfc1bacdffa4fb1bf",
+          "bytes": 333652,
+          "format": "SVG",
+          "href": "../Reproduce/central-case.svg",
+          "file_href": "../Reproduce/central-case.svg"
+        }
+      ],
+      "downloads": [
+        {
+          "path": "content/Phase II/Wiki/Reproduce/central-case.png",
+          "sha256": "9a6e5aecdda974d2db02d22236e9e9c439cf63f845af0f2b8663056feb4a0c02",
+          "bytes": 217874,
+          "format": "PNG",
+          "href": "../Reproduce/central-case.png",
+          "file_href": "../Reproduce/central-case.png"
+        },
+        {
+          "path": "content/Phase II/Wiki/Reproduce/central-case.svg",
+          "sha256": "fe536196635e17b1dc1215a3f62f32a69e868787d01b158bfc1bacdffa4fb1bf",
+          "bytes": 333652,
+          "format": "SVG",
+          "href": "../Reproduce/central-case.svg",
+          "file_href": "../Reproduce/central-case.svg"
+        },
+        {
+          "path": "content/Phase II/Wiki/Reproduce/central-case-figure-data.csv",
+          "sha256": "e60a5558d6c23db2c86f9435d527815ca71219adf1dbf67f17b72c0dec3b23e6",
+          "bytes": 215532,
+          "format": "CSV",
+          "href": "../Reproduce/central-case-figure-data.csv",
+          "file_href": "../Reproduce/central-case-figure-data.csv"
+        },
+        {
+          "path": "content/Phase II/Wiki/Reproduce/central-case-comparison.csv",
+          "sha256": "9fc5f2ca904540ee6ff0c4c9e2ebaafab421c060883c9d28583478f800453e36",
+          "bytes": 255,
+          "format": "CSV",
+          "href": "../Reproduce/central-case-comparison.csv",
+          "file_href": "../Reproduce/central-case-comparison.csv"
+        }
+      ],
+      "usages": [
+        {
+          "path": "content/Phase II/Wiki/Reproduce/central-case.md",
+          "title": "Reproduce the report's central result",
+          "question": "Can the reported reward-saving and stake-retention result be reproduced from obtainable inputs?",
+          "href": "../Reproduce/central-case",
+          "file_href": "../Reproduce/central-case.md",
+          "alt": "Rebuilt central-case panels showing validator own stake, active validator count and supply under the historical schedule and earlier ramp.",
+          "caption": "Rebuilt central-case panels showing validator own stake, active validator count and supply under the historical schedule and earlier ramp."
+        }
+      ],
+      "classification_sources": [
+        {
+          "path": "content/Phase II/Wiki/Reproduce/central-case-figure-provenance.json",
+          "sha256": "be2731fa46e299efc0e8f499a6f9a445d526e28cd1abb1856b5fc5e22b977c85",
+          "bytes": 2005,
+          "href": "../Reproduce/central-case-figure-provenance.json",
+          "file_href": "../Reproduce/central-case-figure-provenance.json"
+        },
+        {
+          "path": "examples/report-reproduction/verification.json",
+          "sha256": "f476c392f2d1bcc34f8a8e7db9fe6f9295fe899df1443c696715b33ced5647d0",
+          "bytes": 2533,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/f476c392f2d1bcc3-verification.json.txt",
+          "href": "sources/f476c392f2d1bcc3-verification.json.txt",
+          "file_href": "sources/f476c392f2d1bcc3-verification.json.txt"
+        },
+        {
+          "path": "scripts/figures/central_case_reproduction.py",
+          "sha256": "b095fda9d0bad4db6ff4f4c56bef62d132e4125ea461766a3ae78eb3e7d4b0b1",
+          "bytes": 9293,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/b095fda9d0bad4db-central_case_reproduction.py.txt",
+          "href": "sources/b095fda9d0bad4db-central_case_reproduction.py.txt",
+          "file_href": "sources/b095fda9d0bad4db-central_case_reproduction.py.txt"
+        }
+      ],
+      "source_records": [
+        {
+          "path": "content/Phase II/Wiki/Reproduce/central-case-figure-provenance.json",
+          "sha256": "be2731fa46e299efc0e8f499a6f9a445d526e28cd1abb1856b5fc5e22b977c85",
+          "bytes": 2005,
+          "href": "../Reproduce/central-case-figure-provenance.json",
+          "file_href": "../Reproduce/central-case-figure-provenance.json"
+        },
+        {
+          "path": "examples/report-reproduction/verification.json",
+          "sha256": "f476c392f2d1bcc34f8a8e7db9fe6f9295fe899df1443c696715b33ced5647d0",
+          "bytes": 2533,
+          "published_copy": "content/Phase II/Wiki/Figures/sources/f476c392f2d1bcc3-verification.json.txt",
+          "href": "sources/f476c392f2d1bcc3-verification.json.txt",
+          "file_href": "sources/f476c392f2d1bcc3-verification.json.txt"
+        }
+      ],
+      "identity_basis": "Content SHA-256; no prior gallery ID recorded",
+      "metadata_gaps": []
     },
     {
       "key": "asset-8443228cc501481a",
@@ -362,8 +488,8 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd",
-          "bytes": 21163,
+          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
+          "bytes": 21358,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -965,8 +1091,8 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd",
-          "bytes": 21163,
+          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
+          "bytes": 21358,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -1129,8 +1255,8 @@
         },
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd",
-          "bytes": 21163,
+          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
+          "bytes": 21358,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -1361,8 +1487,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd",
-          "bytes": 21163,
+          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
+          "bytes": 21358,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -1694,8 +1820,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd",
-          "bytes": 21163,
+          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
+          "bytes": 21358,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -1824,8 +1950,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd",
-          "bytes": 21163,
+          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
+          "bytes": 21358,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -1923,8 +2049,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "1cb0dafaa9f406076264edef3b5b3145fa9fab96890908cd453b2b7dd834e6bd",
-          "bytes": 28550,
+          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
+          "bytes": 28787,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
@@ -2272,8 +2398,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-          "sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd",
-          "bytes": 21163,
+          "sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270",
+          "bytes": 21358,
           "href": "../Memos/drafts/2026-10-30-research/results",
           "file_href": "../Memos/drafts/2026-10-30-research/results.md"
         },
@@ -2459,8 +2585,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "1cb0dafaa9f406076264edef3b5b3145fa9fab96890908cd453b2b7dd834e6bd",
-          "bytes": 28550,
+          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
+          "bytes": 28787,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
@@ -2837,8 +2963,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "1cb0dafaa9f406076264edef3b5b3145fa9fab96890908cd453b2b7dd834e6bd",
-          "bytes": 28550,
+          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
+          "bytes": 28787,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
@@ -5697,8 +5823,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "1cb0dafaa9f406076264edef3b5b3145fa9fab96890908cd453b2b7dd834e6bd",
-          "bytes": 28550,
+          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
+          "bytes": 28787,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
@@ -8209,8 +8335,8 @@
       "classification_sources": [
         {
           "path": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-          "sha256": "1cb0dafaa9f406076264edef3b5b3145fa9fab96890908cd453b2b7dd834e6bd",
-          "bytes": 28550,
+          "sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a",
+          "bytes": 28787,
           "href": "../Memos/drafts/2026-10-30-research/methodology",
           "file_href": "../Memos/drafts/2026-10-30-research/methodology.md"
         },
@@ -12343,6 +12469,13 @@
       "question": "",
       "href": "../Reference",
       "file_href": "../Reference/index.md"
+    },
+    {
+      "path": "content/Phase II/Wiki/Reproduce/central-case.md",
+      "title": "Reproduce the report's central result",
+      "question": "Can the reported reward-saving and stake-retention result be reproduced from obtainable inputs?",
+      "href": "../Reproduce/central-case",
+      "file_href": "../Reproduce/central-case.md"
     },
     {
       "path": "content/Phase II/Wiki/Reproduce/index.md",

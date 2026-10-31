@@ -6,7 +6,7 @@ The model follows individual validator staking periods through renewal, departur
 
 [![Model v0.8.0: historical staking events supply the behaviour blocks, six ordered daily stages update the state, and daily outputs supply the performance measures](src/avalanche_research/model/images/v0.8-structure.png)](src/avalanche_research/model/README.md)
 
-Released staking model: v0.8.0, tagged `model-v0.8.0`. The Foundation copy is on [`milestone-2`](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/milestone-2). A small paired experiment includes its input snapshot. Full historical report reruns require their separate pinned inputs and experiment artifacts.
+Released staking model: v0.8.0, tagged `model-v0.8.0`. The Foundation copy is on [`milestone-2`](https://github.com/AVL-Foundation/ext-bcrg-validator-research/tree/milestone-2). A small paired experiment includes its input snapshot. The report's central one-year result has a separate checked input download and replay.
 
 ## Contents
 
@@ -36,6 +36,7 @@ Start with the [research handoff](docs/handoff/README.md) for model setup, the l
 | Install, run or extend the package | Follow [Quick start](#quick-start), then the model README's [run instructions](src/avalanche_research/model/README.md#run-it) and [change recipes](src/avalanche_research/model/README.md#change-it) |
 | Locate a contractual deliverable | Open the [milestone index](<content/Phase II/Milestones/index.md>) |
 | Run a complete comparison | Use the [worked experiment](examples/first-experiment/README.md), with included inputs, expected results and a chart |
+| Reproduce a reported result | Follow the [central-case replay](examples/report-reproduction/README.md) to rebuild 50 paired comparisons, their percentile table and trajectory figure |
 | Follow the earlier research | Read the [research history](docs/research-history/README.md) for May and June sources, figures and later context |
 
 Inspect the wiki and repository structure without research inputs:
@@ -159,7 +160,7 @@ The [v0.8.0 selection verdict](results/model-v0.8.0-selection/verdict.json) can 
 
 Full historical input files are too large for Git and are not stored here. The [data guide](data/README.md), [catalog](data/data-catalog.json) and [pins](data/pins/) identify the required datasets and recorded inputs.
 
-The [worked experiment](examples/first-experiment/README.md) includes a compact authenticated validator snapshot and needs no provider access. The full pinned snapshots for historical report reruns are not distributed here. Building a new snapshot does not recreate an earlier input. Without the required runs, notebook execution stops at its first missing-data dependency. Saved outputs remain readable. [SETUP.md](SETUP.md) describes both paths.
+The [worked experiment](examples/first-experiment/README.md) includes a compact authenticated validator snapshot. The [central-case replay](examples/report-reproduction/README.md) obtains its checked inputs from the Foundation repository. Both need no data-provider access. Other historical report reruns require separate pinned inputs and artifacts. Building a new snapshot does not recreate an earlier input. Without the required runs, notebook execution stops at its first missing-data dependency. Saved outputs remain readable. [SETUP.md](SETUP.md) describes these paths.
 
 ## Deliverables and resources
 

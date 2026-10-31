@@ -1,0 +1,44 @@
+{
+  "schema": "central-case-reproduction-figure/v1",
+  "model": "v0.8.0",
+  "sources_sha256": {
+    "daily.csv": "f149271aaff8b4c65d6c63d4ad6070506066450c8164767b7da8307b7205fb84",
+    "summary.json": "c2049f67dc2f3bc744462d65adfeee4ee04fe440e4693dc14714d67848b5c2c1",
+    "figure-record-before-origin.csv": "7d6dd34d3b9d6a7ee725a71c3cae3e7a8ff352813f768988a155928af4ac7973",
+    "producer": "b095fda9d0bad4db6ff4f4c56bef62d132e4125ea461766a3ae78eb3e7d4b0b1",
+    "uv.lock": "789ec13ff5ce1a26dc60f5d04083d5ba6567b39de4ff9bb3a0b3010090fc18c4"
+  },
+  "original_figure": "central-trajectories.png",
+  "original_figure_sha256": "b87d5d8d30cd0dd15750851a8e4c612e04bde7cd5067d2175243fa80579b53d1",
+  "original_panels": [
+    "validator own stake",
+    "active validators",
+    "supply"
+  ],
+  "presentation": "Rebuilt panels with explicit reproduction caption and formula terminology.",
+  "quantiles": "Linear 10th, 50th and 90th percentiles of absolute trajectories; 50 paths per cell/day.",
+  "forecast_evaluation": false,
+  "artifacts": {
+    "central-case.png": {
+      "sha256": "9a6e5aecdda974d2db02d22236e9e9c439cf63f845af0f2b8663056feb4a0c02",
+      "bytes": 217874
+    },
+    "central-case.svg": {
+      "sha256": "fe536196635e17b1dc1215a3f62f32a69e868787d01b158bfc1bacdffa4fb1bf",
+      "bytes": 333652
+    },
+    "central-case-figure-data.csv": {
+      "sha256": "e60a5558d6c23db2c86f9435d527815ca71219adf1dbf67f17b72c0dec3b23e6",
+      "bytes": 215532
+    },
+    "central-case-comparison.csv": {
+      "sha256": "9fc5f2ca904540ee6ff0c4c9e2ebaafab421c060883c9d28583478f800453e36",
+      "bytes": 255
+    }
+  },
+  "producer": "scripts/figures/central_case_reproduction.py",
+  "reference_definition": "examples/report-reproduction/expected.json",
+  "replay_verification": "examples/report-reproduction/verification.json",
+  "result_directory": "User-generated result from scripts/reproduce_report.py run",
+  "source_summary_sha256": "c2049f67dc2f3bc744462d65adfeee4ee04fe440e4693dc14714d67848b5c2c1"
+}

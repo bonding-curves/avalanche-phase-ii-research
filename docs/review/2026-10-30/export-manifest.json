@@ -269,24 +269,24 @@
     },
     {
       "export": "evidence.md",
-      "export_sha256": "c71ad43fc9f214c720666fc2b20230e76c8eb5ce35a35ef4fed86795f97bc47f",
+      "export_sha256": "71637e6ea1c2f20d8c4c8fd045eaa1c0c4eea978b1e04169bc089d839f691870",
       "kind": "export",
       "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/evidence.md",
-      "source_sha256": "1141f81d8b1854016995ca0356b23c630bd2f1d772b61f791904b6bb98dc5a86"
+      "source_sha256": "11acc3175c72b821432a0954537065514af410be733a0b7118a8e1db698c205d"
     },
     {
       "export": "modeling.md",
-      "export_sha256": "2db87da425982a374c11c2db623379d94ffc0a36f2e842b4f367c899c7f9b9f0",
+      "export_sha256": "889c8fd0c150e2e1abcea6ec1af50b86d99be808a858dc949d999a1ad1d49a19",
       "kind": "export",
       "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/methodology.md",
-      "source_sha256": "1cb0dafaa9f406076264edef3b5b3145fa9fab96890908cd453b2b7dd834e6bd"
+      "source_sha256": "8c410e929e91d5d1a2ee5f7a64e8a3413d3b7ff6e607a01266d1d8be4590f30a"
     },
     {
       "export": "results.md",
-      "export_sha256": "b19aff2b2422628d44c3e0fee9e80c759550aba584feaed2396c84464792ccb1",
+      "export_sha256": "5d2903861cca6fe969e6d2bd0b36d37f483e14ee6a2340d8261fa02db6922335",
       "kind": "export",
       "source": "content/Phase II/Wiki/Memos/drafts/2026-10-30-research/results.md",
-      "source_sha256": "a78f2ce58de4102033548c5dc5a7bd32e91a56f5138890657d3053ebe68105cd"
+      "source_sha256": "b60f571f60c8bde5a28287cff0d5c14d397afe0660fe400235cf6841491a4270"
     },
     {
       "export": "assets/content/Phase II/Wiki/Memos/drafts/2026-10-30-research/reward-rule-comparisons/assets/central-trajectories.png",

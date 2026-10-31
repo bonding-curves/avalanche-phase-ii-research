@@ -1,0 +1,70 @@
+{
+  "schema": "central-case-replay-verification/v1",
+  "mode": "full",
+  "model_source_commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc",
+  "input_archive": {
+    "bytes": 12139605,
+    "sha256": "3b00c84303c8f335e75bfb13f6e9dcaf68a00d5eb26a1dce95fc38a36b032540"
+  },
+  "pair_count": 50,
+  "reference_comparison": {
+    "daily_rows": 36600,
+    "integer_core_values_exact": 183000,
+    "realized_supply_within_declared_tolerance": true
+  },
+  "comparison": [
+    {
+      "active_validators_kept": 0.9603063850647494,
+      "issuance_saved": 0.11596752162172502,
+      "quantile": "p10",
+      "validator_stake_kept": 0.9534826116736486
+    },
+    {
+      "active_validators_kept": 0.9697847536781488,
+      "issuance_saved": 0.1277211560827718,
+      "quantile": "median",
+      "validator_stake_kept": 0.9869010225636179
+    },
+    {
+      "active_validators_kept": 0.976430068749889,
+      "issuance_saved": 0.15388762802293676,
+      "quantile": "p90",
+      "validator_stake_kept": 0.9990032990608972
+    }
+  ],
+  "tolerance": {
+    "integer_core": "exact",
+    "ratio_absolute": 1e-12,
+    "ratio_relative": 1e-10,
+    "realized_supply_absolute_navax": 1024,
+    "realized_supply_relative": 1e-13
+  },
+  "producing_files": {
+    "examples/report-reproduction/config.json": {
+      "bytes": 854,
+      "sha256": "cd7b62d46ab4c571a5eead700876866c13e4d18eb175df4306b46979c637cb09"
+    },
+    "examples/report-reproduction/expected.json": {
+      "bytes": 873,
+      "sha256": "dcf455fa8a59b46d2350f6b2c253b261a29eb4f7db6712ed092755a017417f68"
+    },
+    "examples/report-reproduction/input-manifest.json": {
+      "bytes": 33525,
+      "sha256": "740e60cf824870dc6be3bf8b0410f0011e0cc3430909938f98a0f96bc50db7e3"
+    },
+    "scripts/reproduce_report.py": {
+      "bytes": 26652,
+      "sha256": "a7de29d9255d9bc84530b1e355ddd0dbdd254aac8ba6d9710669a68bb822f121"
+    }
+  },
+  "actual_output_sha256": {
+    "summary.json": "c2049f67dc2f3bc744462d65adfeee4ee04fe440e4693dc14714d67848b5c2c1",
+    "execution.json": "5cd17868f7276aa62ae38b08aac5f56380cbe98037db8248d023e442604ad3c2",
+    "daily.csv": "f149271aaff8b4c65d6c63d4ad6070506066450c8164767b7da8307b7205fb84",
+    "paired.csv": "7413d2b3330716f9bc6346238bb52aa4c42cad6f6d5ddb0bc50733ebb3c8e2a1",
+    "comparison.csv": "9fc5f2ca904540ee6ff0c4c9e2ebaafab421c060883c9d28583478f800453e36"
+  },
+  "status": "pass",
+  "original_execution_driver_identity": "unresolved",
+  "scope": "Numerical replay of the two central cells only. No forecast scoring or new response estimation."
+}

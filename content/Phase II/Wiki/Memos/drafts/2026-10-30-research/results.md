@@ -35,7 +35,7 @@ The experiment pipeline makes comparisons repeatable by binding a design, its in
 | Analysis | Computes measures, utilities and sensitivity results |
 | Receipt | Records code identity, inputs and output hashes |
 
-A repeat check reproduced all 28,672 checked values in 512 repeated rows. This establishes repeatability for that check. Full simulation reproduction from a fresh clone also needs the historical input snapshots, which are not yet distributed. The [evidence guide](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence) separates these requirements.
+A repeat check reproduced all 28,672 checked values in 512 repeated rows. This establishes repeatability for that check. The [central-case replay](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/examples/report-reproduction/README.md) now provides a checked input download and reproduces the reported one-year comparison. Other historical sweeps still require their separate input and experiment artifacts. The [evidence guide](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/evidence) separates these requirements.
 
 The pipeline ran on BCRG's compute server. The agreement specifies cloud compute. That infrastructure requirement remains distinct from the completed sweep execution.
 

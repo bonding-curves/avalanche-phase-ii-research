@@ -6,6 +6,8 @@ reader: "A researcher running the model for the first time"
 question: "How can I run a complete staking-model experiment without provider credentials?"
 ---
 
+For the report's 50-pair one-year finding, follow [Reproduce the central result](/Phase-II/Wiki/Reproduce/central-case). The smaller included-input example below provides a first model run without a separate download.
+
 The worked experiment runs model v0.8.0 using an included validator-data snapshot. It fits the released estimator, compares reward schedules under matched simulation draws and produces a table, interactive chart and checked result record. Follow the [complete tutorial](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/examples/first-experiment/README.md) after the [locked installation](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/SETUP.md#3-install-the-python-environment).
 
 ```sh

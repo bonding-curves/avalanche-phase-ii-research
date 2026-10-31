@@ -8,7 +8,7 @@ reader: "Researchers checking the accompanying memos"
 question: "Which calculations and sources support the reported findings, and what is needed to repeat them?"
 ---
 
-The numerical exhibits below support the [modeling memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology) and [results memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results). The package includes the aggregate values, regression output tables and figure bytes used for review. Repeating the full simulations additionally requires the historical input snapshots.
+The numerical exhibits below support the [modeling memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/methodology) and [results memo](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/results). The package includes the aggregate values, regression output tables and figure bytes used for review. The central-case replay now includes an obtainable input bundle. Other historical simulations require their separate pinned inputs and artifacts.
 
 ## Central case
 
@@ -23,6 +23,8 @@ The twin follows the historical protocol schedule. Helicon activates at 15:00 UT
 | Active validators retained | 96.0306% | 96.9785% | 97.6430% |
 
 The summaries are percentiles of per-pair ratios. Dividing the median of one set of absolute trajectories by another median gives a different statistic.
+
+The [central-case replay](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/examples/report-reproduction/README.md) rebuilds this table and the three trajectory panels from a checked 12.1 MB input bundle. All 100 paths match the original across 36,600 daily rows, including 183,000 integer quantities checked exactly. The original execution-time driver identity remains unknown. The new replay records its own source and environment, demonstrating numerical reproduction while retaining that provenance gap.
 
 The [central-case source record](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/central-case-provenance.json) preserves the exact pin, draw-table hash, cells and 50 seed/draw mappings. It distinguishes the producing model from the execution checkout and records the missing driver revision. The [numerical evidence JSON](/Phase-II/Wiki/Memos/drafts/2026-10-30-research/assets/numerical-evidence.json) records the producing code commit, input identities and original result hash. The central trajectory artifact has SHA-256 d7a2a2db3e52fc16446252f80e9e41e006a82383e4d0406e0730bdc65cf18e7f. It is 7,087,697 bytes.
 
@@ -156,7 +158,7 @@ uv run python scripts/model_v080_selection.py verdict
 
 The included JSON and CSV files allow checking the displayed counts, ratios and forecast summaries. They contain aggregate evidence and omit individual validator records.
 
-Full simulation reproduction also needs the pinned historical staking tables, fitted-parameter draws, experiment specifications and the corresponding analysis code. A data pin checks input bytes already present. It does not download those snapshots. The [setup guide](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/SETUP.md) records that distribution requirement. The package reports no completed held-back score and performs no new scoring of the reserved period.
+The central-case replay supplies its compact inputs, original draw bank, tagged source and comparison checks. Other historical simulations still need their pinned staking tables, fitted-parameter draws, experiment specifications and analysis code. A data pin checks input bytes already present. It does not download those snapshots. The [setup guide](https://github.com/AVL-Foundation/ext-bcrg-validator-research/blob/milestone-2/SETUP.md) records that distribution requirement. The package reports no completed held-back score and performs no new scoring of the reserved period.
 
 
 ## Explanatory figures

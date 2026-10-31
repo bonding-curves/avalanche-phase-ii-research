@@ -104,6 +104,8 @@ Do not choose **Run All** before the input set is in place. The notebooks read t
 
 ## 7. Run a model experiment or the notebooks
 
+To reproduce the report's central 50-pair one-year result, follow the [central-case guide](examples/report-reproduction/README.md). It obtains a checked 12.1 MB input bundle from the Foundation repository and rebuilds the percentile table and trajectory figure.
+
 The [worked experiment](examples/first-experiment/README.md) includes a compact input snapshot and expected results. It needs no Snowflake or API credentials:
 
 ```sh

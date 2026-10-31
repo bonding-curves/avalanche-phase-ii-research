@@ -1,0 +1,22 @@
+{
+  "schema": "report-reproduction-config/v1",
+  "model_source_commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc",
+  "origin": "2025-11-18",
+  "input_run": "staking-periods-2026-09-30",
+  "pairs": 50,
+  "timesteps": 365,
+  "cells": ["chain-central", "ramp-7.5-central"],
+  "activation": "2025-11-18T16:00:00+00:00",
+  "ramp_days": 90,
+  "target_min_rate": 0.075,
+  "renewal_response": 0.025,
+  "entry_response": 0.04,
+  "outside_yield_pp": 5.0,
+  "fitted_outside_yield_pp": 4.144417670682732,
+  "supply0_navax": 465370216397635557,
+  "counter_observed_at_utc": "2025-11-18T23:56:46Z",
+  "counter_basis": "Immediately before the referenced commitment, not a proven complete end-of-day counter.",
+  "realized_supply_at_origin_navax": 4.540925931211916e17,
+  "burn_navax_per_day": 1095869078452.2576,
+  "original_execution_driver_identity": "unresolved"
+}
