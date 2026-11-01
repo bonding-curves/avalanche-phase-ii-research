@@ -1,0 +1,119 @@
+direction: down
+
+classes: {
+  box: {
+    style: {
+      border-radius: 8
+      stroke-width: 2
+      font-size: 13
+    }
+  }
+  agent: {
+    style: {
+      fill: "#e0f2fe"
+      stroke: "#0284c7"
+      stroke-width: 2
+      border-radius: 6
+    }
+  }
+  decision: {
+    style: {
+      fill: "#fef3c7"
+      stroke: "#d97706"
+      stroke-width: 2
+      border-radius: 8
+    }
+  }
+  outcome: {
+    style: {
+      fill: "#f0fdf4"
+      stroke: "#16a34a"
+      stroke-width: 2
+      border-radius: 6
+    }
+  }
+  drop: {
+    style: {
+      fill: "#fef2f2"
+      stroke: "#dc2626"
+      stroke-width: 2
+      border-radius: 6
+    }
+  }
+}
+
+title: Avalanche Phase II - Counterfactual Agent Decision Pathways {
+  near: top-center
+  style.font-size: 16
+  style.bold: true
+}
+
+agents: Agent Populations {
+  class: box
+  v_exist: Active Validator (Commitment Ending) { class: agent }
+  v_short: Capital-Rich Entrant (S >= 19,484 AVAX) { class: agent }
+  v_low: Lower-Capital Entrant (500 <= S < 2,000 AVAX) { class: agent }
+  v_del: Historical Delegator (500 <= S < 2,000 AVAX) { class: agent }
+}
+
+decisions: Behavioral & Economic Hurdle Filters {
+  class: box
+  
+  d_renew: Renewal & Duration Sizing {
+    class: decision
+    description: "Substitute capital vs lockup length?"
+  }
+  
+  d_short: Short-Horizon Valuation {
+    class: decision
+    description: "American option value vs lower coupon?"
+  }
+  
+  d_mech: Mechanical Eligibility Check {
+    class: decision
+    description: "S >= S_min(d) at chosen duration d?"
+  }
+  
+  d_econ: Operational Viability Filter {
+    class: decision
+    description: "Net yield (r*S - Hardware) > 0?"
+  }
+  
+  d_agency: Operational Agency & Skills {
+    class: decision
+    description: "DevOps capability vs zero-friction delegating?"
+  }
+}
+
+outcomes: Counterfactual Equilibrium States {
+  class: box
+  
+  o_renew_same: Continue Standard Validator { class: outcome }
+  o_cap_release: Extend Duration & Release Capital { class: outcome }
+  o_short_val: Short-Duration Validator (2 to 7 Days) { class: outcome }
+  o_solo_val: Solo 500-AVAX Validator (Long Lockup) { class: outcome }
+  o_converted: Converted Delegator Node { class: outcome }
+  o_delegate: Remain Frictionless Delegator { class: drop }
+  o_exit: Exit Set / Deploy Outside { class: drop }
+}
+
+# Connections
+agents.v_exist -> decisions.d_renew
+decisions.d_renew -> outcomes.o_renew_same: "Maintain habit"
+decisions.d_renew -> outcomes.o_cap_release: "Extend to 365d, release capital"
+decisions.d_renew -> outcomes.o_exit: "Exit set (r_ext > r_stake)"
+
+agents.v_short -> decisions.d_short
+decisions.d_short -> outcomes.o_short_val: "Liquidity preference > APR coupon"
+decisions.d_short -> outcomes.o_renew_same: "Standard duration (14d to 365d)"
+
+agents.v_low -> decisions.d_mech
+decisions.d_mech -> decisions.d_econ: "Feasible at d >= 180d"
+decisions.d_mech -> outcomes.o_delegate: "Infeasible at short duration"
+decisions.d_econ -> outcomes.o_solo_val: "Profitable net of hosting"
+decisions.d_econ -> outcomes.o_exit: "Unviable: hardware cost exceeds yield"
+
+agents.v_del -> decisions.d_agency
+decisions.d_agency -> decisions.d_econ: "Possesses node DevOps skill"
+decisions.d_agency -> outcomes.o_delegate: "Prefers passive zero-risk delegation"
+decisions.d_econ -> outcomes.o_converted: "Expected commission + reward > cost"

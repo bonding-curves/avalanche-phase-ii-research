@@ -1,0 +1,19 @@
+{
+  "report": "v0.8 Research Report",
+  "generated_at": "2026-10-16T06:44:26.989757+00:00",
+  "model_engine": "FittedLifecycle",
+  "random_streams": "keyed-v1",
+  "model_version": "0.8.0-candidate",
+  "specification_digest": "4a8e912b7f03d5c1",
+  "source_pins": {
+    "p2-model-v0.8": "data/pins/p2-model-v0.8.json"
+  },
+  "outputs": {
+    "v08-designs.csv": "419f862f426320d778e3bc240da69f05968bed8075491b9f13c57af773977b5b",
+    "v08-fan.csv": "83a8afdf24a14ad353c9faa0cc9dcc01a3732369515aa7fc141c84219fca8dac",
+    "v08-forecast-fans.png": "2e284f156536af78e2ce535dc0defbf9d60d2da456ddc8fb5e9583cad40f6336",
+    "v08-designs-by-response.png": "4dcd1600bdb310979c9a01209b6a4707ded96278ea7c1e95dd1fe54f3a636913",
+    "v08-scorecard.png": "a818d614468e4bd842282fdd179aeb2a6f7f54a1ae578436f3ada5292ec897ba",
+    "v08-admission-frontier.png": "5fa700b4e6244096de18dc8a63d0ddd5c43bdd77c3580546e8f6c3b7319ebf3d"
+  }
+}

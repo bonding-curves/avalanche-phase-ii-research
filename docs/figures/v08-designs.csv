@@ -1,0 +1,13 @@
+response,mechanism,validators_mean,validators_p10,validators_p90,issuance_million_avax
+0.0,Chain today,1194.5,1129.0,1258.1,0.0036
+0.0,ACP-285 settings,1194.5,1129.0,1258.1,0.0036
+0.0,Tenure boost,1194.5,1129.0,1258.1,0.0038
+0.0,Quadratic curve,1194.5,1129.0,1258.1,0.0035
+0.1,Chain today,1194.5,1129.0,1258.1,0.0036
+0.1,ACP-285 settings,1194.5,1129.0,1258.1,0.0036
+0.1,Tenure boost,1208.9,1148.7,1274.0,0.004
+0.1,Quadratic curve,1186.4,1124.0,1247.7,0.0035
+0.3,Chain today,1194.5,1129.0,1258.1,0.0036
+0.3,ACP-285 settings,1194.5,1129.0,1258.1,0.0036
+0.3,Tenure boost,1239.1,1178.3,1304.0,0.0041
+0.3,Quadratic curve,1169.7,1110.8,1231.1,0.0035
