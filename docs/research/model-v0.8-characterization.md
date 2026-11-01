@@ -346,20 +346,15 @@ The distinction is straightforward: $C_0$, $O_0$, and $S_0$ describe where the s
 Every simulated day follows the same sequence of seven stages. The order matters because each stage uses information produced by the stages before it.
 
 $$
-\begin{aligned}
-\text{Renewal}
-&\rightarrow \text{Returns}\\
-&\rightarrow \text{Arrivals}\\
-&\rightarrow \text{Continuation (Duration)}\\
-&\rightarrow \text{Stake Choice}\\
-&\rightarrow \text{Rewards}\\
-&\rightarrow \text{Assembly}
-\end{aligned}
+\text{Renewal} \rightarrow \text{Returns} \rightarrow \text{Arrivals} \rightarrow \text{Continuation} \rightarrow \text{StakeChoice} \rightarrow \text{Rewards} \rightarrow \text{Assembly}
 $$
 
 The first three stages determine **which nodes start a new commitment**. The next two determine **the terms of that commitment**. Rewards then calculates the potential reward associated with endogenous starts. Assembly finally updates the active and out-of-set populations to create the next day's state.
 
 This ordering separates participation decisions from contract-attribute choices and protocol accounting. The details of each stage follow.
+
+![Behavioural Decision Mechanisms Flowchart](../figures/v08-behavioural-mechanisms.png)
+*Figure 2.2: Flowchart of behavioural decision mechanisms in model v0.8.0, distinguishing participation decisions (Renewal, Returns, Arrivals) from commitment selection (Continuation, StakeChoice).*
 
 #### 2.6.1 Renewal at Commitment Expiry (`Renewal`)
 
