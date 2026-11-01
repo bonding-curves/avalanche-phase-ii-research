@@ -44,6 +44,9 @@ Five behavioural processes drive the evolution of the validator population:
 
 The behavioural stages are followed by protocol reward pricing and state assembly. In other words, the model first determines **who starts a commitment and on what terms**, then calculates the potential reward associated with that commitment, and finally updates the simulated population.
 
+![Architecture of the released Avalanche validator lifecycle model (v0.8.0)](../figures/v08-model-architecture.svg)
+*Figure 2.1: System architecture of the released Avalanche validator lifecycle model (`v0.8.0`), detailing offline empirical calibration, daily state transitions, stochastic behavioural policies, deterministic protocol mechanisms, and trajectory outputs.*
+
 Three qualifications are important when interpreting the released `v0.8.0` configuration.
 
 - **The released configuration uses fixed protocol bounds.** Although the wider `v0.8` architecture supports alternative policy modules, the benchmark `v0.8.0` configuration uses a minimum stake of $S_{\min}=2{,}000$ AVAX, a maximum stake of $S_{\max}=3{,}000{,}000$ AVAX, a minimum duration of $d_{\min}=14$ days, and a maximum duration of $d_{\max}=365$ days.
