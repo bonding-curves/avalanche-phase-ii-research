@@ -970,8 +970,8 @@ These draws include:
 The model generates these random values with a deterministic, stateless keyed pseudo-random number generator (PRNG). Each draw is associated with a structured key:
 
 $$
-\text{PRNG\_Key}=\mathrm{Hash}\left(
-\text{master\_seed},r,t,\text{stage\_tag},k_{\text{entity}}
+\text{PRNG\textunderscore Key}=\mathrm{Hash}\left(
+\text{master\textunderscore seed},r,t,\text{stage\textunderscore tag},k_{\text{entity}}
 \right)
 $$
 
@@ -1032,13 +1032,13 @@ $$
 The model then sorts these node-key stake totals from largest to smallest:
 
 $$
-S_{(1),t}\geq S_{(2),t}\geq\cdots\geq S_{(|\mathcal{K}_t|),t}
+S_{(1),t}\geq S_{(2),t}\geq\cdots\geq S_{(\vert\mathcal{K}_t\vert),t}
 $$
 
 The `nakamoto_third_nodes` metric is the smallest number of node keys whose combined stake strictly exceeds one-third of total active stake:
 
 $$
-\text{nakamoto\_third\_nodes}_t=
+\text{nakamoto\textunderscore third\textunderscore nodes}_t=
 \min\left\lbrace
  m:\sum_{j=1}^{m}S_{(j),t}
  \gt\frac{1}{3}\sum_{i\in C_t}s_{i,t}
@@ -1050,7 +1050,7 @@ Two qualifications are needed when interpreting this metric.
 First, `active_validators` counts active commitment records, not necessarily distinct node keys. If a node key has overlapping active commitments, the number of records can be greater than the number of unique keys:
 
 $$
-N_t=|C_t|\geq|\mathcal{K}_t|
+N_t=\vert C_t\vert\geq\vert\mathcal{K}_t\vert
 $$
 
 Second, `nakamoto_third_nodes` groups stake by simulated NodeID key. A real-world operator may control multiple NodeIDs, and the model does not consolidate all such keys into a single institutional entity. The metric should therefore be read as a concentration measure over simulated node keys, not as a direct measure of control by real-world operators. Under this interpretation, it is an upper bound on entity-level Nakamoto decentralization.
@@ -1092,13 +1092,3 @@ However, the distinction between the baseline benchmark and this extension must 
 The frontier should therefore be treated as an ongoing research extension to the admission mechanism, not as a feature already enforced by the released `v0.8.0` lifecycle model.
 
 ---
-
-## 2.13 Mathematical Notation and Rendering Conventions
-
-This specification adheres to formal LaTeX mathematical typography optimized for GitHub Markdown, MathJax, and KaTeX document pipelines:
-
-- **Delimiters**: Display equations use `$$...$$` set on isolated lines. Inline expressions use `$ ... $`.
-- **Set Braces**: Literal mathematical sets and bounds employ `\lbrace ... \rbrace` delimiters to guarantee unambiguous parsing across CommonMark and MathJax engines.
-- **Relational Operators**: Strict inequalities within complex display and tabular environments utilize standard LaTeX operators (`\lt`, `\gt`, `\leq`, `\geq`).
-- **Function Names & Operators**: Subsystem names, statistical distributions, and state mappings use Roman operator typography (`\mathrm{...}`, `\text{...}`).
-- **Data Tables**: Markdown table cells isolate mathematical terms within inline delimiters with escaped pipes (`\vert` or explicit cell separation) to preserve table grid alignment.
