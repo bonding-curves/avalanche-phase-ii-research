@@ -1,0 +1,321 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2800" height="1900" viewBox="0 0 2800 1900">
+<defs>
+  <marker id="arrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+    <path d="M0,0 L11,4 L0,8 Z" fill="#1A202C"/>
+  </marker>
+  <marker id="arrow-blue" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+    <path d="M0,0 L11,4 L0,8 Z" fill="#2B6CB0"/>
+  </marker>
+  <marker id="arrow-red" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+    <path d="M0,0 L11,4 L0,8 Z" fill="#C53030"/>
+  </marker>
+  <marker id="arrow-green" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+    <path d="M0,0 L11,4 L0,8 Z" fill="#22543D"/>
+  </marker>
+  <marker id="arrow-feedback" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto">
+    <path d="M0,0 L12,4 L0,8 Z" fill="#2B6CB0"/>
+  </marker>
+</defs>
+<rect width="2800" height="1900" fill="#FFFFFF"/>
+<text x="1400" y="55" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="34px" font-weight="bold" text-anchor="middle" fill="#1A202C">Avalanche Validator Lifecycle Model v0.8.0: Differential Execution Specification</text>
+<text x="1400" y="88" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="18px" text-anchor="middle" fill="#4A5568">Rigorous Implementation Mapping: Two-PSUB cadCAD Architecture, Internal Six-Stage Pipeline, Parallel State Updates, and Invariant Verification</text>
+<rect x="50" y="120" width="360" height="1360" rx="12" fill="#F8FAFC" stroke="#CBD5E0" stroke-width="1.5"/>
+<text x="230" y="152" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="20px" font-weight="bold" text-anchor="middle" fill="#2D3748">Inputs &amp; Current State X_t</text>
+<path d="M 80 200 C 80 182, 380 182, 380 200 L 380 290 C 380 308, 80 308, 80 290 Z" fill="#E2E8F0" stroke="#2B6CB0" stroke-width="1.8"/>
+<ellipse cx="230" cy="200" rx="150" ry="18" fill="#E2E8F0" stroke="#2B6CB0" stroke-width="1.8"/>
+<text x="230" y="239" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="16px" font-weight="bold" text-anchor="middle" fill="#1A202C">Active Commitments</text>
+<text x="230" y="259" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#2B6CB0">C_t  (Micro-State)</text>
+<text x="230" y="277" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" text-anchor="middle" fill="#4A5568">stakes, days_left, done, node_key</text>
+<path d="M 80 350 C 80 332, 380 332, 380 350 L 380 440 C 380 458, 80 458, 80 440 Z" fill="#E2E8F0" stroke="#2B6CB0" stroke-width="1.8"/>
+<ellipse cx="230" cy="350" rx="150" ry="18" fill="#E2E8F0" stroke="#2B6CB0" stroke-width="1.8"/>
+<text x="230" y="389" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="16px" font-weight="bold" text-anchor="middle" fill="#1A202C">Out-of-Set Records</text>
+<text x="230" y="409" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#2B6CB0">O_t  (Eligible Pool)</text>
+<text x="230" y="427" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" text-anchor="middle" fill="#4A5568">out_stakes, out_days ≤ 365d</text>
+<path d="M 80 500 C 80 482, 380 482, 380 500 L 380 580 C 380 598, 80 598, 80 580 Z" fill="#E2E8F0" stroke="#2B6CB0" stroke-width="1.8"/>
+<ellipse cx="230" cy="500" rx="150" ry="18" fill="#E2E8F0" stroke="#2B6CB0" stroke-width="1.8"/>
+<text x="230" y="534" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="16px" font-weight="bold" text-anchor="middle" fill="#1A202C">Global Protocol State</text>
+<text x="230" y="554" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#2B6CB0">Z_t = (S_t : supply_navax)</text>
+<text x="230" y="572" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" text-anchor="middle" fill="#4A5568">Cumulative supply counter</text>
+<line x1="70" y1="630" x2="390" y2="630" stroke="#CBD5E0" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="230" y="655" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="18px" font-weight="bold" text-anchor="middle" fill="#2D3748">Exogenous Inputs U_t</text>
+<polygon points="85,680 375,680 230,790" fill="#FEFCBF" stroke="#B7791F" stroke-width="1.8"/>
+<text x="230" y="706" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">Scheduled Commitments</text>
+<text x="230" y="726" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#B7791F">Q_t  (Bypasses Behaviour)</text>
+<text x="230" y="744" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#4A5568">Pre-accepted, due on day t</text>
+<polygon points="85,830 375,830 230,940" fill="#FEFCBF" stroke="#B7791F" stroke-width="1.8"/>
+<text x="230" y="856" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">Protocol Configuration</text>
+<text x="230" y="876" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#B7791F">ψ_prot  (Immutable)</text>
+<text x="230" y="894" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#4A5568">Bounds: S_min=2k, S_max=3M; ACP-285</text>
+<polygon points="85,980 375,980 230,1090" fill="#FEFCBF" stroke="#B7791F" stroke-width="1.8"/>
+<text x="230" y="1006" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">Historical Benchmark Data</text>
+<text x="230" y="1026" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#B7791F">D  (Reference Data)</text>
+<text x="230" y="1044" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#4A5568">D_menu yield menu, empirical tables</text>
+<polygon points="85,1130 375,1130 230,1240" fill="#FEFCBF" stroke="#B7791F" stroke-width="1.8"/>
+<text x="230" y="1156" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">Bootstrap Parameters</text>
+<text x="230" y="1176" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#B7791F">θ_r  (Run-Specific)</text>
+<text x="230" y="1194" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#4A5568">Refit per run: renewal, return, arrival</text>
+<polygon points="85,1280 375,1280 230,1390" fill="#FEFCBF" stroke="#B7791F" stroke-width="1.8"/>
+<text x="230" y="1306" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">Keyed PRNG Streams</text>
+<text x="230" y="1326" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#B7791F">ξ_(r,t)  (Stateless Hash)</text>
+<text x="230" y="1344" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#4A5568">Deterministic common random draws</text>
+<rect x="450" y="120" width="1390" height="1360" rx="16" fill="#FFFFFF" stroke="#1A202C" stroke-width="2.5" stroke-dasharray="12 8"/>
+<text x="475" y="155" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="24px" font-weight="bold" fill="#1A202C">PSUB 0: Main Daily Lifecycle Transition Block</text>
+<text x="475" y="180" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="14px" fill="#4A5568">Executed via single policy function <tspan font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-weight="bold">p_lifecycle</tspan> calling <tspan font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-weight="bold">run_stages()</tspan> across six linear stages</text>
+<rect x="480" y="205" width="1330" height="95" rx="8" fill="#F7FAFC" stroke="#A0AEC0" stroke-width="1.6"/>
+<text x="500" y="232" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="17px" font-weight="bold" fill="#2D3748">Day Context &amp; Feedback Signal Evaluation: G(S_t ; D_menu, ψ_prot)</text>
+<text x="500" y="257" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#4A5568">Prepares <tspan font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace">Day(t, start, draw, blocks, renewal_gap, entry_gap, settings)</tspan>. Evaluates renewal yield gap <tspan font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace">g_t^(R)</tspan> and entry yield gap <tspan font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace">g_t^(E)</tspan>.</text>
+<text x="500" y="280" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#2B6CB0">Yield feedback signals feed directly into Renewal Logit (Stage 1) and Negative-Binomial Arrivals (Stage 3).</text>
+<path d="M 380 540 L 430 540 L 430 250 L 480 250" stroke="#2B6CB0" stroke-width="2" marker-end="url(#arrow-blue)" fill="none"/>
+<text x="435" y="380" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="11px" fill="#2B6CB0" transform="rotate(-90 435 380)">reads S_t</text>
+<path d="M 375 885 L 440 885 L 440 270 L 480 270" stroke="#B7791F" stroke-width="1.8" marker-end="url(#arrow)" fill="none"/>
+<path d="M 375 1035 L 445 1035 L 445 285 L 480 285" stroke="#B7791F" stroke-width="1.8" marker-end="url(#arrow)" fill="none"/>
+<rect x="480" y="325" width="1330" height="545" rx="10" fill="#FFFFFF" stroke="#CBD5E0" stroke-width="1.8"/>
+<text x="505" y="352" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="19px" font-weight="bold" fill="#1A202C">Internal Daily Lifecycle Pipeline (run_stages)</text>
+<text x="505" y="374" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#718096">Strict execution order: earlier stage outputs pass sequentially via mapping `earlier` to subsequent stages</text>
+<polygon points="660,415 790,485 660,555 530,485" fill="#FED7D7" stroke="#9B2C2C" stroke-width="1.8"/>
+<text x="660" y="467" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">1. Renewal Stage</text>
+<text x="660" y="487" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" text-anchor="middle" fill="#4A5568">renewal_stage</text>
+<text x="660" y="507" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="11px" text-anchor="middle" fill="#9B2C2C">P(R=1) = σ(x^T β + ρ_R g^(R))</text>
+<polygon points="1060,415 1190,485 1060,555 930,485" fill="#FED7D7" stroke="#9B2C2C" stroke-width="1.8"/>
+<text x="1060" y="467" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">2. Returns Stage</text>
+<text x="1060" y="487" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" text-anchor="middle" fill="#4A5568">returns_stage</text>
+<text x="1060" y="507" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="11px" text-anchor="middle" fill="#9B2C2C">h_(j,t) (6 day bins, 8..365d)</text>
+<polygon points="1460,415 1590,485 1460,555 1330,485" fill="#FED7D7" stroke="#9B2C2C" stroke-width="1.8"/>
+<text x="1460" y="467" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">3. Arrivals Stage</text>
+<text x="1460" y="487" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" text-anchor="middle" fill="#4A5568">arrivals_stage</text>
+<text x="1460" y="507" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="11px" text-anchor="middle" fill="#9B2C2C">A_t ~ NegBin(μ_t ≤ 100, φ)</text>
+<line x1="790" y1="485" x2="930" y2="485" stroke="#1A202C" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="860" y="475" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#718096">ended, renews</text>
+<line x1="1190" y1="485" x2="1330" y2="485" stroke="#1A202C" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1260" y="475" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#718096">comes_back</text>
+<path d="M 1460 555 L 1460 590 L 660 590 L 660 640" stroke="#1A202C" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+<text x="1060" y="583" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" text-anchor="middle" fill="#2D3748">Participation Candidates N_t = (renews, comes_back, arrivals) pool into Continuation</text>
+<rect x="500" y="643" width="320" height="165" rx="12" fill="#FFF5F5" stroke="#9B2C2C" stroke-width="2"/>
+<text x="660" y="667" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="16px" font-weight="bold" text-anchor="middle" fill="#1A202C">4. Continuation Stage</text>
+<text x="660" y="685" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" text-anchor="middle" fill="#9B2C2C">_stake_continuation (single stage)</text>
+<rect x="515" y="697" width="290" height="44" rx="6" fill="#FFFFFF" stroke="#FEB2B2" stroke-width="1.2"/>
+<text x="660" y="714" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" text-anchor="middle" fill="#2D3748">Part A: Duration Selection d' ∈ [14, 365]</text>
+<text x="660" y="732" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#4A5568">Empirical tables: 4 previous bins | first_days</text>
+<rect x="515" y="749" width="290" height="48" rx="6" fill="#FFFFFF" stroke="#FEB2B2" stroke-width="1.2"/>
+<text x="660" y="767" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" text-anchor="middle" fill="#2D3748">Part B: Stake Choice s' ∈ [2k, 3M] AVAX</text>
+<text x="660" y="785" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#4A5568">Hurdle p_(c,b,q) + 10-band log-ratio quantiles</text>
+<polygon points="995,655 1229,655 1245,725 1229,795 995,795" fill="#C6F6D5" stroke="#22543D" stroke-width="1.8"/>
+<text x="1114" y="705" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">5. Rewards Stage</text>
+<text x="1114" y="725" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" text-anchor="middle" fill="#4A5568">rewards_stage (Deterministic)</text>
+<text x="1114" y="745" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="11px" text-anchor="middle" fill="#22543D">I_(m,t) = potential_reward(s', d', S_t)</text>
+<line x1="820" y1="725" x2="995" y2="725" stroke="#1A202C" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="907" y="715" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#718096">started (s', d')</text>
+<polygon points="1405,655 1639,655 1655,725 1639,795 1405,795" fill="#C6F6D5" stroke="#22543D" stroke-width="1.8"/>
+<text x="1524" y="705" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">6. Assembly Stage</text>
+<text x="1524" y="725" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" text-anchor="middle" fill="#4A5568">assembly_stage (Deterministic)</text>
+<text x="1524" y="745" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="11px" text-anchor="middle" fill="#22543D">Assemble C_(t+1), O_(t+1); inject Q_t</text>
+<line x1="1245" y1="725" x2="1405" y2="725" stroke="#1A202C" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1325" y="715" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" text-anchor="middle" fill="#718096">issued_navax I_t</text>
+<path d="M 380 200 L 660 200 L 660 415" stroke="#2B6CB0" stroke-width="2" marker-end="url(#arrow-blue)" fill="none"/>
+<text x="570" y="192" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" fill="#2B6CB0">reads C_t (ending commitments)</text>
+<path d="M 380 350 L 1060 350 L 1060 415" stroke="#2B6CB0" stroke-width="2" marker-end="url(#arrow-blue)" fill="none"/>
+<text x="860" y="342" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" fill="#2B6CB0">reads O_t (eligible out-of-set records)</text>
+<path d="M 375 735 L 430 735 L 430 840 L 1530 840 L 1530 795" stroke="#B7791F" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+<text x="960" y="832" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" fill="#B7791F">injects scheduled Q_t due today (bypasses stages 1-5)</text>
+<path d="M 1530 795 L 1530 905 L 1720 905" stroke="#1A202C" stroke-width="2.5" marker-end="url(#arrow)" fill="none"/>
+<rect x="1080" y="889" width="640" height="32" rx="6" fill="#1A202C"/>
+<text x="1400" y="910" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#FFFFFF">COMMON POLICY SIGNAL = assembly_stage outputs (stakes, days, out_stakes, issued_navax...)</text>
+<path d="M 1080 905 L 485 905 L 485 1180 L 505 1180" stroke="#1A202C" stroke-width="2.5" marker-end="url(#arrow)" fill="none"/>
+<rect x="480" y="960" width="1330" height="460" rx="10" fill="#F8FAFC" stroke="#CBD5E0" stroke-width="1.8"/>
+<text x="505" y="992" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="19px" font-weight="bold" fill="#1A202C">State-Update Function Bank: Parallel Updates on Pre-PSUB State X_t</text>
+<text x="505" y="1015" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#4A5568">All 24 functions receive (params, substep, history, state=X_t, signal). Executed in parallel, not sequentially.</text>
+<rect x="505" y="1035" width="410" height="80" rx="8" fill="#E6F4EA" stroke="#22543D" stroke-width="1.5"/>
+<text x="520" y="1059" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" fill="#22543D">s_copy(name) x 8</text>
+<text x="520" y="1079" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="14px" font-weight="bold" fill="#1A202C">Updates: C_(t+1) Commitment Columns</text>
+<text x="520" y="1099" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">stakes, days_left, done, days, returns, node_key...</text>
+<rect x="935" y="1035" width="410" height="80" rx="8" fill="#E6F4EA" stroke="#22543D" stroke-width="1.5"/>
+<text x="950" y="1059" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" fill="#22543D">s_copy(name) x 6</text>
+<text x="950" y="1079" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="14px" font-weight="bold" fill="#1A202C">Updates: O_(t+1) Out-of-Set Columns</text>
+<text x="950" y="1099" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">out_stakes, out_days, out_done, out_last_days...</text>
+<rect x="1365" y="1035" width="420" height="80" rx="8" fill="#E6F4EA" stroke="#22543D" stroke-width="1.5"/>
+<text x="1380" y="1059" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" fill="#22543D">s_supply</text>
+<text x="1380" y="1079" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="14px" font-weight="bold" fill="#1A202C">Updates: supply_navax  (Persistent Z)</text>
+<text x="1380" y="1099" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">state["supply_navax"] + signal["issued_navax"]</text>
+<rect x="505" y="1130" width="410" height="80" rx="8" fill="#E6F4EA" stroke="#22543D" stroke-width="1.5"/>
+<text x="520" y="1154" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" fill="#22543D">s_count</text>
+<text x="520" y="1174" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="14px" font-weight="bold" fill="#1A202C">Updates: active_validators</text>
+<text x="520" y="1194" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">len(signal["stakes"]) -> Count of open records</text>
+<rect x="935" y="1130" width="410" height="80" rx="8" fill="#E6F4EA" stroke="#22543D" stroke-width="1.5"/>
+<text x="950" y="1154" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" fill="#22543D">s_stake</text>
+<text x="950" y="1174" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="14px" font-weight="bold" fill="#1A202C">Updates: active_validator_stake_navax</text>
+<text x="950" y="1194" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">int(signal["stakes"].sum()) -> Total active stake</text>
+<rect x="1365" y="1130" width="420" height="80" rx="8" fill="#E6F4EA" stroke="#22543D" stroke-width="1.5"/>
+<text x="1380" y="1154" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" fill="#22543D">s_out</text>
+<text x="1380" y="1174" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="14px" font-weight="bold" fill="#1A202C">Updates: returning_nodes</text>
+<text x="1380" y="1194" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">len(signal["out_stakes"]) -> Count eligible out-of-set</text>
+<rect x="505" y="1225" width="410" height="80" rx="8" fill="#E6F4EA" stroke="#22543D" stroke-width="1.5"/>
+<text x="520" y="1249" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" fill="#22543D">s_nakamoto</text>
+<text x="520" y="1269" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="14px" font-weight="bold" fill="#1A202C">Updates: nakamoto_third_nodes</text>
+<text x="520" y="1289" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">Fewest unique node_keys whose stake strictly &gt; 1/3</text>
+<rect x="935" y="1225" width="410" height="80" rx="8" fill="#E6F4EA" stroke="#22543D" stroke-width="1.5"/>
+<text x="950" y="1249" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" fill="#22543D">s_copy(flows) x 5</text>
+<text x="950" y="1269" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="14px" font-weight="bold" fill="#1A202C">Updates: Intermediate Flows Φ_t</text>
+<text x="950" y="1289" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">issued_navax, yield_gap_pp, started_stake...</text>
+<rect x="1365" y="1225" width="420" height="80" rx="8" fill="#E6F4EA" stroke="#22543D" stroke-width="1.5"/>
+<text x="1380" y="1249" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" fill="#22543D">s_copy(rate)</text>
+<text x="1380" y="1269" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="14px" font-weight="bold" fill="#1A202C">Updates: offered_rate_30d</text>
+<text x="1380" y="1289" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">Annualized rate offered for 30d baseline commitment</text>
+<path d="M 1785 1175 L 1845 1175 L 1845 750 L 1910 750" stroke="#1A202C" stroke-width="2.5" marker-end="url(#arrow)" fill="none"/>
+<text x="1875" y="930" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" font-weight="bold" fill="#1A202C" transform="rotate(-90 1875 930)">candidate state X_(t+1)'</text>
+<rect x="1910" y="120" width="410" height="1360" rx="16" fill="#FFFFFF" stroke="#9B2C2C" stroke-width="2.5" stroke-dasharray="12 8"/>
+<text x="2115" y="155" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="22px" font-weight="bold" text-anchor="middle" fill="#9B2C2C">PSUB 1: Invariant Validation</text>
+<text x="2115" y="180" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" text-anchor="middle" fill="#4A5568">Policy <tspan font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-weight="bold">p_invariants</tspan> asserts 5 conservation laws</text>
+<rect x="1930" y="220" width="370" height="75" rx="8" fill="#FFF5F5" stroke="#C53030" stroke-width="2"/>
+<rect x="1933" y="223" width="364" height="69" rx="6" fill="none" stroke="#C53030" stroke-width="1"/>
+<text x="1945" y="246" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" fill="#1A202C">Check 1: Validator Stake Bounds</text>
+<text x="1945" y="268" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" font-weight="bold" fill="#C53030">2,000 ≤ s_i ≤ 3,000,000 AVAX</text>
+<rect x="1930" y="320" width="370" height="75" rx="8" fill="#FFF5F5" stroke="#C53030" stroke-width="2"/>
+<rect x="1933" y="323" width="364" height="69" rx="6" fill="none" stroke="#C53030" stroke-width="1"/>
+<text x="1945" y="346" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" fill="#1A202C">Check 2: Stake Sum Conservation</text>
+<text x="1945" y="368" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" font-weight="bold" fill="#C53030">active_validator_stake == sum(stakes)</text>
+<rect x="1930" y="420" width="370" height="75" rx="8" fill="#FFF5F5" stroke="#C53030" stroke-width="2"/>
+<rect x="1933" y="423" width="364" height="69" rx="6" fill="none" stroke="#C53030" stroke-width="1"/>
+<text x="1945" y="446" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" fill="#1A202C">Check 3: Out-of-Set Max Horizon</text>
+<text x="1945" y="468" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" font-weight="bold" fill="#C53030">all(out_days ≤ 365)</text>
+<rect x="1930" y="520" width="370" height="75" rx="8" fill="#FFF5F5" stroke="#C53030" stroke-width="2"/>
+<rect x="1933" y="523" width="364" height="69" rx="6" fill="none" stroke="#C53030" stroke-width="1"/>
+<text x="1945" y="546" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" fill="#1A202C">Check 4: Protocol Supply Cap</text>
+<text x="1945" y="568" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" font-weight="bold" fill="#C53030">supply_navax ≤ 720,000,000 AVAX</text>
+<rect x="1930" y="620" width="370" height="75" rx="8" fill="#FFF5F5" stroke="#C53030" stroke-width="2"/>
+<rect x="1933" y="623" width="364" height="69" rx="6" fill="none" stroke="#C53030" stroke-width="1"/>
+<text x="1945" y="646" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" fill="#1A202C">Check 5: Solvency Invariant</text>
+<text x="1945" y="668" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="12px" font-weight="bold" fill="#C53030">active_validator_stake ≤ supply_navax</text>
+<line x1="2115" y1="700" x2="2115" y2="760" stroke="#C53030" stroke-width="2" marker-end="url(#arrow-red)"/>
+<polygon points="2115,765 2235,800 2115,835 1995,800" fill="#FFFFFF" stroke="#C53030" stroke-width="2"/>
+<text x="2115" y="795" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">Do All 5</text>
+<text x="2115" y="815" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="15px" font-weight="bold" text-anchor="middle" fill="#1A202C">Invariants Hold?</text>
+<line x1="2235" y1="800" x2="2275" y2="800" stroke="#C53030" stroke-width="2" marker-end="url(#arrow-red)"/>
+<path d="M 2275 800 L 2275 860" stroke="#C53030" stroke-width="2" marker-end="url(#arrow-red)" fill="none"/>
+<rect x="2195" y="860" width="115" height="68" rx="6" fill="#C53030" stroke="#742A2A" stroke-width="1.8"/>
+<text x="2252" y="880" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="middle" fill="#FFFFFF">FAILURE</text>
+<text x="2252" y="897" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="9px" text-anchor="middle" fill="#FED7D7">InvariantError</text>
+<text x="2252" y="913" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="9px" text-anchor="middle" fill="#FFFFFF">Halts run</text>
+<text x="2255" y="792" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" fill="#C53030">False</text>
+<line x1="2115" y1="835" x2="2115" y2="1000" stroke="#22543D" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+<text x="2135" y="920" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" font-weight="bold" fill="#22543D">True (Pass)</text>
+<path d="M 1955 1050 C 1955 1032, 2275 1032, 2275 1050 L 2275 1140 C 2275 1158, 1955 1158, 1955 1140 Z" fill="#C6F6D5" stroke="#22543D" stroke-width="1.8"/>
+<ellipse cx="2115" cy="1050" rx="160" ry="18" fill="#C6F6D5" stroke="#22543D" stroke-width="1.8"/>
+<text x="2115" y="1089" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="16px" font-weight="bold" text-anchor="middle" fill="#1A202C">Validated Next State</text>
+<text x="2115" y="1109" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" text-anchor="middle" fill="#2B6CB0">X_(t+1)  (Confirmed Sound)</text>
+<text x="2115" y="1127" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" text-anchor="middle" fill="#4A5568">C_(t+1), O_(t+1), Z_(t+1)</text>
+<rect x="2370" y="120" width="380" height="1360" rx="16" fill="#F8FAFC" stroke="#CBD5E0" stroke-width="1.8"/>
+<text x="2560" y="155" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="22px" font-weight="bold" text-anchor="middle" fill="#2D3748">Recorded Outputs &amp; Metrics</text>
+<text x="2560" y="180" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="14px" font-weight="bold" text-anchor="middle" fill="#2B6CB0">Y_t = H(X_(t+1), Φ_t)</text>
+<rect x="2390" y="210" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="232" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">active_validators</text>
+<text x="2718" y="232" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Snapshot]</text>
+<text x="2402" y="252" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">N_(t+1) = |C_(t+1)|</text>
+<text x="2402" y="270" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Count of active validator records</text>
+<rect x="2390" y="295" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="317" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">active_validator_stake</text>
+<text x="2718" y="317" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Snapshot]</text>
+<text x="2402" y="337" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">sum_(i ∈ C) s_(i,t+1)</text>
+<text x="2402" y="355" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Total stake active on Primary Network</text>
+<rect x="2390" y="380" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="402" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">returning_nodes</text>
+<text x="2718" y="402" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Snapshot]</text>
+<text x="2402" y="422" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">M_(t+1) = |O_(t+1)|</text>
+<text x="2402" y="440" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Count of eligible out-of-set records</text>
+<rect x="2390" y="465" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="487" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">nakamoto_third_nodes</text>
+<text x="2718" y="487" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Snapshot]</text>
+<text x="2402" y="507" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">min {m : sum S_(j) &gt; 1/3 S_tot}</text>
+<text x="2402" y="525" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Decentralization over simulated node keys</text>
+<rect x="2390" y="560" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="582" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">supply_navax</text>
+<text x="2718" y="582" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Cumulative]</text>
+<text x="2402" y="602" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">S_(t+1) = S_t + I_t</text>
+<text x="2402" y="620" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Persistent reward-adjusted supply</text>
+<rect x="2390" y="655" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="677" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">issued_navax</text>
+<text x="2718" y="677" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Flow]</text>
+<text x="2402" y="697" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">I_t = sum_(m ∈ N) I_(m,t)</text>
+<text x="2402" y="715" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Potential rewards from new endogenous starts</text>
+<rect x="2390" y="740" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="762" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">started_stake_navax</text>
+<text x="2718" y="762" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Flow]</text>
+<text x="2402" y="782" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">sum_(m ∈ N) s'_m</text>
+<text x="2402" y="800" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Principal stake committed today</text>
+<rect x="2390" y="825" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="847" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">started_stake_days</text>
+<text x="2718" y="847" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Flow]</text>
+<text x="2402" y="867" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">sum_(m ∈ N) s'_m * d'_m</text>
+<text x="2402" y="885" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Contracted stake-duration flux</text>
+<rect x="2390" y="910" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="932" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">yield_gap_pp</text>
+<text x="2718" y="932" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Signal]</text>
+<text x="2402" y="952" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">g_t^(R) = offered - benchmark</text>
+<text x="2402" y="970" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Renewal yield gap in percentage points</text>
+<rect x="2390" y="995" width="340" height="72" rx="6" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.4"/>
+<text x="2402" y="1017" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="13px" font-weight="bold" fill="#1A202C">offered_rate_30d</text>
+<text x="2718" y="1017" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" font-weight="bold" text-anchor="end" fill="#718096">[Diagnostic]</text>
+<text x="2402" y="1037" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="13px" fill="#2D3748">rate(30d ; S_t, ψ_prot)</text>
+<text x="2402" y="1055" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="11px" fill="#4A5568">Annualized minting rate for baseline stake</text>
+<path d="M 2275 1100 L 2340 1100 L 2340 380 L 2390 380" stroke="#22543D" stroke-width="1.8" marker-end="url(#arrow-green)" fill="none"/>
+<text x="2345" y="440" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="11px" fill="#22543D" transform="rotate(-90 2345 440)">measured from X_(t+1)</text>
+<path d="M 1785 1260 L 2355 1260 L 2355 760 L 2390 760" stroke="#4A5568" stroke-width="1.8" marker-end="url(#arrow)" fill="none"/>
+<text x="2360" y="830" font-family="'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" font-size="11px" fill="#4A5568" transform="rotate(-90 2360 830)">measured from Φ_t</text>
+<path d="M 2115 1160 L 2115 1450 L 230 1450 L 230 600" stroke="#2B6CB0" stroke-width="3" stroke-dasharray="10 6" marker-end="url(#arrow-feedback)" fill="none"/>
+<rect x="850" y="1432" width="600" height="34" rx="6" fill="#2B6CB0"/>
+<text x="1150" y="1455" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="16px" font-weight="bold" text-anchor="middle" fill="#FFFFFF">DAILY SYSTEM FEEDBACK LOOP: Validated State X_(t+1) becomes Input State X_t for Day t+1</text>
+<rect x="50" y="1510" width="900" height="350" rx="12" fill="#FFFFFF" stroke="#1A202C" stroke-width="1.8"/>
+<text x="75" y="1542" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="20px" font-weight="bold" fill="#1A202C">Visual Grammar &amp; Adapted Notation Legend</text>
+<path d="M 70 1575 C 70 1569, 105 1569, 105 1575 L 105 1590 C 105 1596, 70 1596, 70 1590 Z" fill="#E2E8F0" stroke="#2B6CB0" stroke-width="1.5"/>
+<ellipse cx="87.5" cy="1575" rx="17.5" ry="6" fill="#E2E8F0" stroke="#2B6CB0" stroke-width="1.5"/>
+<text x="120" y="1587" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="14px" font-weight="bold" fill="#1A202C">Cylinder (Blue-Grey):</text>
+<text x="285" y="1587" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#4A5568">Persistent Endogenous State Variable (C_t, O_t, Z_t)</text>
+<polygon points="70,1610 105,1610 87.5,1637" fill="#FEFCBF" stroke="#B7791F" stroke-width="1.5"/>
+<text x="120" y="1627" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="14px" font-weight="bold" fill="#1A202C">Inverted Triangle (Cream):</text>
+<text x="310" y="1627" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#4A5568">Exogenous Input / Scenario Parameter (Q_t, D, ψ_prot)</text>
+<polygon points="87.5,1647 105,1662 87.5,1677 70,1662" fill="#FED7D7" stroke="#9B2C2C" stroke-width="1.5"/>
+<text x="120" y="1667" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="14px" font-weight="bold" fill="#1A202C">Diamond (Muted Pink):</text>
+<text x="290" y="1667" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#4A5568">Stochastic Behavioural Policy / Decision Function</text>
+<polygon points="70,1690 96,1690 105,1702 96,1714 70,1714" fill="#C6F6D5" stroke="#22543D" stroke-width="1.5"/>
+<text x="120" y="1707" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="14px" font-weight="bold" fill="#1A202C">Pentagon (Sage Green):</text>
+<text x="300" y="1707" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#4A5568">Mechanism / State-Update Operation <tspan font-style="italic">(Adapted convention)</tspan></text>
+<rect x="70" y="1730" width="35" height="24" rx="4" fill="#FFF5F5" stroke="#C53030" stroke-width="1.8"/>
+<rect x="72" y="1732" width="31" height="20" rx="3" fill="none" stroke="#C53030" stroke-width="1"/>
+<text x="120" y="1747" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="14px" font-weight="bold" fill="#1A202C">Double-Border Box (Red):</text>
+<text x="315" y="1747" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#4A5568">Formal Invariant Assertion (Raises InvariantError on failure)</text>
+<rect x="70" y="1770" width="35" height="24" rx="4" fill="#EDF2F7" stroke="#4A5568" stroke-width="1.5"/>
+<text x="120" y="1787" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="14px" font-weight="bold" fill="#1A202C">Rectangle (Grey):</text>
+<text x="245" y="1787" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" fill="#4A5568">Recorded Output Metric / Observable Vector Y_t</text>
+<line x1="70" y1="1813" x2="105" y2="1813" stroke="#1A202C" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="320" y1="1813" x2="355" y2="1813" stroke="#2B6CB0" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#arrow-feedback)"/>
+<text x="115" y="1817" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" font-weight="bold" fill="#1A202C">Solid Arrow:</text>
+<text x="200" y="1817" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">State/Signal Dataflow</text>
+<text x="365" y="1817" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="13px" font-weight="bold" fill="#2B6CB0">Dashed Blue Line:</text>
+<text x="490" y="1817" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" fill="#4A5568">Inter-timestep Feedback Loop</text>
+<text x="75" y="1840" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-style="italic" fill="#718096">*Adapted Visual Convention: In BlockScience/Polkadot engineering specifications, pentagons frequently denote control functions. Here, pentagons denote deterministic protocol mechanisms and state-update operations.</text>
+<rect x="980" y="1510" width="1770" height="350" rx="12" fill="#FFFFFF" stroke="#1A202C" stroke-width="1.8"/>
+<text x="1005" y="1542" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="20px" font-weight="bold" fill="#1A202C">Traceability Matrix &amp; Verified Model Boundaries (model-v0.8.0 at b18a4a2)</text>
+<text x="1005" y="1575" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="16px" font-weight="bold" fill="#2B6CB0">CadCAD Architecture &amp; Execution Semantics</text>
+<text x="1005" y="1599" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Exact PSUB Count: <tspan font-weight="normal" fill="#4A5568">Exactly 2 blocks per daily step (checked_blocks in engine.py:89).</tspan></text>
+<text x="1005" y="1620" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Policy Function: <tspan font-weight="normal" fill="#4A5568">p_lifecycle (fitted_lifecycle.py:286) executes run_stages.</tspan></text>
+<text x="1005" y="1641" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Stage Orchestration: <tspan font-weight="normal" fill="#4A5568">run_stages executes stages sequentially; earlier passes to later.</tspan></text>
+<text x="1005" y="1662" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Parallel State Updates: <tspan font-weight="normal" fill="#4A5568">All 24 update functions read pre-PSUB state and common signal.</tspan></text>
+<text x="1005" y="1683" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Supply Accumulation: <tspan font-weight="normal" fill="#4A5568">s_supply computes state["supply"] + signal["issued"] (not sequential).</tspan></text>
+<text x="1005" y="1704" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Validation Timing: <tspan font-weight="normal" fill="#4A5568">p_invariants runs in PSUB 1 immediately after all state updates.</tspan></text>
+<text x="1005" y="1725" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Error Raising: <tspan font-weight="normal" fill="#4A5568">Raises InvariantError on failure, terminating run without corruption.</tspan></text>
+<text x="1590" y="1575" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="16px" font-weight="bold" fill="#9B2C2C">Behavioural Processes &amp; Calibration Laws</text>
+<text x="1590" y="1599" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Renewal Logit: <tspan font-weight="normal" fill="#4A5568">node_record disabled (held at 0.0) in released v0.8.0 configuration.</tspan></text>
+<text x="1590" y="1620" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Return Hazard: <tspan font-weight="normal" fill="#4A5568">Piecewise logistic hazard across 6 day-out bins (8..365d); no yield term.</tspan></text>
+<text x="1590" y="1641" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Arrivals Count: <tspan font-weight="normal" fill="#4A5568">Negative Binomial count model; daily mean capped at 100.0 nodes/day.</tspan></text>
+<text x="1590" y="1662" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Continuation Duration: <tspan font-weight="normal" fill="#4A5568">Empirical duration table (4 bins) for renewals/returns; first_days for new.</tspan></text>
+<text x="1590" y="1683" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• StakeChoice Law: <tspan font-weight="normal" fill="#4A5568">Two-part hurdle (p) + 10 log-spaced stake bands; 50-obs fallback threshold.</tspan></text>
+<text x="1590" y="1704" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Stake Uncertainty: <tspan font-weight="normal" fill="#4A5568">Fixed point estimate across runs (stake hurdle not resampled).</tspan></text>
+<text x="1590" y="1725" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• PRNG Innovations: <tspan font-weight="normal" fill="#4A5568">Stateless keyed draws (draw.uniforms) tie randomness to entity identity.</tspan></text>
+<text x="2175" y="1575" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="16px" font-weight="bold" fill="#22543D">Verified Model Boundaries &amp; Scope Exclusions</text>
+<text x="2175" y="1599" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Constant Minimum Stake: <tspan font-weight="normal" fill="#4A5568">Released model strictly enforces S_min = 2,000 AVAX for all d in [14, 365].</tspan></text>
+<text x="2175" y="1620" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Proposed Admission Frontier: <tspan font-weight="normal" fill="#4A5568">S_min(d) = S_floor + (S_short - S_floor)η(d)^p is NOT active/enforced.</tspan></text>
+<text x="2175" y="1641" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Uptime / Slashing: <tspan font-weight="normal" fill="#4A5568">No uptime tracking, liveness checks, or slashing exist in v0.8.0.</tspan></text>
+<text x="2175" y="1662" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Gross Potential Rewards: <tspan font-weight="normal" fill="#4A5568">issued_navax reflects gross potential rewards without uptime forfeiture.</tspan></text>
+<text x="2175" y="1683" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Identity Representation: <tspan font-weight="normal" fill="#4A5568">Concentration measured over simulated node_keys, not corporate entities.</tspan></text>
+<text x="2175" y="1704" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Scheduled Commitments: <tspan font-weight="normal" fill="#4A5568">Exogenous inputs (Q_t) bypass duration and stake choice mechanisms.</tspan></text>
+<text x="2175" y="1725" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif" font-size="12px" font-weight="bold" fill="#1A202C">• Delegations &amp; Operators: <tspan font-weight="normal" fill="#4A5568">Excluded from v0.8.0; scheduled for v0.8.1 delegation lifecycle.</tspan></text>
+</svg>

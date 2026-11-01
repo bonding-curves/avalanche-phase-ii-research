@@ -1,4 +1,5 @@
-# Avalanche Staking Model v0.8: Dynamical System Specification & Model Characterization
+# Characterization of the Avalanche Validator Lifecycle Model (v0.8.0)
+*Model Structure, State Representation, Behavioural Processes, and Modelling Boundaries*
 
 **Document Identifier:** BCRG-AVAX-SPEC-2026-V08-CHAR  
 **Model Version:** `0.8.0-candidate` (tagged specification `keyed-v1`)  
@@ -34,18 +35,16 @@ The model combines two different kinds of mechanisms:
 - **Behavioural policies**, which represent how validators renew, return, enter, and choose the terms of a new commitment. These are estimated from historical validator activity and contain stochastic elements.
 - **Protocol mechanisms**, which apply the configured reward rules, update accounting variables, and assemble the next system state. These operations are deterministic, conditional on the decisions made by the behavioural components.
 
-Five behavioural processes drive the evolution of the validator population:
+The daily lifecycle executes **six internal lifecycle stages** in strict order:
 
-1. **Renewal (`Renewal`).** When an active commitment expires, the model decides whether the node immediately starts another commitment or leaves the active set.
-2. **Return (`Returns`).** A node that has left the active set is retained in an out-of-set population for up to 365 days. During this period, the model evaluates whether it returns.
-3. **First-ever arrival (`Arrivals`).** The model generates new node keys entering the Primary Network for the first time. The number of arrivals on a given day is stochastic.
-4. **Duration selection (`Continuation`).** Once a renewal, return, or first-ever arrival has been generated, the model selects the duration of the new commitment.
-5. **Stake selection (`StakeChoice`).** After selecting a duration, the model selects the stake associated with the new commitment.
+1. **Renewal (`Renewal`).** Evaluates commitments ending on day $t$; nodes decide whether to immediately renew or exit to the out-of-set population.
+2. **Return (`Returns`).** Evaluates nodes currently outside the active set; eligible nodes (absent 8–365 days) face a daily empirical hazard of returning.
+3. **First-ever arrival (`Arrivals`).** Generates new validator node keys entering the Primary Network for the first time via a negative-binomial arrival process.
+4. **Continuation (`Continuation`).** Determines the economic terms of all starting commitments. The Continuation stage comprises two distinct behavioural components: empirical duration selection and fitted stake selection. These components are described separately in Sections 2.7 and 2.8, although they execute within the same lifecycle stage in the released implementation.
+5. **Protocol reward pricing (`Rewards`).** Deterministically prices potential annualized rewards and minting liabilities for newly starting commitments under the configured protocol reward schedule.
+6. **State mutation and assembly (`Assembly`).** Deterministically updates active commitments, tracks out-of-set aging, injects scheduled commitments due on day $t$, and updates the cumulative supply counter.
 
-The behavioural stages are followed by protocol reward pricing and state assembly. In other words, the model first determines **who starts a commitment and on what terms**, then calculates the potential reward associated with that commitment, and finally updates the simulated population.
-
-![Architecture of the released Avalanche validator lifecycle model (v0.8.0)](../figures/v08-model-architecture.svg)
-*Figure 2.1: System architecture of the released Avalanche validator lifecycle model (`v0.8.0`), detailing offline empirical calibration, daily state transitions, stochastic behavioural policies, deterministic protocol mechanisms, and trajectory outputs.*
+The decomposition into signal evaluation, behavioural policies, and protocol mechanisms is a conceptual description of the model's functional architecture. In the released implementation, the daily lifecycle stages are executed sequentially within the main lifecycle policy function rather than as separate cadCAD PSUBs.
 
 Three qualifications are important when interpreting the released `v0.8.0` configuration.
 
@@ -162,6 +161,13 @@ $$
 X_{t+1}=F\left(X_t;Q_t,D,\psi_{\text{prot}},\theta_r,\xi_{r,t}\right)
 $$
 
+where:
+
+- $X_t=(C_t,O_t,Z_t)\in\mathcal{X}$ is the endogenous system state.
+- $U_t=(Q_t,D,\psi_{\text{prot}})$ collects the exogenous inputs: scheduled commitments $Q_t$ due on day $t$, historical reference data $D$, and the protocol parameter configuration $\psi_{\text{prot}}$.
+- $\theta_r$ is the vector of run-specific parameters drawn once at the start of Monte Carlo run $r$ via bootstrap resampling.
+- $\xi_{r,t}$ is the vector of step-level innovations generated deterministically on day $t$ via keyed PRNG streams.
+
 It is useful to think of this transition as three operations performed in order:
 
 1. **Calculate the signal.** The model uses the current protocol state to calculate the renewal and entry yield gaps, $g_t$.
@@ -176,13 +182,67 @@ $$
 
 Here, $\pi_{\theta_r}$ represents the stochastic behavioural policies, while $M$ represents the protocol and accounting mechanisms. The signal calculation $G$ supplies the feedback used by the behavioural policies.
 
+![Conceptual overview of the Avalanche Validator Lifecycle Model (v0.8.0)](../figures/v08-lifecycle-overview.png)
+**Figure 2.1. Conceptual overview of the Avalanche Validator Lifecycle Model (v0.8.0).** A data-calibrated agent-based model of validator entry, exit, and stake dynamics under Avalanche Primary Network protocol rules. The diagram maps system inputs (historical validator data, protocol configuration $\psi_{\text{prot}}$, and scheduled commitments $Q_t$), the daily lifecycle transition coupling stochastic agent behavioural policies (Renewal, Returns, Arrivals, Continuation, StakeChoice) with deterministic protocol mechanisms (Rewards, Assembly), the evolving state trajectory $X_t = (C_t, O_t, Z_t)$, and reported output observables $Y_t = H(X_t, I_t)$. Explicit modelling boundaries confirm that validator uptime, slashing, and delegation are excluded from the released v0.8.0 configuration.
+
+Crucially, this decomposition into signal evaluation, behavioural policies, and protocol mechanisms is a conceptual description of the model's functional architecture. In the released implementation, the daily lifecycle stages are executed sequentially within the main lifecycle policy function (`p_lifecycle`) rather than as separate cadCAD partial-state update blocks (PSUBs). The lifecycle's `blocks()` configuration provides one main dynamic partial-state-update block containing the lifecycle policy and state-update functions, followed by a separate invariant-check block applied by the simulation engine (`checked_blocks()`).
+
 Finally, the model produces observable daily metrics through a separate readout function:
 
 $$
 Y_t=H(X_t,I_t)
 $$
 
-The term $I_t$ represents the within-day flows, including potential rewards earmarked for new endogenous commitments (`issued_navax`) and newly initiated stake. The distinction matters: $X_t$ is what the model needs to continue the simulation, while $Y_t$ is what we inspect to understand the resulting behaviour.
+The term $I_t$ (or $\Phi_t$) represents the within-day flows, including potential rewards earmarked for new endogenous commitments (`issued_navax`) and newly initiated stake. The distinction matters: $X_t$ is what the model needs to continue the simulation, while $Y_t$ is what we inspect to understand the resulting behaviour.
+
+### 2.2.1 CadCAD Execution Architecture: PSUBs and State Updates
+
+While the conceptual architecture separates signal evaluation, behavioural policies, and protocol mechanisms, the actual simulation software organizes execution according to cadCAD block semantics.
+
+In the released `model-v0.8.0` implementation (`src/avalanche_research/model/fitted_lifecycle.py` and `engine.py`), each daily timestep executes exactly **two partial-state update blocks (PSUBs)**:
+
+1. **PSUB 0: Main Lifecycle Transition (`p_lifecycle`)**
+   - **Policy function**: The single policy function `p_lifecycle` constructs a `Day` context object and invokes `run_stages(stages, state, day)`.
+   - **Internal lifecycle stages**: Inside `run_stages`, the six internal daily lifecycle stages execute in strict linear sequence:
+     $$\text{Renewal} \rightarrow \text{Returns} \rightarrow \text{Arrivals} \rightarrow \text{Continuation} \rightarrow \text{Rewards} \rightarrow \text{Assembly}$$
+     Each stage receives the pre-transition state, the `Day` context (containing keyed PRNG streams, parameter draws, yield gaps, and settings), and a mapping `earlier` containing the outputs of preceding stages. The terminal output of `assembly_stage` forms the policy signal dictionary returned by `p_lifecycle`.
+   - **State-update functions**: PSUB 0 registers 24 state-update functions. In accordance with cadCAD semantics, **all 24 state-update functions evaluate on the identical pre-PSUB state snapshot** ($X_t$) and share the common policy signal dictionary returned by `p_lifecycle`. Their calculations are logically parallel rather than sequential mutations:
+     - `s_copy`: Copies updated array columns for active commitments (`stakes`, `days_left`, `done`, `after_return`, `days`, `handed_on`, `returns`, `node_key`), out-of-set records (`out_stakes`, `out_days`, `out_done`, `out_last_days`, `out_returns`, `out_node_key`), and intermediate transition flows (`issued_navax`, `yield_gap_pp`, `started_stake_navax`, `started_stake_days_navax`, `offered_rate_30d`).
+     - `s_supply`: Updates cumulative supply via $S_{t+1} = S_t + I_t$ (`state["supply_navax"] + signal["issued_navax"]`), reading the pre-PSUB supply $S_t$.
+     - `s_count`: Updates `active_validators` from $|C_{t+1}| = \text{len}(\text{signal}["\text{stakes}"])$.
+     - `s_stake`: Updates `active_validator_stake_navax` from $\sum_{i \in C_{t+1}} s_{i,t+1}$.
+     - `s_out`: Updates `returning_nodes` from $|O_{t+1}| = \text{len}(\text{signal}["\text{out\_stakes}"])$.
+     - `s_nakamoto`: Calculates `nakamoto_third_nodes` from the updated active stakes and node keys.
+
+2. **PSUB 1: Invariant Validation (`p_invariants`)**
+   - **Policy function**: Appended by `checked_blocks()` in `engine.py`, the policy function `p_invariants` iterates over the model's declared invariants, asserting that each condition holds on the freshly updated state $X_{t+1}$.
+   - **State-update functions**: None (`"variables": {}`). PSUB 1 mutates no state.
+   - **Failure semantics**: If any invariant condition evaluates to `False`, `p_invariants` immediately raises an `InvariantError` exception, terminating the simulation run without recording corrupted data.
+
+### 2.2.2 Invariant Validation and Conservation Laws
+
+The simulation engine enforces five mathematical and protocol conservation invariants at the conclusion of every timestep (after PSUB 0 state updates, inside PSUB 1):
+
+1. **Validator Stake Bounds**:
+   Every active commitment must strictly respect the protocol's admission bounds:
+   $$2{,}000\times 10^9\text{ nAVAX} \leq s_{i,t} \leq 3{,}000{,}000\times 10^9\text{ nAVAX}, \qquad \forall i \in C_t$$
+2. **Micro-to-Macro Stake Conservation**:
+   The aggregate active stake state variable must exactly equal the integer sum of individual commitment stakes:
+   $$\text{active\_validator\_stake\_navax}_t = \sum_{i \in C_t} s_{i,t}$$
+3. **Out-of-Set Tracking Horizon**:
+   No node record may remain in the out-of-set population beyond the maximum 365-day tracking horizon:
+   $$\tau_{j,t} \leq 365, \qquad \forall j \in O_t$$
+4. **Protocol Supply Cap**:
+   Cumulative reward-adjusted supply must never exceed the absolute maximum supply headroom of 720 million AVAX:
+   $$S_t \leq S_{\text{cap}} = 720{,}000{,}000\times 10^9\text{ nAVAX}$$
+5. **Stake-to-Supply Solvency**:
+   Total active validator stake cannot exceed the cumulative issued supply counter:
+   $$\text{active\_validator\_stake\_navax}_t \leq S_t$$
+
+These checks verify that the discrete micro-state transitions strictly preserve protocol conservation laws at every timestep before downstream observables are stored.
+
+![Differential specification of the Avalanche Validator Lifecycle Model (v0.8.0)](../figures/v08-lifecycle-infographic.png)
+**Figure 2.2. Differential specification of the Avalanche Validator Lifecycle Model (v0.8.0).** The diagram maps the model's exogenous inputs, lifecycle policy functions, state-update operations, persistent system state, observable metrics, and invariant-validation process. The main lifecycle PSUB executes six internal stages, followed by state updates; a separate invariant-validation PSUB checks the resulting candidate state. Directed edges represent data dependencies between model components. The proposed duration-dependent admission frontier is not enforced in the released v0.8.0 configuration.
 
 ---
 
@@ -343,18 +403,18 @@ The distinction is straightforward: $C_0$, $O_0$, and $S_0$ describe where the s
 
 ### 2.6 Daily Transition Pipeline and Behavioural Policies
 
-Every simulated day follows the same sequence of seven stages. The order matters because each stage uses information produced by the stages before it.
+Every simulated day follows the same sequence of six internal lifecycle stages. The order matters because each stage uses information produced by the stages before it:
 
 $$
-\text{Renewal} \rightarrow \text{Returns} \rightarrow \text{Arrivals} \rightarrow \text{Continuation} \rightarrow \text{StakeChoice} \rightarrow \text{Rewards} \rightarrow \text{Assembly}
+\text{Renewal} \rightarrow \text{Returns} \rightarrow \text{Arrivals} \rightarrow \text{Continuation} \rightarrow \text{Rewards} \rightarrow \text{Assembly}
 $$
 
-The first three stages determine **which nodes start a new commitment**. The next two determine **the terms of that commitment**. Rewards then calculates the potential reward associated with endogenous starts. Assembly finally updates the active and out-of-set populations to create the next day's state.
+The first three stages determine **which nodes start a new commitment**. The Continuation stage determines **the terms of that commitment**. The Continuation stage comprises two distinct behavioural components: empirical duration selection and fitted stake selection. These components are described separately in Sections 2.7 and 2.8, although they execute within the same lifecycle stage in the released implementation. Rewards then calculates the potential reward associated with endogenous starts. Assembly finally updates the active and out-of-set populations to create the next day's state.
 
 This ordering separates participation decisions from contract-attribute choices and protocol accounting. The details of each stage follow.
 
 ![Behavioural Decision Mechanisms Flowchart](../figures/v08-behavioural-mechanisms.png)
-*Figure 2.2: Flowchart of behavioural decision mechanisms in model v0.8.0, distinguishing participation decisions (Renewal, Returns, Arrivals) from commitment selection (Continuation, StakeChoice).*
+*Figure 2.3: Flowchart of behavioural decision mechanisms in model v0.8.0, distinguishing participation decisions (Renewal, Returns, Arrivals) from commitment selection (Continuation, StakeChoice).*
 
 #### 2.6.1 Renewal at Commitment Expiry (`Renewal`)
 
@@ -381,7 +441,7 @@ $$
 Here:
 
 - $\sigma(z)=(1+e^{-z})^{-1}$ is the logistic function, which maps any real-valued input to a probability between 0 and 1.
-- $x_{i,t}=f(n_{i,t},a_{i,t},d_{i,t},s_{i,t})$ is the feature vector built from the node's previous commitment count, prior-absence indicator, current duration, and current stake.
+- $x_{i,t}=f(n_{i,t},a_{i,t},d_{i,t},s_{i,t})$ is the feature vector built from the node's tenure bins ($n_{i,t} \in \{0, 1, 2-5, 6-8, 9+\}$), prior-absence indicator ($a_{i,t}$), duration bins (21–40, 41–100, >100 days), and stake bands (2.1k–100k, 100k–1M, >1M AVAX). In the released `v0.8.0` configuration (`v0.8-a stake return u`), the node's own historical renewal-record term (`node_record`) is disabled (held at zero) based on empirical model-selection scoring.
 - $\beta_r$ contains the fitted regression coefficients for Monte Carlo run $r$.
 - $g_t^{(R)}$ is the renewal yield gap on day $t$.
 - $\rho_R$ controls how strongly that gap affects the renewal decision.
@@ -479,24 +539,30 @@ The important distinction is that return behaviour is based on the node's own hi
 
 Renewals and returns involve nodes that already have a history in the model. First-ever arrivals are different: they represent new node keys with no previous commitment record.
 
-Let $A_t$ be the number of new node keys entering for the first time on day $t$. The model generates this count using a Negative Binomial distribution. Its expected value is:
+Let $A_t$ be the number of new node keys entering for the first time on day $t$. The model generates this count using an overdispersed Negative Binomial daily count model. The expected arrival rate on day $t$ scales with the entry yield gap and is capped at 100 nodes per day:
 
 $$
-\mu_{r,t}=\exp\left(\alpha_{0,r}+\rho_Eg_t^{(E)}\right)
+\mu_{r,t}=\min\left(100.0,\bar{\lambda}_{0,r}\exp\left(\rho_Eg_t^{(E)}\right)\right)
 $$
 
-The realized daily count is:
+The realized daily count is drawn via quantile inversion:
 
 $$
 A_t\sim\mathrm{NegBin}(\mu_{r,t},\phi_r)
 $$
 
+with conditional variance:
+
+$$
+\operatorname{Var}(A_t)=\mu_{r,t}+\frac{\mu_{r,t}^2}{\phi_r}
+$$
+
 where:
 
-- $\alpha_{0,r}$ is the run-specific baseline log-arrival rate.
-- $g_t^{(E)}$ is the entry reward-yield gap.
-- $\rho_E$ controls how strongly the entry yield gap affects the expected arrival rate.
-- $\phi_r$ is the run-specific overdispersion parameter.
+- $\bar{\lambda}_{0,r}$ is the run-specific baseline mean daily arrival count (capped at 100.0).
+- $g_t^{(E)}$ is the entry reward-yield gap on day $t$.
+- $\rho_E$ is the entry yield response elasticity.
+- $\phi_r \in [10^{-3}, 10^6]$ is the run-specific dispersion parameter. In the Poisson limit ($\phi_r \to 10^6$), the variance matches the mean.
 
 The use of a Negative Binomial distribution allows the daily count to vary more than a simple Poisson process would when the data exhibit overdispersion.
 
@@ -549,13 +615,9 @@ $$
 | 3 | 41–100 days |
 | 4 | More than 100 days |
 
-A first-ever arrival has no previous commitment, so its previous-duration category is empty:
+A first-ever arrival has no previous commitment, so its previous-duration category is empty ($b_{\text{prev}}=\varnothing$). First-ever entries draw their duration directly from the empirical distribution of historical first-ever commitment durations (`first_days`), bypassing the transition table.
 
-$$
-b_{\text{prev}}=\varnothing
-$$
-
-Duration selection then happens in two steps.
+For renewing and returning validators, duration selection proceeds in two steps.
 
 **Step 1: Choose a duration band.**
 
@@ -653,18 +715,10 @@ Notice that these are not the same bands used by `Continuation`. `Continuation` 
 
 **3. Previous-stake band ($q$)**
 
-For renewals and returns, the model also classifies the reference stake into one of five stake bands:
+For renewals and returns, the model classifies the reference stake into one of ten log-spaced stake bands defined by nine cutpoints spanning 2,100 to 2,000,000 AVAX (`MOVE_STAKE_EDGES`):
 
 $$
-\mathcal{Q}_{\text{stake}}=\left\lbrace
-\begin{aligned}
-&[2{,}000,2{,}500),\\
-&[2{,}500,10{,}000),\\
-&[10{,}000,50{,}000),\\
-&[50{,}000,200{,}000),\\
-&[200{,}000,\infty)
-\end{aligned}
-\right\rbrace\times10^9\text{ nAVAX}
+\mathcal{Q}_{\text{stake}}=\lbrace q_0, q_1, \ldots, q_9\rbrace
 $$
 
 A first-ever arrival has no previous stake, so its previous-stake band is empty:
@@ -700,7 +754,13 @@ $$
 
 Here, $n_{\text{keep},c,b,q}$ counts historical transitions that kept the reference stake unchanged, while $n_{\text{total},c,b,q}$ counts all observations in that cell.
 
-The added 1 and 2 implement Laplace smoothing. In practical terms, this prevents the estimated probability from becoming exactly zero or exactly one just because a cell has a small number of observations. When a cell contains fewer observations than the configured minimum threshold, the estimation falls back to a coarser group of observations.
+The added 1 and 2 implement Laplace (add-one) smoothing on keep versus change counts.
+
+For the conditional quantile knots $Q_{c,b,q}(u)$, the model applies a hierarchical sample fallback governed by a minimum threshold of **50 changed observations** ($N \geq 50$):
+1. If the specific conditioning cell $(c, b, q)$ contains $\ge 50$ changed stake observations, the empirical log-ratio quantiles are estimated directly from that cell (`scope = "cell"`).
+2. If the cell contains fewer than 50 observations, the estimation falls back to the pooled duration band $(c, b)$ if it contains $\ge 50$ changed observations (`scope = "duration"`).
+3. If the duration band also has fewer than 50 observations, it falls back to the context-wide pool $c$ (`scope = "context"`).
+4. If the context has no observed changes, it defaults to a point mass at zero change.
 
 #### 2.8.3 Part two: draw a changed stake
 
@@ -996,15 +1056,18 @@ The output vector $Y_t$ contains the metrics used to describe the simulated vali
 
 **Table 2.2. Daily output schema and its role in the model**
 
-| Output variable | Role | Meaning |
-|---|---|---|
-| `supply_navax` | Global state ($Z_t$) | Cumulative reward-adjusted supply counter $S_t$, updated through $S_{t+1}=S_t+I_t$. |
-| `active_validators` | State readout | Number of active commitment records, $N_t=\vert C_t\vert$. |
-| `active_validator_stake_navax` | State readout | Total stake in active commitments, $\sum_{i\in C_t}s_{i,t}$. |
-| `nakamoto_third_nodes` | State readout | Minimum number of distinct simulated node keys whose combined stake exceeds one-third of active stake. |
-| `issued_navax` | Daily flow ($I_t$) | Total potential rewards associated with endogenous commitments started on day $t$. |
-| `started_stake_navax` | Daily flow | Total stake attached to endogenous commitments starting on day $t$. |
-| `started_stake_days_navax` | Daily flow | Total stake multiplied by contracted duration for endogenous starts on day $t$. |
+| Output variable | Role | Meaning | Source in Implementation |
+|---|---|---|---|
+| `supply_navax` | Global state ($Z_t$) | Cumulative reward-adjusted supply counter $S_t$, updated through $S_{t+1}=S_t+I_t$. | Pre-PSUB state $S_t$ plus transition flow `issued_navax`. |
+| `active_validators` | State readout | Number of active commitment records, $N_t=\vert C_t\vert$. | Post-transition commitment count `len(signal["stakes"])`. |
+| `active_validator_stake_navax` | State readout | Total stake in active commitments, $\sum_{i\in C_t}s_{i,t}$. | Sum of post-transition commitment stakes `signal["stakes"].sum()`. |
+| `returning_nodes` | State readout | Number of nodes outside the active set eligible to return, $M_t=\vert O_t\vert$. | Out-of-set record count `len(signal["out_stakes"])`. |
+| `nakamoto_third_nodes` | State readout | Minimum number of distinct simulated node keys whose combined stake exceeds one-third of active stake. | Calculated over post-transition `signal["stakes"]` grouped by `node_key`. |
+| `issued_navax` | Daily flow ($I_t$) | Total potential rewards associated with endogenous commitments started on day $t$. | Calculated by `rewards_stage` across newly started commitments. |
+| `started_stake_navax` | Daily flow | Total stake attached to endogenous commitments starting on day $t$. | Calculated by `rewards_stage` as sum of newly started stakes. |
+| `started_stake_days_navax` | Daily flow | Total stake multiplied by contracted duration for endogenous starts on day $t$. | Calculated by `rewards_stage` as $\sum s'_m d'_m$. |
+| `yield_gap_pp` | Diagnostic signal | Daily renewal yield gap $g_t^{(R)}$, in percentage points. | Read from `day.renewal_gap` evaluated against benchmark menu. |
+| `offered_rate_30d` | Diagnostic rate | Annualized reward rate offered for a 30-day baseline stake at current supply. | Evaluated directly from protocol reward mechanism at $S_t$. |
 
 The distinction between state and flow is important. `supply_navax` accumulates over time. `issued_navax`, by contrast, records the potential reward associated with the endogenous starts occurring on a particular day. Similarly, the two `started_stake` metrics describe new endogenous starts during that day, not the full stock of active commitments.
 
@@ -1064,13 +1127,19 @@ for $d\in[14,365]$.
 
 This means that, in the baseline model, the minimum stake required to enter is the same whether a validator chooses a short or a long commitment duration.
 
-An ongoing BCRG research extension explores a different admission rule: the **`BoundedHarmonicFrontier`**. Instead of using one constant minimum stake, this mechanism makes the minimum stake depend on commitment duration:
+An ongoing BCRG research extension explores a different admission rule: the **`BoundedHarmonicFrontier`**. Instead of using one constant minimum stake, this proposed mechanism makes the required minimum stake depend on commitment duration:
 
 $$
-S_{\min}=S_{\min}(d;S_{\text{short}},S_{\text{floor}},p)
+S_{\min}(d) = S_{\text{floor}} + (S_{\text{short}} - S_{\text{floor}})\eta(d)^p
 $$
 
-The intended shape is higher minimum stake for shorter commitments, with the requirement relaxing toward $S_{\text{floor}}$ as duration approaches the maximum permitted duration $d_{\max}$.
+where the normalized harmonic duration is:
+
+$$
+\eta(d) = \frac{1/d - 1/d_{\max}}{1/d_{\min} - 1/d_{\max}}
+$$
+
+The intended shape imposes a higher minimum stake requirement ($S_{\text{short}}$) on short-duration commitments, with the requirement relaxing toward $S_{\text{floor}}$ as duration approaches $d_{\max}=365$ days, governed by curvature $p$.
 
 The frontier can be explored by varying three parameters:
 
@@ -1080,10 +1149,12 @@ The frontier can be explored by varying three parameters:
 
 The model architecture is designed to allow alternative admissible action spaces to be evaluated. This makes it possible to study counterfactual admission rules by changing the duration-dependent minimum stake boundary.
 
-However, the distinction between the baseline benchmark and this extension must remain clear:
+Crucially, these two mechanisms address fundamentally different questions:
+- **`StakeChoice`**: What stake levels does the behavioural model generate based on historical validator patterns?
+- **Admission frontier**: What minimum stake would a proposed protocol rule require for a given commitment duration?
 
-**The released `v0.8.0` benchmark does not activate the `BoundedHarmonicFrontier` as its admission rule.** Its baseline validation and empirical calibration use the historical constant minimum stake of 2,000 AVAX.
+**The released `v0.8.0` benchmark does not activate or enforce the `BoundedHarmonicFrontier` as its admission rule.** Its baseline validation, empirical calibration, and counterfactual runs use the historical constant minimum stake of $S_{\min} \equiv 2{,}000$ AVAX across all permitted durations $d \in [14, 365]$.
 
-The frontier should therefore be treated as an ongoing research extension to the admission mechanism, not as a feature already enforced by the released `v0.8.0` lifecycle model.
+The frontier must therefore be treated as an analytical protocol proposal evaluated in counterfactual experiments, not as a mechanism enforced by the released `v0.8.0` lifecycle implementation.
 
 ---
