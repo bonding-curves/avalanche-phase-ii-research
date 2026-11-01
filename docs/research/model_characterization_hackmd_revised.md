@@ -970,8 +970,8 @@ These draws include:
 The model generates these random values with a deterministic, stateless keyed pseudo-random number generator (PRNG). Each draw is associated with a structured key:
 
 $$
-\text{PRNG\_Key}=\mathrm{Hash}\left(
-\text{master\_seed},r,t,\text{stage\_tag},k_{\text{entity}}
+\text{PRNG-Key}=\mathrm{Hash}\left(
+\text{master-seed},r,t,\text{stage-tag},k_{\text{entity}}
 \right)
 $$
 
@@ -1038,7 +1038,7 @@ $$
 The `nakamoto_third_nodes` metric is the smallest number of node keys whose combined stake strictly exceeds one-third of total active stake:
 
 $$
-\text{nakamoto\_third\_nodes}_t=
+\text{nakamoto-third-nodes}_t=
 \min\left\lbrace
  m:\sum_{j=1}^{m}S_{(j),t}
  \gt\frac{1}{3}\sum_{i\in C_t}s_{i,t}
