@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1750" viewBox="0 0 2400 1750">
 <defs>
-  <marker id="arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto">
-    <path d="M0,0 L11,4 L0,8 Z" fill="black"/>
+  <marker id="arrow" markerWidth="14" markerHeight="10" refX="11" refY="5" orient="auto">
+    <path d="M0,0 L14,5 L0,10 Z" fill="black"/>
   </marker>
-  <marker id="arrow-dashed" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto">
-    <path d="M0,0 L11,4 L0,8 Z" fill="#333333"/>
+  <marker id="arrow-dashed" markerWidth="14" markerHeight="10" refX="11" refY="5" orient="auto">
+    <path d="M0,0 L14,5 L0,10 Z" fill="black"/>
   </marker>
 </defs>
 <rect width="2400" height="1750" fill="white"/>
@@ -48,19 +48,19 @@
 <text x="1425" y="398" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-style="italic" text-anchor="start" fill="#222222">fixed StakeChoice calibration</text>
 <rect x="1570" y="170" width="275" height="180" rx="0" fill="white" stroke="black" stroke-width="1.8"/>
 <text x="1707" y="200" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="18px" font-weight="bold" text-anchor="middle" fill="black">Historical reward benchmark</text>
-<text x="1707" y="238" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="19px" font-style="italic" text-anchor="middle" fill="black">Dmenu</text>
-<text x="1707" y="275" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-weight="normal" text-anchor="middle" fill="#333333">Reference rates for</text>
-<text x="1707" y="300" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-weight="normal" text-anchor="middle" fill="#333333">daily yield comparisons</text>
+<text x="1707" y="240" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="22px" font-style="normal" text-anchor="middle" fill="black"><tspan font-style="italic">D</tspan><tspan font-size="15px" dy="6" font-style="normal">menu</tspan></text>
+<text x="1707" y="278" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-weight="normal" text-anchor="middle" fill="#333333">Reference rates for</text>
+<text x="1707" y="303" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-weight="normal" text-anchor="middle" fill="#333333">daily yield comparisons</text>
 <path d="M 1707 350 L 1707 525" stroke="black" stroke-width="2.2" marker-end="url(#arrow)" fill="none"/>
 <polygon points="1960,120 2360,120 2310,335 1910,335" stroke="black" stroke-width="2.2" fill="white"/>
 <text x="2135" y="167" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="21px" font-weight="bold" text-anchor="middle" fill="black">Protocol configuration</text>
-<text x="2135" y="207" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="24px" font-style="italic" text-anchor="middle" fill="black">ψprot</text>
-<text x="2135" y="252" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="16px" font-weight="normal" text-anchor="middle" fill="#333333">Admission bounds and reward schedule</text>
-<text x="2135" y="279" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="16px" font-weight="normal" text-anchor="middle" fill="#333333">including ACP-285 settings</text>
+<text x="2135" y="210" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="26px" font-style="normal" text-anchor="middle" fill="black"><tspan font-style="italic">ψ</tspan><tspan font-size="17px" dy="7" font-style="normal">prot</tspan></text>
+<text x="2135" y="255" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="16px" font-weight="normal" text-anchor="middle" fill="#333333">Admission bounds and reward schedule</text>
+<text x="2135" y="282" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="16px" font-weight="normal" text-anchor="middle" fill="#333333">including ACP-285 settings</text>
 <path d="M 2110 335 L 2110 405 L 1950 405 L 1950 525" stroke="black" stroke-width="2.2" marker-end="url(#arrow)" fill="none"/>
 <rect x="360" y="435" width="2000" height="690" rx="28" fill="white" stroke="black" stroke-width="2.8"/>
 <text x="1360" y="472" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="26px" font-weight="bold" text-anchor="middle" fill="black">Daily lifecycle transition</text>
-<text x="1360" y="502" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="19px" font-style="normal" text-anchor="middle" fill="#222222">Xₜ₊₁ = F(Xₜ ; Qₜ, D, ψprot, θᵣ, ξᵣ,ₜ)</text>
+<text x="1360" y="502" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="19px" font-style="normal" text-anchor="middle" fill="#222222">Xₜ₊₁ = F(Xₜ ; Qₜ, D, ψ<tspan font-size="14px" dy="4">prot</tspan><tspan dy="-4">, </tspan>θᵣ, ξᵣ,ₜ)</text>
 <ellipse cx="175" cy="580" rx="140" ry="55" stroke="black" stroke-width="2.5" fill="white"/>
 <text x="175" y="572" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="17px" font-weight="bold" text-anchor="middle" fill="black">State at start of day t</text>
 <text x="175" y="598" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="17px" font-style="italic" text-anchor="middle" fill="black">Xₜ = (Cₜ, Oₜ, Zₜ)</text>
@@ -77,12 +77,8 @@
 <rect x="620" y="525" width="1460" height="118" rx="0" fill="white" stroke="black" stroke-width="1.8"/>
 <text x="1350" y="552" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="19px" font-weight="bold" text-anchor="middle" fill="black">Daily reward-yield feedback</text>
 <text x="1350" y="577" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-weight="normal" text-anchor="middle" fill="#333333">Current supply determines the offered yield, compared with the historical benchmark</text>
-<text x="1350" y="604" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="17px" font-style="normal" text-anchor="middle" fill="black">gₜ = (gₜᴿ, gₜᴱ) = G(Sₜ ; Dmenu, ψprot)</text>
+<text x="1350" y="604" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="17px" font-style="normal" text-anchor="middle" fill="black">gₜ = (gₜᴿ, gₜᴱ) = G(Sₜ ; <tspan font-style="italic">D</tspan><tspan font-size="12px" dy="3">menu</tspan><tspan dy="-3">, </tspan><tspan font-style="italic">ψ</tspan><tspan font-size="12px" dy="3">prot</tspan><tspan dy="-3">)</tspan></text>
 <text x="1350" y="628" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="14px" font-weight="normal" text-anchor="middle" fill="#444444">gₜᴿ feeds Renewal • gₜᴱ feeds Arrivals</text>
-<path d="M 750 643 L 750 685 L 521 685 L 521 745" stroke="#333333" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-dashed)" fill="none"/>
-<text x="635" y="678" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="14px" font-style="italic" text-anchor="middle" fill="#333333">gₜᴿ</text>
-<path d="M 1200 643 L 1200 685 L 1095 685 L 1095 745" stroke="#333333" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-dashed)" fill="none"/>
-<text x="1147" y="678" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="14px" font-style="italic" text-anchor="middle" fill="#333333">gₜᴱ</text>
 <rect x="385" y="690" width="1420" height="335" rx="0" fill="white" stroke="black" stroke-width="1.8" stroke-dasharray="9 6"/>
 <text x="1095" y="720" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="21px" font-weight="bold" text-anchor="middle" fill="black">Stochastic behavioural policies</text>
 <rect x="405" y="745" width="232" height="180" rx="14" fill="white" stroke="black" stroke-width="1.7"/>
@@ -127,6 +123,12 @@
 <text x="2215" y="849" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-weight="normal" text-anchor="middle" fill="#333333">update C, O, and S</text>
 <text x="2215" y="875" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-weight="normal" text-anchor="middle" fill="#333333">inject due Qₜ</text>
 <line x1="2080" y1="835" x2="2115" y2="835" stroke="black" stroke-width="2.2" marker-end="url(#arrow)"/>
+<path d="M 750 643 L 750 678 L 521 678 L 521 742" stroke="black" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#arrow)" fill="none"/>
+<rect x="618" y="663" width="36" height="24" rx="4" fill="white" stroke="none"/>
+<text x="636" y="680" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-style="italic" font-weight="bold" text-anchor="middle" fill="black">gₜᴿ</text>
+<path d="M 1200 643 L 1200 678 L 1095 678 L 1095 742" stroke="black" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#arrow)" fill="none"/>
+<rect x="1132" y="663" width="36" height="24" rx="4" fill="white" stroke="none"/>
+<text x="1150" y="680" font-family="Georgia, 'Times New Roman', 'DejaVu Sans', 'Liberation Serif', serif" font-size="15px" font-style="italic" font-weight="bold" text-anchor="middle" fill="black">gₜᴱ</text>
 <line x1="1180" y1="1125" x2="1180" y2="1195" stroke="black" stroke-width="2.5" marker-end="url(#arrow)"/>
 <rect x="772" y="1207" width="816" height="74" rx="0" fill="white" stroke="black" stroke-width="2"/>
 <rect x="766" y="1201" width="816" height="74" rx="0" fill="white" stroke="black" stroke-width="2"/>
