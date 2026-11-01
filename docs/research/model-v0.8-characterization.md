@@ -209,9 +209,9 @@ In the released `model-v0.8.0` implementation (`src/avalanche_research/model/fit
    - **State-update functions**: PSUB 0 registers 24 state-update functions. In accordance with cadCAD semantics, **all 24 state-update functions evaluate on the identical pre-PSUB state snapshot** ($X_t$) and share the common policy signal dictionary returned by `p_lifecycle`. Their calculations are logically parallel rather than sequential mutations:
      - `s_copy`: Copies updated array columns for active commitments (`stakes`, `days_left`, `done`, `after_return`, `days`, `handed_on`, `returns`, `node_key`), out-of-set records (`out_stakes`, `out_days`, `out_done`, `out_last_days`, `out_returns`, `out_node_key`), and intermediate transition flows (`issued_navax`, `yield_gap_pp`, `started_stake_navax`, `started_stake_days_navax`, `offered_rate_30d`).
      - `s_supply`: Updates cumulative supply via $S_{t+1} = S_t + I_t$ (`state["supply_navax"] + signal["issued_navax"]`), reading the pre-PSUB supply $S_t$.
-     - `s_count`: Updates `active_validators` from $|C_{t+1}| = \text{len}(\text{signal}["\text{stakes}"])$.
+     - `s_count`: Updates `active_validators` from total active commitment records, $|C_{t+1}|$.
      - `s_stake`: Updates `active_validator_stake_navax` from $\sum_{i \in C_{t+1}} s_{i,t+1}$.
-     - `s_out`: Updates `returning_nodes` from $|O_{t+1}| = \text{len}(\text{signal}["\text{out\_stakes}"])$.
+     - `s_out`: Updates `returning_nodes` from total eligible out-of-set records, $|O_{t+1}|$.
      - `s_nakamoto`: Calculates `nakamoto_third_nodes` from the updated active stakes and node keys.
 
 2. **PSUB 1: Invariant Validation (`p_invariants`)**
@@ -227,8 +227,8 @@ The simulation engine enforces five mathematical and protocol conservation invar
    Every active commitment must strictly respect the protocol's admission bounds:
    $$2{,}000\times 10^9\text{ nAVAX} \leq s_{i,t} \leq 3{,}000{,}000\times 10^9\text{ nAVAX}, \qquad \forall i \in C_t$$
 2. **Micro-to-Macro Stake Conservation**:
-   The aggregate active stake state variable must exactly equal the integer sum of individual commitment stakes:
-   $$\text{active\_validator\_stake\_navax}_t = \sum_{i \in C_t} s_{i,t}$$
+   The aggregate active stake state variable (`active_validator_stake_navax`) must exactly equal the integer sum of individual commitment stakes:
+   $$S_t^{\text{active}} = \sum_{i \in C_t} s_{i,t}$$
 3. **Out-of-Set Tracking Horizon**:
    No node record may remain in the out-of-set population beyond the maximum 365-day tracking horizon:
    $$\tau_{j,t} \leq 365, \qquad \forall j \in O_t$$
@@ -237,7 +237,7 @@ The simulation engine enforces five mathematical and protocol conservation invar
    $$S_t \leq S_{\text{cap}} = 720{,}000{,}000\times 10^9\text{ nAVAX}$$
 5. **Stake-to-Supply Solvency**:
    Total active validator stake cannot exceed the cumulative issued supply counter:
-   $$\text{active\_validator\_stake\_navax}_t \leq S_t$$
+   $$S_t^{\text{active}} \leq S_t$$
 
 These checks verify that the discrete micro-state transitions strictly preserve protocol conservation laws at every timestep before downstream observables are stored.
 
@@ -554,7 +554,7 @@ $$
 with conditional variance:
 
 $$
-\operatorname{Var}(A_t)=\mu_{r,t}+\frac{\mu_{r,t}^2}{\phi_r}
+\mathrm{Var}(A_t)=\mu_{r,t}+\frac{\mu_{r,t}^2}{\phi_r}
 $$
 
 where:
