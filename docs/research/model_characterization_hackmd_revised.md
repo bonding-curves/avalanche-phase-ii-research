@@ -666,16 +666,15 @@ Notice that these are not the same bands used by `Continuation`. `Continuation` 
 For renewals and returns, the model also classifies the reference stake into one of five stake bands:
 
 $$
+\mathcal{Q}_{\text{stake}}=\left\lbrace
 \begin{aligned}
-\mathcal{Q}_{\text{stake}}=\{&
-[2{,}000,2{,}500),\\
+&[2{,}000,2{,}500),\\
 &[2{,}500,10{,}000),\\
 &[10{,}000,50{,}000),\\
 &[50{,}000,200{,}000),\\
 &[200{,}000,\infty)
-\}
-\times10^9\text{ nAVAX}
 \end{aligned}
+\right\rbrace\times10^9\text{ nAVAX}
 $$
 
 A first-ever arrival has no previous stake, so its previous-stake band is empty:
@@ -724,8 +723,7 @@ $$
 The empirical quantile function for this distribution is denoted by $Q_{c,b,q}(u)$. It is represented through piecewise-linear interpolation across nine quantile knots:
 
 $$
-\mathcal{G}_{\text{knots}}=
-\{0.01,0.05,0.10,0.25,0.50,0.75,0.90,0.95,0.99\}
+\mathcal{G}_{\text{knots}}=\lbrace 0.01,0.05,0.10,0.25,0.50,0.75,0.90,0.95,0.99\rbrace
 $$
 
 A uniform draw selects whether the reference stake is retained:
