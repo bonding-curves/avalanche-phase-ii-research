@@ -4,7 +4,7 @@
 **Model Version:** `0.8.0-candidate` (tagged specification `keyed-v1`)  
 **Data Release Pin:** `data/pins/p2-model-v0.8.json` (SHA-256: `e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8`)  
 **Evaluation Origins:** 19 Development Origins (Banff to Fortuna, 2022-07-01 to 2025-10-01)  
-**Authors:** Blockchain Cryptoeconomic Research Group (BCRG) & Longtail Financial Corp.  
+**Authors:** Bonding Curve Research Group (BCRG)  
 **Date:** 2026-10-31  
 
 ---
@@ -67,15 +67,15 @@ $$
 The state space is:
 
 $$
-\mathcal{X}=\mathcal{C}^{*}\times\mathcal{O}^{*}\times\mathcal{Z}
+\mathcal{X}=\mathcal{C}^{\ast}\times\mathcal{O}^{\ast}\times\mathcal{Z}
 $$
 
 where:
 
 $$
-\mathcal{C}^{*}=\bigcup_{N=0}^{\infty}\mathcal{C}^{N},
+\mathcal{C}^{\ast}=\bigcup_{N=0}^{\infty}\mathcal{C}^{N},
 \qquad
-\mathcal{O}^{*}=\bigcup_{M=0}^{\infty}\mathcal{O}^{M}
+\mathcal{O}^{\ast}=\bigcup_{M=0}^{\infty}\mathcal{O}^{M}
 $$
 
 The star notation indicates that the collections can contain different numbers of records at different points in time. Validators can enter, renew, return, or leave, so the size of the population is not fixed.
@@ -377,13 +377,7 @@ A value of $R_{i,t}=1$ means the node renews immediately. A value of $R_{i,t}=0$
 The model does not assign the same renewal probability to every validator. It uses a logistic regression policy that takes the node's commitment history and current commitment attributes into account, together with the daily renewal yield gap:
 
 $$
-P(R_{i,t}=1\mid c_{i,t},g_t^{(R)},\theta_r)
-=
-\sigma\left(
- x_{i,t}^{\top}\beta_r
-+\rho_Rg_t^{(R)}
-+\delta_r
-\right)
+P(R_{i,t}=1\mid c_{i,t},g_t^{(R)},\theta_r) = \sigma\left( x_{i,t}^{\top}\beta_r + \rho_Rg_t^{(R)} + \delta_r \right)
 $$
 
 Here:
@@ -398,15 +392,13 @@ Here:
 The logistic model produces a probability, not the final decision. The model then draws a uniform random number:
 
 $$
-u^{\text{ren}}_{i,t}\sim\operatorname{Uniform}(0,1)
+u^{\text{ren}}_{i,t}\sim\mathrm{Uniform}(0,1)
 $$
 
 The node renews if this draw is below the estimated probability:
 
 $$
-u^{\text{ren}}_{i,t}
-\lt
-P(R_{i,t}=1\mid c_{i,t},g_t^{(R)},\theta_r)
+u^{\text{ren}}_{i,t} \lt P(R_{i,t}=1\mid c_{i,t},g_t^{(R)},\theta_r)
 $$
 
 This is how the fitted renewal policy becomes a stochastic decision in an individual simulation run.
@@ -437,20 +429,20 @@ The return process asks a different question from renewal: **once a node has lef
 Each node $j\in O_t$ receives a daily binary return decision:
 
 $$
-\operatorname{Ret}_{j,t}\in\lbrace 0,1\rbrace
+\mathrm{Ret}_{j,t}\in\lbrace 0,1\rbrace
 $$
 
 The probability of returning is a discrete-time logistic hazard:
 
 $$
-h_{j,t}=P(\operatorname{Ret}_{j,t}=1\mid o_{j,t},\theta_r)
+h_{j,t}=P(\mathrm{Ret}_{j,t}=1\mid o_{j,t},\theta_r)
 $$
 
 The hazard depends on how long the node has been away, the stake it had in its last commitment, and two indicators describing its commitment history. It is defined piecewise:
 
 $$
 h_{j,t}=\begin{cases}
-0, & 1\leq\tau_{j,t}\leq7,\\[6pt]
+0, & 1\leq\tau_{j,t}\leq7,\\
 \sigma\left(\begin{aligned}
 &\gamma_{0,r}
 +\gamma_{\text{day},r}(b_\tau(\tau_{j,t}))\\
@@ -474,7 +466,7 @@ The terms in the equation describe:
 As with renewal, the hazard gives a probability. A keyed uniform draw determines whether the return actually occurs:
 
 $$
-u^{\text{ret}}_{j,t}\sim\operatorname{Uniform}(0,1)
+u^{\text{ret}}_{j,t}\sim\mathrm{Uniform}(0,1)
 $$
 
 The node returns when:
@@ -498,7 +490,7 @@ $$
 The realized daily count is:
 
 $$
-A_t\sim\operatorname{NegBin}(\mu_{r,t},\phi_r)
+A_t\sim\mathrm{NegBin}(\mu_{r,t},\phi_r)
 $$
 
 where:
@@ -729,16 +721,16 @@ $$
 A uniform draw selects whether the reference stake is retained:
 
 $$
-v\sim\operatorname{Uniform}(0,1)
+v\sim\mathrm{Uniform}(0,1)
 $$
 
 If the draw falls below $p_{c,b,q}$, the model keeps the reference stake. Otherwise, it draws a quantile level $u\in(0,1)$ and applies the corresponding log-ratio change:
 
 $$
 s'=\begin{cases}
-\operatorname{clip}(s_{\text{ref}},S_{\min},S_{\max}),
-& v\lt p_{c,b,q},\\[6pt]
-\operatorname{clip}\left(
+\mathrm{clip}(s_{\text{ref}},S_{\min},S_{\max}),
+& v\lt p_{c,b,q},\\
+\mathrm{clip}\left(
 \left\lfloor s_{\text{ref}}\exp(Q_{c,b,q}(u))\right\rfloor,
 S_{\min},S_{\max}\right),
 & v\geq p_{c,b,q}.
@@ -752,7 +744,7 @@ The operations have straightforward meanings:
 - The clipping function enforces the minimum and maximum stake bounds:
 
 $$
-\operatorname{clip}(x,a,b)=\min(\max(x,a),b)
+\mathrm{clip}(x,a,b)=\min(\max(x,a),b)
 $$
 
 The two parts allow the model to represent both the large number of unchanged-stake observations and the distribution of stake changes among the remaining observations.
@@ -804,7 +796,7 @@ $$
 Under the Primary Network's linear consumption-rate schedule, the annualized rate associated with a commitment of duration $d'_m$ is:
 
 $$
-\operatorname{rate}(d'_m)=
+\mathrm{rate}(d'_m)=
 r_{\min}+(r_{\max}-r_{\min})
 \frac{d'_m-d_{\min}}{d_{\max}-d_{\min}}
 $$
@@ -865,8 +857,8 @@ The main state transitions are summarized below.
 | Continuing active commitment ($\ell_{i,t}\gt 1$) | $C_t$ | $C_{t+1}$ | The record is retained and its remaining duration decreases by one day: $\ell_{i,t+1}=\ell_{i,t}-1$. Other listed attributes remain unchanged. |
 | Immediate renewal ($\ell_{i,t}=1$, $R_{i,t}=1$) | $C_t$ | $C_{t+1}$ | The node keeps its key, starts a new commitment with selected stake and duration, increments completed tenure, and resets the return flag. |
 | Expiry without renewal ($\ell_{i,t}=1$, $R_{i,t}=0$) | $C_t$ | $O_{t+1}$ | The node carries its last stake and duration into the out-of-set record; its elapsed time out begins at one day. |
-| Return ($\operatorname{Ret}_{j,t}=1$) | $O_t$ | $C_{t+1}$ | The node returns with a newly selected stake and duration; its return flag is set and its return count increases by one. |
-| Continuing out-of-set node ($\operatorname{Ret}_{j,t}=0$) | $O_t$ | $O_{t+1}$ | Its elapsed time outside the active set increases by one day, unless it reaches the pruning boundary. |
+| Return ($\mathrm{Ret}_{j,t}=1$) | $O_t$ | $C_{t+1}$ | The node returns with a newly selected stake and duration; its return flag is set and its return count increases by one. |
+| Continuing out-of-set node ($\mathrm{Ret}_{j,t}=0$) | $O_t$ | $O_{t+1}$ | Its elapsed time outside the active set increases by one day, unless it reaches the pruning boundary. |
 | Out-of-set pruning | $O_t$ | Removed | A node that has not returned by the eligibility cutoff is removed from the modelled population. |
 | First-ever arrival | Newly generated key | $C_{t+1}$ | A new record is created with zero prior commitments and zero return history. |
 | Scheduled queue injection | $Q_t$ | $C_{t+1}$ | The accepted stake, duration, history counters, and node key are inserted without endogenous duration or stake selection. |
@@ -975,7 +967,7 @@ These draws include:
 The model generates these random values with a deterministic, stateless keyed pseudo-random number generator (PRNG). Each draw is associated with a structured key:
 
 $$
-\text{PRNG\_Key}=\operatorname{Hash}\left(
+\text{PRNG\_Key}=\mathrm{Hash}\left(
 \text{master\_seed},r,t,\text{stage\_tag},k_{\text{entity}}
 \right)
 $$
@@ -1043,7 +1035,7 @@ $$
 The `nakamoto_third_nodes` metric is the smallest number of node keys whose combined stake strictly exceeds one-third of total active stake:
 
 $$
-\operatorname{nakamoto\_third\_nodes}_t=
+\text{nakamoto\_third\_nodes}_t=
 \min\left\lbrace
  m:\sum_{j=1}^{m}S_{(j),t}
  \gt\frac{1}{3}\sum_{i\in C_t}s_{i,t}
@@ -1105,5 +1097,5 @@ This specification adheres to formal LaTeX mathematical typography optimized for
 - **Delimiters**: Display equations use `$$...$$` set on isolated lines. Inline expressions use `$ ... $`.
 - **Set Braces**: Literal mathematical sets and bounds employ `\lbrace ... \rbrace` delimiters to guarantee unambiguous parsing across CommonMark and MathJax engines.
 - **Relational Operators**: Strict inequalities within complex display and tabular environments utilize standard LaTeX operators (`\lt`, `\gt`, `\leq`, `\geq`).
-- **Function Names & Operators**: Subsystem names, statistical distributions, and state mappings use Roman operator typography (`\operatorname{...}`, `\mathrm{...}`).
+- **Function Names & Operators**: Subsystem names, statistical distributions, and state mappings use Roman operator typography (`\mathrm{...}`, `\text{...}`).
 - **Data Tables**: Markdown table cells isolate mathematical terms within inline delimiters with escaped pipes (`\vert` or explicit cell separation) to preserve table grid alignment.
