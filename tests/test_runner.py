@@ -604,3 +604,31 @@ def test_sweep_sidecars_follow_design_location_and_relocate_without_changing_ide
     assert records[0]["sweep"]["design_hash"] == records[1]["sweep"]["design_hash"]
     if kind != "absolute":
         assert designs_written[0] == designs_written[1]
+
+
+def test_design_draws_keep_the_fitted_stake_hurdle_at_its_point_estimate(monkeypatch):
+    # A design's draws carry resample_seed, which the fitted stake hurdle refuses unless it is held at its point
+    # estimate. The builder sets that flag for a stake model, and leaves a model without the hurdle as it was.
+    from avalanche_research.experiments import sweep
+    from avalanche_research.model import variants
+
+    seen = {}
+
+    class Fake:
+        def __init__(self, inputs):
+            self.inputs = inputs
+
+        def prepare(self, periods, day, run_name, draws):
+            return variants.Prepared(dict(self.inputs))
+
+        def simulation(self, prepared, seed, timesteps, runs, draws):
+            seen[prepared.inputs.get("fitted_stake", False)] = prepared.inputs
+            return prepared
+
+    monkeypatch.setattr(variants, "VARIANTS", {"stake": Fake({"fitted_stake": True}), "plain": Fake({})})
+    table = pd.DataFrame({"resample_seed": [1, 2]})
+    for name in ("stake", "plain"):
+        sweep.builder("periods", "run", 1, 30, table)("2025-04-08", name)
+    assert seen[True]["stake_point_estimate"] is True and "stake_point_estimate" not in seen[False]
+    sweep.builder("periods", "run", 1, 30)("2025-04-08", "stake")
+    assert "stake_point_estimate" not in seen[True]

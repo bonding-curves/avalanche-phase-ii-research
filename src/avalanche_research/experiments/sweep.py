@@ -74,14 +74,19 @@ PILOT_BASE_MIB, PILOT_PER_RUN_MIB = 931.9, 58.0
 
 def builder(periods: str, run_name: str, runs: int, timesteps: int, draws: Any = None) -> Callable[[Any, str], SimulationModel]:
     """The base model for an origin and model name, from the pinned staking periods, with ``draws`` attached to a v0.8
-    base when given."""
+    base when given. With the design's draws, a model with the fitted stake hurdle keeps the hurdle at its point
+    estimate while every other block redraws per run, as the variants do with their own draws."""
     def build(origin: Any, model: str) -> SimulationModel:
+        from dataclasses import replace
+
         from ..model.variants import VARIANTS
 
         day = date.fromisoformat(str(origin))
         if model in VARIANTS and model != "v0.8.1 stub":
             variant = VARIANTS[model]
             prepared = variant.prepare(periods, day, run_name, draws=0 if draws is not None else runs)
+            if draws is not None and prepared.inputs.get("fitted_stake"):
+                prepared = replace(prepared, inputs={**prepared.inputs, "stake_point_estimate": True})
             return variant.simulation(prepared, seed=0, timesteps=timesteps, runs=runs,
                                       draws=draws if draws is not None else prepared.draws)
         raise ValueError(f"unknown sweep model {model!r}; known: {', '.join(name for name in VARIANTS if name != 'v0.8.1 stub')}")
