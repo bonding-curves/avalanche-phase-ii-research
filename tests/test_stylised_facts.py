@@ -182,3 +182,26 @@ def test_a_run_becomes_one_path_per_run_with_its_turnover():
     assert {"staked_avax", "active_validators", "endings", "renewed", "first_ever"} <= set(first.columns)
     assert "price_usd" not in first.columns
     assert first["staked_avax"].iloc[0] == pytest.approx(100_000)
+
+
+def test_a_first_commitment_accepted_before_the_origin_counts_as_first_ever_on_its_start_day():
+    # RV10 F1: a scheduled row due on day 1 with no earlier commitment is a first-ever start.
+    avax = 10**9
+    settings = {"initial": pd.DataFrame({"stakes": [10_000 * avax], "days_left": [100], "done": [1], "after_return": [False],
+                                         "days": [100], "handed_on": [False]}),
+                "scheduled": pd.DataFrame({"start_day": [1, 1], "stakes": [2_000 * avax, 3_000 * avax], "days": [14, 14],
+                                           "done": [0, 2], "after_return": [False, False], "returns": [0, 0]}),
+                "timesteps": 1, "runs": 1}
+
+    def series(table, variable):
+        return table[table["variable"] == variable].sort_values("timestep")["value"].tolist()
+
+    on = run(small_model(**settings, record_turnover=True))
+    assert series(on, "active_validators") == [1, 3]
+    assert series(on, "first_ever_validators") == [0, 1]
+    off = run(small_model(**settings))
+    assert small_model(**settings, record_turnover=False).specification_hash() == small_model(**settings).specification_hash()
+    columns = ["simulation", "run", "timestep", "variable", "value"]
+    kept = on[~on["variable"].isin(["ended_validators", "renewed_validators", "first_ever_validators"])]
+    pd.testing.assert_frame_equal(off[columns].sort_values(columns[:4]).reset_index(drop=True),
+                                  kept[columns].sort_values(columns[:4]).reset_index(drop=True))

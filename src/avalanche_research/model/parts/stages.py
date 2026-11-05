@@ -189,11 +189,17 @@ def assembly_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dic
         **earlier["rewards"],
         "yield_gap_pp": float(day.renewal_gap),
         # The day's turnover, state only in a run that records it (FittedLifecycle.record_turnover). A first-ever start
-        # is a started commitment of no earlier commitment that is not a return.
+        # is a commitment that starts today with no earlier commitment and is not a return, whether the continuation
+        # stage started it or it was accepted before the origin and is due today.
         "ended_validators": int(len(ended["stakes"])),
         "renewed_validators": int(renews.sum()),
-        "first_ever_validators": int(((np.asarray(started["done"]) == 0) & ~np.asarray(started["after_return"], dtype=bool)).sum()),
+        "first_ever_validators": first_ever(started) + first_ever({name: sched[name][due] for name in ("done", "after_return")}),
     }
+
+
+def first_ever(commitments: Mapping[str, Any]) -> int:
+    """How many of the commitments are a node's first: no earlier commitment done and not a return."""
+    return int(((np.asarray(commitments["done"]) == 0) & ~np.asarray(commitments["after_return"], dtype=bool)).sum())
 
 
 def bounded_days(days: np.ndarray, mechanism: RewardMechanism | None) -> np.ndarray:
