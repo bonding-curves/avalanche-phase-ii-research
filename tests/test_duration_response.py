@@ -54,6 +54,9 @@ def test_a_rule_that_pays_long_stakes_more_shifts_renewals_toward_longer_bands()
         return float((days * stakes).sum() / stakes.sum())
 
     assert weighted_days(fixed.with_settings(duration_response=1.0)) > weighted_days(fixed)
+    # A negative strength, inside the length choice's registered interval, moves renewals the other way.
+    assert (np.diff(fixed.with_settings(duration_response=-1.21).duration_tilt(fixed.origin)) < 0).all()
+    assert weighted_days(fixed.with_settings(duration_response=-1.21)) < weighted_days(fixed)
 
 
 def test_the_band_recorder_is_off_by_default_and_its_bands_sum_to_the_days_started_stake():

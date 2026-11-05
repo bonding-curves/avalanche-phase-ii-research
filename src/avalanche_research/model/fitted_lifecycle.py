@@ -252,10 +252,12 @@ class FittedLifecycle(SimulationModel):
 
     # The duration response (D35, ML28), left out of the specification at its default in the same way.
     duration_response = param.Number(
-        default=0.0, bounds=(0.0, None), metadata={"omit_at_default": True, "source": "swept"},
+        default=0.0, metadata={"omit_at_default": True, "source": "swept"},
         doc="Log weight on a duration band per percentage point a year by which the design's rate for that band's "
             "day (14, 30, 90, 180 or 365 days) exceeds the fitted menu's: a renewing or returning node's next band is "
-            "drawn from the transition row tilted by it. 0 is every version to v0.9.0. Needs the durations block",
+            "drawn from the transition row tilted by it. 0 is every version to v0.9.0. A negative strength moves "
+            "renewals away from the bands whose rate rises: the length choice's registered interval before Granite, "
+            "-2.79 to 0.37, holds both signs. Needs the durations block",
     )
 
     record_duration_bands = param.Boolean(
