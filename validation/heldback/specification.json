@@ -1,0 +1,87 @@
+{
+  "schema": "heldback-test/v1",
+  "name": "The held-back test of model v0.8.0",
+  "model": {
+    "variant": "v0.8.0",
+    "tag": "model-v0.8.0",
+    "commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc",
+    "settings": {
+      "renewal_response": 0.0,
+      "entry_response": 0.0,
+      "note": "The released defaults. The test scores the level of validator stake and validator count the model forecasts, not a response to reward."
+    }
+  },
+  "inputs": {
+    "pin": "data/pins/p2-model-v0.8.json",
+    "run": "staking-periods-2026-09-30",
+    "source": "BCRG's own P-Chain feed: derived.staking-periods built from snowflake.primary-validator-stakes, captured 30 September 2026, records through Helicon",
+    "crosscheck_run": "avax-monetary-daily-2026-09-30",
+    "crosscheck": "The daily validator stocks of the monetary run are compared with the realized series at every scored endpoint and reported. They decide nothing."
+  },
+  "fit": {
+    "origin": "2025-11-18",
+    "rule": "The released fitting law of v0.8.0 at the origin 2025-11-18, the last whole UTC day before Granite. Every fitted block, duration table and the 200 parameter draws (draw seed 0) are built once from rows that started by 2025-11-18 23:59:59 UTC and never refitted. At each later origin only the observed state is replaced: the open commitments, the scheduled commitments and the supply counter accepted by that origin's end."
+  },
+  "window": {
+    "held_back_from": "2025-11-19T16:00:00Z",
+    "held_back_to": "2026-09-22T15:00:00Z",
+    "score_until": "2026-09-22",
+    "daily_support": "Realized values on every UTC day before 2026-09-22, from the pinned staking periods by the same construction as the development scores (daily stake and count changes accumulated from period starts and ends)."
+  },
+  "origins": [
+    "2025-11-18",
+    "2025-12-01",
+    "2026-01-01",
+    "2026-02-01",
+    "2026-03-01",
+    "2026-04-01",
+    "2026-05-01",
+    "2026-06-01",
+    "2026-07-01",
+    "2026-08-01"
+  ],
+  "origin_rule": "The fit origin, then the first day of each month while the shortest horizon ends before score_until. A horizon is scored at an origin only when origin plus horizon is before score_until.",
+  "horizons_days": [30, 90, 180],
+  "cases": {
+    "30": ["2025-11-18", "2025-12-01", "2026-01-01", "2026-02-01", "2026-03-01", "2026-04-01", "2026-05-01", "2026-06-01", "2026-07-01", "2026-08-01"],
+    "90": ["2025-11-18", "2025-12-01", "2026-01-01", "2026-02-01", "2026-03-01", "2026-04-01", "2026-05-01", "2026-06-01"],
+    "180": ["2025-11-18", "2025-12-01", "2026-01-01", "2026-02-01", "2026-03-01"]
+  },
+  "variables": ["active_validator_stake_navax", "active_validators"],
+  "ensemble": {
+    "batch_seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "runs_per_batch": 20,
+    "draw_seed": 0,
+    "draw_order": "batch b reads draws 20b to 20b + 19 of the origin fit's 200-row draw table, as the development scores did"
+  },
+  "benchmarks": {
+    "point": ["N1", "N2", "N3"],
+    "distribution": ["N1d", "N2d", "N4"],
+    "definition": "N1 persistence, N2 180-day drift, N3 weekly AR(1); N1d and N2d dress N1 and N2 with every change of the same length in the 730 days before the origin; N4 is a Gaussian local-level model fitted on every day to the origin. Each is built from the realized record up to its origin only, so a later origin's benchmark reads realized post-Granite days, as the model's state does.",
+    "reference": "N1d"
+  },
+  "score": {
+    "name": "scaled CRPS",
+    "definition": "The continuous ranked probability score of the 200-run forecast against the realized value, divided by the mean absolute one-day change of the series before the origin. A point benchmark's CRPS is its absolute error. The model's 200 draws use the plain sample estimator, as the development scores did.",
+    "test": "One-sided Diebold-Mariano test with the Harvey, Leybourne and Newbold correction that the model's scaled CRPS is lower than the reference's, over the origins in date order, with the horizon one plus the most later origins inside one forecast window."
+  },
+  "primary": {
+    "variable": "active_validator_stake_navax",
+    "horizon_days": 90,
+    "origins": 8,
+    "alpha": 0.05
+  },
+  "verdict": {
+    "pass": "At the primary cell the model's mean scaled CRPS is below every one of the six benchmarks', and the one-sided p that it is below N1d's is under 0.05.",
+    "fail": "At the primary cell the model's mean scaled CRPS is at or above any one of the six benchmarks'.",
+    "inconclusive": "The model is below all six at the primary cell but the p is 0.05 or more, or the primary cell's inventory is incomplete or any of its scores is undefined.",
+    "scope": "The verdict says whether v0.8.0's forecast distribution of validators' own stake at 90 days beats the naive forecasts on the record it never saw. It says nothing about a response to reward, about delegated stake, or about Foundation acceptance."
+  },
+  "reported": {
+    "cells": "Every variable and horizon: mean scaled CRPS of the model and the six benchmarks, CRPS skill against N1d, origins where the model is closer than N1d, the one-sided p against N1d.",
+    "coverage": "The model's 50% and 80% central-interval coverage with a Clopper-Pearson 95% range, the PIT tail counts and the mean 80% width, at every variable and horizon. The 80% band of test B4.5 is 0.60 to 0.95 and the 50% band 0.30 to 0.70. Coverage is reported against the bands and does not enter the verdict.",
+    "point": "The ensemble mean's scaled absolute error against N1, N2 and N3 with the same test, the rule the 26 October proposal declared, kept visible as a secondary.",
+    "contract": "On each origin's daily ensemble-mean path against the realized path: Pearson correlation on levels and on first differences, RMSE, the share of seven-day moves in the same direction, and the phase lag. These are the agreement's measures. They are reported beside the verdict and are not the acceptance test."
+  },
+  "one_run": "The scoring runs once. The script refuses to run when a verdict exists in results/model-v0.8.0-heldback, and refuses without the registration tag on origin. Nothing in the specification, the script or the model changes after the scores are read."
+}
