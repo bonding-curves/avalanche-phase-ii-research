@@ -299,7 +299,8 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
         # BENQI starts what brings its aged stock up to its target (parts.holders).
         scale = (1.0 - flow.benqi_share) * float(np.exp(holders.settings.delegators["response"] * day.entry_gap))
         n_other = flow.count_from_uniform(float(draw.uniforms("delegations", t)[0]), scale)
-        gap = lst_gap(day.settings.mechanism, int(state["supply_navax"]), day.start, holders.settings)
+        gap = lst_gap(day.settings.mechanism, int(state["supply_navax"]), day.start, holders.settings,
+                      staked_share=1.0 - unstaked_share(state))
         target = lst_target_next(float(state["lst_target_navax"]), gap, holders)
         aged = int(kept["delegation_stakes"][kept["delegation_benqi"]].sum()) + int(starting["delegation_stakes"][starting["delegation_benqi"]].sum())
         n_benqi = lst_starts(target, aged, holders.benqi_stake_per_start_navax)

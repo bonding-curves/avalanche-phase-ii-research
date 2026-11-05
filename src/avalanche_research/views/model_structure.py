@@ -232,7 +232,8 @@ def trace_stages(model: Any) -> list[StageTrace]:
             state_rec, earlier_rec = _Recorder(state), _Recorder(earlier)
             blocks, settings = _AttributeRecorder(day.blocks), _AttributeRecorder(day.settings)
             day_rec = _AttributeRecorder(Day(t=day.t, start=day.start, draw=day.draw, blocks=blocks, renewal_gap=day.renewal_gap,
-                                             entry_gap=day.entry_gap, settings=settings, margin_usd_per_avax=day.margin_usd_per_avax))
+                                             entry_gap=day.entry_gap, settings=settings, margin_usd_per_avax=day.margin_usd_per_avax,
+                                             price_log_return=day.price_log_return))
             bound = inspect.ismethod(stage) and stage.__self__ is model
             model_rec = _AttributeRecorder(model)
             out = stage.__func__(model_rec, state_rec, day_rec, earlier_rec) if bound else stage(state_rec, day_rec, earlier_rec)
@@ -346,6 +347,8 @@ BLOCK_NODES = {
     # curvature, the origin's reward and the day's reward per AVAX are read only when it is on and are not drawn.
     "settings.margin_response": "responses", "settings.node_cost_usd_pa": None, "settings.margin_curvature_usd": None,
     "settings.margin_reference_usd_per_avax": None, "day.margin_usd_per_avax": None,
+    # The day's price return, read by the holder layer's funds, comes from the price path before the step.
+    "day.price_log_return": None,
     # The day's yield gaps come from the mechanism and outside_yield_pp before the step; the responses decide what
     # they do, so the drawing joins the responses to the stages that read them and not to the gaps.
     "day.renewal_gap": None, "day.entry_gap": None, "day.t": None, "day.start": None, "day.draw": None,

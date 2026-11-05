@@ -89,7 +89,8 @@ class Day:
     """What a stage reads besides the state: timestep ``t``, noon UTC of the day it steps to, the run's keyed draws,
     the run's blocks, the day's yield gaps for renewal and entry, and the run's settings. With the dollar margin on,
     ``margin_usd_per_avax`` is the dollar reward a year that one AVAX of stake earns at the design's rate and the
-    price at the start of the day."""
+    price at the start of the day. With a price path, ``price_log_return`` is the day's log return of the AVAX price,
+    which the holder layer's funds read."""
 
     t: int
     start: datetime
@@ -99,6 +100,7 @@ class Day:
     entry_gap: float
     settings: RunSettings
     margin_usd_per_avax: float | None = None
+    price_log_return: float | None = None
 
 
 def run_stages(stages: tuple[tuple[str, Stage], ...], state: Mapping[str, Any], day: Day) -> dict:

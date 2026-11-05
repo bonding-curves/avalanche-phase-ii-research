@@ -309,3 +309,28 @@ def test_a_lending_yield_above_the_staking_rate_turns_the_gap_negative_and_the_t
         target = lst_target_next(target, gap, setup)
         assert target >= 0.0
     assert target < 1e-9
+
+
+def test_a_priced_run_gives_the_funds_the_days_log_return_of_its_price_path():
+    # With price elasticity 1 and no drift, a fund's holdings follow its price path: a rising path grows them and a
+    # falling one shrinks them, from the same origin holdings.
+    settings = {"funds": {"drift_per_day": 0.0, "price_elasticity": 1.0}}
+    rising = holder_model(settings, fund_holdings=FUNDS, timesteps=10, runs=1, price0_usd=14.5, price_drift_pa=3.0, price_volatility_pa=0.0)
+    falling = holder_model(settings, fund_holdings=FUNDS, timesteps=10, runs=1, price0_usd=14.5, price_drift_pa=-3.0, price_volatility_pa=0.0)
+    up, down = stock(run(rising), "etf_holdings_navax"), stock(run(falling), "etf_holdings_navax")
+    assert up[0] == down[0] == 1_000_000 * AVAX
+    assert up[-1] == pytest.approx(1_000_000 * AVAX * np.exp(3.0 * 10 / 365), rel=1e-6)
+    assert down[-1] == pytest.approx(1_000_000 * AVAX * np.exp(-3.0 * 10 / 365), rel=1e-6)
+
+
+def test_the_liquid_stakers_gap_reads_the_staked_share_under_a_rule_that_does():
+    from datetime import UTC, datetime
+
+    from avalanche_research.mechanisms import StakeDependentReward
+
+    settings = HolderSettings.check({})
+    when = datetime(2025, 11, 19, 12, tzinfo=UTC)
+    rule = StakeDependentReward(elasticity=1.0, reference_share=0.44, acp285=False)
+    low, high = (h.lst_gap(rule, 450_000_000 * AVAX, when, settings, staked_share=s) for s in (0.30, 0.60))
+    assert low > high
+    assert h.lst_gap(ChainReward(), 450_000_000 * AVAX, when, settings, staked_share=0.30) == h.lst_gap(ChainReward(), 450_000_000 * AVAX, when, settings)

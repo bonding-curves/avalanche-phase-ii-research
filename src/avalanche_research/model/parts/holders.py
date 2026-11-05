@@ -200,10 +200,11 @@ class HolderSetup:
 
 # Liquid staking.
 
-def lst_gap(mechanism, supply_navax: int, start, settings: HolderSettings) -> float:
-    """The yield gap a liquid staker sees: the annual rate of a 14-day delegation under the reward rule at the supply,
-    net of the provider's fee share, less the lending yield, as a fraction a year."""
-    rate = mechanism.annual_rate(LST_DELEGATION_DAYS, int(supply_navax), start, completed_periods=0)
+def lst_gap(mechanism, supply_navax: int, start, settings: HolderSettings, staked_share: float | None = None) -> float:
+    """The yield gap a liquid staker sees: the annual rate of a 14-day delegation under the reward rule at the supply
+    and, for a rule that reads it, the staked share, net of the provider's fee share, less the lending yield, as a
+    fraction a year."""
+    rate = mechanism.annual_rate(LST_DELEGATION_DAYS, int(supply_navax), start, completed_periods=0, staked_share=staked_share)
     return rate * (1.0 - settings.liquid_staking["fee_share"]) - settings.liquid_staking["defi_yield_pp"] / 100.0
 
 
@@ -383,7 +384,9 @@ def holders_stage(state, day, earlier, *, setup: HolderSetup) -> dict:
     on = stake_on(len(keys), on_validators(keys, out["delegation_validator"]), out["delegation_stakes"])
     weights = operator_weights(keys, own, on)
     funds = setup.funds
-    holdings = fund_holdings_next(state["fund_holdings_navax"], float(state.get(PRICE_RETURN_STATE, 0.0)), setup.settings) \
+    # The day's log return comes from the run's price path when it has one, else from the state, else no move.
+    log_return = day.price_log_return if day.price_log_return is not None else float(state.get(PRICE_RETURN_STATE, 0.0))
+    holdings = fund_holdings_next(state["fund_holdings_navax"], log_return, setup.settings) \
         if len(funds) else np.zeros(0, dtype=np.int64)
     rows = fund_of(keys)
     staked = int(own[rows >= 0].sum())

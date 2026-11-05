@@ -114,7 +114,10 @@ class HolderMixin(param.Parameterized):
     def _holder_setup(self) -> HolderSetup:
         if self._setup_cache is None:
             start = datetime.combine(self.origin + timedelta(days=1), time(12), tzinfo=UTC)
-            gap0 = lst_gap(self.mechanism, int(self.supply0_navax), start, self._holder_settings)
+            from avalanche_research.model.parts.participation import unstaked_share
+
+            gap0 = lst_gap(self.mechanism, int(self.supply0_navax), start, self._holder_settings,
+                           staked_share=1.0 - unstaked_share(self.initial_state()))
             self._setup_cache = HolderSetup(settings=self._holder_settings, funds=self._funds,
                                             benqi_stake_per_start_navax=int(self.benqi_stake_per_start_navax), lst_gap0=gap0,
                                             renewal_large=self.holder_renewal_large)

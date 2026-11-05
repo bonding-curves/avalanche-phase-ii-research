@@ -484,6 +484,7 @@ class FittedLifecycle(SimulationModel):
                 t=t, start=datetime.combine(origin + timedelta(days=t + 1), time(12), tzinfo=UTC), draw=Streams(seed, run),
                 blocks=blocks_for(run), renewal_gap=renewal_gap, entry_gap=entry_gap, settings=settings,
                 margin_usd_per_avax=margin,
+                price_log_return=float(np.log(price_for(run)[t] / float(state["price_usd"]))) if price_for is not None else None,
             )
             signal = run_stages(stages, state, day)
             if price_for is not None:
