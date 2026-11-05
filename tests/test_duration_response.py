@@ -54,3 +54,15 @@ def test_a_rule_that_pays_long_stakes_more_shifts_renewals_toward_longer_bands()
         return float((days * stakes).sum() / stakes.sum())
 
     assert weighted_days(fixed.with_settings(duration_response=1.0)) > weighted_days(fixed)
+
+
+def test_the_band_recorder_is_off_by_default_and_its_bands_sum_to_the_days_started_stake():
+    from avalanche_research.model.fitted_lifecycle import BAND_VARIABLES
+
+    base = small_candidate()
+    assert not set(BAND_VARIABLES) & set(run(base)["variable"])
+    assert base.with_settings(record_duration_bands=False).specification_hash() == base.specification_hash()
+    table = run(base.with_settings(record_duration_bands=True, timesteps=60))
+    wide = table.pivot_table(index=["run", "timestep"], columns="variable", values="value", aggfunc="first")
+    assert (wide[list(BAND_VARIABLES)].sum(axis=1) == wide["started_stake_navax"]).all()
+    assert wide["started_stake_navax"].sum() > 0

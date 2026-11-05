@@ -78,7 +78,9 @@ def test_on_changes_whole_model_stake_and_issuance_without_other_first_day_signa
     # The started commitments' stake and stake-days follow their stakes.
     assert changed["started_stake_navax"] > original["started_stake_navax"]
     assert changed["started_stake_days_navax"] > original["started_stake_days_navax"]
-    for key in original.keys() - {"stakes", "issued_navax", "started_stake_navax", "started_stake_days_navax"}:
+    # The day's started stake by duration band is the started stake split by duration, so it moves with it.
+    by_band = {key for key in original if key.startswith("started_stake_d")}
+    for key in original.keys() - {"stakes", "issued_navax", "started_stake_navax", "started_stake_days_navax"} - by_band:
         np.testing.assert_equal(changed[key], original[key], err_msg=key)
     assert changed["stakes"][-1] == original["stakes"][-1] == 79_000 * AVAX
     before, after = run(base), run(on)

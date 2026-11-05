@@ -146,7 +146,13 @@ def rewards_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict
         paid += funding.revenue_navax
         unpaid += funding.unpaid_navax
         pool -= funding.revenue_navax
+    from avalanche_research.model.parts.duration_transition import BANDS, duration_band
+
+    bands = duration_band(np.asarray(started["days"], dtype=np.int64)) if len(started["days"]) else np.zeros(0, dtype=np.int64)
+    stakes = np.asarray(started["stakes"], dtype=np.int64)
     return {
+        # The started stake in each duration band, state only in a run that records them (FittedLifecycle).
+        **{f"started_stake_{band}_navax": int(stakes[bands == k].sum()) for k, band in enumerate(BANDS)},
         "issued_navax": int(minted),
         "revenue_paid_navax": int(paid),
         "unpaid_need_navax": int(unpaid),

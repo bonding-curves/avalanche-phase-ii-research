@@ -165,8 +165,14 @@ class StakeLifecycle(FittedLifecycle):
         new_key, n_new = arrivals["node_key"], arrivals["count"]
         renewed_key, renewed_done = ended["node_key"][renews], ended["done"][renews]
         back_key, back_done = state["out_node_key"][comes_back], state["out_done"][comes_back]
-        next_days = (blocks.continuation.durations_from_uniforms if blocks.durations is None
-                     else blocks.durations.days_from_uniforms)
+        if blocks.durations is None:
+            next_days = blocks.continuation.durations_from_uniforms
+        elif day.duration_tilt is None:
+            next_days = blocks.durations.days_from_uniforms
+        else:
+            # The duration response's tilt of the band probabilities (ML28), as the plain continuation stage reads it.
+            def next_days(previous, u):
+                return blocks.durations.days_from_uniforms(previous, u, tilt=day.duration_tilt)
         entry_u = draw.uniforms("first_days", new_key)
         entry_days = blocks.first_days[np.minimum((entry_u * len(blocks.first_days)).astype(np.int64),
                                                    len(blocks.first_days) - 1)] if n_new else np.zeros(0, dtype=np.int64)
