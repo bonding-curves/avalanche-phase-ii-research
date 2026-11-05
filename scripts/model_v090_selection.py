@@ -60,9 +60,16 @@ dollars a year; E033 sweeps the cost."""
 
 
 def origin_price(price_pin: Path, origin: date) -> float:
-    """The last AVAX price observed at or before the origin's last instant, 23:59:59 UTC, in the pinned price run."""
-    run_name = pins.runs(price_pin)[PRICE_DATASET]
-    parquet = parquet_path(PRICE_DATASET, run_name)
+    """The last AVAX price observed at or before the origin's last instant, 23:59:59 UTC, in the pinned price run. The
+    run's Parquet file must have the SHA-256 the pin records, so a run rebuilt under the same name is refused."""
+    import hashlib
+
+    entry = next(run for run in pins.read(price_pin)["runs"] if run["dataset_id"] == PRICE_DATASET)
+    parquet = parquet_path(PRICE_DATASET, entry["run"])
+    with open(parquet, "rb") as stream:
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    if digest != entry["sha256"]:
+        raise ValueError(f"{parquet} has SHA-256 {digest}, not the {entry['sha256']} that {price_pin} pins")
     row = duckdb.execute("SELECT price_usd FROM read_parquet(?) WHERE observed_at <= ?::TIMESTAMP ORDER BY observed_at DESC LIMIT 1",
                          [str(parquet), f"{origin.isoformat()} 23:59:59"]).fetchone()
     if row is None:
