@@ -81,6 +81,14 @@ And one candidate for v0.8.1 on the released base, outside the development score
   ``delegations`` as ``v0.8.1 events`` does, with ``benqi_choices`` from
   :func:`~avalanche_research.model.delegated_lifecycle.benqi_choices`.
 
+And one candidate for v0.9 on the v0.8.1 candidate, outside the development scores:
+
+* ``v0.9 holders``: :class:`~avalanche_research.model.holder_lifecycle.HolderStakeLifecycle`, the ``v0.8.1 candidate``
+  with the holder rules of :mod:`~avalanche_research.model.parts.holders` available behind the ``holders`` setting, off
+  by default. Its ``prepare`` takes the candidate's ``delegations`` and, optionally, ``funds``, the fund holdings table
+  at the origin, and adds the renewal block fitted above the 1,000,000 AVAX line as a point estimate and BENQI's mean
+  stake per start over the 28 days before the origin. With ``holders`` unset it runs as the candidate does.
+
 A variant is built in two steps. :meth:`Variant.prepare` reads the staking periods once per origin and returns the
 inputs every batch shares, with the draw table for a variant that reads draws. :meth:`Variant.simulation` builds one
 batch from them.
@@ -111,13 +119,20 @@ from avalanche_research.model.fitted_lifecycle import (
     fit_durations,
     fit_return_history,
     parameter_draws,
+    renewal_inputs,
+    split_at_line,
     stake_decisions,
     training_events,
     window_sd,
 )
+from avalanche_research.model.holder_lifecycle import (
+    HolderStakeLifecycle,
+    benqi_stake_per_start,
+)
 from avalanche_research.model.lifecycle import ValidatorLifecycle, origin_inputs
 from avalanche_research.model.operator_events import named_operators
 from avalanche_research.model.parts.operator_types import ClassShift
+from avalanche_research.model.parts.renewal import RenewalLogit
 from avalanche_research.model.stake_lifecycle import (
     StakeLifecycle,
     build_stake_candidate,
@@ -309,6 +324,26 @@ def _delegated_candidate(periods: str, origin: date, run: str, draws: int, draw_
     return Prepared(inputs, base.draws, base.tau, base.tau_source)
 
 
+def _holders_candidate(periods: str, origin: date, run: str, draws: int, draw_seed: int,
+                       delegations: dict[str, pd.DataFrame] | None = None, operator_events: list[dict] | None = None,
+                       operator_attributions: list[dict] | None = None, funds: pd.DataFrame | None = None) -> Prepared:
+    """The v0.9 holders variant's inputs: the v0.8.1 candidate's, plus the renewal block fitted on the endings above the
+    large-holder line (a point estimate the draws do not resample), BENQI's mean stake per start over the 28 days before
+    the origin, and the fund holdings table when given."""
+    base = _delegated_candidate(periods, origin, run, draws, draw_seed, delegations, operator_events, operator_attributions)
+    events = training_events(periods, origin, run)
+    # The institutional renewal block, fitted as candidate a fits its renewal block (no node record), above the line.
+    _, large = split_at_line(events.endings, LARGE_ABOVE_AVAX, events.window)
+    large_block = RenewalLogit.fit(renewal_inputs(large, False), large["renewed"].to_numpy(),
+                                   f"{events.window}, above {LARGE_ABOVE_AVAX:,.0f} AVAX: {len(large)} endings, node record left out, "
+                                   "point estimate not resampled")
+    inputs = {**base.inputs, "benqi_stake_per_start_navax": benqi_stake_per_start(delegations.get("starts"), origin),
+              "holder_renewal_large": large_block}
+    if funds is not None:
+        inputs["fund_holdings"] = funds
+    return Prepared(inputs, base.draws, base.tau, base.tau_source)
+
+
 _CANDIDATE_DESCRIPTIONS = {
     "v0.8-a": "v0.8 without the node's own renewal record, with the stake ratio drawn unweighted within three stake bands",
     "v0.8-c": "v0.8-a with the node's own renewal record and the stake ratio weighted by previous stake",
@@ -367,6 +402,10 @@ VARIANTS: dict[str, Variant] = {
                 "v0.8.0 with delegations under the frozen v0.8.1 laws, the named operators known at the origin, one operator type "
                 "and the arrival rate in proportion to the unstaked share of supply",
                 _delegated_candidate),
+        Variant("v0.9 holders", HolderStakeLifecycle,
+                "the v0.8.1 candidate with the holder rules available behind the holders setting: liquid staking, funds, "
+                "institutional and small operators, and delegators; off by default",
+                _holders_candidate),
     )
 }
 

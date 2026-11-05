@@ -72,10 +72,18 @@ from . import receipt
 PILOT_BASE_MIB, PILOT_PER_RUN_MIB = 931.9, 58.0
 
 
-def builder(periods: str, run_name: str, runs: int, timesteps: int, draws: Any = None) -> Callable[[Any, str], SimulationModel]:
+TABLE_VARIANTS = ("v0.8.1 candidate", "v0.9 holders")
+"""Variants whose ``prepare`` needs the origin's delegation tables, built from the runs the design's pin names."""
+
+
+def builder(periods: str, run_name: str, runs: int, timesteps: int, draws: Any = None,
+            pin: Path | None = None) -> Callable[[Any, str], SimulationModel]:
     """The base model for an origin and model name, from the pinned staking periods, with ``draws`` attached to a v0.8
     base when given. With the design's draws, a model with the fitted stake hurdle keeps the hurdle at its point
-    estimate while every other block redraws per run, as the variants do with their own draws."""
+    estimate while every other block redraws per run, as the variants do with their own draws. A variant that reads
+    the origin's delegation tables, ``TABLE_VARIANTS``, needs ``pin``, the pin file naming the seamed delegator stakes
+    run as well, and for ``v0.9 holders`` the funds come from the newest checked fund history run
+    (``experiments.v09_inputs``)."""
     def build(origin: Any, model: str) -> SimulationModel:
         from dataclasses import replace
 
@@ -84,7 +92,20 @@ def builder(periods: str, run_name: str, runs: int, timesteps: int, draws: Any =
         day = date.fromisoformat(str(origin))
         if model in VARIANTS and model != "v0.8.1 stub":
             variant = VARIANTS[model]
-            prepared = variant.prepare(periods, day, run_name, draws=0 if draws is not None else runs)
+            wanted = 0 if draws is not None else runs
+            if model in TABLE_VARIANTS:
+                if pin is None:
+                    raise ValueError(f"the sweep model {model!r} needs the design's pin to name its delegation inputs")
+                if model == "v0.9 holders":
+                    from .v09_inputs import prepare_holders
+
+                    prepared = prepare_holders(Path(pin), day, draws=wanted)
+                else:
+                    from .v081_inputs import prepare_candidate
+
+                    prepared = prepare_candidate(Path(pin), day, draws=wanted)
+            else:
+                prepared = variant.prepare(periods, day, run_name, draws=wanted)
             if draws is not None and prepared.inputs.get("fitted_stake"):
                 prepared = replace(prepared, inputs={**prepared.inputs, "stake_point_estimate": True})
             return variant.simulation(prepared, seed=0, timesteps=timesteps, runs=runs,
@@ -263,7 +284,12 @@ def run(design_path: Path | dict, out: Path, build: Callable[[Any, str], Simulat
     planned = rows(design)
     if draws is not None and any(type(row.get("draw")) is not int or not 0 <= row["draw"] < len(draws) for row in planned):
         raise ValueError("every row must select a draw present in the external draw table")
-    build = build or builder(periods, periods_run, design["runs"], design["timesteps"], draws)
+    if build is None:
+        # A table-reading variant gets the pin; any other model keeps the builder's earlier call, as a stand-in builder may.
+        if any(model in TABLE_VARIANTS for model in design["models"]):
+            build = builder(periods, periods_run, design["runs"], design["timesteps"], draws, pin=pin_file)
+        else:
+            build = builder(periods, periods_run, design["runs"], design["timesteps"], draws)
     reducer = reducer or kpi_reducer(design, pin_file, periods)
     workers = design.get("workers", "auto")
     if workers == "auto":

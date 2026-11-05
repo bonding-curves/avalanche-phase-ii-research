@@ -40,6 +40,7 @@ PURPOSES = {
     "delegator_choice": "the validator a delegator other than BENQI chooses",
     "benqi_allocation": "the validator BENQI delegates to",
     "price": "one run's daily shocks to the log AVAX price",
+    "holder_days": "the duration of a fund's validator commitment, within the fund's band",
 }
 
 KIND_OPEN, KIND_OUT, KIND_SCHEDULED, KIND_ARRIVAL = 0, 1, 2, 3
