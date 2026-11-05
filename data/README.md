@@ -287,7 +287,20 @@ In the captures of 2026-11-05, all 6,691 archived Binance rates in 74 monthly fi
 
 The dataset `derived.market-daily-vector` gives the model one row per UTC day of market inputs, from 2021-02-02 to 2025-11-18, the day before the held-back cut of 19 November 2025. Each row holds the AVAX close at 24:00 UTC and its log return, the realised variance of the day, the Bitcoin close and log return at the same instant, and the natural log of the day's C-Chain gas burn in AVAX. The realised variance is the sum of squared hourly log returns within the day ([Corsi 2009](https://doi.org/10.1093/jjfinec/nbp001)), over the hours from 01:00 to 24:00 UTC. A return counts only when both of its hours are priced and come from the same table, and the field `hourly_returns` records how many were summed. Lending-rate and outside-yield columns are planned to follow these fields and are not built yet.
 
-Three inputs come from the Avalanche Foundation's Snowflake account, `RYPQXPJ-AVALANCHE_FOUNDATION`, read with its read-only role `AF_AVALANCHE_GCP_READER` under the Foundation's agreement. The catalog source `af-foundation-snowflake` describes it. The capture signs in with a key pair. The private key file is the one the environment variable `AVALANCHE_FOUNDATION_SNOWFLAKE_KEY` names, by default `~/.snowflake/bcrg_rsa_key.p8`, and the key never enters a capture, a receipt or the output. Each capture holds every row of its table in the window, held-back dates included, and records the SQL text, the bound window, the Snowflake query ID and the session's role and warehouse.
+Three inputs come from the Avalanche Foundation's Snowflake account, read-only, under the Foundation's agreement, through a named connection. The catalog source `af-foundation-snowflake` describes it. Describe the connection once in the connector's configuration file, outside the repository, as for the share above:
+
+```toml
+# ~/.snowflake/connections.toml, file mode 600
+[foundation]
+account = "<account identifier>"
+user = "<user name>"
+authenticator = "SNOWFLAKE_JWT"
+private_key_file = "/absolute/path/to/rsa_key.p8"
+role = "<read-only role>"
+warehouse = "<warehouse>"
+```
+
+Set `AVALANCHE_FOUNDATION_SNOWFLAKE_CONNECTION` to use a different connection name. Credentials never enter captures, receipts or command output. Each capture holds every row of its table in the window, held-back dates included, and records the SQL text, the bound window, the Snowflake query ID and the role, warehouse, database and schema the session reports.
 
 1. `allium.prices-hourly` is Allium's hourly price service for native AVAX, WAVAX, sAVAX, ggAVAX and yyAVAX from 2022-06-01 01:00 UTC. A price holds at the instant of its stamp: the price stamped at a midnight agrees with Binance's AVAX/USDT daily open of that midnight to a median 0.12%. The check requires native AVAX and WAVAX within 2% of each other in at least 98% of the hours both are priced. In the 2026-11-05 capture 99.0% of 38,844 hours are, the median difference is 0.08%, and isolated single-hour spikes reach 62%. Missing hours are counted per token in the summary: none for AVAX, 2 for WAVAX.
 2. `allium.dex-token-prices-hourly` is Allium's WAVAX price from decentralised exchange trades, from 2021-02-02 15:00 UTC, the only hourly AVAX price before the service starts. An hour without trades has no row, 128 hours in all. Its check, with `--against` a built `allium.prices-hourly` run, requires each day's last exchange price within 3% of the service's WAVAX price at the same hour on at least 95% of the days both hold. On 2026-11-05 99.1% of 1,619 days were.

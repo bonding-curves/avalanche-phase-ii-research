@@ -1,8 +1,10 @@
 """Captures from the Avalanche Foundation's Snowflake account: Allium's hourly token prices, Allium's hourly WAVAX price
 from decentralised exchange trades, and the Foundation's daily C-Chain gas fees.
 
-The account is read with the Foundation's read-only role through a key pair (``capture.snowflake.connect_foundation``).
-Each dataset is one query file. A capture records the SQL text, its bound parameters, the Snowflake query ID and the
+The account is read-only and reached through a named connection, ``foundation`` unless
+``AVALANCHE_FOUNDATION_SNOWFLAKE_CONNECTION`` names another, which snowflake-connector-python resolves from its
+connections.toml file. The account, user, role, warehouse and key file live in that file, outside the repository, and
+never enter a capture, a receipt or the output. Each dataset is one query file. A capture records the SQL text, its bound parameters, the Snowflake query ID and the
 session's role, warehouse, database and schema, and keeps every row the query returns in a compressed JSON-lines file
 with its SHA-256 hash. The capture holds every row of the table in its window, held-back dates included. The build types
 the rows and cuts nothing.
@@ -43,15 +45,16 @@ from ..core.catalog import (
 )
 from .capture.snowflake import (
     FETCH_SIZE,
-    FOUNDATION_ACCOUNT,
     _connector_error,
     _json_value,
     _session,
-    connect_foundation,
+    connect,
     read_sql,
 )
 
 SOURCE_ID = "af-foundation-snowflake"
+CONNECTION_VARIABLE = "AVALANCHE_FOUNDATION_SNOWFLAKE_CONNECTION"
+DEFAULT_CONNECTION = "foundation"
 SCHEMA = "foundation-snowflake-capture/v1"
 BUILD_SCHEMA = "foundation-snowflake-build/v1"
 NATIVE_AVAX = "0x0000000000000000000000000000000000000000"
@@ -164,6 +167,10 @@ SPECS = {spec.dataset_id: spec for spec in (PRICES_HOURLY, DEX_PRICES_HOURLY, EC
 DATASET_IDS = tuple(SPECS)
 
 
+def connection_name() -> str:
+    return os.environ.get(CONNECTION_VARIABLE, DEFAULT_CONNECTION)
+
+
 def spec_for(dataset_id: str) -> Spec:
     try:
         return SPECS[dataset_id]
@@ -210,7 +217,7 @@ def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | 
         "dataset_id": dataset_id,
         "source_id": SOURCE_ID,
         "output": str(output),
-        "connection": FOUNDATION_ACCOUNT.describe(),
+        "connection": connection_name(),
         "query_id": spec.query_id,
         "sql": query["sql"],
         "sql_sha256": sha256(sql_text.encode()),
@@ -222,7 +229,7 @@ def capture_preview(dataset_id: str, output: Path, parameters: dict[str, str] | 
 
 def capture(dataset_id: str, output: Path, timeout: float = 20, parameters: dict[str, str] | None = None,
             catalog: dict[str, Any] | None = None,
-            connector: Callable[[str, float], Any] = connect_foundation) -> dict[str, Any]:
+            connector: Callable[[str, float], Any] = connect) -> dict[str, Any]:
     catalog = catalog or load_catalog()
     spec = spec_for(dataset_id)
     preview = capture_preview(dataset_id, output, parameters, catalog)
@@ -277,7 +284,6 @@ def capture(dataset_id: str, output: Path, timeout: float = 20, parameters: dict
             "completed_at": completed_at,
             "contract_sha256": contract_hash(catalog, dataset_id),
             "tool": f"avalanche-research@{__version__}",
-            "account": FOUNDATION_ACCOUNT.account,
             "session": session,
             "queries": [record],
         }

@@ -51,7 +51,7 @@ class FakeCursor:
     def execute(self, sql, params=None):
         if sql == client.SESSION_SQL:
             self.description = [("CURRENT_ROLE()",)]
-            self.pending = [("AF_AVALANCHE_GCP_READER", "AF_WAREHOUSE_X_SMALL", None, None, "10.40.102")]
+            self.pending = [("FIXTURE_READER", "FIXTURE_WH", None, None, "10.40.102")]
             return
         assert "%(start)s" in sql and "%(end)s" in sql and set(params) == {"start", "end"}
         self.calls.append(params)
@@ -81,7 +81,7 @@ def connector(rows, spec, calls=None):
             pass
 
     def connect(name, timeout):
-        assert name == client.FOUNDATION_ACCOUNT.describe() and 1 <= timeout <= 600
+        assert name == "foundation" and 1 <= timeout <= 600
         return Connection()
 
     return connect
@@ -110,13 +110,14 @@ def test_catalog_declares_each_dataset_with_its_query_and_fields(spec):
 def test_capture_records_query_session_and_every_row(tmp_path):
     run, receipt = capture(tmp_path, foundation.PRICES_HOURLY, price_rows())
     record = receipt["queries"][0]
-    assert receipt["source_id"] == foundation.SOURCE_ID and receipt["account"] == "RYPQXPJ-AVALANCHE_FOUNDATION"
-    assert receipt["session"]["role"] == "AF_AVALANCHE_GCP_READER"
+    assert receipt["source_id"] == foundation.SOURCE_ID and "account" not in receipt
+    assert receipt["session"] == {"role": "FIXTURE_READER", "warehouse": "FIXTURE_WH", "database": None, "schema": None,
+                                  "server_version": "10.40.102"}
     assert record["snowflake_query_id"] == "01c8-fixture" and record["rows"] == 6 + 6 + 3
     assert record["parameters"] == {"start": "2024-03-01", "end": "2024-03-02"}
     assert (run / "capture" / record["sql_path"]).read_text() == client.read_sql(
         foundation.query_definition(load_catalog(), foundation.PRICES_HOURLY.dataset_id))
-    assert "bcrg_rsa_key" not in json.dumps(receipt)
+    assert "foundation" not in json.dumps(receipt["session"])
     with pytest.raises(DataError, match="already exists"):
         capture(tmp_path, foundation.PRICES_HOURLY, price_rows())
 
@@ -192,17 +193,12 @@ def test_a_changed_capture_is_refused(tmp_path):
         foundation.read_capture(run / "capture")
 
 
-def test_key_pair_connection_reads_the_key_path_from_the_environment(tmp_path, monkeypatch):
-    monkeypatch.setenv(client.FOUNDATION_KEY_VARIABLE, str(tmp_path / "missing.p8"))
-    assert client.foundation_key_path() == tmp_path / "missing.p8"
-    pytest.importorskip("snowflake.connector")
-    with pytest.raises(DataError) as error:
-        client.connect_foundation(client.FOUNDATION_ACCOUNT.describe(), 20)
-    assert "missing.p8" not in str(error.value) and client.FOUNDATION_KEY_VARIABLE in str(error.value)
-    with pytest.raises(DataError, match="unknown key-pair connection"):
-        client.connect_foundation("avalanche", 20)
-    monkeypatch.delenv(client.FOUNDATION_KEY_VARIABLE)
-    assert client.foundation_key_path().name == "bcrg_rsa_key.p8" and client.foundation_key_path().parent.name == ".snowflake"
+def test_the_named_connection_defaults_to_foundation_and_follows_its_variable(monkeypatch):
+    monkeypatch.delenv(foundation.CONNECTION_VARIABLE, raising=False)
+    assert foundation.connection_name() == "foundation"
+    monkeypatch.setenv(foundation.CONNECTION_VARIABLE, "other")
+    assert foundation.connection_name() == "other"
+    assert foundation.capture_preview(foundation.PRICES_HOURLY.dataset_id, foundation.Path("x"))["connection"] == "other"
 
 
 def test_cli_previews_a_capture_without_connecting(tmp_path, monkeypatch):
