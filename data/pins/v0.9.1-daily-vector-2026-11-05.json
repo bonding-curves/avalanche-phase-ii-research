@@ -1,0 +1,60 @@
+{
+  "code": {
+    "client_commit": "485cac2dbf07180be822944793f5efd4fd1adfd3"
+  },
+  "name": "v0.9.1-daily-vector-2026-11-05",
+  "pinned_at": "2026-11-05T16:30:35Z",
+  "runs": [
+    {
+      "bytes": 1729325,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T16:05:23Z:e9b9fd99dba0",
+      "captured_at": "2026-11-05T16:05:23Z",
+      "check": "pass",
+      "dataset_id": "allium.prices-hourly",
+      "parquet": "prices-hourly.parquet",
+      "run": "allium-prices-hourly-2026-11-05",
+      "sha256": "d30b59cd664a1c2cbbd73a0ac0052d5e0f7f1d0b71b6e185a29805aaece4e837"
+    },
+    {
+      "bytes": 1531254,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T16:05:54Z:29e8db141c38",
+      "captured_at": "2026-11-05T16:05:54Z",
+      "check": "pass",
+      "dataset_id": "allium.dex-token-prices-hourly",
+      "parquet": "dex-token-prices-hourly.parquet",
+      "run": "allium-dex-token-prices-hourly-2026-11-05",
+      "sha256": "938ac978ff3f9d4e193d17a12481ac2a6b42d83ad57ab5ac642295df54ef2263"
+    },
+    {
+      "bytes": 67744,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T16:06:05Z:551e9e46780b",
+      "captured_at": "2026-11-05T16:06:05Z",
+      "check": "pass",
+      "dataset_id": "af.economy-gas-fees-daily",
+      "parquet": "economy-gas-fees-daily.parquet",
+      "run": "af-economy-gas-fees-daily-2026-11-05",
+      "sha256": "88a16b800f2367884fa4ed2cbf2684c77f43ed0262c6d9843f293de6ec539ba7"
+    },
+    {
+      "bytes": 104390,
+      "capture_id": "capture:coinmetrics-community:2026-11-05T07:34:51Z:d49f26877e31",
+      "captured_at": "2026-11-05T07:34:51Z",
+      "check": "pass",
+      "dataset_id": "coinmetrics.btc-usd-daily",
+      "parquet": "btc-usd-daily.parquet",
+      "run": "coinmetrics-btc-2026-11-05",
+      "sha256": "f66dbb975ef85bc2ddad3f72e60ffa366550ff682d8bca3670739e9f9bbd883f"
+    },
+    {
+      "bytes": 129545,
+      "capture_id": "capture:derived:2026-11-05T16:23:46Z:dcebd631b3e9",
+      "captured_at": "2026-11-05T16:23:46Z",
+      "check": "pass",
+      "dataset_id": "derived.market-daily-vector",
+      "parquet": "market-daily-vector.parquet",
+      "run": "market-daily-vector-2026-11-05",
+      "sha256": "d5128cc30afb6334c2cb8b56c935c95a4efdc1806b0d4d56983e37f92908fbb3"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
