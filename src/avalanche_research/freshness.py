@@ -52,6 +52,11 @@ KNOWN_STOPPED = {
 }
 
 
+class NoRecentRow(DataError):
+    """A windowed query found no row: the newest record is older than the window. For a known stop that has no newer
+    record, this means the source is still stopped, which after 2026-10-22 is every read of the stopped share."""
+
+
 def _utc(seconds: float) -> datetime:
     return datetime.fromtimestamp(seconds, UTC)
 
@@ -104,7 +109,7 @@ def snowflake_tables(timeout: float) -> dict[str, datetime | Exception]:
                 cursor.execute(sql)
                 value = cursor.fetchone()[0]
                 if value is None:
-                    raise DataError(f"{table} has no row in the last 30 days")
+                    raise NoRecentRow(f"{table} has no row in the last 30 days")
                 found[table] = value.replace(tzinfo=UTC)
             except Exception as error:  # noqa: BLE001 - a connector error names the table; the probe reports it instead of stopping.
                 found[table] = error
@@ -164,6 +169,9 @@ def measure(sources: dict[str, Callable[[], datetime | Exception]], clock: datet
     rows = []
     for name, probe in sources.items():
         value = probe()
+        if isinstance(value, NoRecentRow) and name in known:
+            # No row in the window, so no record newer than the known stop: still the same stop.
+            value = datetime.strptime(known[name][0], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
         if isinstance(value, Exception):
             rows.append({"source": name, "status": "error", "newest": None, "age_hours": None, "error": str(value)[:300]})
             continue

@@ -35,6 +35,16 @@ def test_a_known_stop_passes_until_a_new_stop():
     assert freshness.measure({"other": stopped}, clock=CLOCK, known=known)["status"] == "attention"
 
 
+def test_a_known_stop_older_than_the_query_window_stays_known_stale():
+    known = {"share": ("2026-09-22T08:35:40Z", "stopped")}
+    empty = lambda: freshness.NoRecentRow("share has no row in the last 30 days")
+    result = freshness.measure({"share": empty}, clock=datetime(2026, 11, 5, tzinfo=UTC), known=known)
+    assert result["status"] == "pass"
+    assert result["sources"][0]["status"] == "known stale" and result["sources"][0]["newest"] == "2026-09-22T08:35:40Z"
+    # A source that is not a known stop and has no recent row is still an error.
+    assert freshness.measure({"other": empty}, clock=CLOCK, known=known)["sources"][0]["status"] == "error"
+
+
 def test_all_fresh_passes():
     assert freshness.measure({"node": lambda: CLOCK}, clock=CLOCK)["status"] == "pass"
 
