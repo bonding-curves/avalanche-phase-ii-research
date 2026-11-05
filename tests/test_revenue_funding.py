@@ -243,3 +243,22 @@ def test_a_sweep_row_names_the_rule_and_its_settings_by_class_name():
         RevenueFunded(shortfall="defer")
     with pytest.raises(ValueError):
         RevenueFunded(revenue_share=1.5)
+
+
+# The responses read the reward received.
+
+def test_under_cut_the_responses_read_the_reward_received_and_under_top_up_they_read_the_chains_rate():
+    chain = run(model(**SHARED))
+    topped = run(model(**SHARED, mechanism=RevenueFunded(revenue_share=0.5, shortfall="top_up")))
+    built = model(**SHARED, mechanism=RevenueFunded(revenue_share=0.5, shortfall="cut"))
+    cut = run(built)
+    gap = lambda table: table.groupby("timestep")["yield_gap_pp"].first()
+    # With no stream the pool is empty: under top-up nothing is unpaid, so the gap behaviour reads is the chain's.
+    pd.testing.assert_series_equal(gap(chain), gap(topped))
+    # Under cut the whole revenue share of yesterday's rewards went unpaid, so from day 2 the gap falls by half the
+    # rule's own 30-day rate at the renewal tenure, within the share's rounding to the millionth.
+    days = [built.origin + pd.Timedelta(days=t + 1).to_pytimedelta() for t in range(built.timesteps)]
+    expected = [gap(chain)[t + 1] - (0.5 * built.response_rate_pp(days[t], built.renewal_tenure) if t >= 1 else 0.0) for t in range(built.timesteps)]
+    assert gap(cut)[1] == gap(chain)[1]
+    assert np.allclose(gap(cut)[1:].to_numpy(), expected, atol=1e-6)
+    assert all(g < c for g, c in zip(gap(cut)[2:], gap(chain)[2:]))

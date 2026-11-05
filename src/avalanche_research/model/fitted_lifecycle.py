@@ -55,7 +55,7 @@ from avalanche_research.model.parts.stages import (
     run_stages,
 )
 from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
-from avalanche_research.model.response import FittedMenu, response_gap_pp
+from avalanche_research.model.response import RESPONSE_DURATION_DAYS, FittedMenu, response_gap_pp
 from avalanche_research.model.streams import (
     KIND_OPEN,
     KIND_OUT,
@@ -260,6 +260,12 @@ class FittedLifecycle(SimulationModel):
         return response_gap_pp(self.mechanism, self.fitted_menu, day, self.supply0_navax, completed_periods,
                                self.outside_yield_pp, self.fitted_outside_yield_pp)
 
+    def response_rate_pp(self, day: date, completed_periods: int) -> float:
+        """The mechanism's own annual rate, in percentage points, for the 30-day stake the responses read, started on
+        ``day`` at the origin's supply. The part of it a funding rule leaves unpaid is what the responses lose."""
+        start = datetime.combine(day, time(12), tzinfo=UTC)
+        return float(self.mechanism.annual_rate(RESPONSE_DURATION_DAYS, self.supply0_navax, start, completed_periods=completed_periods)) * 100
+
     def _blocks_by_run(self):
         """A function from run number to that run's :class:`RunBlocks`: its renewal, large-holder renewal, arrival and
         return blocks, its renewal shift, its continuation table, its first-ever durations and stakes, and its duration
@@ -330,10 +336,23 @@ class FittedLifecycle(SimulationModel):
             },
         )
 
+        # Under a funding rule the responses read the reward received, not the reward priced: the share of yesterday's
+        # priced rewards the pool left unpaid (the ``cut`` rule) lowers the rate behaviour sees by that share of the
+        # rule's own rate. Under ``top_up`` nothing is left unpaid, so these runs keep E009's gaps exactly, and a rule
+        # that mints everything never enters this branch.
+        receipt = self.funded and bool(self.mechanism.funds_from_revenue)
+        rates = [(self.response_rate_pp(day, self.renewal_tenure), self.response_rate_pp(day, 0)) for day in days] if receipt else None
+
         def p_lifecycle(params, substep, history, state):
             t = state["timestep"]
             run = int(state["run"])
             renewal_gap, entry_gap = gaps[t]
+            if receipt:
+                priced = int(state["issued_navax"]) + int(state["revenue_paid_navax"]) + int(state["unpaid_need_navax"])
+                unpaid = int(state["unpaid_need_navax"]) / priced if priced > 0 else 0.0
+                if unpaid > 0.0:
+                    renewal_gap -= rates[t][0] * unpaid
+                    entry_gap -= rates[t][1] * unpaid
             day = Day(
                 t=t, start=datetime.combine(origin + timedelta(days=t + 1), time(12), tzinfo=UTC), draw=Streams(seed, run),
                 blocks=blocks_for(run), renewal_gap=renewal_gap, entry_gap=entry_gap, settings=settings,
