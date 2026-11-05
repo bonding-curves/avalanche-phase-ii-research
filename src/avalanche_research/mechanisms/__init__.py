@@ -8,6 +8,7 @@ from .admission import AdmissionRule, BoundedHarmonicFrontier, ChainAdmission
 from .reward import (
     ACP285Ramp,
     ChainReward,
+    DurationCurve,
     QuadraticReward,
     RewardMechanism,
     TenureBoost,
@@ -19,6 +20,7 @@ __all__ = [
     "BoundedHarmonicFrontier",
     "ChainAdmission",
     "ChainReward",
+    "DurationCurve",
     "QuadraticReward",
     "RewardMechanism",
     "TenureBoost",

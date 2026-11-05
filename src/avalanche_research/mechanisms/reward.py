@@ -234,3 +234,51 @@ class QuadraticReward(RewardMechanism):
         designed = QuadraticReward(exponent=self.exponent, acp285=self.acp285).issuance_navax(stakes, supply_navax)
         return QuadraticReward(exponent=self.exponent, scale=chain / designed if designed else 1.0, acp285=self.acp285,
                                label=f"{self.label}, equal issuance")
+
+
+class DurationCurve(RewardMechanism):
+    """A consumption rate given as a curve over staking duration, applied to every stake from the run's origin.
+
+    With ``x = d / T`` the duration as a fraction of the one-year minting period:
+
+        rate(x) = max(floor, min_rate + (max_rate - min_rate) * x) + bump_scale * x * (1 - x) ** bump_power
+
+    At the defaults, floor 0 and bump_scale 0, the curve is ACP-285's target line, 7.5% to 12%, from the first
+    day of the run with no ramp. ``min_rate`` 0.10 gives the rule before Helicon, 10% to 12%. ``bump_scale`` 1.274
+    with ``bump_power`` 25 gives the bump curve of the ACP-285 discussion of July 2026: the line plus a hump that
+    peaks near 14 days and falls back onto the line by about 120 days. A positive ``floor`` gives a flat minimum: the
+    line is lifted to the floor wherever it lies below it, so short stakes earn the floor and the rate never falls as
+    duration rises.
+
+    The rate is computed in floating point and rounded to the chain's unit of millionths times nanoseconds, so a line
+    with no floor and no bump matches the chain's integer rate to within one unit of that rounding. ``check`` reports a
+    curve whose annual rate falls as duration rises, which the bump curve does between about 15 and 64 days.
+    """
+
+    label = param.String(default="Duration curve")
+    min_rate = param.Number(default=ACP285_TARGET_MIN_CONSUMPTION_RATE / PERCENT_DENOMINATOR, bounds=(0.0, 0.2), step=0.0025,
+                            doc="The line's rate at zero duration, as a fraction. ACP-285's target: 0.075. Before Helicon: 0.10")
+    max_rate = param.Number(default=MAINNET_REWARD.max_consumption_rate / PERCENT_DENOMINATOR, bounds=(0.0, 0.2), step=0.0025,
+                            doc="The line's rate at one year, as a fraction. Mainnet: 0.12")
+    floor = param.Number(default=0.0, bounds=(0.0, 0.2), step=0.0025,
+                         doc="A flat minimum: the rate is at least this at every duration. 0 is no floor")
+    bump_scale = param.Number(default=0.0, bounds=(0.0, 5.0), doc="Height parameter of the hump term. 0 is no hump, 1.274 the July 2026 bump curve")
+    bump_power = param.Number(default=25.0, bounds=(1.0, 100.0), doc="Decay power of the hump term. 25 peaks the hump at day 14")
+
+    def config(self, start: datetime) -> RewardConfig:
+        base = MAINNET_REWARD
+        return RewardConfig(round(self.max_rate * PERCENT_DENOMINATOR), round(self.min_rate * PERCENT_DENOMINATOR),
+                            base.minting_period_seconds, base.supply_cap_navax)
+
+    def rate(self, duration_days: float) -> float:
+        """The consumption rate at a duration, before the remaining-supply ratio, as a fraction."""
+        x = duration_days / 365.0
+        line = self.min_rate + (self.max_rate - self.min_rate) * x
+        return max(self.floor, line) + self.bump_scale * x * (1.0 - x) ** self.bump_power
+
+    def numerator(self, config: RewardConfig, duration_ns: int) -> int:
+        period_ns = config.minting_period_nanoseconds
+        x = duration_ns / period_ns
+        line = self.min_rate + (self.max_rate - self.min_rate) * x
+        rate = max(self.floor, line) + self.bump_scale * x * (1.0 - x) ** self.bump_power
+        return round(rate * PERCENT_DENOMINATOR * period_ns)
