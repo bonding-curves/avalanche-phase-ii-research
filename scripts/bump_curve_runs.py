@@ -20,7 +20,7 @@ rate on a 14-day stake, and its issuance against ACP-285's line on the same key,
 
 Usage, from the client repository root on branch ``prototype/bump-curve-v0``::
 
-    python scripts/bump_curve_runs.py --out DIR --seeds 50 --workers 8
+    python scripts/bump_curve_runs.py --out DIR --sweep-design SWEEP_DIR --equal-floor FLOOR --seeds 50 --workers 8
 
 Writes ``daily.parquet``, ``horizons.parquet``, ``cells.json`` and ``receipt.json`` into ``DIR``.
 """
@@ -57,7 +57,6 @@ RESPONSES = {
 """Renewal and entry responses: zero, the measured central values, the upper ends of their 95% ranges, and two points
 of the Milestone 2 sweep's range, which ran both from 0 to 0.3."""
 PIN = Path("data/pins/p2-model-v0.8.json")
-SWEEP_DESIGN = Path.home() / ".local/share/bcrg/data-engineering/2026-10-13/m2-full-prepared"
 DRAWS_SHA256 = "0e4a238778597b44e33b1be31a6179b715d67de0d2dd773ad6faca12331df75d"
 STATE = ("active_validators", "active_validator_stake_navax", "supply_navax", "issued_navax", "started_stake_navax",
          "started_stake_d0_21_navax", "started_stake_d45_100_navax")
@@ -150,8 +149,10 @@ def horizons_table(daily: pd.DataFrame, cells: dict, horizons: list[int]) -> pd.
     """One row per cell, key and horizon: the run's values at the horizon beside its twin's on the same key."""
     at = daily[daily["day"].isin(horizons)].copy().rename(columns={"day": "horizon_days"})
     at["started_weighted_days"] = at["cumulative_started_stake_days_navax"] / at["cumulative_started_stake_navax"]
-    means = daily.groupby(["cell", "draw"])["offered_rate_30d"].mean().rename("mean_offered_rate_30d")
-    at = at.merge(means, left_on=["cell", "draw"], right_index=True, how="left")
+    # The mean offered rate from the origin to each horizon, not over the whole run.
+    means = pd.concat([daily[daily["day"] <= h].groupby(["cell", "draw"])["offered_rate_30d"].mean().rename("mean_offered_rate_30d")
+                       .reset_index().assign(horizon_days=h) for h in horizons], ignore_index=True)
+    at = at.merge(means, on=["cell", "draw", "horizon_days"], how="left")
     columns = ["active_validators", "active_validator_stake_navax", "cumulative_issued_navax", "started_weighted_days", "mean_offered_rate_30d"]
     at["twin"] = at["cell"].map(lambda c: cells[c]["twin"])
     twins = at[at["twin"].isna()][["cell", "draw", "horizon_days", *columns]].rename(columns={c: f"twin_{c}" for c in columns} | {"cell": "twin"})
@@ -175,6 +176,8 @@ def horizons_table(daily: pd.DataFrame, cells: dict, horizons: list[int]) -> pd.
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--sweep-design", required=True, type=Path,
+                        help="the Milestone 2 sweep's prepared design folder, holding design.json and draws.parquet; the draws are checked against their SHA-256")
     parser.add_argument("--equal-floor", type=float, required=True, help="the flat minimum that issues what the bump issues on the observed mix")
     parser.add_argument("--seeds", type=int, default=50)
     parser.add_argument("--workers", type=int, default=6)
@@ -191,11 +194,12 @@ def main(argv: list[str]) -> int:
     clock = time.time()
     head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain", "--", "src", "scripts"], capture_output=True, text=True, check=True).stdout.strip()
-    design = json.loads((SWEEP_DESIGN / "design.json").read_text())
+    sweep_design = args.sweep_design
+    design = json.loads((sweep_design / "design.json").read_text())
     fitted_yield_pp = float(design["provenance"]["fitted_outside_yield_pp"])
-    if sha256_file(SWEEP_DESIGN / "draws.parquet") != DRAWS_SHA256 or design["draws_sha256"] != DRAWS_SHA256:
+    if sha256_file(sweep_design / "draws.parquet") != DRAWS_SHA256 or design["draws_sha256"] != DRAWS_SHA256:
         raise SystemExit("the sweep's draw table is not the one the Milestone 2 sweep ran")
-    draws = load_draws({"draws_file": str(SWEEP_DESIGN / "draws.parquet"), "draws_sha256": DRAWS_SHA256})
+    draws = load_draws({"draws_file": str(sweep_design / "draws.parquet"), "draws_sha256": DRAWS_SHA256})
     periods, periods_run = pinned_periods(PIN)
     keys = list(range(args.seeds))
     strengths = None if args.duration_responses is None else [float(s) for s in args.duration_responses.split(",")]
@@ -252,7 +256,7 @@ def main(argv: list[str]) -> int:
         "model": "v0.8.0 lifecycle on branch prototype/bump-curve-v0", "client_head": head, "source_dirty": dirty.splitlines(),
         "origin": ORIGIN.isoformat(), "timesteps": args.timesteps, "horizons": horizons,
         "pin": str(PIN), "pin_sha256": sha256_file(PIN), "staking_periods_run": periods_run,
-        "draws_file": str(SWEEP_DESIGN / "draws.parquet"), "draws_sha256": DRAWS_SHA256,
+        "draws_file": "draws.parquet of the sweep design folder given", "draws_sha256": DRAWS_SHA256,
         "keys": keys, "seeds": [k + 1 for k in keys], "cells": list(cells), "runs": len(tasks), "workers": args.workers,
         "responses": RESPONSES, "outside_yield_pp": OUTSIDE_YIELD_PP, "fitted_outside_yield_pp": fitted_yield_pp,
         "equal_floor": args.equal_floor, "base_specification": _BASE.specification_hash(),

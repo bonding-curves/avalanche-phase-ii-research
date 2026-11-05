@@ -153,7 +153,12 @@ class DurationTransition(BehaviourBlock):
         tilt = np.asarray(tilt, dtype=float)
         if tilt.shape != (len(BANDS),) or not np.isfinite(tilt).all():
             raise ValueError(f"a duration tilt needs one finite log weight per band, {len(BANDS)} in all")
-        weighted = self.matrix() * np.exp(tilt - tilt.max())[None, :]
+        # In logs, with each row's largest reachable term taken off before the exponential, so a row whose only
+        # reachable bands carry a much smaller tilt than another band still sums to one rather than to zero.
+        matrix = self.matrix()
+        with np.errstate(divide="ignore"):
+            logs = np.where(matrix > 0, np.log(matrix), -np.inf) + tilt[None, :]
+        weighted = np.exp(logs - logs.max(axis=1, keepdims=True))
         return weighted / weighted.sum(axis=1, keepdims=True)
 
     def days_from_uniforms(self, previous_days, u, tilt=None) -> np.ndarray:

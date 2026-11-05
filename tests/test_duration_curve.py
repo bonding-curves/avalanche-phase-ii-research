@@ -6,7 +6,7 @@ import pytest
 
 from avalanche_research.mechanisms import ACP285Ramp, ChainReward, DurationCurve, QuadraticReward
 from avalanche_research.model.types import SECONDS_PER_DAY
-from tests.test_mechanisms import SUPPLY, stakes_table
+from test_mechanisms import SUPPLY, stakes_table
 
 ORIGIN = datetime(2025, 11, 18, 16, tzinfo=UTC)
 BUMP = dict(bump_scale=1.274, bump_power=25.0)

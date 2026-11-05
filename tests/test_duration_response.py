@@ -66,3 +66,16 @@ def test_the_band_recorder_is_off_by_default_and_its_bands_sum_to_the_days_start
     wide = table.pivot_table(index=["run", "timestep"], columns="variable", values="value", aggfunc="first")
     assert (wide[list(BAND_VARIABLES)].sum(axis=1) == wide["started_stake_navax"]).all()
     assert wide["started_stake_navax"].sum() > 0
+
+
+def test_a_sparse_row_under_a_large_finite_tilt_on_an_unreachable_band_still_sums_to_one():
+    # RV05's witness: a row that reaches only its own band, under a tilt far larger on a band it cannot reach, must
+    # keep its probability on the band it reaches.
+    block = small_candidate().durations
+    cells = {f"{a}_to_{b}": (1.0 if a == b else 0.0) for a in BANDS for b in BANDS}
+    sparse = block.__class__(**{**{k: v for k, v in block.param.values().items() if k != "name"}, **cells})
+    tilt = np.zeros(len(BANDS))
+    tilt[-1] = 800.0
+    tilted = sparse.tilted(tilt)
+    assert np.isfinite(tilted).all() and np.allclose(tilted.sum(axis=1), 1.0)
+    assert np.allclose(np.diag(tilted)[:-1], 1.0)
