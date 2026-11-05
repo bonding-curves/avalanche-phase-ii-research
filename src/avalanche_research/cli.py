@@ -55,7 +55,7 @@ from . import weeks
 from . import yields
 from .catalog import DataError, canonical_bytes, load_catalog, now
 from .sources import binance_btc, binance_funding, bybit, coinmetrics, foundation, minipools
-from .datasets.derived import aave_wavax_filled, market_daily_vector, operator_clusters, outside_yields
+from .datasets.derived import aave_wavax_filled, market_daily_vector, operator_clusters, outside_yields, stake_owner_types
 from .research import research
 from .model import MODEL_VERSION, RELEASED_MODEL, protocol
 from .model import backtest as model_backtest
@@ -101,6 +101,7 @@ MODULES = {
     market_daily_vector.DATASET_ID: market_daily_vector,
     aave_wavax_filled.DATASET_ID: aave_wavax_filled,
     outside_yields.DATASET_ID: outside_yields,
+    stake_owner_types.DATASET_ID: stake_owner_types,
     opportunity.DATASET_ID: opportunity,
     attributions.DATASET_ID: attributions,
     monetary.DATASET_ID: monetary,

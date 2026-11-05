@@ -1,6 +1,7 @@
 """Captures from the Avalanche Foundation's Snowflake account: Allium's hourly token prices, Allium's hourly WAVAX price
-from decentralised exchange trades, Allium's lending rate updates, and the Foundation's daily C-Chain gas fees and
-benchmark rates.
+from decentralised exchange trades, Allium's lending rate updates, the Foundation's daily C-Chain gas fees and
+benchmark rates, Allium's atomic transactions between the C-Chain and the P-Chain, and the entity labels of Allium and
+of the Foundation for the C-Chain addresses those transactions touch.
 
 The account is read-only and reached through a named connection, ``foundation`` unless
 ``AVALANCHE_FOUNDATION_SNOWFLAKE_CONNECTION`` names another, which snowflake-connector-python resolves from its
@@ -216,8 +217,103 @@ BENCHMARK_RATES_DAILY = Spec(
     invalid_label="carry a missing or negative rate",
 )
 
+P_CHAIN_ATOMIC = Spec(
+    dataset_id="allium.p-chain-atomic-transactions",
+    query_id="allium-p-chain-atomic-transactions",
+    table="p-chain-atomic-transactions",
+    default_start="2021-12-01",
+    raw_types={
+        "hash": "VARCHAR", "source_chain": "VARCHAR", "destination_chain": "VARCHAR", "from_address": "VARCHAR",
+        "to_address": "VARCHAR", "amount_navax_text": "VARCHAR", "amount_avax": "DOUBLE", "fees_avax": "DOUBLE",
+        "output_json": "VARCHAR", "block_timestamp": "TIMESTAMP", "block_number": "BIGINT",
+    },
+    table_columns={
+        "transaction_hash": "VARCHAR", "direction": "VARCHAR", "c_chain_address": "VARCHAR", "p_chain_address": "VARCHAR",
+        "output_addresses": "VARCHAR", "amount_navax": "BIGINT", "amount_avax": "DOUBLE", "fees_avax": "DOUBLE",
+        "output_json": "VARCHAR", "block_timestamp": "TIMESTAMP", "block_number": "BIGINT",
+    },
+    # An export's P-Chain side is every owner address of its outputs, which may differ from TO_ADDRESS or hold several
+    # addresses, joined sorted with commas without the P- prefix; Allium writes them as ``addresses`` or as
+    # ``owner.addresses``. An import's is its one P-Chain sender. RAW_AMOUNT is in nAVAX on some rows and in wei, 10^18
+    # per AVAX, on others; the unit is the one that matches AMOUNT, and a wei amount converts exactly or not at all.
+    transform_sql="""
+        WITH typed AS (
+            SELECT *, TRY_CAST(amount_navax_text AS HUGEINT) AS raw_amount,
+                   list_distinct(list_transform(
+                       list_concat(coalesce(json_extract_string(output_json, '$[*].addresses[*]'), []),
+                                   coalesce(json_extract_string(output_json, '$[*].owner.addresses[*]'), [])),
+                       x -> regexp_replace(x, '^P-', ''))) AS owners
+            FROM capture)
+        SELECT hash AS transaction_hash,
+               CASE WHEN source_chain = 'c-chain' AND destination_chain = 'p-chain' THEN 'export'
+                    WHEN source_chain = 'p-chain' AND destination_chain = 'c-chain' THEN 'import' END AS direction,
+               CASE WHEN source_chain = 'c-chain' THEN from_address ELSE to_address END AS c_chain_address,
+               CASE WHEN source_chain = 'c-chain' THEN to_address ELSE from_address END AS p_chain_address,
+               CASE WHEN source_chain = 'c-chain' THEN nullif(array_to_string(list_sort(owners), ','), '')
+                    ELSE from_address END AS output_addresses,
+               CASE WHEN abs(raw_amount / 1e9 - amount_avax) <= 1e-6 * greatest(amount_avax, 1) THEN raw_amount::BIGINT
+                    WHEN abs(raw_amount / 1e18 - amount_avax) <= 1e-6 * greatest(amount_avax, 1)
+                         AND raw_amount % 1000000000 = 0 THEN (raw_amount // 1000000000)::BIGINT END AS amount_navax,
+               amount_avax, fees_avax, output_json, block_timestamp, block_number
+        FROM typed ORDER BY block_timestamp, hash""",
+    key=("transaction_hash",),
+    time_column="block_timestamp",
+    step=None,
+    group=None,
+    invalid_sql=("direction IS NULL OR c_chain_address IS NULL OR amount_navax IS NULL OR amount_navax <= 0"
+                 " OR (direction = 'export' AND output_addresses IS NULL)"),
+    invalid_label="miss a direction, a C-Chain address, a positive nAVAX amount or an export's P-Chain owner",
+)
+
+IDENTITY_LABELS_ATOMIC = Spec(
+    dataset_id="allium.identity-labels-atomic",
+    query_id="allium-identity-labels-atomic",
+    table="identity-labels-atomic",
+    default_start="2021-12-01",
+    raw_types={
+        "address": "VARCHAR", "primary_label": "VARCHAR", "primary_entity": "VARCHAR", "primary_category": "VARCHAR",
+        "subcategory_json": "VARCHAR", "confidence": "DOUBLE", "attribution_date": "TIMESTAMP", "source_type": "VARCHAR",
+        "source_system": "VARCHAR", "source_priority": "INTEGER", "entity_ranking": "INTEGER", "first_atomic_at": "TIMESTAMP",
+    },
+    table_columns={
+        "address": "VARCHAR", "primary_label": "VARCHAR", "primary_entity": "VARCHAR", "primary_category": "VARCHAR",
+        "subcategory_json": "VARCHAR", "confidence": "DOUBLE", "attribution_date": "TIMESTAMP", "source_type": "VARCHAR",
+        "source_system": "VARCHAR", "source_priority": "INTEGER", "entity_ranking": "INTEGER", "first_atomic_at": "TIMESTAMP",
+    },
+    transform_sql="SELECT * FROM capture ORDER BY address",
+    key=("address",),
+    time_column="first_atomic_at",
+    step=None,
+    group=None,
+    invalid_sql="primary_entity IS NULL AND primary_category IS NULL",
+    invalid_label="name neither an entity nor a category",
+)
+
+ADDRESS_MAPPING_ATOMIC = Spec(
+    dataset_id="af.address-mapping-atomic",
+    query_id="af-address-mapping-atomic",
+    table="address-mapping-atomic",
+    default_start="2021-12-01",
+    raw_types={
+        "address": "VARCHAR", "entity": "VARCHAR", "sub_entity": "VARCHAR", "category": "VARCHAR", "sector": "VARCHAR",
+        "source": "VARCHAR", "priority": "INTEGER", "first_atomic_at": "TIMESTAMP",
+    },
+    table_columns={
+        "address": "VARCHAR", "entity": "VARCHAR", "sub_entity": "VARCHAR", "category": "VARCHAR", "sector": "VARCHAR",
+        "source": "VARCHAR", "priority": "INTEGER", "first_atomic_at": "TIMESTAMP",
+    },
+    transform_sql="SELECT * FROM capture ORDER BY address",
+    key=("address",),
+    time_column="first_atomic_at",
+    step=None,
+    group=None,
+    invalid_sql="entity IS NULL",
+    invalid_label="name no entity",
+)
+
 SPECS = {spec.dataset_id: spec for spec in (
-    PRICES_HOURLY, DEX_PRICES_HOURLY, ECONOMY_GAS_FEES_DAILY, LENDING_INTEREST_RATES, BENCHMARK_RATES_DAILY)}
+    PRICES_HOURLY, DEX_PRICES_HOURLY, ECONOMY_GAS_FEES_DAILY, LENDING_INTEREST_RATES, BENCHMARK_RATES_DAILY,
+    P_CHAIN_ATOMIC, IDENTITY_LABELS_ATOMIC, ADDRESS_MAPPING_ATOMIC)}
 DATASET_IDS = tuple(SPECS)
 
 
@@ -456,6 +552,26 @@ def summarize(connection: Any, spec: Spec) -> dict[str, Any]:
     if spec is BENCHMARK_RATES_DAILY:
         summary["rows_by_source"] = dict(connection.execute(
             "SELECT rate_id || ' ' || source, COUNT(*) FROM rows GROUP BY 1 ORDER BY 1").fetchall())
+    if spec is P_CHAIN_ATOMIC:
+        summary["by_direction"] = {
+            direction: {"transactions": count, "avax": round(avax, 6), "c_chain_addresses": c_addresses,
+                        "p_chain_addresses": p_addresses}
+            for direction, count, avax, c_addresses, p_addresses in connection.execute("""
+                SELECT direction, COUNT(*), SUM(amount_navax) / 1e9, COUNT(DISTINCT c_chain_address),
+                       COUNT(DISTINCT p_chain_address)
+                FROM rows GROUP BY 1 ORDER BY 1""").fetchall()}
+        summary["exports_paying_another_address"], summary["imports_without_p_chain_sender"], summary["amounts_in_wei"] = \
+            connection.execute("""
+                SELECT COUNT_IF(direction = 'export' AND output_addresses <> p_chain_address),
+                       COUNT_IF(direction = 'import' AND p_chain_address IS NULL),
+                       COUNT_IF(length(amount_navax_text) > 0 AND amount_navax::HUGEINT <> TRY_CAST(amount_navax_text AS HUGEINT))
+                FROM rows JOIN capture ON capture.hash = rows.transaction_hash""").fetchone()
+    if spec is IDENTITY_LABELS_ATOMIC:
+        summary["by_category"] = dict(connection.execute(
+            "SELECT coalesce(primary_category, 'none'), COUNT(*) FROM rows GROUP BY 1 ORDER BY 1").fetchall())
+    if spec is ADDRESS_MAPPING_ATOMIC:
+        summary["by_category"] = dict(connection.execute(
+            "SELECT coalesce(category, 'none') || ' ' || coalesce(source, 'none'), COUNT(*) FROM rows GROUP BY 1 ORDER BY 1").fetchall())
     return summary
 
 

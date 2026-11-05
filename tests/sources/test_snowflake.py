@@ -487,7 +487,9 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "coinmetrics.btc-usd-daily", "binance.btc-usdt-daily", "binance.avax-usdt-perp-funding", "bybit.avax-usdt-perp-funding",
         "c-chain-rpc.minipool-records", "derived.operator-clusters",
         "allium.prices-hourly", "allium.dex-token-prices-hourly", "af.economy-gas-fees-daily", "derived.market-daily-vector",
-        "allium.lending-interest-rates", "af.benchmark-rates-daily", "derived.aave-wavax-filled", "derived.outside-yields-daily",
+        "allium.lending-interest-rates", "af.benchmark-rates-daily", "allium.p-chain-atomic-transactions",
+        "allium.identity-labels-atomic", "af.address-mapping-atomic", "derived.aave-wavax-filled", "derived.outside-yields-daily",
+        "derived.stake-owner-types",
     ]
 
 

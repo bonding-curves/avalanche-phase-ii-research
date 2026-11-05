@@ -1714,6 +1714,21 @@
           "id": "binance-funding",
           "dataset_id": "binance.avax-usdt-perp-funding",
           "role": "Binance AVAXUSDT perpetual funding events, averaged by UTC date and annualised"
+        },
+        {
+          "id": "p-chain-atomic-transactions",
+          "dataset_id": "allium.p-chain-atomic-transactions",
+          "role": "atomic exports and imports between the C-Chain and the P-Chain, the link from a C-Chain address to a P-Chain address"
+        },
+        {
+          "id": "identity-labels-atomic",
+          "dataset_id": "allium.identity-labels-atomic",
+          "role": "Allium's entity labels of the C-Chain addresses those transactions touch"
+        },
+        {
+          "id": "address-mapping-atomic",
+          "dataset_id": "af.address-mapping-atomic",
+          "role": "the Foundation's entity mapping of the same addresses, joined beside the label"
         }
       ]
     },
@@ -2132,6 +2147,86 @@
           "observed_semantics": [
             "AF.GROSS_CHAIN_PRODUCT.BENCHMARK_RATES_DAILY holds one rate, DTB3, the US 3-month Treasury bill rate from FRED, as an annual decimal on every calendar day from 2024-01-01",
             "SOURCE is FRED DTB3 on a published business day, FRED DTB3 ffill on a day carried forward from the last published value, and FRED DTB3 bfill on 2024-01-01, filled back from 2 January"
+          ]
+        },
+        {
+          "id": "allium-p-chain-atomic-transactions",
+          "sql": "queries/allium-p-chain-atomic-transactions.sql",
+          "relations": [
+            "SUBNET_TRANSACTIONS"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2021-12-01",
+              "meaning": "inclusive lower UTC date on the transaction's block timestamp; atomic moves between the C-Chain and the P-Chain start on 2021-12-02"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC date"
+            }
+          ],
+          "observed_semantics": [
+            "AVALANCHE.RAW.SUBNET_TRANSACTIONS holds the C-Chain end of every atomic transaction, one row per transaction hash; 188,830 exports to the P-Chain moving 759.6 million AVAX and 198,381 imports from it moving 877.0 million AVAX from 2021-12-02 to 2026-10-28 in the capture of 2026-11-05",
+            "An export's FROM_ADDRESS is its C-Chain sender in lower-case hex, and its OUTPUT is a JSON array of P-Chain outputs whose owner addresses Allium writes either as addresses or as owner.addresses with the P- prefix; 341 exports pay an owner set other than TO_ADDRESS alone",
+            "An import's FROM_ADDRESS is its P-Chain sender and TO_ADDRESS its C-Chain recipient; 338 imports have no FROM_ADDRESS, and an import's INPUT and OUTPUT hold the text NaN or a list of C-Chain outputs",
+            "RAW_AMOUNT is text in nAVAX on some rows and in wei, 10^18 per AVAX, on 129,609 others; AMOUNT and FEES are in AVAX"
+          ]
+        },
+        {
+          "id": "allium-identity-labels-atomic",
+          "sql": "queries/allium-identity-labels-atomic.sql",
+          "relations": [
+            "SUBNET_TRANSACTIONS",
+            "LABELS"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2021-12-01",
+              "meaning": "inclusive lower UTC date on the block timestamp of the atomic transactions whose C-Chain addresses are labelled"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC date"
+            }
+          ],
+          "observed_semantics": [
+            "AVALANCHE.IDENTITY.LABELS holds one row per labelled C-Chain address on chain avalanche, 6,110,715 rows in lower-case hex",
+            "Of the 51,500 C-Chain addresses with an atomic transaction to or from the P-Chain, 520 are labelled: 345 by a wallet-software heuristic, such as MetaMask user, 77 as MEV bots, 92 as exchanges and 6 as custody, payment or financial services",
+            "SOURCE_SYSTEM names how Allium attributed the label, such as exchange_clustering, wallet_funding, heuristic_non_custodial_wallets or manual, and SOURCE_PRIORITY ranks it, 100 above 60"
+          ]
+        },
+        {
+          "id": "af-address-mapping-atomic",
+          "sql": "queries/af-address-mapping-atomic.sql",
+          "relations": [
+            "SUBNET_TRANSACTIONS",
+            "ADDRESS_MAPPING"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2021-12-01",
+              "meaning": "inclusive lower UTC date on the block timestamp of the atomic transactions whose C-Chain addresses are mapped"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC date"
+            }
+          ],
+          "observed_semantics": [
+            "AF.GROSS_CHAIN_PRODUCT.ADDRESS_MAPPING holds one row per C-Chain address, 6,111,841 rows in lower-case hex, each with an entity, a category, a sector, the source of the mapping and its priority",
+            "The 520 mapped addresses with an atomic transaction to or from the P-Chain are the 520 Allium labels, all with source identity_labels and priority 2, so the two tables are one attribution and do not confirm each other there"
           ]
         }
       ]
@@ -10263,6 +10358,246 @@
       ]
     },
     {
+      "id": "allium.p-chain-atomic-transactions",
+      "name": "Atomic transactions between the C-Chain and the P-Chain",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per atomic transaction between the C-Chain and the P-Chain that Allium records, read from the Avalanche Foundation's Snowflake account, read-only, under the Foundation's agreement, through a named connection: each export's C-Chain sender and the owner addresses of its P-Chain outputs, and each import's P-Chain sender and C-Chain recipient, with the amount in nAVAX and its time. These transactions are the one link from a C-Chain address, which labels can name, to a P-Chain address, which stakes. The capture holds every row in its window, held-back dates included, and the build cuts nothing. Addresses stay in model tables: client outputs report counts, shares or an opaque index, never an address. The check refuses a repeated transaction, a row without a direction, a C-Chain address or a positive nAVAX amount, an export without a P-Chain owner, and a row outside the window. The summary counts each direction's transactions, AVAX and addresses, the amounts Allium wrote in wei, and the imports without a P-Chain sender.",
+      "query_ids": [
+        "allium-p-chain-atomic-transactions"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "atomic transaction ID",
+          "derivation": "HASH"
+        },
+        {
+          "name": "direction",
+          "type": "string",
+          "unit": "export from the C-Chain to the P-Chain or import to the C-Chain from it",
+          "derivation": "export when SOURCE_CHAIN is c-chain and DESTINATION_CHAIN p-chain, import for the reverse"
+        },
+        {
+          "name": "c_chain_address",
+          "type": "string",
+          "unit": "C-Chain address, lower-case hex",
+          "derivation": "FROM_ADDRESS of an export, TO_ADDRESS of an import"
+        },
+        {
+          "name": "p_chain_address",
+          "type": "string",
+          "unit": "P-Chain address, bech32 without the chain prefix",
+          "derivation": "TO_ADDRESS of an export, FROM_ADDRESS of an import"
+        },
+        {
+          "name": "output_addresses",
+          "type": "string",
+          "unit": "P-Chain addresses joined with commas, sorted",
+          "derivation": "the distinct owner addresses of an export's outputs in OUTPUT, from addresses or owner.addresses, without the P- prefix; an import's FROM_ADDRESS"
+        },
+        {
+          "name": "amount_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "RAW_AMOUNT in nAVAX where it matches AMOUNT, or RAW_AMOUNT in wei divided exactly by 10^9"
+        },
+        {
+          "name": "amount_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "AMOUNT"
+        },
+        {
+          "name": "fees_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "FEES"
+        },
+        {
+          "name": "output_json",
+          "type": "string",
+          "unit": "JSON text as Allium records it; empty for an import",
+          "derivation": "OUTPUT"
+        },
+        {
+          "name": "block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "BLOCK_TIMESTAMP of the C-Chain block"
+        },
+        {
+          "name": "block_number",
+          "type": "integer",
+          "unit": "C-Chain block height",
+          "derivation": "BLOCK_NUMBER"
+        }
+      ]
+    },
+    {
+      "id": "allium.identity-labels-atomic",
+      "name": "Allium entity labels of the C-Chain addresses that move AVAX to or from the P-Chain",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "Allium's entity label of each C-Chain address that sent an export to the P-Chain or received an import from it, read from the Avalanche Foundation's Snowflake account under the Foundation's agreement, with the time of the address's first such transaction. Labels name entities such as exchanges and custodians as Allium attributes them; a wallet-software heuristic such as MetaMask user names the software, not the owner. Nothing here joins an address to a person or any identity outside the chain, and client outputs report labelled stake as counts and shares by category, never an address. The check refuses a repeated address and a row that names neither an entity nor a category, and counts the labels by category in the summary.",
+      "query_ids": [
+        "allium-identity-labels-atomic"
+      ],
+      "fields": [
+        {
+          "name": "address",
+          "type": "string",
+          "unit": "C-Chain address, lower-case hex",
+          "derivation": "ADDRESS"
+        },
+        {
+          "name": "primary_label",
+          "type": "string",
+          "unit": "label as Allium names it",
+          "derivation": "PRIMARY_LABEL"
+        },
+        {
+          "name": "primary_entity",
+          "type": "string",
+          "unit": "entity as Allium names it",
+          "derivation": "PRIMARY_ENTITY"
+        },
+        {
+          "name": "primary_category",
+          "type": "string",
+          "unit": "category such as exchange, custody or non_custodial_wallet",
+          "derivation": "PRIMARY_CATEGORY"
+        },
+        {
+          "name": "subcategory_json",
+          "type": "string",
+          "unit": "JSON array text",
+          "derivation": "SUBCATEGORY"
+        },
+        {
+          "name": "confidence",
+          "type": "number",
+          "unit": "Allium's confidence, 0 to 1",
+          "derivation": "CONFIDENCE"
+        },
+        {
+          "name": "attribution_date",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "ATTRIBUTION_DATE, when Allium attributed the label"
+        },
+        {
+          "name": "source_type",
+          "type": "string",
+          "unit": "as Allium names it",
+          "derivation": "SOURCE_TYPE"
+        },
+        {
+          "name": "source_system",
+          "type": "string",
+          "unit": "attribution method such as exchange_clustering or manual",
+          "derivation": "SOURCE_SYSTEM"
+        },
+        {
+          "name": "source_priority",
+          "type": "integer",
+          "unit": "rank of the attribution, higher first",
+          "derivation": "SOURCE_PRIORITY"
+        },
+        {
+          "name": "entity_ranking",
+          "type": "integer",
+          "unit": "as Allium ranks it",
+          "derivation": "ENTITY_RANKING"
+        },
+        {
+          "name": "first_atomic_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the earliest BLOCK_TIMESTAMP of the address's atomic transactions in the window"
+        }
+      ]
+    },
+    {
+      "id": "af.address-mapping-atomic",
+      "name": "The Foundation's entity mapping of the C-Chain addresses that move AVAX to or from the P-Chain",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "The Foundation's entity mapping of each C-Chain address that sent an export to the P-Chain or received an import from it, read from its Gross Chain Product database under the Foundation's agreement, with the time of the address's first such transaction. For these addresses every row is sourced from Allium's labels, so it shows how the Foundation's pipeline groups the same attribution rather than a second one. Client outputs report mapped stake as counts and shares, never an address. The check refuses a repeated address and a row that names no entity, and counts the rows by category and source in the summary.",
+      "query_ids": [
+        "af-address-mapping-atomic"
+      ],
+      "fields": [
+        {
+          "name": "address",
+          "type": "string",
+          "unit": "C-Chain address, lower-case hex",
+          "derivation": "ADDRESS"
+        },
+        {
+          "name": "entity",
+          "type": "string",
+          "unit": "entity as the Foundation names it",
+          "derivation": "ENTITY"
+        },
+        {
+          "name": "sub_entity",
+          "type": "string",
+          "unit": "as the Foundation names it",
+          "derivation": "SUB_ENTITY"
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "unit": "category such as cex, asset_manager or non_custodial_wallet",
+          "derivation": "CATEGORY"
+        },
+        {
+          "name": "sector",
+          "type": "string",
+          "unit": "sector such as institutional, wallet or defi",
+          "derivation": "SECTOR"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "source of the mapping, such as identity_labels",
+          "derivation": "SOURCE"
+        },
+        {
+          "name": "priority",
+          "type": "integer",
+          "unit": "the mapping's priority",
+          "derivation": "PRIORITY"
+        },
+        {
+          "name": "first_atomic_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the earliest BLOCK_TIMESTAMP of the address's atomic transactions in the window"
+        }
+      ]
+    },
+    {
       "id": "derived.aave-wavax-filled",
       "name": "Aave v3 WAVAX supply rate by day, DefiLlama's series with its gaps filled from Allium",
       "source_id": "derived",
@@ -10457,6 +10792,130 @@
           "type": "integer",
           "unit": "days, 0 to 7",
           "derivation": "days in that median"
+        }
+      ]
+    },
+    {
+      "id": "derived.stake-owner-types",
+      "name": "The label link to stake: P-Chain addresses paid by or paying an entity-labelled C-Chain address",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per P-Chain address, entity-labelled C-Chain address and direction: an export from the labelled C-Chain address that paid the P-Chain address, or an import by which the P-Chain address paid it. It is the one link from a C-Chain label to a stake: a validator's reward addresses or a delegation's funding address that appear here take the label's owner class. The class groups Allium's category into exchange, custodian, financial service, decentralised finance, MEV bot, wallet software and other; wallet software names the software an address uses, not its owner. The Foundation's mapping is joined beside the label and, for these addresses, is sourced from it. Counts, amounts and last times read only transactions before the held-back cut of 2025-11-19 00:00 UTC, and a link first seen on or after it is kept with held_back true and zero counts. The labels are one current snapshot with Allium's attribution time. Addresses stay in model tables: client outputs report linked stake as counts and shares by class, never an address, and nothing joins an address to any identity outside the chain. The summary gives the validator and delegated stake active at 2025-11-18 00:00 UTC by the class of the links seen before it. The check requires one row per address pair and direction, the same rows from a rebuild, and the same rows before the cut from a rebuild with the atomic transactions cut at the held-back instant.",
+      "input_ids": [
+        "p-chain-atomic-transactions",
+        "identity-labels-atomic",
+        "address-mapping-atomic",
+        "seamed-validator-stakes",
+        "seamed-delegator-stakes"
+      ],
+      "fields": [
+        {
+          "name": "p_chain_address",
+          "type": "string",
+          "unit": "P-Chain address, bech32 without the chain prefix",
+          "derivation": "an export's output owner address, or an import's P-Chain sender"
+        },
+        {
+          "name": "c_chain_address",
+          "type": "string",
+          "unit": "C-Chain address, lower-case hex",
+          "derivation": "the export's sender or the import's recipient, labelled in allium.identity-labels-atomic"
+        },
+        {
+          "name": "link",
+          "type": "string",
+          "unit": "export: the labelled address paid the P-Chain address; import: the P-Chain address paid it",
+          "derivation": "the atomic transaction's direction"
+        },
+        {
+          "name": "first_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the earliest block timestamp of the pair's transactions in that direction"
+        },
+        {
+          "name": "held_back",
+          "type": "boolean",
+          "unit": "true when the link first appears on or after 2025-11-19 00:00 UTC",
+          "derivation": "first_at at or after the cut"
+        },
+        {
+          "name": "last_before_cut_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the latest block timestamp before the cut; empty for a held-back link"
+        },
+        {
+          "name": "transactions_before_cut",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "atomic transactions of the pair and direction before the cut"
+        },
+        {
+          "name": "avax_before_cut",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "their amount in nAVAX divided by 10^9"
+        },
+        {
+          "name": "owner_class",
+          "type": "string",
+          "unit": "exchange, custodian, financial_service, defi, mev_bot, wallet_software or other",
+          "derivation": "Allium's primary category grouped"
+        },
+        {
+          "name": "label_entity",
+          "type": "string",
+          "unit": "entity as Allium names it",
+          "derivation": "PRIMARY_ENTITY"
+        },
+        {
+          "name": "label_category",
+          "type": "string",
+          "unit": "category as Allium names it",
+          "derivation": "PRIMARY_CATEGORY"
+        },
+        {
+          "name": "label_source_system",
+          "type": "string",
+          "unit": "attribution method as Allium names it",
+          "derivation": "SOURCE_SYSTEM"
+        },
+        {
+          "name": "label_priority",
+          "type": "integer",
+          "unit": "rank of the attribution, higher first",
+          "derivation": "SOURCE_PRIORITY"
+        },
+        {
+          "name": "label_attributed_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "ATTRIBUTION_DATE"
+        },
+        {
+          "name": "mapping_entity",
+          "type": "string",
+          "unit": "entity as the Foundation names it; empty if unmapped",
+          "derivation": "ENTITY of af.address-mapping-atomic"
+        },
+        {
+          "name": "mapping_category",
+          "type": "string",
+          "unit": "category as the Foundation names it",
+          "derivation": "CATEGORY"
+        },
+        {
+          "name": "mapping_sector",
+          "type": "string",
+          "unit": "sector as the Foundation names it",
+          "derivation": "SECTOR"
         }
       ]
     }

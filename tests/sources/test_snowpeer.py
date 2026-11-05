@@ -151,8 +151,12 @@ def test_catalog_schema_and_references_are_valid():
         "derived.market-daily-vector",
         "allium.lending-interest-rates",
         "af.benchmark-rates-daily",
+        "allium.p-chain-atomic-transactions",
+        "allium.identity-labels-atomic",
+        "af.address-mapping-atomic",
         "derived.aave-wavax-filled",
         "derived.outside-yields-daily",
+        "derived.stake-owner-types",
     ]
 
 

@@ -260,3 +260,67 @@ def test_benchmark_rates_check_against_fred(tmp_path):
     assert result["status"] == "pass" and result["summary"]["fred_days"] == 2
     other = fred("other", "(DATE '2024-01-02', 5.22), (DATE '2024-01-03', 5.25)")
     assert any("differ from FRED" in item for item in foundation.check(run / "capture", None, other)["findings"])
+
+
+def atomic_rows():
+    """An export in nAVAX to two owners written as owner.addresses, an export in wei written as addresses, an import, and
+    an import without a P-Chain sender."""
+    owner = json.dumps([{"amount": "2000000000", "owner": {"addresses": ["P-avax1bbb", "P-avax1aaa"]}}])
+    plain = json.dumps([{"addresses": ["avax1ccc"], "amount": "1500000000"}])
+    return [
+        {"hash": "tx1", "source_chain": "c-chain", "destination_chain": "p-chain", "from_address": "0xexchange",
+         "to_address": "avax1aaa", "amount_navax_text": "2000000000", "amount_avax": 2.0, "fees_avax": 0.001,
+         "output_json": owner, "block_timestamp": "2024-03-01T01:00:00Z", "block_number": 10},
+        {"hash": "tx2", "source_chain": "c-chain", "destination_chain": "p-chain", "from_address": "0xwallet",
+         "to_address": "avax1ccc", "amount_navax_text": "1500000000000000000", "amount_avax": 1.5, "fees_avax": 0.001,
+         "output_json": plain, "block_timestamp": "2024-03-01T02:00:00Z", "block_number": 11},
+        {"hash": "tx3", "source_chain": "p-chain", "destination_chain": "c-chain", "from_address": "avax1aaa",
+         "to_address": "0xexchange", "amount_navax_text": "700000000", "amount_avax": 0.7, "fees_avax": 0.001,
+         "output_json": None, "block_timestamp": "2024-03-01T03:00:00Z", "block_number": 12},
+        {"hash": "tx4", "source_chain": "p-chain", "destination_chain": "c-chain", "from_address": None,
+         "to_address": "0xother", "amount_navax_text": "100000000", "amount_avax": 0.1, "fees_avax": 0.001,
+         "output_json": None, "block_timestamp": "2024-03-01T04:00:00Z", "block_number": 13},
+    ]
+
+
+def test_atomic_transactions_read_both_owner_forms_and_both_amount_units(tmp_path):
+    run, _ = capture(tmp_path, foundation.P_CHAIN_ATOMIC, atomic_rows())
+    built = foundation.build(foundation.P_CHAIN_ATOMIC.dataset_id, run / "capture", run / "dataset")
+    summary = built["summary"]
+    assert summary["by_direction"]["export"]["transactions"] == 2 and summary["by_direction"]["export"]["avax"] == 3.5
+    assert summary["exports_paying_another_address"] == 1 and summary["imports_without_p_chain_sender"] == 1
+    assert summary["amounts_in_wei"] == 1
+    rows = duckdb.connect().execute(
+        f"SELECT transaction_hash, direction, p_chain_address, output_addresses, amount_navax FROM "
+        f"read_parquet('{run / 'dataset' / 'p-chain-atomic-transactions.parquet'}') ORDER BY 1").fetchall()
+    assert rows == [("tx1", "export", "avax1aaa", "avax1aaa,avax1bbb", 2_000_000_000),
+                    ("tx2", "export", "avax1ccc", "avax1ccc", 1_500_000_000),
+                    ("tx3", "import", "avax1aaa", "avax1aaa", 700_000_000),
+                    ("tx4", "import", None, None, 100_000_000)]
+    assert foundation.check(run / "capture", run / "dataset")["status"] == "pass"
+
+
+def test_atomic_transactions_refuse_an_amount_in_neither_unit_or_an_export_without_owner(tmp_path):
+    rows = atomic_rows()
+    rows[0] = {**rows[0], "amount_navax_text": "123"}
+    rows[1] = {**rows[1], "output_json": "[]"}
+    run, _ = capture(tmp_path, foundation.P_CHAIN_ATOMIC, rows)
+    findings = foundation.check(run / "capture")["findings"]
+    assert findings == ["2 rows miss a direction, a C-Chain address, a positive nAVAX amount or an export's P-Chain owner"]
+
+
+def test_labels_and_mapping_count_categories_and_refuse_a_repeated_address(tmp_path):
+    label = {"address": "0xexchange", "primary_label": "Exchange 1", "primary_entity": "exchange_one",
+             "primary_category": "exchange", "subcategory_json": "[]", "confidence": 1.0,
+             "attribution_date": "2024-01-01T00:00:00Z", "source_type": "x", "source_system": "manual",
+             "source_priority": 100, "entity_ranking": 1, "first_atomic_at": "2024-03-01T01:00:00Z"}
+    run, _ = capture(tmp_path, foundation.IDENTITY_LABELS_ATOMIC, [label, {**label, "address": "0xwallet",
+                     "primary_category": "non_custodial_wallet"}])
+    built = foundation.build(foundation.IDENTITY_LABELS_ATOMIC.dataset_id, run / "capture", run / "dataset")
+    assert built["summary"]["by_category"] == {"exchange": 1, "non_custodial_wallet": 1}
+    run, _ = capture(tmp_path, foundation.IDENTITY_LABELS_ATOMIC, [label, label], name="repeat")
+    assert any("repeat a key (address)" in item for item in foundation.check(run / "capture")["findings"])
+    mapping = {"address": "0xexchange", "entity": "exchange_one", "sub_entity": None, "category": "cex",
+               "sector": "institutional", "source": "identity_labels", "priority": 2, "first_atomic_at": "2024-03-01T01:00:00Z"}
+    run, _ = capture(tmp_path, foundation.ADDRESS_MAPPING_ATOMIC, [mapping, {**mapping, "address": "0xnone", "entity": None}], name="map")
+    assert foundation.check(run / "capture")["findings"] == ["1 rows name no entity"]
