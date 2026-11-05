@@ -85,6 +85,12 @@ The rest of this guide gives the status of every dataset and how to reproduce ea
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
+### The 2 November 2026 captures and the ETF rebuild
+
+The daily captures did not run on 2 November 2026 UTC, when the capture host was unreachable, so no run of any daily dataset carries that date. Derived tables are rebuilt from their full inputs in every run, so the runs of 3 November and later cover that day. Four datasets record only the state at the capture instant, and nothing can rebuild them for 2 November: `p-chain-rpc.current-validators`, `data-api.validators-active`, `data-api.avax-supply` and `etf-issuers.avax-fund-snapshot`. Builder Hub's rolling 332-hour uptime window overlaps the missed day, so `derived.validator-uptime-hourly` holds every hour of it.
+
+The ETF snapshots of 31 October to 4 November 2026 were rebuilt on 5 November from their saved issuer responses. The builds had failed because the 21Shares KEYS basket dropped AVAX at its rebalance after 29 October. KEYS holds zero AVAX from then on. The snapshots of 31 October and 1 November report BAVA's published NAV times shares as more than 0.5% off its net assets for 30 October, as the issuer published them.
+
 ## From the chain to the model's tables
 
 The model reads two tables: `derived.staking-periods`, one row per validator or delegation staking transaction, and `derived.avax-monetary-daily`, one row per UTC day. Every row in them reaches the model through the same four steps, and every step leaves a receipt. `uv run python scripts/figures/diagrams.py data_path <folder>` draws the whole path from those receipts, with each table's row count and each seam's comparison read from the runs themselves.
