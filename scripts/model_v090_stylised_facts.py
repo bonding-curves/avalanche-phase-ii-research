@@ -14,13 +14,20 @@ selection, for both models alike. Two batches give 40 paths a model.
 The facts each model must pass are ``model.stylised_paths.REQUIRED``, and a required fact that does not run counts as
 a failure. The model counts an ending as renewed only when the node starts again the same day, where the record also
 counts a return within 7 days, so the renewal facts compare the immediate part of renewal with the record's whole.
-``--days`` below 1,883 or ``--batches`` below 2 is a rehearsal and writes no verdict.
+``--days`` below 1,883 or ``--batches`` below 2 is a rehearsal and writes no verdict, and it refuses an output folder
+that already holds one.
+
+Each task's files are reused only when the task's identity file matches the request: the model, batch, days, origin
+price and settings, the input runs' names and SHA-256, the two pins' SHA-256 and this script's. A task whose identity
+file is missing is incomplete and runs again. A task whose identity file differs, such as a rehearsal's shorter paths
+under a full request, stops the run, so another request's paths never enter a verdict.
 """
 
 from __future__ import annotations
 
 import argparse
 import gc
+import hashlib
 import json
 import multiprocessing
 import sys
@@ -53,16 +60,50 @@ def settings(model: str, price0: float) -> dict:
     return {**LOOPS, **both} if model == CHALLENGER else both
 
 
+def task_stem(out: Path, model: str, batch: int) -> Path:
+    return out / "tasks" / f"{model.replace(' ', '-').replace('.', '')}_batch{batch}"
+
+
 def task_files(out: Path, model: str, batch: int) -> tuple[Path, Path]:
-    stem = f"{model.replace(' ', '-').replace('.', '')}_batch{batch}"
-    return out / "tasks" / f"{stem}-paths.csv.gz", out / "tasks" / f"{stem}-specifications.csv"
+    stem = task_stem(out, model, batch)
+    return stem.with_name(f"{stem.name}-paths.csv.gz"), stem.with_name(f"{stem.name}-specifications.csv")
+
+
+def identity_file(out: Path, model: str, batch: int) -> Path:
+    stem = task_stem(out, model, batch)
+    return stem.with_name(f"{stem.name}-identity.json")
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def task_identity(model: str, batch: int, days: int, price0: float, sources: dict) -> dict:
+    """Everything a task's paths depend on. ``sources`` names the input runs and the SHA-256 of the runs, pins and script."""
+    return {"model": model, "batch": batch, "days": days, "origin": ORIGIN_NAME, "price0_usd": repr(price0),
+            "settings": {k: repr(v) for k, v in sorted(settings(model, price0).items())}, **sources}
+
+
+def cached(out: Path, model: str, batch: int, identity: dict) -> bool:
+    """Whether the task's files hold this request's paths. A differing identity raises, so no other request's paths
+    are reused or overwritten."""
+    marker = identity_file(out, model, batch)
+    if not marker.exists():
+        return False
+    found = json.loads(marker.read_text())
+    if found != identity:
+        changed = sorted(k for k in identity.keys() | found.keys() if identity.get(k) != found.get(k))
+        raise RuntimeError(f"{marker} was written for another request (differs in {', '.join(changed)}); "
+                           "use a new output folder")
+    return all(path.exists() for path in task_files(out, model, batch))
 
 
 def model_paths(task: tuple) -> tuple[Path, Path]:
-    """One model's daily paths for one batch, written to the task's own files so a stopped run resumes."""
-    model, batch, run_name, periods, delegators, days, out, price0 = task
+    """One model's daily paths for one batch, written to the task's own files so a stopped run resumes. The identity
+    file is written last, so a task stopped before it runs again."""
+    model, batch, run_name, periods, delegators, days, out, price0, identity = task
     paths_file, spec_file = task_files(out, model, batch)
-    if paths_file.exists() and spec_file.exists():
+    if cached(out, model, batch, identity):
         print(f"{model} batch {batch}: already done", flush=True)
         return paths_file, spec_file
     variant = VARIANTS[VARIANT]
@@ -82,6 +123,7 @@ def model_paths(task: tuple) -> tuple[Path, Path]:
     paths_file.parent.mkdir(parents=True, exist_ok=True)
     pd.concat(parts, ignore_index=True).to_csv(paths_file, index=False, compression={"method": "gzip", "mtime": 0})
     pd.DataFrame(specifications).to_csv(spec_file, index=False)
+    identity_file(out, model, batch).write_text(json.dumps(identity, indent=2) + "\n")
     print(f"{model} batch {batch}: done", flush=True)
     return paths_file, spec_file
 
@@ -98,13 +140,17 @@ def read_paths(files: list[Path]) -> dict[str, list[pd.DataFrame]]:
 
 
 def measure(files: list[Path]) -> tuple[pd.DataFrame, dict]:
-    """Every fact's result for each model, and each model's required facts that did not pass."""
+    """Every fact's result for each model, and each model's required facts that did not pass. A fact's value is the
+    median over the paths on which its statistic is finite, and ``support`` gives that count for each required part
+    out of ``paths``. No minimum count is registered: a required part fails only when no path supports it."""
     rows, verdict = [], {}
     for model, paths in read_paths(files).items():
         results, failing = check(paths, model)
         rows.append(results.assign(model=model))
+        required = results[results["code"].isin(REQUIRED[model]) & results["lo"].notna()]
         verdict[model] = {"required": list(REQUIRED[model]), "failing": sorted(set(failing["code"])),
-                          "passed": failing.empty, "paths": len(paths)}
+                          "passed": failing.empty, "paths": len(paths),
+                          "support": {f"{r.code} {r.part}": int(r.paths) for r in required.itertuples()}}
     return pd.concat(rows, ignore_index=True), verdict
 
 
@@ -117,12 +163,21 @@ def main() -> None:
     parser.add_argument("--batches", type=int, default=BATCHES)
     parser.add_argument("--days", type=int, default=DAYS)
     args = parser.parse_args()
+    full = args.days == DAYS and args.batches == BATCHES
+    if not full and (args.out / "verdict.json").exists():
+        raise SystemExit(f"{args.out} holds a verdict, and a rehearsal writes none: use a new output folder")
     args.out.mkdir(parents=True, exist_ok=True)
     inputs = pinned_inputs(args.pin)
     periods, delegators, run_name = str(inputs.periods), str(inputs.delegators), inputs.periods_run
     price0 = origin_price(args.price_pin, ORIGIN)
     print(f"origin {ORIGIN_NAME}, price {price0:.4f}", flush=True)
-    tasks = [(m, b, run_name, periods, delegators, args.days, args.out, price0) for m in MODELS for b in range(args.batches)]
+    sources = {"periods_run": inputs.periods_run, "periods_sha256": inputs.periods_sha256,
+               "delegators_run": inputs.delegators_run, "delegators_sha256": inputs.delegators_sha256,
+               "pin_sha256": sha256(args.pin), "price_pin_sha256": sha256(args.price_pin), "script_sha256": sha256(Path(__file__))}
+    tasks = [(m, b, run_name, periods, delegators, args.days, args.out, price0, task_identity(m, b, args.days, price0, sources))
+             for m in MODELS for b in range(args.batches)]
+    for m, b, *_, identity in tasks:
+        cached(args.out, m, b, identity)  # a mismatch stops before any worker starts
     # As in the selection: fresh workers, each with its own DuckDB spill folder, one task each.
     with ProcessPoolExecutor(args.workers, mp_context=multiprocessing.get_context("spawn"), initializer=worker_setup,
                              max_tasks_per_child=1) as pool:
@@ -130,7 +185,7 @@ def main() -> None:
     pd.concat([pd.read_csv(s) for _, s in results], ignore_index=True).to_csv(args.out / "specifications.csv", index=False)
     table, verdict = measure([p for p, _ in results])
     table.to_csv(args.out / "stylised-facts.csv", index=False)
-    if args.days == DAYS and args.batches == BATCHES:
+    if full:
         (args.out / "verdict.json").write_text(json.dumps(verdict, indent=2) + "\n")
         print(json.dumps(verdict, indent=2))
     else:
