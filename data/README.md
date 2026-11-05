@@ -6,7 +6,7 @@ A **dataset** is one table with a catalog ID, such as `derived.staking-periods`.
 
 | Path | What it holds |
 | --- | --- |
-| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 19 sources and 73 datasets |
+| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 20 sources and 79 datasets |
 | [`data-catalog.schema.json`](data-catalog.schema.json) | The JSON schema that validates the catalog |
 | [`queries/`](queries/) | The exact SQL text each Snowflake dataset runs |
 | [`pins/`](pins/) | Pinned input sets: the exact runs a result was made from, with their hashes. See [`pins/README.md`](pins/README.md) |
@@ -84,6 +84,10 @@ The rest of this guide gives the status of every dataset and how to reproduce ea
 | `derived.operators` | One Parquet row per validator node with its operator (latest reward address) and fleet (same entry week, exit week, and fee), and named agents with their evidence | Implemented, tested, and derived on 2026-09-29: 7,644 nodes, 3,963 operators, 4,247 fleets |
 | `c-chain-rpc.minipool-records` | One Parquet row per minipool record of GoGoPool's MinipoolManager contract, with its node, owner, multisig, amounts and times, every call made at one recorded C-Chain block | Implemented, tested, and captured on 2026-11-05 at block 99,494,695: 1,639 records, 244 owner addresses |
 | `derived.operator-clusters` | One Parquet row per validator staking period with four groupings known before the held-back cut of 2025-11-19: its reward address, an owner key that splits the pool address by minipool owner, the entry cohort, and a connected component | Implemented, tested, and derived on 2026-11-05: 58,213 periods on 7,681 nodes |
+| `allium.prices-hourly` | One Parquet row per token and hour of Allium's USD price for native AVAX, WAVAX, sAVAX, ggAVAX and yyAVAX, from the Foundation's Snowflake account | Implemented, tested, and captured on 2026-11-05: 158,017 rows from 2022-06-01 01:00 UTC to 2026-11-05 14:00 UTC |
+| `allium.dex-token-prices-hourly` | One Parquet row per hour with trades of Allium's WAVAX price from decentralised exchange trades, from the Foundation's Snowflake account | Implemented, tested, and captured on 2026-11-05: 50,320 hours from 2021-02-02 15:00 UTC, 128 hours without a row |
+| `af.economy-gas-fees-daily` | One Parquet row per UTC day of the C-Chain gas fees the Foundation's Gross Chain Product economy counts, in AVAX and USD | Implemented, tested, and captured on 2026-11-05: 2,201 days from 2020-09-23 to 2026-11-04, 33 days of 2020 and January 2021 without a row |
+| `derived.market-daily-vector` | One Parquet row per UTC day from 2021-02-02 to 2025-11-18 with the AVAX close and log return, the realised variance of hourly returns, the Bitcoin log return and the log gas burn | Implemented, tested, and derived on 2026-11-05: 1,751 days, none on or after the held-back cut |
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
@@ -278,6 +282,39 @@ uv run --locked avalanche data check bybit.avax-usdt-perp-funding --capture data
 ```
 
 In the captures of 2026-11-05, all 6,691 archived Binance rates in 74 monthly files equal the API's, and the API holds 12 later rates. Bybit's 30-day mean lies within 5 points a year of Binance's on 82.2% of 1,848 days, with a median gap of 2.24 points. The pin [`d25-public-series-2026-11-05.json`](pins/d25-public-series-2026-11-05.json) names the four runs.
+
+## Reproduce the daily market vector
+
+The dataset `derived.market-daily-vector` gives the model one row per UTC day of market inputs, from 2021-02-02 to 2025-11-18, the day before the held-back cut of 19 November 2025. Each row holds the AVAX close at 24:00 UTC and its log return, the realised variance of the day, the Bitcoin close and log return at the same instant, and the natural log of the day's C-Chain gas burn in AVAX. The realised variance is the sum of squared hourly log returns within the day ([Corsi 2009](https://doi.org/10.1093/jjfinec/nbp001)), over the hours from 01:00 to 24:00 UTC. A return counts only when both of its hours are priced and come from the same table, and the field `hourly_returns` records how many were summed. Lending-rate and outside-yield columns are planned to follow these fields and are not built yet.
+
+Three inputs come from the Avalanche Foundation's Snowflake account, `RYPQXPJ-AVALANCHE_FOUNDATION`, read with its read-only role `AF_AVALANCHE_GCP_READER` under the Foundation's agreement. The catalog source `af-foundation-snowflake` describes it. The capture signs in with a key pair. The private key file is the one the environment variable `AVALANCHE_FOUNDATION_SNOWFLAKE_KEY` names, by default `~/.snowflake/bcrg_rsa_key.p8`, and the key never enters a capture, a receipt or the output. Each capture holds every row of its table in the window, held-back dates included, and records the SQL text, the bound window, the Snowflake query ID and the session's role and warehouse.
+
+1. `allium.prices-hourly` is Allium's hourly price service for native AVAX, WAVAX, sAVAX, ggAVAX and yyAVAX from 2022-06-01 01:00 UTC. A price holds at the instant of its stamp: the price stamped at a midnight agrees with Binance's AVAX/USDT daily open of that midnight to a median 0.12%. The check requires native AVAX and WAVAX within 2% of each other in at least 98% of the hours both are priced. In the 2026-11-05 capture 99.0% of 38,844 hours are, the median difference is 0.08%, and isolated single-hour spikes reach 62%. Missing hours are counted per token in the summary: none for AVAX, 2 for WAVAX.
+2. `allium.dex-token-prices-hourly` is Allium's WAVAX price from decentralised exchange trades, from 2021-02-02 15:00 UTC, the only hourly AVAX price before the service starts. An hour without trades has no row, 128 hours in all. Its check, with `--against` a built `allium.prices-hourly` run, requires each day's last exchange price within 3% of the service's WAVAX price at the same hour on at least 95% of the days both hold. On 2026-11-05 99.1% of 1,619 days were.
+3. `af.economy-gas-fees-daily` is the Foundation's daily count of C-Chain gas fees in its Gross Chain Product economy. Every C-Chain fee is burned, so its AVAX column is a burn, but the economy's scope is narrower than the chain: its total is about 13% below Allium's daily fee table, a gap not yet traced. The exact receipt-fee burn `snowflake.c-chain-evm-burn-daily` stays the whole-chain reference.
+
+```bash
+uv sync --locked --extra snowflake
+uv run --locked --extra snowflake avalanche data fetch allium.prices-hourly --output data/runs/prices-hourly-example/capture --timeout 600
+uv run --locked avalanche data build allium.prices-hourly --from data/runs/prices-hourly-example/capture --output data/runs/prices-hourly-example/dataset
+uv run --locked avalanche data check allium.prices-hourly --capture data/runs/prices-hourly-example/capture --dataset data/runs/prices-hourly-example/dataset
+
+uv run --locked --extra snowflake avalanche data fetch allium.dex-token-prices-hourly --output data/runs/dex-prices-example/capture --timeout 600
+uv run --locked avalanche data build allium.dex-token-prices-hourly --from data/runs/dex-prices-example/capture --output data/runs/dex-prices-example/dataset
+uv run --locked avalanche data check allium.dex-token-prices-hourly --capture data/runs/dex-prices-example/capture --dataset data/runs/dex-prices-example/dataset --against data/runs/prices-hourly-example/dataset
+
+uv run --locked --extra snowflake avalanche data fetch af.economy-gas-fees-daily --output data/runs/gas-fees-example/capture --timeout 600
+uv run --locked avalanche data build af.economy-gas-fees-daily --from data/runs/gas-fees-example/capture --output data/runs/gas-fees-example/dataset
+uv run --locked avalanche data check af.economy-gas-fees-daily --capture data/runs/gas-fees-example/capture --dataset data/runs/gas-fees-example/dataset
+
+uv run --locked avalanche data derive derived.market-daily-vector --output data/runs/market-daily-vector-example \
+  --input coinmetrics.btc-usd-daily=<Coin Metrics run> --input defillama.avax-price-daily=<DefiLlama run>
+uv run --locked avalanche data check derived.market-daily-vector --capture data/runs/market-daily-vector-example/capture --dataset data/runs/market-daily-vector-example/dataset
+```
+
+From 2022-06-01 01:00 UTC each hour takes the service's native AVAX price, or its WAVAX price when the native row is missing, and earlier hours take the exchange price. The field `price_source` names the table of each day's close. AVAX has no hourly price before 2021-02-02, so the table starts there. The exchange price is smoother than the service's. On the 1,255 days both tables price completely, the exchange table's realised variance is a median 0.76 of the service's, so the change of table lowers the realised variance before 2022-06-01. The field `dex_realised_variance` gives the exchange table's figure on every day it covers, one table across the change. The field `max_abs_hourly_return` shows a single-hour spike in the source, which the realised variance keeps. The Bitcoin close is Coin Metrics' reference rate of the same date, which holds at 24:00 UTC, the instant of the AVAX close.
+
+The check rebuilds the table from its recorded input runs. It then rebuilds it from the same inputs cut at 2025-11-19 00:00 UTC, the close of 18 November, and requires the same rows, so nothing observed later enters. It also compares each close with DefiLlama's daily AVAX price nearest the same midnight, a recorded input that no field reads. Two price services differ by venue and by the minute of the mark, so the thresholds allow a band. They were set after reading the 2026-11-05 data. On service days at least 95% of closes must lie within 2% and none beyond 10%. On exchange days, which carry pool noise, at least 90% must lie within 2%. The daily log returns must correlate at 0.97 or more. In the 2026-11-05 run 97.2% of 1,264 service closes lie within 1% and 99.7% within 2%, the largest gap 4.4%. Of 481 exchange closes 83.6% lie within 1% and 94.4% within 2%, and two exceed 10%, on 2021-05-09 and 2022-01-22. The returns correlate at 0.984. The pin [`v0.9.1-daily-vector-2026-11-05.json`](pins/v0.9.1-daily-vector-2026-11-05.json) names the five runs.
 
 ## Reproduce the current validator snapshot
 

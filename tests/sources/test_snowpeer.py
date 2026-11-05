@@ -68,7 +68,7 @@ def make_capture(tmp_path: Path) -> tuple[Path, dict]:
 
 def test_catalog_schema_and_references_are_valid():
     catalog = snowpeer.load_catalog()
-    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "binance-public-data", "defillama", "avalanche-metrics-api", "avalanche-data-api", "us-treasury", "fred", "avalanche-p-chain-rpc", "avalanche-x-chain-rpc", "avalanche-c-chain-rpc", "tenderly-c-chain-rpc", "avalanche-snowflake", "avalanche-builder-hub", "derived", "etf-issuers", "coinmetrics-community", "binance-market-data", "bybit-public-api"]
+    assert [item["id"] for item in catalog["sources"]] == ["snowpeer", "coingecko", "binance-public-data", "defillama", "avalanche-metrics-api", "avalanche-data-api", "us-treasury", "fred", "avalanche-p-chain-rpc", "avalanche-x-chain-rpc", "avalanche-c-chain-rpc", "tenderly-c-chain-rpc", "avalanche-snowflake", "avalanche-builder-hub", "derived", "etf-issuers", "coinmetrics-community", "binance-market-data", "bybit-public-api", "af-foundation-snowflake"]
     assert [item["id"] for item in catalog["datasets"]] == [
         "snowpeer.network-summary",
         "snowflake.primary-validator-stakes",
@@ -145,6 +145,10 @@ def test_catalog_schema_and_references_are_valid():
         "bybit.avax-usdt-perp-funding",
         "c-chain-rpc.minipool-records",
         "derived.operator-clusters",
+        "allium.prices-hourly",
+        "allium.dex-token-prices-hourly",
+        "af.economy-gas-fees-daily",
+        "derived.market-daily-vector",
     ]
 
 

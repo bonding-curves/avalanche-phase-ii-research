@@ -1669,6 +1669,26 @@
           "id": "minipool-records",
           "dataset_id": "c-chain-rpc.minipool-records",
           "role": "one row per minipool record of GoGoPool's MinipoolManager contract, with the node's owner, read at one block"
+        },
+        {
+          "id": "prices-hourly",
+          "dataset_id": "allium.prices-hourly",
+          "role": "hourly native AVAX price from Allium's price service, with its WAVAX price where the native row is missing, from 2022-06-01 01:00 UTC"
+        },
+        {
+          "id": "dex-prices-hourly",
+          "dataset_id": "allium.dex-token-prices-hourly",
+          "role": "hourly WAVAX price from decentralised exchange trades, the AVAX price before the price service starts and a single-table realised variance on every day"
+        },
+        {
+          "id": "economy-gas-fees-daily",
+          "dataset_id": "af.economy-gas-fees-daily",
+          "role": "daily C-Chain gas fees in AVAX counted by the Foundation's Gross Chain Product economy, all burned"
+        },
+        {
+          "id": "btc-usd-daily",
+          "dataset_id": "coinmetrics.btc-usd-daily",
+          "role": "daily Bitcoin reference rate at 24:00 UTC and its log return"
         }
       ]
     },
@@ -1938,6 +1958,102 @@
             "result.list[].symbol",
             "result.list[].launchTime",
             "result.list[].fundingInterval"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "af-foundation-snowflake",
+      "name": "Avalanche Foundation Snowflake account: Allium's Avalanche database and the Foundation's Gross Chain Product database",
+      "source_type": "database_share",
+      "status": "implemented",
+      "authority": "The Avalanche Foundation's Snowflake account RYPQXPJ-AVALANCHE_FOUNDATION. It holds the database AVALANCHE, Allium's indexed C-Chain data with its hourly token price service and its prices derived from decentralised exchange trades, and the database AF, the Foundation's Gross Chain Product pipeline. Authoritative for the rows it exposes as Allium and the Foundation compute them, not for the price of AVAX on any one venue or for the full C-Chain fee burn. Each query names its database and schema in full; the database and schema fields here are those of the first dataset.",
+      "documentation_url": "https://docs.allium.so/",
+      "authentication": "Key-pair sign-in as the user EXT_BCRG with the read-only role AF_AVALANCHE_GCP_READER on the warehouse AF_WAREHOUSE_X_SMALL. The private key file is the one the environment variable AVALANCHE_FOUNDATION_SNOWFLAKE_KEY names, by default ~/.snowflake/bcrg_rsa_key.p8. No credential enters this repository, a capture, or a receipt.",
+      "reuse_status": "Allium and Foundation data reached through the Foundation's read-only account under the Foundation's agreement with BCRG: private authorized research access, as the existing share. Redistribution of a pinned snapshot to the Foundation is redistribution to its owner; to anyone else it is unassessed.",
+      "database": "AVALANCHE",
+      "schema": "PRICES",
+      "queries": [
+        {
+          "id": "allium-prices-hourly",
+          "sql": "queries/allium-prices-hourly.sql",
+          "relations": [
+            "HOURLY"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2022-06-01",
+              "meaning": "inclusive lower UTC hour; the first day the service prices AVAX"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC hour"
+            }
+          ],
+          "observed_semantics": [
+            "AVALANCHE.PRICES.HOURLY holds one USD price per token address and hour; every timestamp is a whole hour",
+            "A price holds at the instant of its stamp: the price stamped at a midnight agrees with Binance's AVAX/USDT open of that midnight and close of the day before, a median difference of 0.12% over 1,577 days to 2026-09-25, against 0.34% for the stamp an hour earlier",
+            "Native AVAX is listed under the zero address with the price ID avalanche-2; WAVAX, the ERC-20 wrapped form, at 0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+            "sAVAX is 0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be, ggAVAX 0xa25eaf2906fa1a3a13edac9b9657108af7b703e3 under the symbol stAVAX, and yyAVAX 0xf7d9281e8e363584973f946201b82ba72c965d27",
+            "PRICE is stored as text and is captured as that text",
+            "On 2026-11-05 AVAX, WAVAX and sAVAX start on 2022-06-01 01:00 UTC, ggAVAX on 2023-12-12 and yyAVAX on 2022-09-09; yyAVAX stops on 2026-10-16"
+          ]
+        },
+        {
+          "id": "allium-dex-token-prices-hourly",
+          "sql": "queries/allium-dex-token-prices-hourly.sql",
+          "relations": [
+            "TOKEN_PRICES_HOURLY"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2021-02-02",
+              "meaning": "inclusive lower UTC hour; the first day the table prices WAVAX"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC hour"
+            }
+          ],
+          "observed_semantics": [
+            "AVALANCHE.DEX.TOKEN_PRICES_HOURLY holds one USD price per token address and hour, derived by Allium from trades on Avalanche decentralised exchanges",
+            "WAVAX starts on 2021-02-02 15:00 UTC; an hour without trades has no row",
+            "Its price at an hour stamp agrees best with Allium's price service at the same stamp: a median difference of 0.15% over the 38,760 shared hours in the 2026-11-05 capture, against 0.32% with the service's price one hour later and 0.46% one hour earlier"
+          ]
+        },
+        {
+          "id": "af-economy-gas-fees-daily",
+          "sql": "queries/af-economy-gas-fees-daily.sql",
+          "relations": [
+            "ECONOMY_GAS_FEES_DAILY"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-23",
+              "meaning": "inclusive lower UTC date; the first C-Chain fee day"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC date"
+            }
+          ],
+          "observed_semantics": [
+            "AF.GROSS_CHAIN_PRODUCT.ECONOMY_GAS_FEES_DAILY is a view: the C-Chain gas fees that the Foundation's Gross Chain Product economy counts, one row per UTC day",
+            "GAS_USED_AVAX is the day's fees in AVAX. Every C-Chain fee is burned, so it is a burn, but the economy's scope is not the whole chain: it summed to about 13% less than Allium's AVALANCHE.METRICS.OVERVIEW fees over the same days on 2026-11-04, a gap not yet traced",
+            "GAS_USED_USD is empty on the earliest days; the columns ending in _REF value AVAX at the pipeline's fixed reference price",
+            "A day on which the economy counted no fee has no row"
           ]
         }
       ]
@@ -9611,6 +9727,310 @@
           "type": "integer",
           "unit": "count; null on or after the cut",
           "derivation": "owner keys in the component"
+        }
+      ]
+    },
+    {
+      "id": "allium.prices-hourly",
+      "name": "Hourly USD prices of AVAX, WAVAX and three liquid staking tokens from Allium's price service",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per token and hour from Allium's price service, read through the Avalanche Foundation's read-only Snowflake account: native AVAX and WAVAX from 2022-06-01 01:00 UTC, with sAVAX, ggAVAX and yyAVAX, whose ratio to the AVAX price is each token's exchange rate. The capture holds every row in its window, held-back dates included, and the build cuts nothing. The check refuses a repeated token and hour, a price that is not positive, and a row outside the window, and requires native AVAX and WAVAX to agree within 2% in at least 98% of the hours both are priced; the largest difference is reported, since each address carries isolated single-hour spikes. Missing hours are counted per token in the summary.",
+      "query_ids": [
+        "allium-prices-hourly"
+      ],
+      "fields": [
+        {
+          "name": "token",
+          "type": "string",
+          "unit": "token name",
+          "derivation": "AVAX, WAVAX, sAVAX, ggAVAX or yyAVAX, from the address"
+        },
+        {
+          "name": "address",
+          "type": "string",
+          "unit": "C-Chain contract address, lower case; the zero address for native AVAX",
+          "derivation": "ADDRESS"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "unit": "symbol as the source lists it",
+          "derivation": "SYMBOL; ggAVAX is listed as stAVAX"
+        },
+        {
+          "name": "price_id",
+          "type": "string",
+          "unit": "Allium price identifier",
+          "derivation": "ID"
+        },
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "chain name",
+          "derivation": "CHAIN"
+        },
+        {
+          "name": "decimals",
+          "type": "integer",
+          "unit": "token decimals",
+          "derivation": "DECIMALS"
+        },
+        {
+          "name": "hour_utc",
+          "type": "timestamp",
+          "unit": "UTC, whole hour",
+          "derivation": "TIMESTAMP"
+        },
+        {
+          "name": "price_usd",
+          "type": "number",
+          "unit": "USD per token",
+          "derivation": "PRICE, stored as text, read as a double"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "_CREATED_AT, when Allium wrote the row"
+        }
+      ]
+    },
+    {
+      "id": "allium.dex-token-prices-hourly",
+      "name": "Hourly WAVAX price from decentralised exchange trades",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per hour with trades from 2021-02-02 15:00 UTC: Allium's USD price of WAVAX derived from trades on Avalanche decentralised exchanges, read through the Avalanche Foundation's read-only Snowflake account, with the median prices, the hour's USD volume, traders and trades. It is the only hourly AVAX price before Allium's price service starts on 2022-06-01. The capture holds every row in its window, held-back dates included, and the build cuts nothing. The check refuses a repeated hour, a price that is not positive, and a row outside the window, and counts the missing hours in the summary. With --against a built allium.prices-hourly run it requires the last exchange price of each UTC day within 3% of the service's WAVAX price at the same hour on at least 95% of the days both hold.",
+      "query_ids": [
+        "allium-dex-token-prices-hourly"
+      ],
+      "fields": [
+        {
+          "name": "address",
+          "type": "string",
+          "unit": "C-Chain contract address, lower case",
+          "derivation": "ADDRESS"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "unit": "symbol as the source lists it",
+          "derivation": "SYMBOL"
+        },
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "chain name",
+          "derivation": "CHAIN"
+        },
+        {
+          "name": "hour_utc",
+          "type": "timestamp",
+          "unit": "UTC, the hour's start",
+          "derivation": "TIMESTAMP"
+        },
+        {
+          "name": "price_usd",
+          "type": "number",
+          "unit": "USD per WAVAX",
+          "derivation": "PRICE"
+        },
+        {
+          "name": "median_price_usd",
+          "type": "number",
+          "unit": "USD per WAVAX",
+          "derivation": "MEDIAN_PRICE"
+        },
+        {
+          "name": "median_safe_price_usd",
+          "type": "number",
+          "unit": "USD per WAVAX",
+          "derivation": "MEDIAN_SAFE_PRICE"
+        },
+        {
+          "name": "usd_trading_volume",
+          "type": "number",
+          "unit": "USD per hour",
+          "derivation": "USD_TRADING_VOLUME"
+        },
+        {
+          "name": "traders",
+          "type": "integer",
+          "unit": "addresses per hour",
+          "derivation": "TRADERS"
+        },
+        {
+          "name": "trade_count",
+          "type": "integer",
+          "unit": "trades per hour",
+          "derivation": "TRADE_COUNT"
+        }
+      ]
+    },
+    {
+      "id": "af.economy-gas-fees-daily",
+      "name": "Daily C-Chain gas fees counted by the Foundation's Gross Chain Product economy",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC day from 2020-09-23 with the C-Chain gas fees that the Avalanche Foundation's Gross Chain Product economy counts, in AVAX and USD, read through the Foundation's read-only Snowflake account. Every C-Chain fee is burned, so the AVAX column is a burn, but the economy's scope is narrower than the chain: it sums to about 13% less than Allium's daily fee table, a gap not yet traced, and the exact receipt-fee burn snowflake.c-chain-evm-burn-daily is the reference for the whole chain. The capture holds every row in its window and the build cuts nothing. The check refuses a repeated date, a missing or non-positive AVAX amount, and a row outside the window, and counts the days without a row in the summary.",
+      "query_ids": [
+        "af-economy-gas-fees-daily"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "DATE"
+        },
+        {
+          "name": "gas_used_avax",
+          "type": "number",
+          "unit": "AVAX per day",
+          "derivation": "GAS_USED_AVAX, the day's gas fees in AVAX, all burned"
+        },
+        {
+          "name": "gas_used_usd",
+          "type": "number",
+          "unit": "USD per day; empty on the earliest days",
+          "derivation": "GAS_USED_USD"
+        },
+        {
+          "name": "gas_used_usd_ref",
+          "type": "number",
+          "unit": "USD per day at the pipeline's fixed reference price",
+          "derivation": "GAS_USED_USD_REF"
+        },
+        {
+          "name": "gas_used_avax_ref",
+          "type": "number",
+          "unit": "AVAX per day",
+          "derivation": "GAS_USED_AVAX_REF"
+        }
+      ]
+    },
+    {
+      "id": "derived.market-daily-vector",
+      "name": "Daily market vector before the held-back cut: AVAX return and realised variance, Bitcoin return, log gas burn",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC day from 2021-02-02 to 2025-11-18, the day before the held-back cut of 2025-11-19: the AVAX close at 24:00 UTC and its log return, the realised variance as the sum of squared hourly log returns within the day (Corsi 2009, https://doi.org/10.1093/jjfinec/nbp001) with the number of hourly returns used, the Bitcoin close and log return at the same instant from Coin Metrics, and the natural log of the day's C-Chain gas burn. The hourly AVAX price is Allium's, read through the Avalanche Foundation's read-only Snowflake account under the Foundation's agreement: from 2022-06-01 01:00 UTC its price service's native AVAX price, with its WAVAX price where the native row is missing, and before that its WAVAX price from decentralised exchange trades, which starts on 2021-02-02 15:00 UTC. Days before 2021-02-02 have no hourly AVAX price and no row. The column price_source records which table each close came from. The exchange price is smoother than the service's, so the change of table lowers the realised variance before 2022-06-01; dex_realised_variance gives the exchange table's figure on every day it covers. The gas burn is the Foundation economy's count, about 13% below Allium's whole-chain fee total. No row is dated on or after the cut and nothing observed after 2025-11-19 00:00 UTC is read; the check rebuilds the table from its inputs cut at that instant and requires the same rows. The check also compares each close with DefiLlama's daily price at the same midnight, a reference no field reads. Lending-rate and outside-yield columns are planned to follow these fields and are not built yet.",
+      "input_ids": [
+        "prices-hourly",
+        "dex-prices-hourly",
+        "economy-gas-fees-daily",
+        "btc-usd-daily",
+        "defillama-daily"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "every calendar day from 2021-02-02 to 2025-11-18"
+        },
+        {
+          "name": "avax_close_usd",
+          "type": "number",
+          "unit": "USD per AVAX",
+          "derivation": "the hourly price stamped 24:00 UTC of the day, the next midnight; the day's last priced hour when that stamp is missing; null when the day has no priced hour"
+        },
+        {
+          "name": "avax_close_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "the stamp of the hourly price used as the close"
+        },
+        {
+          "name": "price_source",
+          "type": "string",
+          "unit": "prices-hourly-avax, prices-hourly-wavax or dex-wavax",
+          "derivation": "the table of the close: the price service's native AVAX price, the service with at least one hour taken from its WAVAX price, or the exchange-derived WAVAX price"
+        },
+        {
+          "name": "avax_log_return",
+          "type": "number",
+          "unit": "natural log of consecutive daily closes; null on the first day or after a day without a close",
+          "derivation": "ln(avax_close_usd / previous day's avax_close_usd)"
+        },
+        {
+          "name": "realised_variance",
+          "type": "number",
+          "unit": "squared daily log return, not annualised; null with no hourly return",
+          "derivation": "sum of r squared over the hours t from 01:00 of the day to 24:00, r = ln(p_t / p_(t-1h)), counting a return only when both hours are priced and come from the same table"
+        },
+        {
+          "name": "hourly_returns",
+          "type": "integer",
+          "unit": "returns, 0 to 24",
+          "derivation": "the hourly returns summed in realised_variance"
+        },
+        {
+          "name": "max_abs_hourly_return",
+          "type": "number",
+          "unit": "absolute natural log return",
+          "derivation": "the largest absolute hourly return in realised_variance; a single-hour spike in the source shows here"
+        },
+        {
+          "name": "dex_realised_variance",
+          "type": "number",
+          "unit": "squared daily log return, not annualised; null with no hourly return",
+          "derivation": "the same sum over the exchange-derived WAVAX price alone, on every day that table covers"
+        },
+        {
+          "name": "dex_hourly_returns",
+          "type": "integer",
+          "unit": "returns, 0 to 24",
+          "derivation": "the hourly returns summed in dex_realised_variance"
+        },
+        {
+          "name": "btc_close_usd",
+          "type": "number",
+          "unit": "USD per BTC",
+          "derivation": "coinmetrics.btc-usd-daily price_usd of the same date, the reference rate at 24:00 UTC, the instant of the AVAX close"
+        },
+        {
+          "name": "btc_log_return",
+          "type": "number",
+          "unit": "natural log of consecutive daily prices",
+          "derivation": "coinmetrics.btc-usd-daily log_return of the same date"
+        },
+        {
+          "name": "gas_burn_avax",
+          "type": "number",
+          "unit": "AVAX per UTC day",
+          "derivation": "af.economy-gas-fees-daily gas_used_avax: the day's C-Chain gas fees counted by the Foundation's Gross Chain Product economy, all burned"
+        },
+        {
+          "name": "log_gas_burn",
+          "type": "number",
+          "unit": "natural log of AVAX per day",
+          "derivation": "ln(gas_burn_avax); null on a day without a row"
         }
       ]
     }

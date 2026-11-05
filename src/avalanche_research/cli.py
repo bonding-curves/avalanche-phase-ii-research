@@ -54,8 +54,8 @@ from . import validators_api
 from . import weeks
 from . import yields
 from .catalog import DataError, canonical_bytes, load_catalog, now
-from .sources import binance_btc, binance_funding, bybit, coinmetrics, minipools
-from .datasets.derived import operator_clusters
+from .sources import binance_btc, binance_funding, bybit, coinmetrics, foundation, minipools
+from .datasets.derived import market_daily_vector, operator_clusters
 from .research import research
 from .model import MODEL_VERSION, RELEASED_MODEL, protocol
 from .model import backtest as model_backtest
@@ -98,6 +98,7 @@ MODULES = {
     subnets.DATASET_ID: subnets,
     operators.DATASET_ID: operators,
     operator_clusters.DATASET_ID: operator_clusters,
+    market_daily_vector.DATASET_ID: market_daily_vector,
     opportunity.DATASET_ID: opportunity,
     attributions.DATASET_ID: attributions,
     monetary.DATASET_ID: monetary,
@@ -109,6 +110,7 @@ MODULES = {
     **{dataset_id: uptime_hourly for dataset_id in uptime_hourly.DATASET_IDS},
     **{dataset_id: weeks for dataset_id in weeks.DATASET_IDS},
     **{dataset_id: etf for dataset_id in etf.DATASET_IDS},
+    **{dataset_id: foundation for dataset_id in foundation.DATASET_IDS},
 }
 
 
