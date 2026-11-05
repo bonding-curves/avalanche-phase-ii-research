@@ -200,6 +200,22 @@ def test_history_derives_single_asset_units_and_keeps_reported_ones(tmp_path):
     assert gava.loc["2026-03-31", "avax_held"] == 597200.873296
 
 
+def test_an_index_product_that_drops_avax_holds_zero_and_passes(tmp_path):
+    keys = json.loads(json.dumps(TS_DETAILS["KEYS"]))
+    keys["data"]["constituents"] = [item for item in keys["data"]["constituents"] if item["ticker"] != "AVAX"]
+    _, dataset_dir, checked = run(tmp_path, etf.SNAPSHOT_ID, overrides={"twentyone-shares-keys-details": json.dumps(keys).encode()})
+    assert checked["status"] == "pass", checked["findings"]
+    row = table(dataset_dir, etf.SNAPSHOT_ID).set_index("ticker").loc["KEYS"]
+    assert row["avax_held"] == 0 and row["avax_per_share"] == 0 and row["avax_weight"] == 0
+
+
+def test_the_single_asset_product_without_an_avax_line_is_refused(tmp_path):
+    avax = json.loads(json.dumps(TS_DETAILS["AVAX"]))
+    avax["data"]["constituents"] = []
+    with pytest.raises(DataError, match="lists 0 AVAX constituents"):
+        run(tmp_path, etf.SNAPSHOT_ID, overrides={"twentyone-shares-avax-details": json.dumps(avax).encode()})
+
+
 def test_check_reports_a_21shares_entitlement_off_its_nav(tmp_path):
     changed = json.loads(json.dumps(TS_DETAILS["AVAX"]))
     changed["data"]["constituents"][0]["coin_entitlement_per_share"] *= 1.01

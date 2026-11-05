@@ -320,8 +320,11 @@ def _vavx_snapshot(nav: dict[str, Any], staking: dict[str, Any], prices: dict[st
     }
 
 
-def _ts_avax_line(data: dict[str, Any]) -> dict[str, Any]:
+def _ts_avax_line(data: dict[str, Any]) -> dict[str, Any] | None:
+    """The AVAX constituent, or None for an index product whose rebalance dropped AVAX, as KEYS did on 30 October 2026."""
     lines = [item for item in data["constituents"] if item.get("ticker") == "AVAX"]
+    if not lines and data.get("ticker") != "AVAX":
+        return None
     if len(lines) != 1:
         raise DataError(f"21Shares {data.get('ticker')} lists {len(lines)} AVAX constituents, not one")
     return lines[0]
@@ -330,12 +333,13 @@ def _ts_avax_line(data: dict[str, Any]) -> dict[str, Any]:
 def _ts_snapshot(endpoint_id: str, value: dict[str, Any]) -> dict[str, Any]:
     data = value["data"]
     line = _ts_avax_line(data)
-    units, per_unit = float(data["total_units_outstanding"]), float(line["coin_entitlement_per_share"])
+    units = float(data["total_units_outstanding"])
+    per_unit = float(line["coin_entitlement_per_share"]) if line is not None else 0.0
     return {
         "issuer": "21Shares", "fund": data["product_name"], "ticker": data["ticker"], "endpoint_id": endpoint_id,
         "as_of": date.fromisoformat(data["valuation_date"]), "nav_usd": _number(data["nav_per_unit"]),
         "net_assets_usd": _number(data["total_nav"]), "shares_outstanding": units, "avax_held": per_unit * units,
-        "avax_per_share": per_unit, "avax_weight": _number(line["weight"]), "avax_held_derived": True, "staked_share": None,
+        "avax_per_share": per_unit, "avax_weight": _number(line["weight"]) if line is not None else 0.0, "avax_held_derived": True, "staked_share": None,
     }
 
 
@@ -529,6 +533,8 @@ def _findings(dataset_id: str, rows: list[dict[str, Any]], values: dict[str, Any
         for ticker in TS_TICKERS:
             data = values[f"{TS_PREFIX}{ticker.lower()}-details"]["data"]
             line = _ts_avax_line(data)
+            if line is None:
+                continue
             row = next(row for row in rows if row["ticker"] == data["ticker"])
             # The AVAX line's share of the NAV over the AVAX price: the whole NAV for the single-asset product.
             implied = data["total_nav"] * (1.0 if len(data["constituents"]) == 1 else float(line["weight"])) / float(line["price"])
