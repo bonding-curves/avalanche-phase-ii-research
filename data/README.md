@@ -6,7 +6,7 @@ A **dataset** is one table with a catalog ID, such as `derived.staking-periods`.
 
 | Path | What it holds |
 | --- | --- |
-| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 20 sources and 87 datasets |
+| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 20 sources and 89 datasets |
 | [`data-catalog.schema.json`](data-catalog.schema.json) | The JSON schema that validates the catalog |
 | [`queries/`](queries/) | The exact SQL text each Snowflake dataset runs |
 | [`pins/`](pins/) | Pinned input sets: the exact runs a result was made from, with their hashes. See [`pins/README.md`](pins/README.md) |
@@ -96,6 +96,8 @@ The rest of this guide gives the status of every dataset and how to reproduce ea
 | `allium.identity-labels-atomic` | One Parquet row per C-Chain address with an atomic transaction to or from the P-Chain that Allium labels, with its entity, category and attribution time | Implemented, tested, and captured on 2026-11-05: 520 of the 51,500 such addresses |
 | `af.address-mapping-atomic` | One Parquet row per such address that the Foundation's Gross Chain Product mapping names | Implemented, tested, and captured on 2026-11-05: the same 520 addresses, every row sourced from Allium's labels |
 | `derived.stake-owner-types` | One Parquet row per P-Chain address, entity-labelled C-Chain address and direction of the atomic transactions between them, with the label's owner class | Implemented, tested, and derived on 2026-11-05: 1,187 links of 1,061 P-Chain addresses, 111 of them first seen after the held-back cut |
+| `allium.c-chain-daily-last-blocks` | One Parquet row per UTC day with its first and last C-Chain block, from the Foundation's Snowflake account | Implemented, tested, and captured on 2026-11-05: 2,214 days from 2020-09-23, every day starting at the height after the previous day's last block |
+| `c-chain-rpc.savax-state-daily` | One Parquet row per UTC day from 2022-01-27 with the sAVAX supply, the AVAX it claims and the AVAX one sAVAX redeems for, read from BENQI's contract at the day's last block | Implemented, tested, and captured on 2026-11-05: 1,743 days to 2026-11-04, every block hash equal to Allium's, 351 days held back |
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
@@ -553,6 +555,26 @@ uv run --locked avalanche data check derived.stake-owner-types --capture data/ru
 ```
 
 The pin [`v0.10-label-link-2026-11-05.json`](pins/v0.10-label-link-2026-11-05.json) names the four runs of this section and the two seamed stake runs they read.
+
+## Read the sAVAX supply and exchange rate
+
+sAVAX is the share token of BENQI's liquid staking contract `0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be`. A deposit of AVAX mints shares, and a redemption burns them without a transfer to the zero address. Summing the token's transfers therefore does not give its supply. Allium's transfer table holds 46.8 million sAVAX of mints and no burns, against a supply of 18.7 million on 2026-11-05. The dataset `c-chain-rpc.savax-state-daily` reads the contract's own state instead, at the last C-Chain block of each UTC day: `totalSupply()`, `totalPooledAvax()` and `getPooledAvaxByShares(10^18)`. Together these give the sAVAX outstanding, the AVAX it claims and the AVAX one sAVAX redeems for.
+
+The days and their last blocks come from `allium.c-chain-daily-last-blocks`, read from the Foundation's Snowflake account through the named connection described above. The capture copies them into `raw/days.json` and records the block run's hash. The public C-Chain node answers these calls at past blocks with no key. It takes 3 to 9 seconds to load each past block's state, so the capture sends batches of 12 calls, four at a time, and sends a batch again when the node times out. The run of 2026-11-05 made 6,972 calls in an hour, with 80 such repeats. The check requires every day once, the node's block hash equal to Allium's, the block's time on its day, a positive supply, and the pooled AVAX over the supply equal to the rate of one share within 10^-9. The build cuts nothing, and `held_back` marks the days from 2025-11-19.
+
+On 2025-11-18, the last day before the held-back cut, 20.46 million sAVAX claimed 25.29 million AVAX, at 1.2361 AVAX per sAVAX. The rate never fell between 2022-01-27 and 2026-11-04. Allium's hourly price ratio of sAVAX to AVAX at 24:00 UTC, which `derived.outside-yields-daily` reads, differs from this rate by a median 0.22% and at most 4.3% on the 1,267 days both hold before the cut. It sits 0.27% below the rate on average.
+
+```bash
+uv run --locked --extra snowflake avalanche data fetch allium.c-chain-daily-last-blocks --output data/runs/daily-blocks-example/capture --timeout 600
+uv run --locked avalanche data build allium.c-chain-daily-last-blocks --from data/runs/daily-blocks-example/capture --output data/runs/daily-blocks-example/dataset
+uv run --locked avalanche data check allium.c-chain-daily-last-blocks --capture data/runs/daily-blocks-example/capture --dataset data/runs/daily-blocks-example/dataset
+uv run --locked avalanche data fetch c-chain-rpc.savax-state-daily --output data/runs/savax-state-example/capture \
+  --param blocks=data/runs/daily-blocks-example/dataset --timeout 90
+uv run --locked avalanche data build c-chain-rpc.savax-state-daily --from data/runs/savax-state-example/capture --output data/runs/savax-state-example/dataset
+uv run --locked avalanche data check c-chain-rpc.savax-state-daily --capture data/runs/savax-state-example/capture --dataset data/runs/savax-state-example/dataset
+```
+
+The pin [`v0.10-savax-state-2026-11-05.json`](pins/v0.10-savax-state-2026-11-05.json) names the two runs of this section.
 
 ## Split validator exits by Subnet role
 

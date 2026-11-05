@@ -1,0 +1,30 @@
+{
+  "code": {
+    "client_commit": "b101fecaae316ae91be77cfcc293db9029aa7a23"
+  },
+  "name": "v0.10-savax-state-2026-11-05",
+  "pinned_at": "2026-11-05T23:37:08Z",
+  "runs": [
+    {
+      "bytes": 121254,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T22:14:40Z:3b43088b5396",
+      "captured_at": "2026-11-05T22:14:40Z",
+      "check": "pass",
+      "dataset_id": "allium.c-chain-daily-last-blocks",
+      "parquet": "c-chain-daily-last-blocks.parquet",
+      "run": "allium-c-chain-daily-last-blocks-2026-11-05",
+      "sha256": "b8b18f479c364b3b5a57c90cbbbd20b67e74666d61ccf078d02726a1f5748a51"
+    },
+    {
+      "bytes": 233704,
+      "capture_id": "capture:avalanche-c-chain-rpc:2026-11-05T23:30:12Z:b2e56c2bd625",
+      "captured_at": "2026-11-05T23:30:12Z",
+      "check": "pass",
+      "dataset_id": "c-chain-rpc.savax-state-daily",
+      "parquet": "savax-state-daily.parquet",
+      "run": "c-chain-rpc-savax-state-daily-2026-11-05",
+      "sha256": "46be3ad0b25b7de648a5b05d6d0c1e8f40b66897e82e12c8c256824b994821b6"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
