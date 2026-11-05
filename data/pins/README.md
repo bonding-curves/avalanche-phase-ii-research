@@ -27,6 +27,7 @@ A pin may also carry `code`: the full commit of this repository the results were
 | `p6-v0.7-report.json` | The runs of `p5` plus the operator table, at the same commit and tag |
 | `p7-systems-learning-weeks.json` | The validator-week panel of 2026-10-06, whose reward addresses as of each week allow an operator grouping that reads no later data |
 | `p8-v0.9.5-inputs.json` | The scenario inputs for revenue-funded rewards: the monetary ledger, AVAX price, Avalanche fees and revenue, and the competing yields |
+| `p8-v0.9.5-inputs-qualified-2026-11-05.json` | Additive successor to `p8` for the v0.9 model inputs. The price run is the rebuild `avax-price-2026-10-26-rebuild`, with one row per date: 2,201 rows and 2,201 dates, against 343 repeated dates in `p8`. The ledger, fee and opportunity-cost runs are those of `p8` |
 | `p9-staking-records.json` | Frozen staking records of 2026-10-14: staking periods, daily monetary ledger, seamed validator and delegator stakes, and auto-renewed cycle history. The original ledger predates the cycle accounting repair |
 | `price-consumers-observed-2026-10-26.json` | Seven explicit inputs for completed-day market, strict 24-hour weekly DefiLlama and descriptive daily-close scenario projections. Legacy defaults remain unchanged |
 | `staking-records-accounting-qualified-2026-10-26.json` | Canonical era-table successor using the qualified cycle-effective ledger and exact 26 October staking/cycle inputs. Principal and effective stock are separate, with restake counted once |
