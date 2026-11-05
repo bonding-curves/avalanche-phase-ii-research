@@ -73,6 +73,9 @@ OUT = ("out_stakes", "out_days", "out_done", "out_last_days", "out_returns")
 
 AVAX_NAVAX = 10**9
 REVENUE_VARIABLES = ("revenue_paid_navax", "unpaid_need_navax", "revenue_pool_navax")
+TURNOVER_VARIABLES = ("ended_validators", "renewed_validators", "first_ever_validators")
+"""Each day's validator commitments that ended, those of them renewed at once, and the commitments started by nodes
+that never validated before: state only with record_turnover."""
 """The revenue funding outputs that are state when a run carries revenue funding (``FittedLifecycle.funded``)."""
 
 
@@ -247,6 +250,12 @@ class FittedLifecycle(SimulationModel):
             "and close to logarithmic far from it",
     )
 
+    record_turnover = param.Boolean(
+        default=False, metadata={"omit_at_default": True},
+        doc="Record each day's validator endings, immediate renewals and first-ever starts as state, which the "
+            "stylised-fact tests read. False is every version to v0.9.0, whose tables do not carry them",
+    )
+
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
     # specification and its hash do not record it.
     stages = (
@@ -262,7 +271,8 @@ class FittedLifecycle(SimulationModel):
     # leaves them out (tests/test_parts_split.py).
     def state_variables(self):
         return ["active_validators", "active_validator_stake_navax", "returning_nodes", "supply_navax", "issued_navax",
-                "started_stake_navax", "nakamoto_third_nodes", *(REVENUE_VARIABLES if self.funded else ())]
+                "started_stake_navax", "nakamoto_third_nodes", *(REVENUE_VARIABLES if self.funded else ()),
+                *(TURNOVER_VARIABLES if self.record_turnover else ())]
 
     @property
     def funded(self) -> bool:
@@ -315,6 +325,7 @@ class FittedLifecycle(SimulationModel):
             "started_stake_navax": 0,
             "nakamoto_third_nodes": nakamoto_third_nodes(state["stakes"], state["node_key"]),
             **({name: 0 for name in REVENUE_VARIABLES} if self.funded else {}),
+            **({name: 0 for name in TURNOVER_VARIABLES} if self.record_turnover else {}),
             "yield_gap_pp": 0.0,
             "started_stake_days_navax": 0.0,
             # The rate at the counter of the day before the origin, which the model does not hold.
@@ -515,7 +526,8 @@ class FittedLifecycle(SimulationModel):
         copied = (*COMMITMENT, *OUT, "node_key", "out_node_key", "issued_navax", "yield_gap_pp",
                   "started_stake_navax", "started_stake_days_navax", "offered_rate_30d",
                   *(["price_usd"] if price_for is not None else []),
-                  *(REVENUE_VARIABLES if self.funded else ()))
+                  *(REVENUE_VARIABLES if self.funded else ()),
+                  *(TURNOVER_VARIABLES if self.record_turnover else ()))
         return [{
             "policies": {"lifecycle": p_lifecycle},
             "variables": {

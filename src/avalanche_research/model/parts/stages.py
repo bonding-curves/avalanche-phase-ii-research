@@ -188,6 +188,11 @@ def assembly_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dic
         "out_node_key": np.concatenate([state["out_node_key"][stay_out], ended["node_key"][left]]),
         **earlier["rewards"],
         "yield_gap_pp": float(day.renewal_gap),
+        # The day's turnover, state only in a run that records it (FittedLifecycle.record_turnover). A first-ever start
+        # is a started commitment of no earlier commitment that is not a return.
+        "ended_validators": int(len(ended["stakes"])),
+        "renewed_validators": int(renews.sum()),
+        "first_ever_validators": int(((np.asarray(started["done"]) == 0) & ~np.asarray(started["after_return"], dtype=bool)).sum()),
     }
 
 
