@@ -91,6 +91,20 @@ def test_fleet_stability_counts_nodes_whose_fleet_changes_under_two_week_buckets
     assert summary["fleets"] == 2 and summary["nodes_whose_fleet_size_changes"] == 0
 
 
+def test_an_active_node_has_no_exit_week_and_its_moving_end_leaves_its_fleet_unchanged(tmp_path):
+    # Two auto-renewed nodes entered together at one fee. Their latest cycles end on different days, and each cycle moves
+    # that end forward, so neither end is an exit.
+    make_node_table(tmp_path, [
+        ("NodeID-R1", "avax1renew", "2026-09-22 16:00:00", "2026-11-06 16:00:00", 0.02, True, 20),
+        ("NodeID-R2", "avax1renew", "2026-09-23 10:00:00", "2026-11-20 10:00:00", 0.02, True, 4),
+    ])
+    output = tmp_path / "out"
+    operators.derive(operators.DATASET_ID, output, root=tmp_path)
+    table = rows(output)
+    assert table["NodeID-R1"]["exit_week"] is None or str(table["NodeID-R1"]["exit_week"]) in ("NaT", "None")
+    assert table["NodeID-R1"]["fleet_id"] == table["NodeID-R2"]["fleet_id"]
+
+
 def test_check_flags_a_changed_input_and_rejects_other_datasets(root):
     output = root / "out"
     operators.derive(operators.DATASET_ID, output, root=root)

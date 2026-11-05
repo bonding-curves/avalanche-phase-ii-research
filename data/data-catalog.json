@@ -1818,6 +1818,105 @@
           ]
         }
       ]
+    },
+    {
+      "id": "coinmetrics-community",
+      "name": "Coin Metrics community API",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Coin Metrics' reference rate for Bitcoin in US dollars, one value per UTC day from 18 July 2010, the price at 24:00 UTC of the day. A third-party market observation aggregated across exchanges; it establishes nothing on chain.",
+      "documentation_url": "https://docs.coinmetrics.io/api/v4",
+      "authentication": "none; the keyless community API at community-api.coinmetrics.io",
+      "reuse_status": "Coin Metrics community data is licensed CC BY-NC 4.0: attribution required, no commercial use (https://docs.coinmetrics.io/packages/coin-metrics-community-data). Observed 2026-11-05. Until the licence question for paid research is settled, deliveries leave out the raw rows and carry the capture code and the SHA-256 of every captured file.",
+      "endpoints": [
+        {
+          "id": "btc-priceusd-daily",
+          "url": "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD&frequency=1d&page_size=10000&paging_from=start",
+          "response_fields": [
+            "data[].asset",
+            "data[].time",
+            "data[].PriceUSD",
+            "next_page_url"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "binance-market-data",
+      "name": "Binance public data archive and USD-M futures API",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Exchange observations published by Binance: daily BTC/USDT spot candles from the data.binance.vision archive, and AVAXUSDT perpetual funding rates from the futures API and the archive's monthly files. Quoted in USDT, not USD; they establish nothing on chain.",
+      "documentation_url": "https://github.com/binance/binance-public-data",
+      "authentication": "none; archive files at data.binance.vision, each beside a CHECKSUM file carrying its SHA-256, and the keyless futures endpoint /fapi/v1/fundingRate",
+      "reuse_status": "The archive files fall under the Binance Vision Dataset Terms, version 1.0, last updated 26 August 2026 (https://github.com/binance/binance-public-data/blob/master/TERMS_AND_CONDITIONS.md): CC BY-NC-SA 4.0, attribution required, commercial licensing excluded, and permitted use limited to academic research, open educational projects, personal backtesting and non-commercial open-source evaluation. The futures API falls under the Binance Terms of Use. Observed 2026-11-05. Until the licence question for paid research is settled, deliveries leave out the raw rows and carry the capture code and the SHA-256 of every captured file.",
+      "endpoints": [
+        {
+          "id": "btc-usdt-1d-monthly",
+          "url": "https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/1d/",
+          "response_fields": [
+            "BTCUSDT-1d-<YYYY-MM>.zip"
+          ]
+        },
+        {
+          "id": "btc-usdt-1d-daily",
+          "url": "https://data.binance.vision/data/spot/daily/klines/BTCUSDT/1d/",
+          "response_fields": [
+            "BTCUSDT-1d-<YYYY-MM-DD>.zip"
+          ]
+        },
+        {
+          "id": "avax-usdt-funding-rate-monthly",
+          "url": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/",
+          "response_fields": [
+            "AVAXUSDT-fundingRate-<YYYY-MM>.zip",
+            "calc_time",
+            "funding_interval_hours",
+            "last_funding_rate"
+          ]
+        },
+        {
+          "id": "avax-usdt-funding-rate-api",
+          "url": "https://fapi.binance.com/fapi/v1/fundingRate?symbol=AVAXUSDT&limit=1000",
+          "response_fields": [
+            "symbol",
+            "fundingTime",
+            "fundingRate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bybit-public-api",
+      "name": "Bybit public market API",
+      "source_type": "rest_api",
+      "status": "implemented",
+      "authority": "Funding rates Bybit publishes for its AVAXUSDT linear perpetual contract, launched 2021-09-15. The second venue beside Binance; third-party market observations quoted in USDT that establish nothing on chain.",
+      "documentation_url": "https://bybit-exchange.github.io/docs/v5/market/history-fund-rate",
+      "authentication": "none; keyless public market endpoints at api.bybit.com",
+      "reuse_status": "Bybit's API terms bar commercial exploitation of the APIs (https://bybit.nl/en/help-center/article/API-Terms). Observed 2026-11-05. Until the licence question for paid research is settled, deliveries leave out the raw rows and carry the capture code and the SHA-256 of every captured file.",
+      "endpoints": [
+        {
+          "id": "avax-usdt-funding-history",
+          "url": "https://api.bybit.com/v5/market/funding/history?category=linear&symbol=AVAXUSDT&limit=200",
+          "response_fields": [
+            "retCode",
+            "result.list[].symbol",
+            "result.list[].fundingRate",
+            "result.list[].fundingRateTimestamp"
+          ]
+        },
+        {
+          "id": "avax-usdt-instrument",
+          "url": "https://api.bybit.com/v5/market/instruments-info?category=linear&symbol=AVAXUSDT",
+          "response_fields": [
+            "retCode",
+            "result.list[].symbol",
+            "result.list[].launchTime",
+            "result.list[].fundingInterval"
+          ]
+        }
+      ]
     }
   ],
   "datasets": [
@@ -7122,7 +7221,7 @@
           "name": "fleet_id",
           "type": "string",
           "unit": "hash",
-          "derivation": "md5 of entry week, exit week, and latest fee"
+          "derivation": "md5 of entry week, exit week, and latest fee; an active node's exit part reads active"
         },
         {
           "name": "fleet_nodes",
@@ -7146,7 +7245,7 @@
           "name": "exit_week",
           "type": "string",
           "unit": "UTC week start",
-          "derivation": "Monday of the node's last period end"
+          "derivation": "Monday of the node's last period end; null while the node is active, because a scheduled end is not an exit and an auto-renewed validator's end moves forward each cycle"
         },
         {
           "name": "latest_fee_rate",
@@ -8982,6 +9081,231 @@
           "type": "integer",
           "unit": "days",
           "derivation": "of those, days with a Binance close"
+        }
+      ]
+    },
+    {
+      "id": "coinmetrics.btc-usd-daily",
+      "name": "Bitcoin daily price, full history",
+      "source_id": "coinmetrics-community",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "description": "One row per UTC day from 18 July 2010, Coin Metrics' first observation, with its Bitcoin reference rate in US dollars at 24:00 UTC of the day and the daily log return. The check reads a built binance.btc-usdt-daily run and requires at least 99% of the shared days within 1% of Binance's BTC/USDT close and a daily log return correlation of at least 0.99.",
+      "endpoint_ids": [
+        "btc-priceusd-daily"
+      ],
+      "fields": [
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC calendar date",
+          "derivation": "the date of the point's time, which is 00:00:00 UTC of the day"
+        },
+        {
+          "name": "price_usd",
+          "type": "number",
+          "unit": "USD per BTC",
+          "derivation": "Coin Metrics PriceUSD, the reference rate at 24:00 UTC of observation_date"
+        },
+        {
+          "name": "log_return",
+          "type": "number",
+          "unit": "natural log of consecutive daily prices; null on the first row",
+          "derivation": "ln(price_usd / previous price_usd)"
+        }
+      ]
+    },
+    {
+      "id": "binance.btc-usdt-daily",
+      "name": "Bitcoin daily candles on Binance, full history",
+      "source_id": "binance-market-data",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "description": "One row per UTC day from 2017-08-17, BTC/USDT's first day on Binance, with the day's open, high, low, close, volumes, trade count and daily log return. Every archive file is checked against its published SHA-256. The reference against which coinmetrics.btc-usd-daily is checked; the quote is USDT.",
+      "endpoint_ids": [
+        "btc-usdt-1d-monthly",
+        "btc-usdt-1d-daily"
+      ],
+      "fields": [
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC calendar date",
+          "derivation": "the candle's open time, in milliseconds before 2025 and microseconds from 2025"
+        },
+        {
+          "name": "open_usdt",
+          "type": "number",
+          "unit": "USDT per BTC",
+          "derivation": "first trade price of the day"
+        },
+        {
+          "name": "high_usdt",
+          "type": "number",
+          "unit": "USDT per BTC",
+          "derivation": "highest trade price of the day"
+        },
+        {
+          "name": "low_usdt",
+          "type": "number",
+          "unit": "USDT per BTC",
+          "derivation": "lowest trade price of the day"
+        },
+        {
+          "name": "close_usdt",
+          "type": "number",
+          "unit": "USDT per BTC",
+          "derivation": "last trade price of the day; the price at 24:00 UTC"
+        },
+        {
+          "name": "volume_btc",
+          "type": "number",
+          "unit": "BTC",
+          "derivation": "base asset volume"
+        },
+        {
+          "name": "quote_volume_usdt",
+          "type": "number",
+          "unit": "USDT",
+          "derivation": "quote asset volume"
+        },
+        {
+          "name": "trades",
+          "type": "integer",
+          "unit": "trades",
+          "derivation": "number of trades"
+        },
+        {
+          "name": "log_return",
+          "type": "number",
+          "unit": "natural log of consecutive closes; null on the first row",
+          "derivation": "ln(close_usdt / previous close_usdt)"
+        }
+      ]
+    },
+    {
+      "id": "binance.avax-usdt-perp-funding",
+      "name": "AVAX perpetual funding rates on Binance, full history",
+      "source_id": "binance-market-data",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "description": "One row per funding event of Binance's AVAXUSDT perpetual contract from its listing on 2020-09-22, every 8 hours, from the futures API to the capture's end, with the rate per 8 hours, the same rate in percent of position value a year, and its UTC day's event count, annualised daily mean and 30-day mean. Each closed month's archive file is checked against its published SHA-256 and is the record each API rate must equal; a build refuses any archived rate that is missing from the API or differs from it.",
+      "endpoint_ids": [
+        "avax-usdt-funding-rate-api",
+        "avax-usdt-funding-rate-monthly"
+      ],
+      "fields": [
+        {
+          "name": "funding_time",
+          "type": "timestamp",
+          "unit": "UTC instant, millisecond precision",
+          "derivation": "the funding event's time as the venue publishes it"
+        },
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC calendar date",
+          "derivation": "the UTC day of funding_time"
+        },
+        {
+          "name": "funding_rate_per_8h",
+          "type": "number",
+          "unit": "fraction of position value per 8 hours; positive when longs pay shorts",
+          "derivation": "the published funding rate; every event is 8 hours after the one before"
+        },
+        {
+          "name": "annualised_pct_per_year",
+          "type": "number",
+          "unit": "percent of position value per year",
+          "derivation": "funding_rate_per_8h x 3 x 365 x 100"
+        },
+        {
+          "name": "day_events",
+          "type": "integer",
+          "unit": "funding events in the UTC day",
+          "derivation": "count of the rows sharing observation_date"
+        },
+        {
+          "name": "day_annualised_pct_per_year",
+          "type": "number",
+          "unit": "percent of position value per year",
+          "derivation": "mean funding_rate_per_8h of the UTC day x 3 x 365 x 100; the day's summed rates x 365 x 100 when it holds three events; the same on every row of the day"
+        },
+        {
+          "name": "mean_30d_annualised_pct_per_year",
+          "type": "number",
+          "unit": "percent of position value per year; null until 30 days exist",
+          "derivation": "mean of day_annualised_pct_per_year over the 30 UTC days ending observation_date"
+        },
+        {
+          "name": "in_archive",
+          "type": "boolean",
+          "unit": "true or false",
+          "derivation": "the rate is in a captured monthly archive file and equals it; false for the months the archive has not yet published"
+        }
+      ]
+    },
+    {
+      "id": "bybit.avax-usdt-perp-funding",
+      "name": "AVAX perpetual funding rates on Bybit, full history",
+      "source_id": "bybit-public-api",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "description": "One row per funding event of Bybit's AVAXUSDT linear perpetual contract from its launch on 2021-09-15, every 8 hours, with the same columns and units as binance.avax-usdt-perp-funding. The check reads a built binance.avax-usdt-perp-funding run and requires Bybit's 30-day mean within 5 percentage points a year of Binance's on at least 80% of the days both have one.",
+      "endpoint_ids": [
+        "avax-usdt-funding-history",
+        "avax-usdt-instrument"
+      ],
+      "fields": [
+        {
+          "name": "funding_time",
+          "type": "timestamp",
+          "unit": "UTC instant, millisecond precision",
+          "derivation": "the funding event's time as the venue publishes it"
+        },
+        {
+          "name": "observation_date",
+          "type": "string",
+          "unit": "UTC calendar date",
+          "derivation": "the UTC day of funding_time"
+        },
+        {
+          "name": "funding_rate_per_8h",
+          "type": "number",
+          "unit": "fraction of position value per 8 hours; positive when longs pay shorts",
+          "derivation": "the published funding rate; every event is 8 hours after the one before"
+        },
+        {
+          "name": "annualised_pct_per_year",
+          "type": "number",
+          "unit": "percent of position value per year",
+          "derivation": "funding_rate_per_8h x 3 x 365 x 100"
+        },
+        {
+          "name": "day_events",
+          "type": "integer",
+          "unit": "funding events in the UTC day",
+          "derivation": "count of the rows sharing observation_date"
+        },
+        {
+          "name": "day_annualised_pct_per_year",
+          "type": "number",
+          "unit": "percent of position value per year",
+          "derivation": "mean funding_rate_per_8h of the UTC day x 3 x 365 x 100; the day's summed rates x 365 x 100 when it holds three events; the same on every row of the day"
+        },
+        {
+          "name": "mean_30d_annualised_pct_per_year",
+          "type": "number",
+          "unit": "percent of position value per year; null until 30 days exist",
+          "derivation": "mean of day_annualised_pct_per_year over the 30 UTC days ending observation_date"
         }
       ]
     }

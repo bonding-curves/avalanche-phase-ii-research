@@ -217,6 +217,13 @@ def load_inputs(connection: Any, inputs: list[dict[str, Any]]) -> None:
     views = {"subnet-transactions": "transactions", "staking-periods": "periods"}
     for item in inputs:
         connection.execute(f"CREATE OR REPLACE VIEW {views[item['input_id']]} AS SELECT * FROM read_parquet('{_quoted(item['path'])}')")
+    # An auto-renewed validator runs to the end of its latest cycle, as in the node table (NC6). Its end_time is its first
+    # cycle's end, which would read as an exit after one cycle. A log built before the Helicon grain has no cycle column.
+    path = _quoted(next(item["path"] for item in inputs if item["input_id"] == "staking-periods"))
+    columns = {row[0] for row in connection.execute(f"DESCRIBE SELECT * FROM read_parquet('{path}')").fetchall()}
+    if "last_cycle_end_time" in columns:
+        connection.execute("CREATE OR REPLACE VIEW periods AS SELECT * REPLACE (coalesce(last_cycle_end_time, end_time) AS end_time)"
+                           f" FROM read_parquet('{path}')")
 
 
 def compute(connection: Any) -> None:

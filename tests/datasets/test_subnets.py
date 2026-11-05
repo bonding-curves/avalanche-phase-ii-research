@@ -75,6 +75,10 @@ def build_root(root: Path, transactions: list[tuple], periods: list[tuple]) -> P
     values = ", ".join(f"('p-{i}', 'validator', {literal(node)}, TIMESTAMP '{start}', TIMESTAMP '{end}')" for i, (node, start, end) in enumerate(periods))
     make_run(root, "staking-periods", "derived.staking-periods", "staking-periods",
              f"SELECT * FROM (VALUES {values}) AS t(transaction_hash, role, node_id, start_time, end_time)", "2026-09-22T00:00:00Z")
+    return build_root_transactions(root, transactions)
+
+
+def build_root_transactions(root: Path, transactions: list[tuple]) -> Path:
     values = ", ".join(
         f"({literal(t)}, {literal(h)}, TIMESTAMP '{a}', 1, {literal(n)}, {literal(s)}, {stamp(st)}, {stamp(en)}, {stamp(rm)}, {literal(w)}::BIGINT)"
         for t, h, a, n, s, st, en, rm, w in transactions
@@ -123,6 +127,19 @@ def test_one_row_per_node_and_subnet_with_conversion_and_primary_span(root):
     assert summary["catalog_reproduction"]["active_2024_12_15_noon"] == 2  # A and B span 2024-12-15 12:00
     checked = subnets.check(output / "capture", output / "dataset", root=root)
     assert checked["status"] == "pass", checked["findings"]
+
+
+def test_an_auto_renewed_validator_runs_to_the_end_of_its_latest_cycle(tmp_path):
+    make_run(tmp_path, "staking-periods", "derived.staking-periods", "staking-periods",
+             "SELECT * FROM (VALUES ('p-0', 'validator', 'NodeID-A', TIMESTAMP '2024-06-01 00:00:00', TIMESTAMP '2025-06-01 00:00:00', 1,"
+             " NULL::TIMESTAMP), ('p-1', 'validator', 'NodeID-A', TIMESTAMP '2026-09-23 00:00:00', TIMESTAMP '2026-09-25 00:00:00', 20,"
+             " TIMESTAMP '2026-11-01 00:00:00')) AS t(transaction_hash, role, node_id, start_time, end_time, cycles, last_cycle_end_time)",
+             "2026-11-04T00:00:00Z")
+    build_root_transactions(tmp_path, TRANSACTIONS)
+    output = tmp_path / "out"
+    subnets.derive(subnets.DATASET_ID, output, root=tmp_path)
+    # The first cycle ended on 2026-09-25; nineteen renewals ran it to 2026-11-01.
+    assert str(table(output)[("NodeID-A", "S1")]["primary_last_end"]) == "2026-11-01 00:00:00"
 
 
 def test_check_flags_protocol_violations(tmp_path):

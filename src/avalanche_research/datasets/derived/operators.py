@@ -62,10 +62,13 @@ def _agents_values() -> str:
 
 
 def fleet_key(weeks: int) -> str:
-    """The fleet signature: entry and exit bucketed into ``weeks``-week UTC periods from Monday 2020-09-07, and the fee."""
+    """The fleet signature: entry and exit bucketed into ``weeks``-week UTC periods from Monday 2020-09-07, and the fee.
+    A node still validating has not exited, so its exit part reads ``active``: an auto-renewed validator's last end moves
+    forward with every cycle from Helicon, and a scheduled end is not an exit."""
     origin = "DATE '2020-09-07'"
     bucket = lambda column: f"{origin} + INTERVAL (7 * {weeks} * (date_diff('day', {origin}, {column}::DATE) // (7 * {weeks}))) DAY"
-    return f"md5(strftime({bucket('first_start')}, '%Y-%m-%d') || '/' || strftime({bucket('last_end')}, '%Y-%m-%d') || '/' || coalesce(latest_fee_rate::VARCHAR, ''))"
+    exit_part = f"CASE WHEN active THEN 'active' ELSE strftime({bucket('last_end')}, '%Y-%m-%d') END"
+    return f"md5(strftime({bucket('first_start')}, '%Y-%m-%d') || '/' || {exit_part} || '/' || coalesce(latest_fee_rate::VARCHAR, ''))"
 
 
 OPERATORS_SQL = f"""
@@ -78,7 +81,7 @@ WITH n AS (
 SELECT n.node_id, n.operator_id, count(*) OVER (PARTITION BY n.operator_id) AS operator_nodes,
        n.fleet_id, count(*) OVER (PARTITION BY n.fleet_id) AS fleet_nodes,
        NULL::BIGINT AS fleet_operators,
-       date_trunc('week', n.first_start)::DATE AS entry_week, date_trunc('week', n.last_end)::DATE AS exit_week,
+       date_trunc('week', n.first_start)::DATE AS entry_week, CASE WHEN n.active THEN NULL ELSE date_trunc('week', n.last_end)::DATE END AS exit_week,
        n.latest_fee_rate, n.active, n.periods,
        a.name AS named_agent, a.evidence AS named_agent_evidence
 FROM n LEFT JOIN {_agents_values()} ON a.address = n.operator_id
