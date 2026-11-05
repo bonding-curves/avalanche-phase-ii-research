@@ -145,16 +145,29 @@ class DurationTransition(BehaviourBlock):
         u = np.asarray(u, dtype=float)
         return np.minimum((u[:, None] >= cumulative).sum(axis=1), len(BANDS) - 1)
 
-    def days_from_uniforms(self, previous_days, u) -> np.ndarray:
+    def tilted(self, tilt=None) -> np.ndarray:
+        """The transition matrix with each band's probability multiplied by ``exp(tilt)`` of that band and each row
+        renormalised: the duration response's shift by the rate each band is offered (ML28). None is the matrix."""
+        if tilt is None:
+            return self.matrix()
+        tilt = np.asarray(tilt, dtype=float)
+        if tilt.shape != (len(BANDS),) or not np.isfinite(tilt).all():
+            raise ValueError(f"a duration tilt needs one finite log weight per band, {len(BANDS)} in all")
+        weighted = self.matrix() * np.exp(tilt - tilt.max())[None, :]
+        return weighted / weighted.sum(axis=1, keepdims=True)
+
+    def days_from_uniforms(self, previous_days, u, tilt=None) -> np.ndarray:
         """The next duration in whole days from one uniform per node: the band by inversion, then the uniform's
         position within that band's share picks the day from the band's sorted record. One uniform serves both, so
-        the map from uniform to day never decreases, and a band with no record draws its default day."""
+        the map from uniform to day never decreases, and a band with no record draws its default day. ``tilt``
+        shifts the band probabilities (:meth:`tilted`)."""
         u = np.asarray(u, dtype=float)
         rows = duration_band(previous_days)
-        cumulative = np.cumsum(self.matrix(), axis=1)[rows]
+        matrix = self.tilted(tilt)
+        cumulative = np.cumsum(matrix, axis=1)[rows]
         band = np.minimum((u[:, None] >= cumulative).sum(axis=1), len(BANDS) - 1)
         upper = cumulative[np.arange(len(u)), band]
-        lower = upper - self.matrix()[rows, band]
+        lower = upper - matrix[rows, band]
         within = np.clip((u - lower) / np.maximum(upper - lower, 1e-300), 0.0, np.nextafter(1.0, 0.0))
         record = np.zeros(0, dtype=np.int64) if self.day_record is None else np.asarray(self.day_record, dtype=np.int64)
         record_band = duration_band(record)

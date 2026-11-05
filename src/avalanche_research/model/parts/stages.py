@@ -90,7 +90,8 @@ class Day:
     the run's blocks, the day's yield gaps for renewal and entry, and the run's settings. With the dollar margin on,
     ``margin_usd_per_avax`` is the dollar reward a year that one AVAX of stake earns at the design's rate and the
     price at the start of the day. With a price path, ``price_log_return`` is the day's log return of the AVAX price,
-    which the holder layer's funds read."""
+    which the holder layer's funds read. With the duration response on, ``duration_tilt`` is the log weight on each
+    duration band that a renewing or returning node's next band is drawn with."""
 
     t: int
     start: datetime
@@ -101,6 +102,7 @@ class Day:
     settings: RunSettings
     margin_usd_per_avax: float | None = None
     price_log_return: float | None = None
+    duration_tilt: np.ndarray | None = None
 
 
 def run_stages(stages: tuple[tuple[str, Stage], ...], state: Mapping[str, Any], day: Day) -> dict:

@@ -110,7 +110,13 @@ def continuation_stage(state, day, earlier) -> dict:
     ended, renews, comes_back = renewal["ended"], renewal["renews"], returns["comes_back"]
     n_new, new_key = arrivals["count"], arrivals["node_key"]
     continuation = blocks.continuation
-    next_days = continuation.durations_from_uniforms if blocks.durations is None else blocks.durations.days_from_uniforms
+    if blocks.durations is None:
+        next_days = continuation.durations_from_uniforms
+    elif day.duration_tilt is None:
+        next_days = blocks.durations.days_from_uniforms
+    else:
+        def next_days(previous, u):
+            return blocks.durations.days_from_uniforms(previous, u, tilt=day.duration_tilt)
     renewed_key, renewed_done = ended["node_key"][renews], ended["done"][renews]
     back_key, back_done = state["out_node_key"][comes_back], state["out_done"][comes_back]
 

@@ -247,6 +247,14 @@ class FittedLifecycle(SimulationModel):
             "and close to logarithmic far from it",
     )
 
+    # The duration response (D35, ML28), left out of the specification at its default in the same way.
+    duration_response = param.Number(
+        default=0.0, bounds=(0.0, None), metadata={"omit_at_default": True, "source": "swept"},
+        doc="Log weight on a duration band per percentage point a year by which the design's rate for that band's "
+            "day (14, 30, 90, 180 or 365 days) exceeds the fitted menu's: a renewing or returning node's next band is "
+            "drawn from the transition row tilted by it. 0 is every version to v0.9.0. Needs the durations block",
+    )
+
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
     # specification and its hash do not record it.
     stages = (
@@ -297,6 +305,8 @@ class FittedLifecycle(SimulationModel):
             raise ValueError("give the origin price, its drift and its volatility together, or none of them")
         if self.margin_response and not self.has_price():
             raise ValueError("the dollar margin reads the day's price, so give the run a price path")
+        if self.duration_response and self.durations is None:
+            raise ValueError("the duration response tilts the duration transition, so give the run its durations block")
 
     def initial_state(self):
         initial = self.initial if self.initial is not None else pd.DataFrame(columns=COMMITMENT)
@@ -335,6 +345,19 @@ class FittedLifecycle(SimulationModel):
         share = 1.0 - unstaked_share(self.initial_state()) if staked_share is None else staked_share
         return response_gap_pp(self.mechanism, self.fitted_menu, day, supply, completed_periods,
                                self.outside_yield_pp, self.fitted_outside_yield_pp, staked_share=share)
+
+    def duration_tilt(self, day: date, supply_navax: int | None = None, staked_share: float | None = None) -> np.ndarray:
+        """The log weight on each duration band: the duration response times the design's annual rate minus the fitted
+        menu's, in percentage points, for a stake of the band's default day started on ``day`` at the renewal tenure,
+        priced at the origin's counter and staked share unless a day's own are given."""
+        from avalanche_research.model.parts.duration_transition import DEFAULT_DAYS
+
+        supply = self.supply0_navax if supply_navax is None else supply_navax
+        share = 1.0 - unstaked_share(self.initial_state()) if staked_share is None else staked_share
+        start = datetime.combine(day, time(12), tzinfo=UTC)
+        gaps = [(self.mechanism.annual_rate(d, supply, start, completed_periods=self.renewal_tenure, staked_share=share)
+                 - self.fitted_menu.annual_rate(d, supply, start, completed_periods=self.renewal_tenure)) * 100 for d in DEFAULT_DAYS]
+        return float(self.duration_response) * np.asarray(gaps, dtype=float)
 
     def _margin_reference(self) -> float:
         """One AVAX of stake's dollar reward a year at the origin: the fitted menu's 30-day rate at the renewal
@@ -446,6 +469,7 @@ class FittedLifecycle(SimulationModel):
         live = self.yield_gap_at == "live"
         tenure = self.renewal_tenure
         margin_on = bool(self.margin_response)
+        tilt_on = bool(self.duration_response)
         price_for = self._price_by_run() if self.has_price() else None
         # Under a funding rule the responses read the reward received, not the reward priced: the share of yesterday's
         # priced rewards the pool left unpaid (the ``cut`` rule) lowers the rate behaviour sees by that share of the
@@ -485,6 +509,7 @@ class FittedLifecycle(SimulationModel):
                 blocks=blocks_for(run), renewal_gap=renewal_gap, entry_gap=entry_gap, settings=settings,
                 margin_usd_per_avax=margin,
                 price_log_return=float(np.log(price_for(run)[t] / float(state["price_usd"]))) if price_for is not None else None,
+                duration_tilt=self.duration_tilt(days[t], *((supply, share) if live else (None, None))) if tilt_on else None,
             )
             signal = run_stages(stages, state, day)
             if price_for is not None:
