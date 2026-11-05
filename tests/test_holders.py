@@ -25,7 +25,7 @@ from avalanche_research.mechanisms import ChainReward
 from avalanche_research.model import kpis
 from avalanche_research.model.delegated_lifecycle import DelegatedLifecycle
 from avalanche_research.model.engine import _plain, run
-from avalanche_research.model.fitted_blocks import AVAX, RenewalLogit
+from avalanche_research.model.fitted_blocks import AVAX, Arrivals, RenewalLogit
 from avalanche_research.model.holder_lifecycle import (
     HOLDER_FLOAT_VARIABLES,
     HOLDER_VARIABLES,
@@ -334,3 +334,18 @@ def test_the_liquid_stakers_gap_reads_the_staked_share_under_a_rule_that_does():
     low, high = (h.lst_gap(rule, 450_000_000 * AVAX, when, settings, staked_share=s) for s in (0.30, 0.60))
     assert low > high
     assert h.lst_gap(ChainReward(), 450_000_000 * AVAX, when, settings, staked_share=0.30) == h.lst_gap(ChainReward(), 450_000_000 * AVAX, when, settings)
+
+
+def test_a_funds_renewal_is_funded_again_under_the_supply_limit():
+    # RV04's witness: supply is staked almost to the last AVAX, and a fund's 15-day validator renews on day 15 at the
+    # fund's own stake. The renewal takes only the room the other starts leave, or leaves when that room is below the
+    # minimum stake, so the stake-within-supply invariant holds on every day.
+    initial = pd.DataFrame({"stakes": np.full(155, 3_000_000 * AVAX, dtype=np.int64), "days_left": 100, "done": 0,
+                            "after_return": False, "days": 100, "handed_on": False})
+    funds = fund_table([dict(fund="Synthetic fund", holdings_navax=100_000 * AVAX, staked_share=1.0,
+                             validator_stake_navax=100_000 * AVAX, min_days=15, max_days=15)]).assign(staked0_navax=0)
+    model = HolderLifecycle(**validators(initial=initial, arrivals=Arrivals(mean_per_day=0.0), renewal=RenewalLogit(intercept=20.0),
+                                         supply0_navax=465_050_000 * AVAX, timesteps=17, runs=1), holders={}, fund_holdings=funds)
+    table = run(model)
+    stake, supply = stock(table, "active_validator_stake_navax"), stock(table, "supply_navax")
+    assert (stake <= supply).all()

@@ -340,6 +340,24 @@ def holder_continuation_stage(state, day, earlier, *, base, setup: HolderSetup) 
         started["stakes"][mine] = funds.validator_stake_navax[rows[mine]]
         started["days"][mine] = fund_days(funds.min_days[rows[mine]], funds.max_days[rows[mine]],
                                           day.draw.uniforms("holder_days", started["node_key"][mine], started["done"][mine]))
+        # The fund's stake replaces the one the base drew and the supply limit funded, so the limit applies again: the
+        # other starts keep their funding, each fund validator takes the room they leave in order, and one whose room
+        # is below the minimum stake leaves instead of renewing.
+        pool = validator_pool(state, day, earlier) - int(started["stakes"][~mine].sum())
+        fund_stakes, made = funded(started["stakes"][mine], pool)
+        started["stakes"][mine] = fund_stakes
+        if not made.all():
+            dropped = np.flatnonzero(mine)[~made]
+            renews = np.asarray(out.get("renews", earlier["renewal"]["renews"])).copy()
+            renewed = np.flatnonzero(renews)
+            if (dropped >= len(renewed)).any():
+                raise ValueError("a fund's validator starts only by renewing")
+            renews[renewed[dropped]] = False
+            keep = np.ones(len(started["stakes"]), dtype=bool)
+            keep[dropped] = False
+            started = {name: value[keep] for name, value in started.items()}
+            rows, mine = rows[keep], mine[keep]
+            out = {**out, "renews": renews}
     # Validators each fund adds today: its want beyond those it runs after today's renewals.
     running = fund_counts(np.concatenate([state["node_key"][~earlier["renewal"]["ending"]], started["node_key"]]), len(funds))
     wanted = fund_wanted(state["fund_holdings_navax"], funds)
