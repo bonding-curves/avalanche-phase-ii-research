@@ -22,8 +22,10 @@ import argparse
 import gc
 import json
 import multiprocessing
+import os
 import subprocess
 import sys
+import tempfile
 from concurrent.futures import ProcessPoolExecutor
 from datetime import date
 from pathlib import Path
@@ -79,7 +81,10 @@ def origin_price(price_pin: Path, origin: date) -> float:
 
 def worker_setup(memory_limit: str = "1000MB", threads: int = 2) -> None:
     """Cap the worker's DuckDB connection, which the model's input queries share, so a pool of workers beside other
-    jobs on one machine stays within its memory: the default limit is 80% of the machine's memory per connection."""
+    jobs on one machine stays within its memory: the default limit is 80% of the machine's memory per connection.
+    Each worker spills to its own folder, since an in-memory connection otherwise spills to `.tmp` under the working
+    directory, which every worker shares."""
+    duckdb.execute(f"SET temp_directory='{tempfile.mkdtemp(prefix=f'duckdb-spill-{os.getpid()}-')}'")
     duckdb.execute(f"SET memory_limit='{memory_limit}'")
     duckdb.execute(f"SET threads={threads}")
 

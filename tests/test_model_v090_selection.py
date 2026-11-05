@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -46,3 +47,19 @@ def test_the_origin_price_is_the_last_observed_by_the_origin_and_a_rebuilt_run_i
     write([999.0, 2000.0], ["2024-03-01 20:00:00", "2024-03-02 00:00:00"])
     with pytest.raises(ValueError, match="pins"):
         s.origin_price(pin, date(2024, 3, 1))
+
+
+def test_each_worker_spills_to_its_own_folder():
+    # A shared `.tmp` spill folder corrupted a 3-worker v0.8.1 reselection run on 5 November.
+    module = selection()
+    setting = "SELECT current_setting('temp_directory')"
+    try:
+        module.worker_setup()
+        first = duckdb.execute(setting).fetchone()[0]
+        module.worker_setup()
+        second = duckdb.execute(setting).fetchone()[0]
+    finally:
+        for name in ("temp_directory", "memory_limit", "threads"):
+            duckdb.execute(f"RESET {name}")
+    assert first != second
+    assert all(f"duckdb-spill-{os.getpid()}-" in Path(folder).name and Path(folder).is_dir() for folder in (first, second))
