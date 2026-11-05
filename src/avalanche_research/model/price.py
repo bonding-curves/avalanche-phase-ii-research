@@ -76,8 +76,9 @@ def scenario_price(market: str, strength: float = 1.0) -> tuple[float, float]:
 
 def price_path(price0_usd: float, drift_pa: float, volatility_pa: float, timesteps: int, generator: np.random.Generator) -> np.ndarray:
     """The price on each of ``timesteps`` days after the origin: a geometric random walk from ``price0_usd`` with the
-    yearly drift of the log price ``drift_pa`` and volatility ``volatility_pa``, so the expected price grows at the
-    drift and the price stays positive on every day."""
+    yearly drift of the log price ``drift_pa`` and volatility ``volatility_pa``, so the median price grows at the
+    drift, as the record's mean daily log return does, and the price stays positive on every day. The drift is the log
+    drift the scenarios were measured as, so no half variance is taken from it."""
     if not (price0_usd > 0 and np.isfinite(price0_usd)):
         raise ValueError(f"the origin price must be positive and finite, not {price0_usd}")
     if timesteps < 1:
@@ -86,7 +87,7 @@ def price_path(price0_usd: float, drift_pa: float, volatility_pa: float, timeste
         raise ValueError("volatility cannot be negative")
     dt = 1.0 / DAYS_PER_YEAR
     shocks = generator.standard_normal(timesteps) if volatility_pa > 0 else np.zeros(timesteps)
-    steps = (drift_pa - 0.5 * volatility_pa**2) * dt + volatility_pa * np.sqrt(dt) * shocks
+    steps = drift_pa * dt + volatility_pa * np.sqrt(dt) * shocks
     return float(price0_usd) * np.exp(np.cumsum(steps))
 
 

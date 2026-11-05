@@ -166,6 +166,16 @@ def test_the_price_path_is_seeded_positive_and_deterministic_without_volatility(
         price_path(0.0, 0.0, 0.1, 10, rng)
 
 
+@pytest.mark.parametrize("market", ["bull", "neutral", "bear"])
+def test_a_years_log_return_averages_the_scenarios_log_drift(market):
+    # The scenarios hold the record's mean log return a year, so a seeded set of paths averages it within four standard
+    # errors, with no half variance taken off. The old walk fell short by half the variance, 0.35 to 0.91 a year.
+    drift, volatility = PRICE_SCENARIOS[market]
+    paths = 4000
+    years = [np.log(price_path(1.0, drift, volatility, 365, Streams(seed=11, run=r).generator("price"))[-1]) for r in range(1, paths + 1)]
+    assert np.mean(years) == pytest.approx(drift, abs=4 * volatility / np.sqrt(paths))
+
+
 def test_the_scenarios_are_within_the_records_bounds_and_scale_with_strength():
     for state, (drift, volatility) in PRICE_SCENARIOS.items():
         windows = PRICE_BOUNDS["range" if state == "neutral" else state]
