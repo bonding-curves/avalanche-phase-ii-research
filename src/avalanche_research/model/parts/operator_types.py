@@ -20,7 +20,7 @@ import param
 from scipy import special
 
 from avalanche_research.model.parts.base import BehaviourBlock
-from avalanche_research.model.parts.renewal import ENDED
+from avalanche_research.model.parts.renewal import ENDED, margin_shift
 
 MAX_CLASSES = 4
 SHIFT_CLIP = 20.0
@@ -155,8 +155,9 @@ def class_weights(node_keys: np.ndarray, posteriors: tuple[np.ndarray, np.ndarra
 
 def typed_renewal_stage(state, day, earlier, *, types: ClassShift, posteriors: tuple[np.ndarray, np.ndarray]) -> dict:
     """The renewal stage with each ending node's log-odds shifted by its operator class: the base block's log-odds,
-    the yield-gap response and the run's renewal shift as in the plain stage, then the class mixture. The same keyed
-    uniform decides, so with one class and no shift the decisions are the plain stage's."""
+    the yield-gap response, the run's renewal shift, the market's shift and the dollar margin as in the plain stage, then
+    the class mixture. The same keyed uniform decides, so with one class and no shift the decisions are the plain
+    stage's."""
     blocks, settings = day.blocks, day.settings
     days_left = state["days_left"] - 1
     ending = days_left <= 0
@@ -164,12 +165,13 @@ def typed_renewal_stage(state, day, earlier, *, types: ClassShift, posteriors: t
     ended = {name: state[name][decide] for name in ENDED}
     inputs = {"done": ended["done"], "after_return": ended["after_return"], "days": ended["days"],
               "stake_navax": ended["stakes"], "returns": ended["returns"]}
-    shift = settings.renewal_response * day.renewal_gap + blocks.renewal_shift
+    shift = settings.renewal_response * day.renewal_gap + blocks.renewal_shift + settings.market_renewal_shift
+    margin = margin_shift(ended["stakes"], day) if settings.margin_response else np.zeros(len(ended["done"]))
     weights = class_weights(ended["node_key"], posteriors, types)
 
     def probability(block, rows):
         picked = {k: v[rows] for k, v in inputs.items()}
-        eta = block.design(picked) @ block.coefficients() + shift
+        eta = block.design(picked) @ block.coefficients() + shift + margin[rows]
         return types.probability(eta, weights[rows])
 
     everyone = np.ones(len(ended["done"]), dtype=bool)

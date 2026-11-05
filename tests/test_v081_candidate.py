@@ -572,3 +572,19 @@ def test_the_candidates_terms_are_the_delegations_started_in_the_28_days_to_the_
     recent = starts[pd.to_datetime(starts["start_time"]) > last - pd.Timedelta(days=28)]
     assert set(tables["terms"]["transaction_hash"]) == set(recent["transaction_hash"])
     assert 0 < len(tables["terms"]) < len(starts)
+
+
+def test_the_typed_renewal_stage_reads_the_market_shift_and_the_dollar_margin_as_the_plain_stage_does():
+    inputs = tiny_inputs(timesteps=40, runs=3)
+    opened = pd.DataFrame({"validator": [2, 3], "stakes": [500 * AVAX, 3_000 * AVAX], "days_left": [4, 9], "benqi": [False, True]})
+    terms = pd.DataFrame({"stake_navax": [100 * AVAX, 25 * AVAX], "days": [14, 30], "benqi": [False, True]})
+    shared = {**inputs, "open_delegations": opened, "benqi_validators": pd.DataFrame({"validator": [3]}), "delegation_terms": terms,
+              "delegation_flow": DelegationFlow(mean_per_day=2.0, benqi_share=0.5), **law_blocks(), "operator_types": ClassShift()}
+    fall = {"price0_usd": 14.5, "price_drift_pa": -10.0, "price_volatility_pa": 0.0}
+    priced = run(DelegatedStakeLifecycle(**{**shared, **fall}))
+    margin = run(DelegatedStakeLifecycle(**{**shared, **fall, "margin_response": 5.0}))
+    market = run(DelegatedStakeLifecycle(**{**shared, "market_renewal_shift": -3.0}))
+    plain = run(DelegatedStakeLifecycle(**shared))
+    count = ["active_validators"]
+    assert not pick(margin, count).equals(pick(priced, count))
+    assert not pick(market, count).equals(pick(plain, count))
