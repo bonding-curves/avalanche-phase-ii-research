@@ -4,7 +4,8 @@ and a model run becomes the paths the tests read, with its required facts failin
 Every control is the record with one behaviour replaced, so a failure points at that behaviour alone. The record is the
 Avalanche daily panel from 23 September 2020 to 18 November 2025, the day before the held-back period: price, staked
 AVAX, active validators, validator endings and renewals within 7 days, first-ever starts, the one-year reward rate and
-the Aave v3 WAVAX supply rate from 8 August 2022. The panel carries a price or rate forward over a gap of up to 7 days.
+the Aave v3 WAVAX supply rate from 8 August 2022. The panel carries the price and the reward rate forward over a gap
+of up to 7 days. It never carries the Aave rate, so a day without a recorded Aave value is empty.
 """
 from datetime import date
 from pathlib import Path
