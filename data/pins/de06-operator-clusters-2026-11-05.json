@@ -1,0 +1,47 @@
+{
+  "name": "de06-operator-clusters-2026-11-05",
+  "pinned_at": "2026-11-05T18:18:41Z",
+  "runs": [
+    {
+      "bytes": 194787,
+      "capture_id": "capture:avalanche-c-chain-rpc:2026-11-05T12:51:17Z:2cdf441e246d",
+      "captured_at": "2026-11-05T12:51:17Z",
+      "check": "pass",
+      "dataset_id": "c-chain-rpc.minipool-records",
+      "parquet": "minipool-records.parquet",
+      "run": "minipool-records-2026-11-05",
+      "sha256": "0c4c8f2fb6a37517ea557d61e26bec9f6ff04a4c245ec14494f79959070fd51d"
+    },
+    {
+      "bytes": 5362995,
+      "capture_id": "capture:derived:2026-11-05T12:55:26Z:331605f0c78d",
+      "captured_at": "2026-11-05T12:55:26Z",
+      "check": "pass",
+      "dataset_id": "derived.operator-clusters",
+      "parquet": "operator-clusters.parquet",
+      "run": "operator-clusters-2026-11-05",
+      "sha256": "32e3ef6dfb057063562102835f753d573df61a4971f931eeae9fd4dfd30c3da3"
+    },
+    {
+      "bytes": 700670144,
+      "capture_id": "capture:derived:2026-11-04T05:22:17Z:5e027bcfdebe",
+      "captured_at": "2026-11-04T05:22:17Z",
+      "check": "pass",
+      "dataset_id": "derived.staking-periods",
+      "parquet": "staking-periods.parquet",
+      "run": "staking-periods-2026-11-04",
+      "sha256": "2a79daf37974ddd5c08f520d2129796bc7127b5c7ca22ccafe821c5eabbe1c37"
+    },
+    {
+      "bytes": 6236868,
+      "capture_id": "capture:derived:2026-11-04T05:16:17Z:09610e452885",
+      "captured_at": "2026-11-04T05:16:17Z",
+      "check": "pass",
+      "dataset_id": "derived.seamed-validator-stakes",
+      "parquet": "seamed-validator-stakes.parquet",
+      "run": "seamed-validator-stakes-2026-11-04",
+      "sha256": "9173d626ec26572948c9503750a95f26c7fdff56d527b1f915731ae56b7ef317"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
