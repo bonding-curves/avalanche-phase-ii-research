@@ -19,7 +19,7 @@ from avalanche_research import datasets
 from avalanche_research.core.catalog import DataError, sha256
 from avalanche_research.datasets import pins
 from avalanche_research.datasets.derived import delegation_inputs as di
-from avalanche_research.model.delegated_lifecycle import benqi_choices, delegation_terms
+from avalanche_research.model.delegated_lifecycle import RECENT_DAYS, benqi_choices, delegation_terms
 from avalanche_research.model.variants import VARIANTS, Prepared
 
 CANDIDATE = "v0.8.1 candidate"
@@ -59,10 +59,12 @@ def pinned_inputs(pin: Path, root: Path | None = None) -> PinnedInputs:
 
 
 def candidate_tables(periods: str, delegators: str, origin: date) -> dict[str, pd.DataFrame]:
-    """Every delegation table the candidate's ``prepare`` needs at ``origin``: the origin's delegation tables, the year's
-    terms and BENQI's choices, from the two Parquet files."""
+    """Every delegation table the candidate's ``prepare`` needs at ``origin``: the origin's delegation tables, the terms
+    of the delegations started in the 28 days to the origin, the window the flow block's mean and BENQI share read, and
+    BENQI's choices, from the two Parquet files. The 28-day terms are the registered challenger VB2-28, which passed its
+    held-out event test where the 365-day terms failed (G1b, 5 November 2026)."""
     return {**di.build(periods, delegators, origin),
-            "terms": delegation_terms(periods, delegators, origin, di.BENQI_FUNDING, di.BENQI_EVIDENCE),
+            "terms": delegation_terms(periods, delegators, origin, di.BENQI_FUNDING, di.BENQI_EVIDENCE, days=RECENT_DAYS),
             "benqi_choices": benqi_choices(periods, delegators, origin, di.BENQI_FUNDING, di.BENQI_EVIDENCE)}
 
 

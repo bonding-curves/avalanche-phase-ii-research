@@ -635,8 +635,10 @@ def delegation_inputs(tables: dict[str, pd.DataFrame], periods_parquet: str, ori
         hashes, known = terms["transaction_hash"], starts["transaction_hash"]
         for name, column in (("terms", hashes), ("starts", known)):
             _identified(column, f"a delegation in the {name}")
-        if hashes.duplicated().any() or known.duplicated().any() or set(hashes) != set(known):
-            raise ValueError("the delegation terms and starts do not list the same delegations")
+        # The terms may come from a shorter window than the year of starts BENQI's prior use reads, so each term must be
+        # among the starts, and the starts may hold more.
+        if hashes.duplicated().any() or known.duplicated().any() or not set(hashes) <= set(known):
+            raise ValueError("the delegation terms list a delegation the starts do not")
         match = starts.set_index("transaction_hash").loc[hashes]
         if (match["stake_navax"].to_numpy() != terms["stake_navax"].to_numpy()).any() \
                 or (match["benqi"].to_numpy(dtype=bool) != terms["benqi"].to_numpy(dtype=bool)).any():
@@ -678,8 +680,9 @@ def _prior_use(tables, current, pending, open_delegations, scheduled_delegations
         {"validator": np.int64, "validator_scheduled": bool, "benqi_stake_navax": np.int64, "benqi_until_day": np.int64}).reset_index(drop=True)
 
 
-def delegation_terms(periods_parquet: str, delegators_parquet: str, origin: date, benqi_funding: str, benqi_from: str) -> pd.DataFrame:
-    """The delegations that started in the 365 days to the origin's last instant, in start order, each with its stake,
+def delegation_terms(periods_parquet: str, delegators_parquet: str, origin: date, benqi_funding: str, benqi_from: str,
+                     days: int = FLOW_DAYS) -> pd.DataFrame:
+    """The delegations that started in the ``days`` days to the origin's last instant, in start order, each with its stake,
     its whole days from the day it starts to the day it ends, and whether it is BENQI's: funded by ``benqi_funding`` and
     accepted at or after ``benqi_from``. Its end counts its last cycle. Each row keeps its ``transaction_hash``, by which
     a consumer matches it to the same delegation in another table. The model reads only the other columns."""
@@ -689,7 +692,7 @@ def delegation_terms(periods_parquet: str, delegators_parquet: str, origin: date
                    coalesce(f.delegator_address = ? AND p.accepted_at >= ?::TIMESTAMP, false) AS benqi
             FROM read_parquet(?) p LEFT JOIN read_parquet(?) f USING (transaction_hash)
             WHERE p.role = 'delegator' AND p.stake_navax IS NOT NULL AND p.end_time IS NOT NULL
-              AND p.start_time > make_timestamp({cutoff - FLOW_DAYS * US_PER_DAY}) AND p.start_time <= make_timestamp({cutoff})
+              AND p.start_time > make_timestamp({cutoff - int(days) * US_PER_DAY}) AND p.start_time <= make_timestamp({cutoff})
             ORDER BY p.start_time, p.transaction_hash""",
         [benqi_funding, benqi_from, periods_parquet, delegators_parquet],
     ).df()

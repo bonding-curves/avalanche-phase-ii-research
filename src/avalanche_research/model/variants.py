@@ -303,8 +303,9 @@ def _delegated_candidate(periods: str, origin: date, run: str, draws: int, draw_
         "placement_rule": CONTAINMENT,
         "placement_batch": 1,
         "operator_types": ClassShift(),
-        # Every unstaked AVAX carries the same hazard of being staked for the first time (parts.participation).
-        "participation_elasticity": 1.0,
+        # The arrival rate does not read participation: an elasticity of 1 scored worse than 0 at 12 of 18 origins in its
+        # held-out event test (G1b, 5 November 2026), so the candidate keeps v0.8.0's arrivals. The supply limit stays.
+        "participation_elasticity": 0.0,
     }
     return Prepared(inputs, base.draws, base.tau, base.tau_source)
 
@@ -364,8 +365,8 @@ VARIANTS: dict[str, Variant] = {
                 "v0.8.1 stub with the named operators known at the origin, their delegations tracked and their closures scheduled",
                 _delegated_events),
         Variant("v0.8.1 candidate", DelegatedStakeLifecycle,
-                "v0.8.0 with delegations under the frozen v0.8.1 laws, the named operators known at the origin, one operator type "
-                "and the arrival rate in proportion to the unstaked share of supply",
+                "v0.8.0 with delegations under the frozen v0.8.1 laws and the 28-day terms, the named operators known at the "
+                "origin, one operator type and the supply limit",
                 _delegated_candidate),
     )
 }

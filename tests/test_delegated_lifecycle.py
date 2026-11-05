@@ -624,8 +624,10 @@ def test_the_events_variant_gives_each_delegation_term_its_owner(tmp_path, monke
     x = list(inputs["named_operators"]["operator"]).index("Operator X")
     # The year's starts are D1, funded by avax1other, and D4, funded by BENQI's key.
     assert inputs["delegation_terms"]["operator"].tolist() == [x, 0]
-    misaligned = {"terms": lambda tables: tables["terms"].iloc[:1]}
-    with pytest.raises(ValueError, match="same delegations"):
+    # The terms may be a shorter window than the starts, so a subset is accepted, but a term the starts do not hold is not.
+    events_inputs_with(tmp_path, monkeypatch, {"terms": lambda tables: tables["terms"].iloc[:1]})
+    misaligned = {"terms": lambda tables: tables["terms"].assign(transaction_hash=["0xnot-a-start", *tables["terms"]["transaction_hash"][1:]])}
+    with pytest.raises(ValueError, match="the starts do not"):
         events_inputs_with(tmp_path, monkeypatch, misaligned)
 
 
@@ -668,8 +670,8 @@ def test_delegation_terms_are_matched_to_their_delegations_by_transaction_not_by
         names = list(inputs["named_operators"]["operator"])
         owner = dict(zip(inputs["delegation_terms"]["days"], inputs["delegation_terms"]["operator"]))
         assert owner == {74: names.index("Operator X"), 90: names.index(HOLDER_NAME)}, change.__name__
-    with pytest.raises(ValueError, match="same delegations"):
-        events_inputs_with(tmp_path, monkeypatch, {"starts": holder_funds_d4, "terms": lambda tables: terms(tables).iloc[:1]})
+    with pytest.raises(ValueError, match="the starts do not"):
+        events_inputs_with(tmp_path, monkeypatch, {"starts": lambda tables: holder_funds_d4(tables).iloc[:1], "terms": terms})
     with pytest.raises(ValueError, match="transaction_hash"):
         events_inputs_with(tmp_path, monkeypatch, {"terms": lambda tables: tables["terms"].drop(columns="transaction_hash")})
 
