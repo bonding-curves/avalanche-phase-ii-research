@@ -8,8 +8,10 @@ from .admission import AdmissionRule, BoundedHarmonicFrontier, ChainAdmission
 from .reward import (
     ACP285Ramp,
     ChainReward,
+    GovernanceReward,
     QuadraticReward,
     RewardMechanism,
+    StakeDependentReward,
     TenureBoost,
 )
 
@@ -19,7 +21,9 @@ __all__ = [
     "BoundedHarmonicFrontier",
     "ChainAdmission",
     "ChainReward",
+    "GovernanceReward",
     "QuadraticReward",
     "RewardMechanism",
+    "StakeDependentReward",
     "TenureBoost",
 ]

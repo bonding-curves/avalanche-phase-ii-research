@@ -104,9 +104,10 @@ def _negative_binomial_log_prob(counts: np.ndarray, mean: float, k: float) -> fl
 
 def arrivals_stage(state, day, earlier) -> dict:
     """The daily arrivals stage: the count of first-ever nodes today, from one uniform keyed by the day with the entry
-    response to the yield gap and the participation feedback on the unstaked share of supply, and their node keys."""
+    response to the yield gap, the market's entry shift and the participation feedback on the unstaked share of supply,
+    and their node keys."""
     settings = day.settings
-    scale = float(np.exp(settings.entry_response * day.entry_gap))
+    scale = float(np.exp(settings.entry_response * day.entry_gap + settings.market_entry_shift))
     scale *= participation_scale(unstaked_share(state), settings.unstaked_share0, settings.participation_elasticity)
     count = day.blocks.arrivals.count_from_uniform(float(day.draw.uniforms("arrivals", day.t)[0]), scale)
     return {"count": count, "node_key": node_keys(KIND_ARRIVAL, day.t, np.arange(count))}

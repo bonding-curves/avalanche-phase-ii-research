@@ -54,7 +54,8 @@ class FittedMenu(RewardMechanism):
 
 
 def response_gap_pp(design: RewardMechanism, menu: RewardMechanism, day: date, supply_navax: int, completed_periods: int,
-                    outside_yield_pp: float | None = None, fitted_outside_yield_pp: float | None = None) -> float:
+                    outside_yield_pp: float | None = None, fitted_outside_yield_pp: float | None = None,
+                    staked_share: float | None = None) -> float:
     """The design's annual rate minus the fitted menu's, in percentage points, for a 30-day stake started at noon UTC
     on ``day`` at ``supply_navax`` and ``completed_periods`` of tenure.
 
@@ -63,11 +64,14 @@ def response_gap_pp(design: RewardMechanism, menu: RewardMechanism, day: date, s
     An outside yield, such as a Treasury bill rate, enters the same way as the menu: as its change from its level over
     the fitting window, since the fitted blocks already carry that level. A rise in the outside yield narrows the gap
     point for point. Give both ``outside_yield_pp`` and ``fitted_outside_yield_pp``, or neither.
+
+    ``staked_share`` is the share of supply staked on ``day``, which a design whose rate reads participation prices
+    at. The fitted menu never reads it.
     """
     if (outside_yield_pp is None) != (fitted_outside_yield_pp is None):
         raise ValueError("give the outside yield and its level over the fitting window together, or neither")
     start = datetime.combine(day, time(12), tzinfo=UTC)
-    ours = design.annual_rate(RESPONSE_DURATION_DAYS, supply_navax, start, completed_periods=completed_periods)
+    ours = design.annual_rate(RESPONSE_DURATION_DAYS, supply_navax, start, completed_periods=completed_periods, staked_share=staked_share)
     fitted = menu.annual_rate(RESPONSE_DURATION_DAYS, supply_navax, start, completed_periods=completed_periods)
     gap = (ours - fitted) * 100
     if outside_yield_pp is None:

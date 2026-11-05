@@ -54,7 +54,7 @@ from avalanche_research.domain.protocol import (
     SECONDS_PER_DAY,
     delegation_weight_limit_navax,
 )
-from avalanche_research.model.parts.participation import delegation_pool, within_pool
+from avalanche_research.model.parts.participation import delegation_pool, unstaked_share, within_pool
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -343,9 +343,12 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
     opening = int(state["supply_navax"]) + validator_issued
     supply = opening
     mechanism = day.settings.mechanism
+    # A rule that reads participation prices each delegation at the share staked at the start of the day, as the
+    # validators' rewards stage does.
+    share = 1.0 - unstaked_share(state)
     rewards = np.zeros(len(order), dtype=np.int64)
     for i, (stake, d) in enumerate(zip(placed_stakes.tolist(), placed_days.tolist())):
-        rewards[i] = mechanism.potential_reward_navax(stake, d * SECONDS_PER_DAY, supply, day.start, 0)
+        rewards[i] = mechanism.potential_reward_navax(stake, d * SECONDS_PER_DAY, supply, day.start, 0, share)
         supply += int(rewards[i])
 
     new = {

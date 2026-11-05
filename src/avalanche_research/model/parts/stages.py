@@ -63,6 +63,8 @@ class RunSettings:
     entry_response: float
     mechanism: RewardMechanism
     scheduled: dict[str, np.ndarray]
+    market_renewal_shift: float = 0.0
+    market_entry_shift: float = 0.0
     # The participation feedback (parts.participation): the arrival rate's elasticity to the unstaked share of supply,
     # and that share at the origin, which the scale is one at.
     participation_elasticity: float = 0.0
@@ -96,20 +98,24 @@ OFFERED_RATE_DAYS = 30
 
 
 def rewards_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> dict:
-    """The rewards minted for every commitment started today, priced by the reward rule at the day's supply, with the
-    started commitments' stake and stake-days and the annual rate the rule offers a 30-day stake with no tenure at that
-    supply. The scheduled commitments due today are not started here, so none of these counts them."""
+    """The rewards minted for every commitment started today, priced by the reward rule at the day's supply and, for a
+    rule that reads it, the share of supply staked at the start of the day, with the started commitments' stake and
+    stake-days and the annual rate the rule offers a 30-day stake with no tenure at that supply. The scheduled
+    commitments due today are not started here, so none of these counts them."""
+    from avalanche_research.model.parts.participation import unstaked_share
+
     started = earlier["continuation"]["started"]
     mechanism = day.settings.mechanism
+    share = 1.0 - unstaked_share(state) if "supply_navax" in state else None
     issued = sum(
-        mechanism.potential_reward_navax(int(stake), int(d) * 86_400, state["supply_navax"], day.start, int(periods))
+        mechanism.potential_reward_navax(int(stake), int(d) * 86_400, state["supply_navax"], day.start, int(periods), share)
         for stake, d, periods in zip(started["stakes"], started["days"], started["done"])
     )
     return {
         "issued_navax": int(issued),
         "started_stake_navax": int(sum(int(stake) for stake in started["stakes"])),
         "started_stake_days_navax": float(sum(int(stake) * int(d) for stake, d in zip(started["stakes"], started["days"]))),
-        "offered_rate_30d": float(mechanism.annual_rate(OFFERED_RATE_DAYS, int(state["supply_navax"]), day.start)),
+        "offered_rate_30d": float(mechanism.annual_rate(OFFERED_RATE_DAYS, int(state["supply_navax"]), day.start, staked_share=share)),
     }
 
 
@@ -147,3 +153,11 @@ def assembly_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dic
         **earlier["rewards"],
         "yield_gap_pp": float(day.renewal_gap),
     }
+
+
+def bounded_days(days: np.ndarray, mechanism: RewardMechanism | None) -> np.ndarray:
+    """Durations moved to the nearer of the mechanism's bounds, or unchanged when it sets none or there is none."""
+    bounds = None if mechanism is None else mechanism.duration_bounds()
+    if bounds is None:
+        return days
+    return np.clip(days, bounds[0], bounds[1]).astype(np.int64)

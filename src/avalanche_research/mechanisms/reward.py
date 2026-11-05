@@ -68,8 +68,20 @@ class RewardMechanism(param.Parameterized):
         """A factor applied to the reward. One for the chain."""
         return 1.0
 
+    def duration_bounds(self) -> tuple[int, int] | None:
+        """The shortest and longest commitment, in whole days, that the rule admits, or None for the durations a model
+        draws as they are. Only :class:`GovernanceReward` sets bounds."""
+        return None
+
+    def share_multiplier(self, staked_share: float | None) -> float:
+        """A factor on the reward from the share of supply staked when the stake starts. One for the chain, whose rate
+        does not read participation, and one for every rule when no share is given. Only
+        :class:`StakeDependentReward` reads the share."""
+        return 1.0
+
     def potential_reward_navax(
-        self, stake_navax: int, duration_seconds: int, supply_navax: int, start: datetime, completed_periods: int = 0
+        self, stake_navax: int, duration_seconds: int, supply_navax: int, start: datetime, completed_periods: int = 0,
+        staked_share: float | None = None,
     ) -> int:
         config = self.config(start)
         if supply_navax <= 0 or supply_navax > config.supply_cap_navax or stake_navax < 0 or duration_seconds < 0:
@@ -83,15 +95,16 @@ class RewardMechanism(param.Parameterized):
         reward //= period_ns
         if reward >= 2**64:
             reward = remaining
-        factor = self.multiplier(completed_periods)
+        factor = self.multiplier(completed_periods) * self.share_multiplier(staked_share)
         if factor != 1.0:
             reward = int(reward * factor)
         return min(remaining, reward)
 
-    def annual_rate(self, duration_days: float, supply_navax: int, start: datetime, completed_periods: int = 0) -> float:
+    def annual_rate(self, duration_days: float, supply_navax: int, start: datetime, completed_periods: int = 0,
+                    staked_share: float | None = None) -> float:
         """Reward per AVAX staked, annualized over the duration."""
         seconds = int(duration_days * SECONDS_PER_DAY)
-        reward = self.potential_reward_navax(CURVE_STAKE_NAVAX, seconds, supply_navax, start, completed_periods)
+        reward = self.potential_reward_navax(CURVE_STAKE_NAVAX, seconds, supply_navax, start, completed_periods, staked_share)
         return reward / CURVE_STAKE_NAVAX * (365 * SECONDS_PER_DAY) / seconds
 
     def curve(
@@ -100,10 +113,12 @@ class RewardMechanism(param.Parameterized):
         start: datetime,
         durations_days: Iterable[float] = DEFAULT_DURATIONS_DAYS,
         completed_periods: int = 0,
+        staked_share: float | None = None,
     ) -> pd.DataFrame:
-        """Annual rate by staking duration, for one supply and start time."""
+        """Annual rate by staking duration, for one supply, start time and, for a rule that reads it, staked share."""
         rows = [
-            {"mechanism": self.label, "duration_days": days, "annual_rate": self.annual_rate(days, supply_navax, start, completed_periods)}
+            {"mechanism": self.label, "duration_days": days,
+             "annual_rate": self.annual_rate(days, supply_navax, start, completed_periods, staked_share)}
             for days in durations_days
         ]
         return pd.DataFrame(rows)
@@ -234,3 +249,98 @@ class QuadraticReward(RewardMechanism):
         designed = QuadraticReward(exponent=self.exponent, acp285=self.acp285).issuance_navax(stakes, supply_navax)
         return QuadraticReward(exponent=self.exponent, scale=chain / designed if designed else 1.0, acp285=self.acp285,
                                label=f"{self.label}, equal issuance")
+
+
+class GovernanceReward(RewardMechanism):
+    """The chain's linear rate with the four governance settings of the grant proposal: the minimum and maximum
+    consumption rates (Y_min and Y_max as the protocol holds them) and the shortest and longest commitment (t_min and
+    t_max).
+
+    The rate is ``min + (max - min) * min(d, t_max) / t_max``, so it reaches the maximum at ``t_max``, as the proposal's
+    C(t) does. With ``t_max`` at one year it is the chain's integer formula exactly, and at 10%, 12%, 14 and 365 days it
+    is the rule before ACP-285. Every stake is priced with these rates whatever its start, so ACP-285 does not apply.
+    A model that reads :meth:`duration_bounds` moves each new commitment's duration to the nearer bound before its stake
+    is drawn.
+    """
+
+    label = param.String(default="Governance settings")
+    min_rate = param.Number(default=0.10, bounds=(0.0, 1.0), doc="Minimum consumption rate, as a fraction. Before ACP-285: 0.10")
+    max_rate = param.Number(default=0.12, bounds=(0.0, 1.0), doc="Maximum consumption rate, as a fraction. Mainnet: 0.12")
+    min_days = param.Integer(default=14, bounds=(1, 365), doc="Shortest commitment, days. Mainnet: 14")
+    max_days = param.Integer(default=365, bounds=(1, 365), doc="Longest commitment and the duration at which the rate is the maximum, days. Mainnet: 365")
+
+    def __init__(self, **params):
+        super().__init__(**params)
+        if self.max_rate < self.min_rate:
+            raise ValueError(f"the maximum rate {self.max_rate} is below the minimum {self.min_rate}")
+        if self.max_days < self.min_days:
+            raise ValueError(f"the longest commitment {self.max_days} days is shorter than the shortest {self.min_days}")
+
+    def config(self, start: datetime) -> RewardConfig:
+        base = MAINNET_REWARD
+        return RewardConfig(round(self.max_rate * PERCENT_DENOMINATOR), round(self.min_rate * PERCENT_DENOMINATOR),
+                            base.minting_period_seconds, base.supply_cap_navax)
+
+    def numerator(self, config: RewardConfig, duration_ns: int) -> int:
+        period_ns = config.minting_period_nanoseconds
+        top_ns = self.max_days * SECONDS_PER_DAY * NANOSECONDS_PER_SECOND
+        if top_ns == period_ns:
+            return super().numerator(config, duration_ns)
+        span = config.max_consumption_rate - config.min_consumption_rate
+        return span * min(duration_ns, top_ns) * period_ns // top_ns + config.min_consumption_rate * period_ns
+
+    def duration_bounds(self) -> tuple[int, int]:
+        return self.min_days, self.max_days
+
+
+class StakeDependentReward(RewardMechanism):
+    """A rate that falls as the staked share of supply rises, on the chain's linear rate in duration.
+
+    The reward is the chain's times ``(reference_share / staked_share) ** elasticity``, with the factor held within
+    ``min_multiplier`` and ``max_multiplier``. At the reference share the rule pays the chain's rate whatever the
+    elasticity, and at an elasticity of zero it is the chain's rule exactly at every share. An elasticity of 0.5 is
+    the shape of Ethereum's issuance, which pays each unit of stake in proportion to one over the square root of the
+    total stake. Polkadot's ideal staking rate pays the full rate up to an ideal share and a rate that falls past it,
+    which this rule approximates with the reference share as the ideal and the elasticity as the fall. The staked
+    share is the validator and delegated stake over the supply counter at the stake's start, as the model reads it
+    each day. A rule asked for a reward without a share prices at its reference share.
+
+    The rule reads the share only through the multiplier, so the chain's integer operation order holds up to it, and
+    the product is rounded down to the nAVAX as the other multipliers are.
+    """
+
+    label = param.String(default="Stake-dependent rate")
+    elasticity = param.Number(
+        default=0.0, bounds=(0.0, 2.0), step=0.05,
+        doc="How fast the rate falls as the staked share rises: the reward is scaled by (reference_share / staked_share) "
+            "** elasticity. 0 is the chain's rule. 0.5 is Ethereum's one over the square root of stake",
+    )
+    reference_share = param.Number(
+        default=0.44, bounds=(0.01, 1.0), step=0.01,
+        doc="The staked share of supply at which the rule pays the chain's rate. About 0.44 on the chain in 2025",
+    )
+    min_multiplier = param.Number(default=0.25, bounds=(0.0, 1.0), doc="The lowest factor on the chain's reward, reached when much is staked")
+    max_multiplier = param.Number(default=4.0, bounds=(1.0, 10.0), doc="The highest factor on the chain's reward, reached when little is staked")
+
+    acp285 = param.Boolean(
+        default=True,
+        doc="Price stakes from Helicon with ACP-285's ramp, as the chain does. False holds the rule before ACP-285 for every stake",
+    )
+
+    def __init__(self, **params):
+        super().__init__(**params)
+        if self.max_multiplier < self.min_multiplier:
+            raise ValueError(f"the highest factor {self.max_multiplier} is below the lowest {self.min_multiplier}")
+
+    def config(self, start: datetime) -> RewardConfig:
+        return super().config(start) if self.acp285 else MAINNET_REWARD
+
+    def share_multiplier(self, staked_share: float | None) -> float:
+        if self.elasticity == 0.0 or staked_share is None:
+            return 1.0
+        share = float(staked_share)
+        if share != share or share < 0.0 or share > 1.0:
+            raise ValueError(f"the staked share must be within [0, 1], not {staked_share}")
+        if share == 0.0:
+            return float(self.max_multiplier)
+        return float(min(self.max_multiplier, max(self.min_multiplier, (self.reference_share / share) ** self.elasticity)))
