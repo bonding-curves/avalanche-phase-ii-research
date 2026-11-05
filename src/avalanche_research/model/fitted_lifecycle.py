@@ -227,6 +227,26 @@ class FittedLifecycle(SimulationModel):
             "more later in the run",
     )
 
+    # The concave dollar margin in renewal (D16, ML13), left out of the specification at its defaults in the same way.
+    margin_response = param.Number(
+        default=0.0, bounds=(0.0, None), metadata={"omit_at_default": True, "source": "fitted",
+        "evidence": "asinh((R - C)/1000) on validators of 2,100 AVAX or less to 2025-11-18: 0.19 (s.e. 0.077) at C = 5,000, "
+                    "0.25 (0.11) at C = 2,000 with pool nodes, 0.17 (0.10) at C = 2,000 without"},
+        doc="Log-odds of renewal per unit of asinh of a validator's dollar margin over the curvature, measured from its "
+            "margin at the origin. 0 is every version to v0.9: renewal reads the reward only through the rate gap. "
+            "Needs the run's price path",
+    )
+    node_cost_usd_pa = param.Number(
+        default=5000.0, bounds=(0.0, None), metadata={"omit_at_default": True, "source": "swept"},
+        doc="A validator's node cost in US dollars a year, which the dollar margin subtracts from its reward. The record "
+            "fits 1,000 to 2,000 without pool nodes and 5,000 with them, so a design sweeps it over 0 to 10,000",
+    )
+    margin_curvature_usd = param.Number(
+        default=1000.0, bounds=(0.0, None), inclusive_bounds=(False, True), metadata={"omit_at_default": True, "source": "swept"},
+        doc="The dollar margin's curvature k in US dollars a year: the margin is close to linear within k of the cost "
+            "and close to logarithmic far from it",
+    )
+
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
     # specification and its hash do not record it.
     stages = (
@@ -275,6 +295,8 @@ class FittedLifecycle(SimulationModel):
         price = (self.price0_usd, self.price_drift_pa, self.price_volatility_pa)
         if any(v is None for v in price) and any(v is not None for v in price):
             raise ValueError("give the origin price, its drift and its volatility together, or none of them")
+        if self.margin_response and not self.has_price():
+            raise ValueError("the dollar margin reads the day's price, so give the run a price path")
 
     def initial_state(self):
         initial = self.initial if self.initial is not None else pd.DataFrame(columns=COMMITMENT)
@@ -313,6 +335,14 @@ class FittedLifecycle(SimulationModel):
         share = 1.0 - unstaked_share(self.initial_state()) if staked_share is None else staked_share
         return response_gap_pp(self.mechanism, self.fitted_menu, day, supply, completed_periods,
                                self.outside_yield_pp, self.fitted_outside_yield_pp, staked_share=share)
+
+    def _margin_reference(self) -> float:
+        """One AVAX of stake's dollar reward a year at the origin: the fitted menu's 30-day rate at the renewal
+        tenure, the origin's counter and the first day, times the origin price. The dollar margin is measured from it,
+        so a design and its baseline start from the same margin."""
+        start = datetime.combine(self.origin + timedelta(days=1), time(12), tzinfo=UTC)
+        rate = self.fitted_menu.annual_rate(RESPONSE_DURATION_DAYS, self.supply0_navax, start, completed_periods=self.renewal_tenure)
+        return float(rate) * float(self.price0_usd)
 
     def _price_by_run(self):
         """A function from run number to that run's price path, one price per day after the origin, drawn once per
@@ -402,6 +432,10 @@ class FittedLifecycle(SimulationModel):
             unstaked_share0=1.0 - share0,
             revenue_inflow_navax=self.revenue_inflow_navax,
             count_revenue_in_supply=bool(self.count_revenue_in_supply),
+            margin_response=float(self.margin_response),
+            node_cost_usd_pa=float(self.node_cost_usd_pa),
+            margin_curvature_usd=float(self.margin_curvature_usd),
+            margin_reference_usd_per_avax=self._margin_reference() if self.margin_response else 0.0,
             scheduled={
                 "start_day": sched_day, "stakes": _array(sched["stakes"]), "days": _array(sched["days"]),
                 "done": _array(sched["done"]), "after_return": _array(sched["after_return"], bool),
@@ -411,6 +445,7 @@ class FittedLifecycle(SimulationModel):
 
         live = self.yield_gap_at == "live"
         tenure = self.renewal_tenure
+        margin_on = bool(self.margin_response)
         price_for = self._price_by_run() if self.has_price() else None
         # Under a funding rule the responses read the reward received, not the reward priced: the share of yesterday's
         # priced rewards the pool left unpaid (the ``cut`` rule) lowers the rate behaviour sees by that share of the
@@ -435,9 +470,20 @@ class FittedLifecycle(SimulationModel):
                 if unpaid > 0.0:
                     renewal_gap -= rates[t][0] * unpaid
                     entry_gap -= rates[t][1] * unpaid
+            margin = None
+            if margin_on:
+                # The design's 30-day rate at the renewal tenure, at the day's counter and share under the live gap,
+                # times the price at the start of the day: one AVAX of stake's dollar reward a year.
+                if live:
+                    rate = self.mechanism.annual_rate(RESPONSE_DURATION_DAYS, supply, datetime.combine(days[t], time(12), tzinfo=UTC),
+                                                      completed_periods=tenure, staked_share=share)
+                else:
+                    rate = self.response_rate_pp(days[t], tenure) / 100
+                margin = float(rate) * float(state["price_usd"])
             day = Day(
                 t=t, start=datetime.combine(origin + timedelta(days=t + 1), time(12), tzinfo=UTC), draw=Streams(seed, run),
                 blocks=blocks_for(run), renewal_gap=renewal_gap, entry_gap=entry_gap, settings=settings,
+                margin_usd_per_avax=margin,
             )
             signal = run_stages(stages, state, day)
             if price_for is not None:

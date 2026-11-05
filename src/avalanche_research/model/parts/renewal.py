@@ -211,6 +211,23 @@ def _penalized(design: np.ndarray, y: np.ndarray, beta: np.ndarray, penalty: np.
 ENDED = ("stakes", "done", "after_return", "days", "returns", "node_key")
 
 
+def margin_shift(stakes_navax: np.ndarray, day) -> np.ndarray:
+    """The concave dollar margin's shift to each renewing validator's log-odds.
+
+    A validator of s AVAX earns R = s times the day's dollar reward per AVAX a year, and pays a node cost c a year. The
+    shift is kappa * (asinh((R - c) / k) - asinh((R0 - c) / k)), with R0 its reward at the origin's rate and price, so
+    the shift is 0 at the origin and the fitted renewal block keeps its calibration there. The margin is concave, so a
+    design's rate cut moves the log-odds most where R is near c, and a market that moves the price moves the design and
+    its paired baseline by different amounts (D16).
+    """
+    settings = day.settings
+    avax = np.asarray(stakes_navax, dtype=float) / 1e9
+    cost, curvature = settings.node_cost_usd_pa, settings.margin_curvature_usd
+    now = np.arcsinh((avax * day.margin_usd_per_avax - cost) / curvature)
+    then = np.arcsinh((avax * settings.margin_reference_usd_per_avax - cost) / curvature)
+    return settings.margin_response * (now - then)
+
+
 def renewal_stage(state, day, earlier) -> dict:
     """The daily renewal stage: the commitments that end today, and which of them renew on the same node.
 
@@ -228,6 +245,8 @@ def renewal_stage(state, day, earlier) -> dict:
         "stake_navax": ended["stakes"], "returns": ended["returns"],
         "shift": settings.renewal_response * day.renewal_gap + blocks.renewal_shift + settings.market_renewal_shift,
     }
+    if settings.margin_response:
+        decision_inputs["shift"] = decision_inputs["shift"] + margin_shift(ended["stakes"], day)
     renews = day.draw.uniforms("renewal", ended["node_key"], ended["done"]) < blocks.renewal.probability(decision_inputs)
     if settings.large_navax is not None:
         large = ended["stakes"] > settings.large_navax

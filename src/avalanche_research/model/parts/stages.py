@@ -75,12 +75,21 @@ class RunSettings:
     # defaults, with a rule that mints everything, leave every run as recorded.
     revenue_inflow_navax: int = 0
     count_revenue_in_supply: bool = False
+    # The concave dollar margin in renewal (parts.renewal.margin_shift): its response, the node cost and the curvature
+    # in dollars a year, and the dollar reward per AVAX of stake at the origin, which the margin is measured from. A
+    # response of 0, the default, leaves every run as recorded.
+    margin_response: float = 0.0
+    node_cost_usd_pa: float = 0.0
+    margin_curvature_usd: float = 1000.0
+    margin_reference_usd_per_avax: float = 0.0
 
 
 @dataclass(frozen=True, eq=False)
 class Day:
     """What a stage reads besides the state: timestep ``t``, noon UTC of the day it steps to, the run's keyed draws,
-    the run's blocks, the day's yield gaps for renewal and entry, and the run's settings."""
+    the run's blocks, the day's yield gaps for renewal and entry, and the run's settings. With the dollar margin on,
+    ``margin_usd_per_avax`` is the dollar reward a year that one AVAX of stake earns at the design's rate and the
+    price at the start of the day."""
 
     t: int
     start: datetime
@@ -89,6 +98,7 @@ class Day:
     renewal_gap: float
     entry_gap: float
     settings: RunSettings
+    margin_usd_per_avax: float | None = None
 
 
 def run_stages(stages: tuple[tuple[str, Stage], ...], state: Mapping[str, Any], day: Day) -> dict:
