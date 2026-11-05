@@ -54,6 +54,7 @@ from . import validators_api
 from . import weeks
 from . import yields
 from .catalog import DataError, canonical_bytes, load_catalog, now
+from .sources import binance_btc, binance_funding, bybit, coinmetrics
 from .research import research
 from .model import MODEL_VERSION, RELEASED_MODEL, protocol
 from .model import backtest as model_backtest
@@ -63,6 +64,10 @@ from .model.types import ModelError, NAVAX_PER_AVAX, SECONDS_PER_DAY, as_utc
 MODULES = {
     atomic.DATASET_ID: atomic,
     binance.DATASET_ID: binance,
+    binance_btc.DATASET_ID: binance_btc,
+    binance_funding.DATASET_ID: binance_funding,
+    bybit.DATASET_ID: bybit,
+    coinmetrics.DATASET_ID: coinmetrics,
     cblocks.DATASET_ID: cblocks,
     cblocks.RPC_DATASET_ID: cblocks,
     cchain_rpc.DATASET_ID: cchain_rpc,

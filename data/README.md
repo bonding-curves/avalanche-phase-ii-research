@@ -6,7 +6,7 @@ A **dataset** is one table with a catalog ID, such as `derived.staking-periods`.
 
 | Path | What it holds |
 | --- | --- |
-| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 16 sources and 69 datasets |
+| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 19 sources and 73 datasets |
 | [`data-catalog.schema.json`](data-catalog.schema.json) | The JSON schema that validates the catalog |
 | [`queries/`](queries/) | The exact SQL text each Snowflake dataset runs |
 | [`pins/`](pins/) | Pinned input sets: the exact runs a result was made from, with their hashes. See [`pins/README.md`](pins/README.md) |
@@ -244,6 +244,38 @@ uv run --locked avalanche data check binance.avax-usdt-daily --capture data/runs
 ```
 
 The cross-check pairs each CoinGecko midnight observation with the DefiLlama observation nearest that day's start when it lies within three hours, reports the median and maximum relative difference and the days it could not align, and raises a finding for any aligned day beyond 10%.
+
+## Reproduce the Bitcoin price and the AVAX funding rates
+
+These four keyless public series give the model a daily Bitcoin price from 2010 and the AVAX perpetual funding rate on two venues. Each capture takes the parameter `end=<first day not captured>`, which defaults to the current UTC day, pauses before every request, and retries a refusal for rate after a growing wait. [Coin Metrics community data](https://docs.coinmetrics.io/packages/coin-metrics-community-data) is licensed under Creative Commons CC BY-NC 4.0, which requires attribution and forbids commercial use. The Binance archive files fall under the [Binance Vision Dataset Terms](https://github.com/binance/binance-public-data/blob/master/TERMS_AND_CONDITIONS.md), version 1.0 of 26 August 2026, which license them CC BY-NC-SA 4.0 and exclude commercial licensing. [Bybit's API terms](https://bybit.nl/en/help-center/article/API-Terms) bar commercial exploitation of its APIs. The catalog field `reuse_status` of each source records these terms.
+
+The dataset `coinmetrics.btc-usd-daily` is Coin Metrics' reference rate, the metric `PriceUSD`: the Bitcoin price in US dollars at 24:00 UTC of each day from 18 July 2010. Its check reads the dataset `binance.btc-usdt-daily`, Binance's daily candles for Bitcoin quoted in the Tether dollar (BTC/USDT) from 2017-08-17. Each archive file is checked against the SHA-256 hash Binance publishes beside it. On the shared days from 1 September 2020 at least 99% of prices must lie within 1% of Binance's close, and the daily log returns must correlate at 0.99 or more. The correlation catches a one-day shift that a level band lets pass in calm months. The check also reports the full overlap from 2017. There Binance's early USDT market sits further from the dollar price: 94.7% of the 3,367 days of the 2026-11-05 capture lie within 1%, against 99.4% of the 2,256 tested days.
+
+```bash
+uv run --locked avalanche data fetch binance.btc-usdt-daily --output data/runs/binance-btc-example/capture --param end=<first day not captured>
+uv run --locked avalanche data build binance.btc-usdt-daily --from data/runs/binance-btc-example/capture --output data/runs/binance-btc-example/dataset
+uv run --locked avalanche data check binance.btc-usdt-daily --capture data/runs/binance-btc-example/capture --dataset data/runs/binance-btc-example/dataset
+
+uv run --locked avalanche data fetch coinmetrics.btc-usd-daily --output data/runs/coinmetrics-btc-example/capture --param end=<first day not captured>
+uv run --locked avalanche data build coinmetrics.btc-usd-daily --from data/runs/coinmetrics-btc-example/capture --output data/runs/coinmetrics-btc-example/dataset
+uv run --locked avalanche data check coinmetrics.btc-usd-daily --capture data/runs/coinmetrics-btc-example/capture --dataset data/runs/coinmetrics-btc-example/dataset --against data/runs/binance-btc-example/dataset
+```
+
+The dataset `binance.avax-usdt-perp-funding` holds every funding event of Binance's AVAXUSDT perpetual contract since its listing on 2020-09-22 16:00 UTC, one every 8 hours. The capture takes the futures API to the window's end and every closed month's archive file with its CHECKSUM. The archive is the record each API rate must equal. The build refuses a capture in which an archived rate is missing from the API or differs from it. It also refuses an API rate that an archived month omits, and two events that are not 8 hours apart. The newest month may not be published yet in a month's first days. Its rates then carry false in the column `in_archive`. The dataset `bybit.avax-usdt-perp-funding` holds the same events on Bybit since the contract's launch on 2021-09-15. Its check reads the Binance run and requires Bybit's 30-day mean within 5 percentage points a year of Binance's on at least 80% of the days both have one.
+
+Both tables give one row per event. The column `funding_rate_per_8h` is the fraction of position value longs pay shorts at the event. The column `annualised_pct_per_year` is that rate times 3 times 365 times 100. Each row also carries its UTC day's event count, the day's mean rate in percent a year, and the mean of the 30 daily figures ending that day. The day's mean in percent a year equals the day's summed rates times 365 times 100 when the day holds all three events.
+
+```bash
+uv run --locked avalanche data fetch binance.avax-usdt-perp-funding --output data/runs/binance-funding-example/capture --param end=<first day not captured>
+uv run --locked avalanche data build binance.avax-usdt-perp-funding --from data/runs/binance-funding-example/capture --output data/runs/binance-funding-example/dataset
+uv run --locked avalanche data check binance.avax-usdt-perp-funding --capture data/runs/binance-funding-example/capture --dataset data/runs/binance-funding-example/dataset
+
+uv run --locked avalanche data fetch bybit.avax-usdt-perp-funding --output data/runs/bybit-funding-example/capture --param end=<first day not captured>
+uv run --locked avalanche data build bybit.avax-usdt-perp-funding --from data/runs/bybit-funding-example/capture --output data/runs/bybit-funding-example/dataset
+uv run --locked avalanche data check bybit.avax-usdt-perp-funding --capture data/runs/bybit-funding-example/capture --dataset data/runs/bybit-funding-example/dataset --against data/runs/binance-funding-example/dataset
+```
+
+In the captures of 2026-11-05, all 6,691 archived Binance rates in 74 monthly files equal the API's, and the API holds 12 later rates. Bybit's 30-day mean lies within 5 points a year of Binance's on 82.2% of 1,848 days, with a median gap of 2.24 points.
 
 ## Reproduce the current validator snapshot
 

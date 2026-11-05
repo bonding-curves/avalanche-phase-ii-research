@@ -9092,7 +9092,7 @@
       "contract_quantities": [
         "context"
       ],
-      "description": "One row per UTC day from 18 July 2010, Coin Metrics' first observation, with its Bitcoin reference rate in US dollars at 24:00 UTC of the day and the daily log return. The check reads a built binance.btc-usdt-daily run and requires at least 99% of the shared days within 1% of Binance's BTC/USDT close and a daily log return correlation of at least 0.99.",
+      "description": "One row per UTC day from 18 July 2010, Coin Metrics' first observation, with its Bitcoin reference rate in US dollars at 24:00 UTC of the day and the daily log return. The check reads a built binance.btc-usdt-daily run and requires, on the shared days from 1 September 2020, at least 99% within 1% of Binance's BTC/USDT close and a daily log return correlation of at least 0.99. It also reports the full overlap from 2017-08-17, where Binance's early USDT market sits further from the dollar price.",
       "endpoint_ids": [
         "btc-priceusd-daily"
       ],
