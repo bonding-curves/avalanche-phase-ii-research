@@ -544,8 +544,8 @@ def test_with_no_new_delegations_the_candidate_equals_variant_v080_exactly_at_a_
     theirs = released.prepare(periods, origin, run_name, draws=2, draw_seed=0)
     pd.testing.assert_frame_equal(ours.draws, theirs.draws)
     assert ours.tau == theirs.tau
-    # The candidate's arrival rate reads participation; at zero elasticity and no flow it is the released build.
-    assert ours.inputs["participation_elasticity"] == 1.0
+    # The candidate's arrival rate does not read participation (G1b), so with no flow it is the released build.
+    assert ours.inputs["participation_elasticity"] == 0.0
     still = Prepared({**ours.inputs, "delegation_flow": DelegationFlow(), "participation_elasticity": 0.0},
                      ours.draws, ours.tau, ours.tau_source)
     mine = run(candidate.simulation(still, seed=0, timesteps=20, runs=2, draws=still.draws))
@@ -560,3 +560,15 @@ def test_with_no_new_delegations_the_candidate_equals_variant_v080_exactly_at_a_
     assert flowing.operator_types.classes == 1 and len(flowing.named_operators) >= 1
     moved = wide(run(flowing))
     assert moved["delegator_issued_navax"].sum() > 0
+
+
+def test_the_candidates_terms_are_the_delegations_started_in_the_28_days_to_the_origin():
+    # The registered challenger VB2-28 passed the held-out event test where the 365-day terms failed (G1b). The starts
+    # keep the year that BENQI's prior use reads.
+    origin = date(2024, 10, 1)
+    _periods, _run, tables = pinned_tables(origin)
+    starts = tables["starts"]
+    last = pd.Timestamp(origin) + pd.Timedelta(days=1, seconds=-1)
+    recent = starts[pd.to_datetime(starts["start_time"]) > last - pd.Timedelta(days=28)]
+    assert set(tables["terms"]["transaction_hash"]) == set(recent["transaction_hash"])
+    assert 0 < len(tables["terms"]) < len(starts)

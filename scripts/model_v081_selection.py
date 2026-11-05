@@ -110,7 +110,9 @@ def verdict(folder: Path) -> dict:
         rows.append({"origin": origin, "date": pd.Timestamp(dates[origin]), "variable": variable, "horizon": int(horizon),
                      "challenger": float(crps[CHALLENGER]), "incumbent": float(crps[INCUMBENT])})
     table = pd.DataFrame(rows)
-    origins = sorted({dates[o] for o in table.origin.unique()})
+    # The rule checks each cell against every registered origin, given here and not read from the scores, so a folder
+    # missing an origin's scores raises rather than passing on the origins it holds.
+    origins = sorted(set(dates.values()))
     result = evaluation.adoption_verdict({"event_test": None, "calibration": True, "origin_available": None}, table, origins)
     cells = {f"{variable} {horizon}": {"mean_difference": round(cell["mean_difference"], 3), "p_worse": round(cell["p_worse"], 4)}
              for (variable, horizon), cell in result["cells"].items()}
