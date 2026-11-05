@@ -948,7 +948,7 @@
       "name": "Avalanche C-Chain public JSON-RPC",
       "source_type": "rest_api",
       "status": "implemented",
-      "authority": "Direct public C-Chain block, transaction-receipt, and atomic-transaction responses, retained only for explicitly identified gaps in the Snowflake share and the Data API.",
+      "authority": "Direct public C-Chain block, transaction-receipt, and atomic-transaction responses, retained only for explicitly identified gaps in the Snowflake share and the Data API, and contract state read by eth_call at one recorded block.",
       "documentation_url": "https://build.avax.network/docs/rpcs/c-chain/eth/eth_getBlockByNumber",
       "authentication": "none; the public endpoint at api.avax.network answers JSON-RPC POST requests",
       "reuse_status": "Public access observed; node operators may rate-limit.",
@@ -971,6 +971,25 @@
               "encoding": "hex"
             },
             "id": 1
+          },
+          "response_fields": [
+            "result"
+          ]
+        },
+        {
+          "id": "minipool-manager-call",
+          "url": "https://api.avax.network/ext/bc/C/rpc",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "eth_call",
+            "params": [
+              {
+                "to": "0xc300bc9b4b690ba7a182126299a0618ece268ee7",
+                "data": "getMinipoolCount() or getMinipool(int256 index)"
+              },
+              "<block number>"
+            ],
+            "id": "<minipool index>"
           },
           "response_fields": [
             "result"
@@ -1645,6 +1664,11 @@
           "id": "cycle-blocks",
           "dataset_id": "p-chain-rpc.blocks",
           "role": "optional exact proposal and commit or abort block walk bound by the selected cycle capture"
+        },
+        {
+          "id": "minipool-records",
+          "dataset_id": "c-chain-rpc.minipool-records",
+          "role": "one row per minipool record of GoGoPool's MinipoolManager contract, with the node's owner, read at one block"
         }
       ]
     },
@@ -9306,6 +9330,287 @@
           "type": "number",
           "unit": "percent of position value per year; null until 30 days exist",
           "derivation": "mean of day_annualised_pct_per_year over the 30 UTC days ending observation_date"
+        }
+      ]
+    },
+    {
+      "id": "c-chain-rpc.minipool-records",
+      "name": "Minipool records of GoGoPool's MinipoolManager contract",
+      "source_id": "avalanche-c-chain-rpc",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per minipool record of the MinipoolManager contract 0xc300Bc9B4b690BA7A182126299a0618eCe268Ee7 of GoGoPool, a liquid staking protocol that has closed, in which a node operator's AVAX was paired with AVAX from the protocol's pool. Read by eth_call from the public C-Chain node: getMinipoolCount(), then getMinipool(int256) for each index, every call at one recorded block, so the table is one point in time. The contract keeps one record per node ID with its latest owner, and nodes the protocol funded from its pool alone have no record. Owner and multisig are pseudonymous addresses: an owner links the nodes it holds and never proves one decision maker.",
+      "endpoint_ids": [
+        "minipool-manager-call"
+      ],
+      "fields": [
+        {
+          "name": "block_number",
+          "type": "integer",
+          "unit": "C-Chain block height",
+          "derivation": "the block every call of the capture was made at: the node's newest block when the capture began, or the block parameter"
+        },
+        {
+          "name": "block_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "that block's time, eth_getBlockByNumber.result.timestamp"
+        },
+        {
+          "name": "minipool_index",
+          "type": "integer",
+          "unit": "contract index from 0",
+          "derivation": "Minipool.index, equal to the index the call asked for"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "Minipool.nodeID, 20 bytes in CB58 with the NodeID- prefix"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "unit": "Prelaunch, Launched, Staking, Withdrawable, Finished, Canceled or Error",
+          "derivation": "Minipool.status, the contract's MinipoolStatus enum"
+        },
+        {
+          "name": "duration_days",
+          "type": "number",
+          "unit": "days",
+          "derivation": "Minipool.duration / 86400, the validation length the owner requested"
+        },
+        {
+          "name": "delegation_fee_rate",
+          "type": "number",
+          "unit": "fraction of delegation rewards",
+          "derivation": "Minipool.delegationFee / 1e6"
+        },
+        {
+          "name": "owner",
+          "type": "string",
+          "unit": "C-Chain address, lowercase hex",
+          "derivation": "Minipool.owner, the address that created the minipool and supplied the node operator's AVAX. Pseudonymous: an owner address links nodes and never proves one decision maker"
+        },
+        {
+          "name": "multisig_address",
+          "type": "string",
+          "unit": "C-Chain address, lowercase hex",
+          "derivation": "Minipool.multisigAddr, the protocol's multisig that moves the stake to the P-Chain and back"
+        },
+        {
+          "name": "node_op_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "Minipool.avaxNodeOpAmt / 1e18, the node operator's AVAX in the current cycle"
+        },
+        {
+          "name": "node_op_initial_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "Minipool.avaxNodeOpInitialAmt / 1e18"
+        },
+        {
+          "name": "liquid_staker_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "Minipool.avaxLiquidStakerAmt / 1e18, the AVAX matched from the liquid staking pool"
+        },
+        {
+          "name": "tx_id",
+          "type": "string",
+          "unit": "P-Chain transaction ID; null when unset",
+          "derivation": "Minipool.txID in CB58, the P-Chain staking transaction the multisig recorded for the latest cycle"
+        },
+        {
+          "name": "creation_time",
+          "type": "timestamp",
+          "unit": "UTC; null when unset",
+          "derivation": "Minipool.creationTime"
+        },
+        {
+          "name": "initial_start_time",
+          "type": "timestamp",
+          "unit": "UTC; null when unset",
+          "derivation": "Minipool.initialStartTime, the start of the first cycle"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC; null when unset",
+          "derivation": "Minipool.startTime, the start of the latest cycle"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC; null when unset",
+          "derivation": "Minipool.endTime, the end of the latest cycle"
+        },
+        {
+          "name": "total_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "Minipool.avaxTotalRewardAmt / 1e18"
+        },
+        {
+          "name": "error_code",
+          "type": "string",
+          "unit": "32-byte hex; null when zero",
+          "derivation": "Minipool.errorCode"
+        },
+        {
+          "name": "ggp_slash_amount",
+          "type": "number",
+          "unit": "GGP",
+          "derivation": "Minipool.ggpSlashAmt / 1e18"
+        },
+        {
+          "name": "node_op_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "Minipool.avaxNodeOpRewardAmt / 1e18"
+        },
+        {
+          "name": "liquid_staker_reward_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "Minipool.avaxLiquidStakerRewardAmt / 1e18"
+        },
+        {
+          "name": "hardware_provider",
+          "type": "string",
+          "unit": "32-byte hex; null when zero",
+          "derivation": "Minipool.hardwareProvider, the keccak-256 of the provider's name"
+        }
+      ]
+    },
+    {
+      "id": "derived.operator-clusters",
+      "name": "Cut-safe operator groupings of validator staking periods",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "validator flows",
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per validator staking period with four groupings for fitting renewal draws per operator. The first is the period's own reward address. The second is an owner key, which splits the periods paid to the pool address of GoGoPool, a liquid staking protocol that has closed, by the owner of the node's minipool record and keeps the pool address's periods with no record as one pool block. The third is the entry cohort of week and fee from the node's first period, and the fourth a connected component of nodes and owner keys. No row accepted before the held-back cut of 2025-11-19 takes a label from a record on or after it, and the check rebuilds the table from inputs cut at that date to prove it. Every grouping is an inference: a shared address links nodes and never proves one decision maker, and addresses are pseudonymous.",
+      "input_ids": [
+        "staking-periods",
+        "validator-stakes",
+        "seamed-validator-stakes",
+        "minipool-records"
+      ],
+      "fields": [
+        {
+          "name": "transaction_hash",
+          "type": "string",
+          "unit": "P-Chain transaction ID",
+          "derivation": "the validator staking period, from the staking-period log"
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "unit": "NodeID",
+          "derivation": "copied from the period"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "copied from the period"
+        },
+        {
+          "name": "start_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "copied from the period"
+        },
+        {
+          "name": "end_time",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "copied from the period; for an auto-renewed validator, its first cycle's end"
+        },
+        {
+          "name": "held_back",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "accepted_at on or after 2025-11-19 00:00 UTC, the held-back cut"
+        },
+        {
+          "name": "reward_address",
+          "type": "string",
+          "unit": "P-Chain address",
+          "derivation": "the period's own reward address, the first of its reward owner addresses on the validator transaction (grouping addr). It uses nothing later than the period"
+        },
+        {
+          "name": "pool_address",
+          "type": "boolean",
+          "unit": "flag",
+          "derivation": "the reward address is the pool address: the address holding more than half of the periods, accepted before the cut, of nodes with a minipool record that began before the cut"
+        },
+        {
+          "name": "minipool_owner",
+          "type": "string",
+          "unit": "C-Chain address; null off the pool address or with no usable record",
+          "derivation": "the owner in the node's minipool record, used for a pool-address period when the record's latest start (the later of creation and first cycle start) is before the cut or the period was accepted on or after it"
+        },
+        {
+          "name": "owner_key",
+          "type": "string",
+          "unit": "label",
+          "derivation": "the reward address; for a pool-address period, the pool address and /owner/ and the minipool owner, or the pool address and /pool when no usable minipool record exists (the pool block). An inference: a shared key links nodes and never proves one decision maker"
+        },
+        {
+          "name": "owner_basis",
+          "type": "string",
+          "unit": "reward-address, minipool-owner, minipool-owner-carried-back or pool-no-record",
+          "derivation": "how owner_key was set; carried back marks a pool-address period that started before the node's minipool record's latest start, which assumes a node re-created as a minipool kept its owner"
+        },
+        {
+          "name": "entry_week",
+          "type": "string",
+          "unit": "UTC week start",
+          "derivation": "Monday of the week, counted from Monday 2020-09-07, holding the start of the node's first accepted period; never later than the row"
+        },
+        {
+          "name": "entry_fee_rate",
+          "type": "number",
+          "unit": "fraction",
+          "derivation": "delegation fee of the node's first accepted period"
+        },
+        {
+          "name": "cohort_key",
+          "type": "string",
+          "unit": "label",
+          "derivation": "entry_week and entry_fee_rate joined by a slash: the cut-safe entry cohort, the fleet of derived.operators without its exit week"
+        },
+        {
+          "name": "component_id",
+          "type": "string",
+          "unit": "NodeID; null on or after the cut",
+          "derivation": "the smallest node ID in the connected component of the graph linking each node to the owner keys of its periods accepted before the cut"
+        },
+        {
+          "name": "component_nodes",
+          "type": "integer",
+          "unit": "count; null on or after the cut",
+          "derivation": "nodes in the component"
+        },
+        {
+          "name": "component_keys",
+          "type": "integer",
+          "unit": "count; null on or after the cut",
+          "derivation": "owner keys in the component"
         }
       ]
     }

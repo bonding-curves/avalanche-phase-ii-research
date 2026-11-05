@@ -54,7 +54,8 @@ from . import validators_api
 from . import weeks
 from . import yields
 from .catalog import DataError, canonical_bytes, load_catalog, now
-from .sources import binance_btc, binance_funding, bybit, coinmetrics
+from .sources import binance_btc, binance_funding, bybit, coinmetrics, minipools
+from .datasets.derived import operator_clusters
 from .research import research
 from .model import MODEL_VERSION, RELEASED_MODEL, protocol
 from .model import backtest as model_backtest
@@ -71,6 +72,7 @@ MODULES = {
     cblocks.DATASET_ID: cblocks,
     cblocks.RPC_DATASET_ID: cblocks,
     cchain_rpc.DATASET_ID: cchain_rpc,
+    minipools.DATASET_ID: minipools,
     snowpeer.DATASET_ID: snowpeer,
     coingecko.DATASET_ID: coingecko,
     dataapi.DATASET_ID: dataapi,
@@ -95,6 +97,7 @@ MODULES = {
     helicon.DATASET_ID: helicon,
     subnets.DATASET_ID: subnets,
     operators.DATASET_ID: operators,
+    operator_clusters.DATASET_ID: operator_clusters,
     opportunity.DATASET_ID: opportunity,
     attributions.DATASET_ID: attributions,
     monetary.DATASET_ID: monetary,

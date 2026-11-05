@@ -82,6 +82,8 @@ The rest of this guide gives the status of every dataset and how to reproduce ea
 | `snowflake.subnet-validator-transactions` | One Parquet row per P-Chain transaction that adds, removes, converts, registers, or disables a Subnet or L1 validator, one per initial validator of each conversion | Implemented, tested, and captured on 2026-09-29: 6,530 rows, 329 converted Subnets |
 | `derived.subnet-validation` | One Parquet row per node and Subnet: Subnet periods, the Subnet's L1 conversion, the node's L1 registration, and its Primary Network span | Implemented, tested, and derived on 2026-09-29: 4,257 rows on 3,946 nodes, reproducing the catalog's ACP-77 counts |
 | `derived.operators` | One Parquet row per validator node with its operator (latest reward address) and fleet (same entry week, exit week, and fee), and named agents with their evidence | Implemented, tested, and derived on 2026-09-29: 7,644 nodes, 3,963 operators, 4,247 fleets |
+| `c-chain-rpc.minipool-records` | One Parquet row per minipool record of GoGoPool's MinipoolManager contract, with its node, owner, multisig, amounts and times, every call made at one recorded C-Chain block | Implemented, tested, and captured on 2026-11-05 at block 99,494,695: 1,639 records, 244 owner addresses |
+| `derived.operator-clusters` | One Parquet row per validator staking period with four groupings known before the held-back cut of 2025-11-19: its reward address, an owner key that splits the pool address by minipool owner, the entry cohort, and a connected component | Implemented, tested, and derived on 2026-11-05: 58,213 periods on 7,681 nodes |
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
@@ -413,6 +415,27 @@ uv run --locked avalanche data check derived.operators --capture data/runs/opera
 ```
 
 The check requires every node of the node table assigned exactly once, with an operator and a fleet, then rebuilds the table from the recorded input. On the 2026-09-29 run, 7,644 nodes fall into 3,963 operators and 4,247 fleets. GoGoPool's address was the reward address of 1,942 nodes, one of them still active. The fleet rule is fragile: widening its week to two weeks changes the fleet size of 2,914 nodes, so the operator is the grouping to fit on and the fleet a cross-check.
+
+## Group staking periods by owner before the held-back cut
+
+A renewal draw fitted per operator needs an operator label on every staking period that uses nothing from the held-back window, which starts on 19 November 2025 at 00:00 UTC. The dataset `derived.operator-clusters` gives each validator staking period four such labels. Every label is an inference: a shared address links nodes and never proves one decision maker, and the addresses are pseudonymous.
+
+1. The `reward_address` field is the period's own reward address.
+2. The `owner_key` field is the reward address, except for periods paid to the pool address of GoGoPool, a liquid staking protocol that has closed. That address paid 1,961 nodes of many node operators, so its periods take the owner of the node's minipool record. Its periods with no usable record share one key, the pool address followed by `/pool`. The pool address is found in the data as the reward address holding most periods of the nodes that have a minipool record.
+3. The `cohort_key` field joins the week and the delegation fee of the node's first accepted period. Weeks start on Mondays counted from 2020-09-07, as in the dataset `derived.operators`.
+4. The `component_id` field names a connected component of the graph linking each node to the owner keys of its periods accepted before the cut. A period accepted on or after the cut has no component.
+
+The minipool records come from the dataset `c-chain-rpc.minipool-records`, which reads the MinipoolManager contract `0xc300Bc9B4b690BA7A182126299a0618eCe268Ee7` from the public C-Chain node with no key. A capture calls the view function `getMinipoolCount()` and then the view function `getMinipool(int256)` for every index, all at one block, in batches of 25 calls with a one-second pause, about 70 requests in all. The contract keeps one record per node ID with its latest owner, and nodes the protocol funded from its pool alone have no record.
+
+```bash
+uv run --locked avalanche data fetch c-chain-rpc.minipool-records --output data/runs/minipool-records-example/capture
+uv run --locked avalanche data build c-chain-rpc.minipool-records --from data/runs/minipool-records-example/capture --output data/runs/minipool-records-example/dataset
+uv run --locked avalanche data check c-chain-rpc.minipool-records --capture data/runs/minipool-records-example/capture --dataset data/runs/minipool-records-example/dataset
+uv run --locked avalanche data derive derived.operator-clusters --output data/runs/operator-clusters-example
+uv run --locked avalanche data check derived.operator-clusters --capture data/runs/operator-clusters-example/capture --dataset data/runs/operator-clusters-example/dataset
+```
+
+A fetch reads the node's newest block unless `--param block=<height>` names one. The record check requires every index read once at the capture's block and one multisig across the records. The cluster check rebuilds the table from its recorded inputs. It then rebuilds the table from the same inputs cut at the held-back date and requires every row accepted before the cut to come out the same. A minipool record labels a period before the cut only when the record's latest start, the later of its creation and its first cycle start, is before the cut. On the 2026-11-05 run that rule moves 738 periods of 38 minipool nodes into the pool block, because those nodes' records were re-created after the cut. The owner of a record applies to the node's pool-address periods from before the record's latest start too, and the `owner_basis` field marks those periods as carried back.
 
 ## Split validator exits by Subnet role
 

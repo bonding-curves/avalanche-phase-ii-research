@@ -143,6 +143,8 @@ def test_catalog_schema_and_references_are_valid():
         "binance.btc-usdt-daily",
         "binance.avax-usdt-perp-funding",
         "bybit.avax-usdt-perp-funding",
+        "c-chain-rpc.minipool-records",
+        "derived.operator-clusters",
     ]
 
 
