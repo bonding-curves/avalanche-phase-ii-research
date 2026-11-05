@@ -1,0 +1,93 @@
+{
+  "schema": "heldback-receipt/v1",
+  "mode": "held-back",
+  "tag": "heldback-registered-v0.8.0",
+  "tag_object": "f72ca303af4d0e58b137dd07d4af1bc206dcd7e1",
+  "registration_commit": "6f85eadb000bc2355db8d9060718100f1519639c",
+  "code_commit": "6f85eadb000bc2355db8d9060718100f1519639c",
+  "manifest": {
+    "schema": "heldback-registration/v1",
+    "status": "registered",
+    "tag": "heldback-registered-v0.8.0",
+    "registered_at": "2026-11-05T06:41:11+00:00",
+    "registered_by": "modeling-lead",
+    "model": {
+      "variant": "v0.8.0",
+      "tag": "model-v0.8.0",
+      "commit": "b18a4a2f0ad2d995a6ab30c8438ff19f446dcfdc",
+      "settings": {
+        "renewal_response": 0.0,
+        "entry_response": 0.0,
+        "note": "The released defaults. The test scores the level of validator stake and validator count the model forecasts, not a response to reward."
+      }
+    },
+    "code_commit": "946917ce692024f553fcfb58c1b392b23a18dec9",
+    "code_commit_note": "The commit this manifest was built on. The registration commit adds this folder and the script to it and is the commit the tag names.",
+    "files": {
+      "scripts/heldback_test_v080.py": "df0b2a13d2f045701e48c85d45f7f927c3dfc5c43f24622fb185106657693acd",
+      "validation/heldback/specification.json": "ffa8b681425a281d43719e8efc7c4e0deb7597a5ee221f36d12c01054717cfba",
+      "validation/heldback/specification.md": "95b2b212778396a9f526dfc87454983462f0c04311bb35776ba49a38184c3b3a"
+    },
+    "pin": {
+      "path": "data/pins/p2-model-v0.8.json",
+      "sha256": "47a6f4af2b7bab7d2b2aae45b2a62c7c67ed5ca26c9123151132742b208d4dee",
+      "runs": [
+        {
+          "dataset_id": "derived.staking-periods",
+          "run": "staking-periods-2026-09-30",
+          "bytes": 692906576,
+          "sha256": "e8877bf5cbe1f45f124cd2f36993ecd1a35109eb67361634f6da31609df237c8",
+          "path": "data/runs/staking-periods-2026-09-30/dataset/staking-periods.parquet"
+        },
+        {
+          "dataset_id": "derived.avax-monetary-daily",
+          "run": "avax-monetary-daily-2026-09-30",
+          "bytes": 233039,
+          "sha256": "838a3df7e74bec49cdc198c1432d39654a529a3dac9f20909be0ee37236dfe3e",
+          "path": "data/runs/avax-monetary-daily-2026-09-30/dataset/avax-monetary-daily.parquet"
+        }
+      ]
+    },
+    "uv_lock_sha256": "789ec13ff5ce1a26dc60f5d04083d5ba6567b39de4ff9bb3a0b3010090fc18c4",
+    "scoring_output": "none at registration",
+    "supersedes": "validation/lockbox, the draft of 27 October whose manifest stayed pending",
+    "entry_point": "scripts/heldback_test_v080.py score",
+    "registration_commit": "6f85eadb000bc2355db8d9060718100f1519639c"
+  },
+  "command": "scripts/heldback_test_v080.py score 5",
+  "fit": {
+    "fit_origin": "2025-11-18",
+    "fit_sha256": "744922e83724698212846197a6342e0e55fa134478e162385dcbcdd327515fc3",
+    "draws_sha256": "999c788cee1a2c73990cb5018c6e650e7bf226bc05a5137ab7dfa13285a4fc08",
+    "tau": 0.27039083689636806,
+    "tau_source": "fitted on 20 quarters, 2020Q4 to 2025Q3",
+    "draws": 200
+  },
+  "environment": {
+    "python": "3.13.14",
+    "numpy": "2.5.3",
+    "pandas": "2.3.3",
+    "scipy": "1.18.1",
+    "duckdb": "1.5.5",
+    "machine": "x86_64",
+    "node": "legion2",
+    "OMP_NUM_THREADS": null,
+    "OPENBLAS_NUM_THREADS": null
+  },
+  "started_at": "2026-11-05T06:47:00+00:00",
+  "finished_at": "2026-11-05T06:48:25+00:00",
+  "workers": 5,
+  "simulation_specifications": 100,
+  "runs": 2000,
+  "outputs": {
+    "contract-diagnostics.csv": "a5a12dac525efc51d28438f2a7df57cd30337046ac212b3e9ee1adfc027d1d20",
+    "daily-paths.csv.gz": "f9541dcd009f5e5de507a4273deab57327ba1d9db038042d194a87fffb1949bb",
+    "point-comparisons.csv": "98c191d2badc9db45c0f54515b9aee95d10c6b341df699fc04048c93d11a6ddc",
+    "realized-crosscheck.csv": "4801dc63258f9b9e5636b327113f07e5d398fdbcbd26fdc82aa7621c78b66713",
+    "runs.csv.gz": "7327eac1d0797a9b5742350cf2a39694b9f0eeef98654f55a1893e43c6a58370",
+    "scores.csv": "dec9cee32e1a37f62bee93bfc6122ef4a00fa523383c4ce0866d38917493cfde",
+    "specifications.csv": "f380d682a61b945874dcaa58b6d163ea14b45324b4e5cc38bfc409c2f324bcd5",
+    "summary.csv": "8ae59cf243092c3e0512442da3ba58bbfdadaeb83ca7e8ac8775ad061ac1079d",
+    "verdict.json": "352d07272502931787d0b3ac9afc3a62bb0eef26183ae71caeb288e75fcbe391"
+  }
+}

@@ -1,0 +1,243 @@
+{
+  "verdict": "INCONCLUSIVE",
+  "primary": {
+    "variable": "active_validator_stake_navax",
+    "horizon_days": 90,
+    "origins": 8,
+    "alpha": 0.05
+  },
+  "reasons": [
+    "below all six benchmarks, but the one-sided p against N1d is not under 0.05"
+  ],
+  "comparisons": [
+    {
+      "benchmark": "N1",
+      "benchmark_crps": 9.38872993628098,
+      "model_crps": 7.050280001313104,
+      "model_below": true
+    },
+    {
+      "benchmark": "N2",
+      "benchmark_crps": 15.277240008424137,
+      "model_crps": 7.050280001313104,
+      "model_below": true
+    },
+    {
+      "benchmark": "N3",
+      "benchmark_crps": 9.74405455380094,
+      "model_crps": 7.050280001313104,
+      "model_below": true
+    },
+    {
+      "benchmark": "N1d",
+      "benchmark_crps": 7.633147220581806,
+      "model_crps": 7.050280001313104,
+      "model_below": true
+    },
+    {
+      "benchmark": "N2d",
+      "benchmark_crps": 11.354048142615389,
+      "model_crps": 7.050280001313104,
+      "model_below": true
+    },
+    {
+      "benchmark": "N4",
+      "benchmark_crps": 7.288335744080017,
+      "model_crps": 7.050280001313104,
+      "model_below": true
+    }
+  ],
+  "p_better_than_N1d": 0.25114144522549053,
+  "dm_horizon": 4,
+  "coverage": [
+    {
+      "variable": "active_validator_stake_navax",
+      "horizon_days": 30,
+      "interval": "cov80",
+      "coverage": 0.3,
+      "band": [
+        0.6,
+        0.95
+      ],
+      "state": "fail",
+      "origins": 10
+    },
+    {
+      "variable": "active_validator_stake_navax",
+      "horizon_days": 30,
+      "interval": "cov50",
+      "coverage": 0.2,
+      "band": [
+        0.3,
+        0.7
+      ],
+      "state": "fail",
+      "origins": 10
+    },
+    {
+      "variable": "active_validator_stake_navax",
+      "horizon_days": 90,
+      "interval": "cov80",
+      "coverage": 0.625,
+      "band": [
+        0.6,
+        0.95
+      ],
+      "state": "pass",
+      "origins": 8
+    },
+    {
+      "variable": "active_validator_stake_navax",
+      "horizon_days": 90,
+      "interval": "cov50",
+      "coverage": 0.25,
+      "band": [
+        0.3,
+        0.7
+      ],
+      "state": "fail",
+      "origins": 8
+    },
+    {
+      "variable": "active_validator_stake_navax",
+      "horizon_days": 180,
+      "interval": "cov80",
+      "coverage": 0.4,
+      "band": [
+        0.6,
+        0.95
+      ],
+      "state": "fail",
+      "origins": 5
+    },
+    {
+      "variable": "active_validator_stake_navax",
+      "horizon_days": 180,
+      "interval": "cov50",
+      "coverage": 0.2,
+      "band": [
+        0.3,
+        0.7
+      ],
+      "state": "fail",
+      "origins": 5
+    },
+    {
+      "variable": "active_validators",
+      "horizon_days": 30,
+      "interval": "cov80",
+      "coverage": 0.1,
+      "band": [
+        0.6,
+        0.95
+      ],
+      "state": "fail",
+      "origins": 10
+    },
+    {
+      "variable": "active_validators",
+      "horizon_days": 30,
+      "interval": "cov50",
+      "coverage": 0.1,
+      "band": [
+        0.3,
+        0.7
+      ],
+      "state": "fail",
+      "origins": 10
+    },
+    {
+      "variable": "active_validators",
+      "horizon_days": 90,
+      "interval": "cov80",
+      "coverage": 0.0,
+      "band": [
+        0.6,
+        0.95
+      ],
+      "state": "fail",
+      "origins": 8
+    },
+    {
+      "variable": "active_validators",
+      "horizon_days": 90,
+      "interval": "cov50",
+      "coverage": 0.0,
+      "band": [
+        0.3,
+        0.7
+      ],
+      "state": "fail",
+      "origins": 8
+    },
+    {
+      "variable": "active_validators",
+      "horizon_days": 180,
+      "interval": "cov80",
+      "coverage": 0.0,
+      "band": [
+        0.6,
+        0.95
+      ],
+      "state": "fail",
+      "origins": 5
+    },
+    {
+      "variable": "active_validators",
+      "horizon_days": 180,
+      "interval": "cov50",
+      "coverage": 0.0,
+      "band": [
+        0.3,
+        0.7
+      ],
+      "state": "fail",
+      "origins": 5
+    }
+  ],
+  "fit_origin": "2025-11-18",
+  "score_until": "2026-09-22",
+  "origins": [
+    "2025-11-18",
+    "2025-12-01",
+    "2026-01-01",
+    "2026-02-01",
+    "2026-03-01",
+    "2026-04-01",
+    "2026-05-01",
+    "2026-06-01",
+    "2026-07-01",
+    "2026-08-01"
+  ],
+  "cases": {
+    "30": [
+      "2025-11-18",
+      "2025-12-01",
+      "2026-01-01",
+      "2026-02-01",
+      "2026-03-01",
+      "2026-04-01",
+      "2026-05-01",
+      "2026-06-01",
+      "2026-07-01",
+      "2026-08-01"
+    ],
+    "90": [
+      "2025-11-18",
+      "2025-12-01",
+      "2026-01-01",
+      "2026-02-01",
+      "2026-03-01",
+      "2026-04-01",
+      "2026-05-01",
+      "2026-06-01"
+    ],
+    "180": [
+      "2025-11-18",
+      "2025-12-01",
+      "2026-01-01",
+      "2026-02-01",
+      "2026-03-01"
+    ]
+  }
+}
