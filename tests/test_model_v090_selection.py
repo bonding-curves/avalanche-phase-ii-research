@@ -1,7 +1,8 @@
 import hashlib
 import importlib.util
 import json
-import os
+import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -49,17 +50,16 @@ def test_the_origin_price_is_the_last_observed_by_the_origin_and_a_rebuilt_run_i
         s.origin_price(pin, date(2024, 3, 1))
 
 
-def test_each_worker_spills_to_its_own_folder():
-    # A shared `.tmp` spill folder corrupted a 3-worker v0.8.1 reselection run on 5 November.
-    module = selection()
-    setting = "SELECT current_setting('temp_directory')"
-    try:
-        module.worker_setup()
-        first = duckdb.execute(setting).fetchone()[0]
-        module.worker_setup()
-        second = duckdb.execute(setting).fetchone()[0]
-    finally:
-        for name in ("temp_directory", "memory_limit", "threads"):
-            duckdb.execute(f"RESET {name}")
-    assert first != second
-    assert all(f"duckdb-spill-{os.getpid()}-" in Path(folder).name and Path(folder).is_dir() for folder in (first, second))
+def test_each_worker_spills_to_its_own_folder(tmp_path):
+    # A shared `.tmp` spill folder corrupted a 3-worker v0.8.1 reselection run on 5 November. Each worker is its own
+    # process, so each call runs in a child process and leaves this process's DuckDB settings alone.
+    code = (
+        "import importlib.util, duckdb\n"
+        f"spec = importlib.util.spec_from_file_location('selection', {str(ROOT / 'scripts' / 'model_v090_selection.py')!r})\n"
+        "module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)\n"
+        "module.worker_setup()\n"
+        "print(duckdb.execute(\"SELECT current_setting('temp_directory')\").fetchone()[0])\n")
+    folders = [subprocess.run([sys.executable, "-c", code], cwd=tmp_path, capture_output=True, text=True, check=True).stdout.strip()
+               for _ in range(2)]
+    assert folders[0] != folders[1]
+    assert all(Path(folder).name.startswith("duckdb-spill-") and Path(folder).is_dir() for folder in folders)
