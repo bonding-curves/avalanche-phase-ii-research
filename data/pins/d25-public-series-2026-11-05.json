@@ -1,0 +1,47 @@
+{
+  "name": "d25-public-series-2026-11-05",
+  "pinned_at": "2026-11-05T07:54:32Z",
+  "runs": [
+    {
+      "bytes": 104390,
+      "capture_id": "capture:coinmetrics-community:2026-11-05T07:34:51Z:d49f26877e31",
+      "captured_at": "2026-11-05T07:34:51Z",
+      "check": "pass",
+      "dataset_id": "coinmetrics.btc-usd-daily",
+      "parquet": "btc-usd-daily.parquet",
+      "run": "coinmetrics-btc-2026-11-05",
+      "sha256": "f66dbb975ef85bc2ddad3f72e60ffa366550ff682d8bca3670739e9f9bbd883f"
+    },
+    {
+      "bytes": 149186,
+      "capture_id": "capture:binance-market-data:2026-11-05T07:39:43Z:d57baef17280",
+      "captured_at": "2026-11-05T07:39:43Z",
+      "check": "pass",
+      "dataset_id": "binance.btc-usdt-daily",
+      "parquet": "btc-usdt-daily.parquet",
+      "run": "binance-btc-daily-2026-11-05",
+      "sha256": "8ee270c420cd49dcbdc185413664299e31bca76b66ad4c069d546663dba08421"
+    },
+    {
+      "bytes": 129059,
+      "capture_id": "capture:binance-market-data:2026-11-05T07:36:30Z:c6946059a175",
+      "captured_at": "2026-11-05T07:36:30Z",
+      "check": "pass",
+      "dataset_id": "binance.avax-usdt-perp-funding",
+      "parquet": "avax-usdt-perp-funding.parquet",
+      "run": "binance-avax-funding-2026-11-05",
+      "sha256": "6b993a4e38e26ac2d870a484a68d82a9534a811fae4d0254c7a2b27a95c9ea8e"
+    },
+    {
+      "bytes": 93062,
+      "capture_id": "capture:bybit-public-api:2026-11-05T07:35:16Z:c3d5e50d0eec",
+      "captured_at": "2026-11-05T07:35:16Z",
+      "check": "pass",
+      "dataset_id": "bybit.avax-usdt-perp-funding",
+      "parquet": "bybit-avax-usdt-perp-funding.parquet",
+      "run": "bybit-avax-funding-2026-11-05",
+      "sha256": "29fd6abef92ad4aed7b2739b3c858519f71e7e829efa145aaff8c6f4490e62ea"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}

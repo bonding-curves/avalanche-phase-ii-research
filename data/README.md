@@ -275,7 +275,7 @@ uv run --locked avalanche data build bybit.avax-usdt-perp-funding --from data/ru
 uv run --locked avalanche data check bybit.avax-usdt-perp-funding --capture data/runs/bybit-funding-example/capture --dataset data/runs/bybit-funding-example/dataset --against data/runs/binance-funding-example/dataset
 ```
 
-In the captures of 2026-11-05, all 6,691 archived Binance rates in 74 monthly files equal the API's, and the API holds 12 later rates. Bybit's 30-day mean lies within 5 points a year of Binance's on 82.2% of 1,848 days, with a median gap of 2.24 points.
+In the captures of 2026-11-05, all 6,691 archived Binance rates in 74 monthly files equal the API's, and the API holds 12 later rates. Bybit's 30-day mean lies within 5 points a year of Binance's on 82.2% of 1,848 days, with a median gap of 2.24 points. The pin [`d25-public-series-2026-11-05.json`](pins/d25-public-series-2026-11-05.json) names the four runs.
 
 ## Reproduce the current validator snapshot
 
