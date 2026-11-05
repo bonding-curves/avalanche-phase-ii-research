@@ -55,7 +55,7 @@ from avalanche_research.model.parts.stages import (
     run_stages,
 )
 from avalanche_research.model.replay import LOCKBOX_FIRST_DAY
-from avalanche_research.model.response import FittedMenu, response_gap_pp
+from avalanche_research.model.response import RESPONSE_DURATION_DAYS, FittedMenu, response_gap_pp
 from avalanche_research.model.streams import (
     KIND_OPEN,
     KIND_OUT,
@@ -69,6 +69,11 @@ INSTANT_US = 86_399_000_000
 
 COMMITMENT = ("stakes", "days_left", "done", "after_return", "days", "handed_on", "returns")
 OUT = ("out_stakes", "out_days", "out_done", "out_last_days", "out_returns")
+
+
+AVAX_NAVAX = 10**9
+REVENUE_VARIABLES = ("revenue_paid_navax", "unpaid_need_navax", "revenue_pool_navax")
+"""The revenue funding outputs that are state when a run carries revenue funding (``FittedLifecycle.funded``)."""
 
 
 def _array(value, dtype=np.int64) -> np.ndarray:
@@ -206,6 +211,21 @@ class FittedLifecycle(SimulationModel):
         doc="Volatility of the log AVAX price a year over the run, the standard deviation of daily log returns times "
             "the square root of 365",
     )
+    # Revenue funding for deliverable 2.8, left out of the specification at its defaults in the same way. The stream
+    # is a scenario: AVAX a year paid into the revenue pool that a funding rule such as RevenueFunded pays rewards
+    # from. The counter switch keeps the chain's rate path by adding the revenue-paid part of each reward to the
+    # P-Chain reward counter as well as the minted part.
+    revenue_avax_pa = param.Number(
+        default=0.0, bounds=(0.0, None), metadata={"omit_at_default": True, "source": "scenario"},
+        doc="An outside revenue stream paid into the reward pool, in AVAX a year, added each day as one 365th. 0 is "
+            "every version to v0.8.1: the pool never fills, and a rule that mints everything never reads it",
+    )
+    count_revenue_in_supply = param.Boolean(
+        default=False, metadata={"omit_at_default": True},
+        doc="Add the revenue-paid part of each reward to the P-Chain reward counter as well as the minted part, so "
+            "the formula follows the chain's rate path. False adds only what is minted, so the formula pays slightly "
+            "more later in the run",
+    )
 
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
     # specification and its hash do not record it.
@@ -222,7 +242,18 @@ class FittedLifecycle(SimulationModel):
     # leaves them out (tests/test_parts_split.py).
     def state_variables(self):
         return ["active_validators", "active_validator_stake_navax", "returning_nodes", "supply_navax", "issued_navax",
-                "started_stake_navax", "nakamoto_third_nodes"]
+                "started_stake_navax", "nakamoto_third_nodes", *(REVENUE_VARIABLES if self.funded else ())]
+
+    @property
+    def funded(self) -> bool:
+        """Whether the run carries revenue funding: a rule that pays from the pool, a revenue stream, or the counter
+        switch. Only then are the pool, the revenue paid and the unpaid need state, so every other run keeps its table."""
+        return bool(self.mechanism.funds_from_revenue or self.revenue_avax_pa > 0 or self.count_revenue_in_supply)
+
+    @property
+    def revenue_inflow_navax(self) -> int:
+        """The nAVAX the revenue stream adds to the pool each day: one 365th of the year's AVAX, to the nAVAX."""
+        return round(self.revenue_avax_pa * AVAX_NAVAX / 365)
 
     def float_variables(self):
         # price_usd was added in v0.9 and appears only when the run carries a price path, so a run without one keeps
@@ -261,6 +292,7 @@ class FittedLifecycle(SimulationModel):
             "issued_navax": 0,
             "started_stake_navax": 0,
             "nakamoto_third_nodes": nakamoto_third_nodes(state["stakes"], state["node_key"]),
+            **({name: 0 for name in REVENUE_VARIABLES} if self.funded else {}),
             "yield_gap_pp": 0.0,
             "started_stake_days_navax": 0.0,
             # The rate at the counter of the day before the origin, which the model does not hold.
@@ -297,6 +329,12 @@ class FittedLifecycle(SimulationModel):
             return paths[run]
 
         return path_for
+
+    def response_rate_pp(self, day: date, completed_periods: int) -> float:
+        """The mechanism's own annual rate, in percentage points, for the 30-day stake the responses read, started on
+        ``day`` at the origin's supply. The part of it a funding rule leaves unpaid is what the responses lose."""
+        start = datetime.combine(day, time(12), tzinfo=UTC)
+        return float(self.mechanism.annual_rate(RESPONSE_DURATION_DAYS, self.supply0_navax, start, completed_periods=completed_periods)) * 100
 
     def _blocks_by_run(self):
         """A function from run number to that run's :class:`RunBlocks`: its renewal, large-holder renewal, arrival and
@@ -362,6 +400,8 @@ class FittedLifecycle(SimulationModel):
             market_entry_shift=self.market_entry_shift,
             participation_elasticity=float(self.participation_elasticity),
             unstaked_share0=1.0 - share0,
+            revenue_inflow_navax=self.revenue_inflow_navax,
+            count_revenue_in_supply=bool(self.count_revenue_in_supply),
             scheduled={
                 "start_day": sched_day, "stakes": _array(sched["stakes"]), "days": _array(sched["days"]),
                 "done": _array(sched["done"]), "after_return": _array(sched["after_return"], bool),
@@ -372,6 +412,12 @@ class FittedLifecycle(SimulationModel):
         live = self.yield_gap_at == "live"
         tenure = self.renewal_tenure
         price_for = self._price_by_run() if self.has_price() else None
+        # Under a funding rule the responses read the reward received, not the reward priced: the share of yesterday's
+        # priced rewards the pool left unpaid (the ``cut`` rule) lowers the rate behaviour sees by that share of the
+        # rule's own rate. Under ``top_up`` nothing is left unpaid, so these runs keep E009's gaps exactly, and a rule
+        # that mints everything never enters this branch.
+        receipt = self.funded and bool(self.mechanism.funds_from_revenue)
+        rates = [(self.response_rate_pp(day, self.renewal_tenure), self.response_rate_pp(day, 0)) for day in days] if receipt else None
 
         def p_lifecycle(params, substep, history, state):
             t = state["timestep"]
@@ -383,6 +429,12 @@ class FittedLifecycle(SimulationModel):
                 entry_gap = self.yield_gap_pp(days[t], 0, supply, share)
             else:
                 renewal_gap, entry_gap = gaps[t]
+            if receipt:
+                priced = int(state["issued_navax"]) + int(state["revenue_paid_navax"]) + int(state["unpaid_need_navax"])
+                unpaid = int(state["unpaid_need_navax"]) / priced if priced > 0 else 0.0
+                if unpaid > 0.0:
+                    renewal_gap -= rates[t][0] * unpaid
+                    entry_gap -= rates[t][1] * unpaid
             day = Day(
                 t=t, start=datetime.combine(origin + timedelta(days=t + 1), time(12), tzinfo=UTC), draw=Streams(seed, run),
                 blocks=blocks_for(run), renewal_gap=renewal_gap, entry_gap=entry_gap, settings=settings,
@@ -407,17 +459,21 @@ class FittedLifecycle(SimulationModel):
         def s_supply(params, substep, history, state, signal):
             return "supply_navax", state["supply_navax"] + signal["issued_navax"]
 
+        def s_supply_with_revenue(params, substep, history, state, signal):
+            return "supply_navax", state["supply_navax"] + signal["issued_navax"] + signal["revenue_paid_navax"]
+
         def s_nakamoto(params, substep, history, state, signal):
             return "nakamoto_third_nodes", nakamoto_third_nodes(signal["stakes"], signal["node_key"])
 
         copied = (*COMMITMENT, *OUT, "node_key", "out_node_key", "issued_navax", "yield_gap_pp",
                   "started_stake_navax", "started_stake_days_navax", "offered_rate_30d",
-                  *(["price_usd"] if price_for is not None else []))
+                  *(["price_usd"] if price_for is not None else []),
+                  *(REVENUE_VARIABLES if self.funded else ()))
         return [{
             "policies": {"lifecycle": p_lifecycle},
             "variables": {
                 **{name: s_copy(name) for name in copied},
-                "supply_navax": s_supply,
+                "supply_navax": s_supply_with_revenue if self.count_revenue_in_supply else s_supply,
                 "active_validators": s_count,
                 "active_validator_stake_navax": s_stake,
                 "returning_nodes": s_out,
@@ -433,6 +489,7 @@ class FittedLifecycle(SimulationModel):
             ("supply within the cap", lambda s: s["supply_navax"] <= 720_000_000 * 10**9),
             ("stake within supply", lambda s: s["active_validator_stake_navax"] <= s["supply_navax"]),
             *([("price positive and finite", lambda s: 0.0 < s["price_usd"] < float("inf"))] if self.has_price() else []),
+            *([("revenue pool never negative", lambda s: s["revenue_pool_navax"] >= 0)] if self.funded else []),
         ]
 
 
