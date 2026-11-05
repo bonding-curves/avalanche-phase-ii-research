@@ -1,6 +1,6 @@
 """Captures from the Avalanche Foundation's Snowflake account: Allium's hourly token prices, Allium's hourly WAVAX price
 from decentralised exchange trades, Allium's lending rate updates, the Foundation's daily C-Chain gas fees and
-benchmark rates, Allium's atomic transactions between the C-Chain and the P-Chain, and the entity labels of Allium and
+benchmark rates, the last C-Chain block of each UTC day, Allium's atomic transactions between the C-Chain and the P-Chain, and the entity labels of Allium and
 of the Foundation for the C-Chain addresses those transactions touch.
 
 The account is read-only and reached through a named connection, ``foundation`` unless
@@ -311,9 +311,32 @@ ADDRESS_MAPPING_ATOMIC = Spec(
     invalid_label="name no entity",
 )
 
+C_CHAIN_DAILY_LAST_BLOCKS = Spec(
+    dataset_id="allium.c-chain-daily-last-blocks",
+    query_id="allium-c-chain-daily-last-blocks",
+    table="c-chain-daily-last-blocks",
+    default_start="2020-09-23",
+    raw_types={
+        "date_utc": "DATE", "last_block_number": "BIGINT", "last_block_hash": "VARCHAR", "last_block_timestamp": "TIMESTAMP",
+        "first_block_number": "BIGINT", "blocks": "BIGINT",
+    },
+    table_columns={
+        "date_utc": "DATE", "last_block_number": "BIGINT", "last_block_hash": "VARCHAR", "last_block_timestamp": "TIMESTAMP",
+        "first_block_number": "BIGINT", "blocks": "BIGINT",
+    },
+    transform_sql="SELECT * FROM capture ORDER BY date_utc",
+    key=("date_utc",),
+    time_column="date_utc",
+    step="day",
+    group=None,
+    invalid_sql=("last_block_hash IS NULL OR blocks <= 0 OR last_block_number - first_block_number + 1 <> blocks"
+                 " OR last_block_timestamp::DATE <> date_utc"),
+    invalid_label="miss a hash, skip a block height or end on another day",
+)
+
 SPECS = {spec.dataset_id: spec for spec in (
     PRICES_HOURLY, DEX_PRICES_HOURLY, ECONOMY_GAS_FEES_DAILY, LENDING_INTEREST_RATES, BENCHMARK_RATES_DAILY,
-    P_CHAIN_ATOMIC, IDENTITY_LABELS_ATOMIC, ADDRESS_MAPPING_ATOMIC)}
+    P_CHAIN_ATOMIC, IDENTITY_LABELS_ATOMIC, ADDRESS_MAPPING_ATOMIC, C_CHAIN_DAILY_LAST_BLOCKS)}
 DATASET_IDS = tuple(SPECS)
 
 
@@ -566,6 +589,10 @@ def summarize(connection: Any, spec: Spec) -> dict[str, Any]:
                        COUNT_IF(direction = 'import' AND p_chain_address IS NULL),
                        COUNT_IF(length(amount_navax_text) > 0 AND amount_navax::HUGEINT <> TRY_CAST(amount_navax_text AS HUGEINT))
                 FROM rows JOIN capture ON capture.hash = rows.transaction_hash""").fetchone()
+    if spec is C_CHAIN_DAILY_LAST_BLOCKS:
+        summary["blocks"], summary["height_breaks"] = connection.execute("""
+            SELECT SUM(blocks), COUNT_IF(next_first IS NOT NULL AND next_first <> last_block_number + 1)
+            FROM (SELECT blocks, last_block_number, lead(first_block_number) OVER (ORDER BY date_utc) AS next_first FROM rows)""").fetchone()
     if spec is IDENTITY_LABELS_ATOMIC:
         summary["by_category"] = dict(connection.execute(
             "SELECT coalesce(primary_category, 'none'), COUNT(*) FROM rows GROUP BY 1 ORDER BY 1").fetchall())
@@ -736,6 +763,10 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
         load_capture(connection, spec, capture_dir, receipt)
         findings = check_counts(connection, spec, window)
         summary = summarize(connection, spec)
+        if spec is C_CHAIN_DAILY_LAST_BLOCKS:
+            checked.append("each day starts at the height after the previous day's last block")
+            if summary["height_breaks"]:
+                findings.append(f"{summary['height_breaks']} days do not start at the height after the previous day's last block")
         if spec is PRICES_HOURLY:
             checked.append(f"native AVAX against WAVAX: {PAIR_SHARE:.1%} of shared hours within {PAIR_TOLERANCE:.1%}")
             pair = pair_agreement(connection)

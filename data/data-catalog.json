@@ -994,6 +994,25 @@
           "response_fields": [
             "result"
           ]
+        },
+        {
+          "id": "staked-avax-call",
+          "url": "https://api.avax.network/ext/bc/C/rpc",
+          "request_json": {
+            "jsonrpc": "2.0",
+            "method": "eth_call",
+            "params": [
+              {
+                "to": "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+                "data": "totalSupply(), totalPooledAvax() or getPooledAvaxByShares(uint256 shares)"
+              },
+              "<block number>"
+            ],
+            "id": "<day index times 4 plus the call's place>"
+          },
+          "response_fields": [
+            "result"
+          ]
         }
       ]
     },
@@ -2227,6 +2246,31 @@
           "observed_semantics": [
             "AF.GROSS_CHAIN_PRODUCT.ADDRESS_MAPPING holds one row per C-Chain address, 6,111,841 rows in lower-case hex, each with an entity, a category, a sector, the source of the mapping and its priority",
             "The 520 mapped addresses with an atomic transaction to or from the P-Chain are the 520 Allium labels, all with source identity_labels and priority 2, so the two tables are one attribution and do not confirm each other there"
+          ]
+        },
+        {
+          "id": "allium-c-chain-daily-last-blocks",
+          "sql": "queries/allium-c-chain-daily-last-blocks.sql",
+          "relations": [
+            "BLOCKS"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-23",
+              "meaning": "inclusive lower UTC date on the block timestamp"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC date"
+            }
+          ],
+          "observed_semantics": [
+            "AVALANCHE.RAW.BLOCKS holds one row per C-Chain block with NUMBER, HASH and TIMESTAMP in UTC",
+            "From 2020-09-23 to 2026-11-05 every day with a block starts at the height after the previous day's last block; 21 days between 2020-09-25 and 2020-12-25 have no block"
           ]
         }
       ]
@@ -9780,6 +9824,96 @@
       ]
     },
     {
+      "id": "c-chain-rpc.savax-state-daily",
+      "name": "sAVAX supply, pooled AVAX and exchange rate at each day's close",
+      "source_id": "avalanche-c-chain-rpc",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC day from 2022-01-27 of the state of BENQI's StakedAvax contract 0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be, the issuer of the liquid staking token sAVAX, read by eth_call from the public C-Chain node at the day's last block: totalSupply(), the sAVAX outstanding, totalPooledAvax(), the AVAX it claims, and getPooledAvaxByShares(10^18), the AVAX one sAVAX redeems for. The days and their last blocks come from a built allium.c-chain-daily-last-blocks run, copied into the capture. A redemption burns shares without a transfer to the zero address, so the token's transfers do not give its supply and the contract's own state does. The build cuts nothing, and held_back marks the days from 2025-11-19, which no fit reads. The check requires every day once, the node's block hash equal to Allium's, the block's time on its day, a positive supply, and the pooled AVAX over the supply equal to the rate of one share within 10^-9, and counts the days on which the rate fell.",
+      "endpoint_ids": [
+        "staked-avax-call"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "the day of allium.c-chain-daily-last-blocks"
+        },
+        {
+          "name": "block_number",
+          "type": "integer",
+          "unit": "C-Chain block height",
+          "derivation": "the day's last block"
+        },
+        {
+          "name": "block_hash",
+          "type": "string",
+          "unit": "block hash",
+          "derivation": "hash of eth_getBlockByNumber at that height"
+        },
+        {
+          "name": "block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "timestamp of that block"
+        },
+        {
+          "name": "savax_supply_wei",
+          "type": "integer",
+          "unit": "sAVAX in units of 10^-18",
+          "derivation": "totalSupply()"
+        },
+        {
+          "name": "pooled_avax_wei",
+          "type": "integer",
+          "unit": "wei",
+          "derivation": "totalPooledAvax()"
+        },
+        {
+          "name": "avax_per_savax_wei",
+          "type": "integer",
+          "unit": "wei of AVAX per 10^18 shares",
+          "derivation": "getPooledAvaxByShares(10^18)"
+        },
+        {
+          "name": "savax_supply",
+          "type": "number",
+          "unit": "sAVAX",
+          "derivation": "savax_supply_wei / 10^18"
+        },
+        {
+          "name": "pooled_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "pooled_avax_wei / 10^18"
+        },
+        {
+          "name": "avax_per_savax",
+          "type": "number",
+          "unit": "AVAX per sAVAX",
+          "derivation": "avax_per_savax_wei / 10^18"
+        },
+        {
+          "name": "allium_block_hash",
+          "type": "string",
+          "unit": "block hash",
+          "derivation": "last_block_hash of the block run"
+        },
+        {
+          "name": "held_back",
+          "type": "boolean",
+          "unit": "true from 2025-11-19",
+          "derivation": "date_utc on or after the held-back cut"
+        }
+      ]
+    },
+    {
       "id": "derived.operator-clusters",
       "name": "Cut-safe operator groupings of validator staking periods",
       "source_id": "derived",
@@ -10594,6 +10728,60 @@
           "type": "timestamp",
           "unit": "UTC",
           "derivation": "the earliest BLOCK_TIMESTAMP of the address's atomic transactions in the window"
+        }
+      ]
+    },
+    {
+      "id": "allium.c-chain-daily-last-blocks",
+      "name": "The first and last C-Chain block of each UTC day",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC day with its first and last C-Chain block in Allium's block table, read from the Avalanche Foundation's Snowflake account under the Foundation's agreement through a named connection, with the last block's hash and time and the day's block count. A contract state read at a day's last block is the state at the day's close. The capture holds every day in its window and the build cuts nothing. The check refuses a repeated day, a day without a hash, a day whose heights skip a block or whose last block falls on another day, and a day that does not start at the height after the previous day's last block.",
+      "query_ids": [
+        "allium-c-chain-daily-last-blocks"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "TIMESTAMP cast to a date"
+        },
+        {
+          "name": "last_block_number",
+          "type": "integer",
+          "unit": "C-Chain block height",
+          "derivation": "the day's largest NUMBER"
+        },
+        {
+          "name": "last_block_hash",
+          "type": "string",
+          "unit": "block hash",
+          "derivation": "HASH of that block"
+        },
+        {
+          "name": "last_block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "TIMESTAMP of that block"
+        },
+        {
+          "name": "first_block_number",
+          "type": "integer",
+          "unit": "C-Chain block height",
+          "derivation": "the day's smallest NUMBER"
+        },
+        {
+          "name": "blocks",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "the day's block count"
         }
       ]
     },

@@ -324,3 +324,23 @@ def test_labels_and_mapping_count_categories_and_refuse_a_repeated_address(tmp_p
                "sector": "institutional", "source": "identity_labels", "priority": 2, "first_atomic_at": "2024-03-01T01:00:00Z"}
     run, _ = capture(tmp_path, foundation.ADDRESS_MAPPING_ATOMIC, [mapping, {**mapping, "address": "0xnone", "entity": None}], name="map")
     assert foundation.check(run / "capture")["findings"] == ["1 rows name no entity"]
+
+
+@pytest.mark.parametrize("broken, finding", [
+    (None, None),
+    ("gap", "1 days do not start at the height after the previous day's last block"),
+    ("skip", "1 rows miss a hash, skip a block height or end on another day"),
+])
+def test_daily_last_blocks_check(tmp_path, broken, finding):
+    def day(d, first, last, blocks=None):
+        return {"date_utc": d, "last_block_number": last, "last_block_hash": f"0x{last}", "last_block_timestamp": f"{d}T23:59:58Z",
+                "first_block_number": first, "blocks": blocks if blocks is not None else last - first + 1}
+
+    rows = [day("2024-03-01", 1, 10), day("2024-03-02", 11, 20), day("2024-03-03", 21, 30)]
+    if broken == "gap":
+        rows[2] = day("2024-03-03", 22, 30)
+    if broken == "skip":
+        rows[1] = day("2024-03-02", 11, 20, blocks=9)
+    run, _ = capture(tmp_path, foundation.C_CHAIN_DAILY_LAST_BLOCKS, rows, parameters={"start": "2024-03-01", "end": "2024-03-04"})
+    result = foundation.check(run / "capture")
+    assert result["findings"] == ([] if finding is None else [finding])

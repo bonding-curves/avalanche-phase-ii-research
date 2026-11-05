@@ -54,7 +54,7 @@ from . import validators_api
 from . import weeks
 from . import yields
 from .catalog import DataError, canonical_bytes, load_catalog, now
-from .sources import binance_btc, binance_funding, bybit, coinmetrics, foundation, minipools
+from .sources import binance_btc, binance_funding, bybit, coinmetrics, foundation, minipools, savax_state
 from .datasets.derived import aave_wavax_filled, market_daily_vector, operator_clusters, outside_yields, stake_owner_types
 from .research import research
 from .model import MODEL_VERSION, RELEASED_MODEL, protocol
@@ -73,6 +73,7 @@ MODULES = {
     cblocks.RPC_DATASET_ID: cblocks,
     cchain_rpc.DATASET_ID: cchain_rpc,
     minipools.DATASET_ID: minipools,
+    savax_state.DATASET_ID: savax_state,
     snowpeer.DATASET_ID: snowpeer,
     coingecko.DATASET_ID: coingecko,
     dataapi.DATASET_ID: dataapi,
