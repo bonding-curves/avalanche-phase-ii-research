@@ -6,7 +6,7 @@ A **dataset** is one table with a catalog ID, such as `derived.staking-periods`.
 
 | Path | What it holds |
 | --- | --- |
-| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 20 sources and 83 datasets |
+| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 20 sources and 87 datasets |
 | [`data-catalog.schema.json`](data-catalog.schema.json) | The JSON schema that validates the catalog |
 | [`queries/`](queries/) | The exact SQL text each Snowflake dataset runs |
 | [`pins/`](pins/) | Pinned input sets: the exact runs a result was made from, with their hashes. See [`pins/README.md`](pins/README.md) |
@@ -92,6 +92,10 @@ The rest of this guide gives the status of every dataset and how to reproduce ea
 | `af.benchmark-rates-daily` | One Parquet row per UTC day of the Foundation's DTB3 bill rate, with its source label | Implemented, tested, and captured on 2026-11-05: 1,040 days from 2024-01-01, its 710 published days equal to FRED's |
 | `derived.aave-wavax-filled` | One Parquet row per UTC day of DefiLlama's Aave v3 WAVAX supply rate, its two gaps filled from Allium's daily mean | Implemented, tested, and derived on 2026-11-05: 1,520 days, 159 of them filled |
 | `derived.outside-yields-daily` | One Parquet row per decision day from 2021-02-02 to 2025-11-18 with the AVAX lending composite, the sAVAX yield and the hedged bill rate, each from days before the decision | Implemented, tested, and derived on 2026-11-05: 1,751 days, none on or after the held-back cut |
+| `allium.p-chain-atomic-transactions` | One Parquet row per atomic transaction between the C-Chain and the P-Chain, with its C-Chain address, its P-Chain owner addresses and its amount in nAVAX, from the Foundation's Snowflake account | Implemented, tested, and captured on 2026-11-05: 188,830 exports and 198,381 imports from 2021-12-02 to 2026-10-28 |
+| `allium.identity-labels-atomic` | One Parquet row per C-Chain address with an atomic transaction to or from the P-Chain that Allium labels, with its entity, category and attribution time | Implemented, tested, and captured on 2026-11-05: 520 of the 51,500 such addresses |
+| `af.address-mapping-atomic` | One Parquet row per such address that the Foundation's Gross Chain Product mapping names | Implemented, tested, and captured on 2026-11-05: the same 520 addresses, every row sourced from Allium's labels |
+| `derived.stake-owner-types` | One Parquet row per P-Chain address, entity-labelled C-Chain address and direction of the atomic transactions between them, with the label's owner class | Implemented, tested, and derived on 2026-11-05: 1,187 links of 1,061 P-Chain addresses, 111 of them first seen after the held-back cut |
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
@@ -522,6 +526,33 @@ uv run --locked avalanche data check derived.operator-clusters --capture data/ru
 ```
 
 A fetch reads the node's newest block unless `--param block=<height>` names one. The record check requires every index read once at the capture's block and one multisig across the records. The cluster check rebuilds the table from its recorded inputs. It then rebuilds the table from the same inputs cut at the held-back date and requires every row accepted before the cut to come out the same. A minipool record labels a period before the cut only when the record's latest start, the later of its creation and its first cycle start, is before the cut. On the 2026-11-05 run that rule moves 738 periods of 38 minipool nodes into the pool block, because those nodes' records were re-created after the cut. The owner of a record applies to the node's pool-address periods from before the record's latest start too, and the `owner_basis` field marks those periods as carried back. That carry-back assumes a node re-created as a minipool kept its owner. The records cannot show this, because the contract overwrites a node's earlier record when it is re-created. A fit or score dated at an origin before the cut therefore builds its labels from records whose latest start is before that origin, or gives carried-back periods the pool key.
+
+## Link labels to stake
+
+Labels name C-Chain addresses, and stake lives on the P-Chain. AVAX moves between the two by atomic transactions: an export from the C-Chain names its C-Chain sender and the owner addresses of its P-Chain outputs, and an import names its P-Chain sender and C-Chain recipient. The dataset `derived.stake-owner-types` links each P-Chain address to every entity-labelled C-Chain address that paid it by an export or that it paid by an import. A validator's reward addresses, or a delegation's funding address, that appear there take the label's owner class. The class groups Allium's category into exchange, custodian, financial service, decentralised finance, MEV bot, wallet software and other. Wallet software, such as MetaMask user, is Allium's heuristic on how an address behaves. It names the software an address uses, not its owner.
+
+Three datasets come from the Foundation's Snowflake account through the named connection described above. `allium.p-chain-atomic-transactions` holds every atomic transaction between the two chains. Allium writes an export's owner addresses in two forms, and its raw amount in nAVAX on some rows and in wei on 129,609 others. The build reads both forms and takes the unit that matches Allium's AVAX amount. `allium.identity-labels-atomic` and `af.address-mapping-atomic` hold the labels of the C-Chain addresses those transactions touch: 520 of 51,500. Of the 520, 92 are exchanges, 1 a custodian, 5 payment or financial services, 77 MEV bots and 345 wallet software. The Foundation's mapping of these addresses is sourced from Allium's labels, so it confirms nothing on its own. The two name the same entity for every address except the 345 wallet-software rows, where Allium adds the word user.
+
+Counts, amounts and last times read only transactions before the held-back cut of 2025-11-19 00:00 UTC. A link first seen on or after the cut is kept, with `held_back` true and zero counts. The check rebuilds the table from its recorded inputs, and again from the atomic transactions cut at the held-back instant, and requires the same rows before the cut. The labels are one current snapshot, with Allium's attribution time in `label_attributed_at`. A score dated at an origin uses the links whose `first_at` is before that origin, and may also require the attribution to be. Addresses stay in model tables. A client figure, table or text reports linked stake as counts and shares by class, never an address, and nothing joins an address to any identity outside the chain.
+
+At the origin of 2025-11-18 00:00 UTC the link covers little stake. Of 158.9 million AVAX of validator stake active then, 0.64 million AVAX, 0.40%, has a reward address linked to an exchange before the origin, and 1.67 million AVAX, 1.05%, to wallet software. Of 41.6 million AVAX of active delegations, 0.05% has its funding address linked to an exchange and 0.76% to wallet software. When the label's attribution must also precede the origin, no active stake is linked to an exchange. The summary of the build reports both readings by class.
+
+```bash
+for id in allium.p-chain-atomic-transactions allium.identity-labels-atomic af.address-mapping-atomic; do
+  run=data/runs/${id//./-}-example
+  uv run --locked --extra snowflake avalanche data fetch $id --output $run/capture --timeout 600
+  uv run --locked avalanche data build $id --from $run/capture --output $run/dataset
+  uv run --locked avalanche data check $id --capture $run/capture --dataset $run/dataset
+done
+uv run --locked avalanche data derive derived.stake-owner-types --output data/runs/stake-owner-types-example \
+  --input allium.p-chain-atomic-transactions=allium-p-chain-atomic-transactions-example \
+  --input allium.identity-labels-atomic=allium-identity-labels-atomic-example \
+  --input af.address-mapping-atomic=af-address-mapping-atomic-example \
+  --input derived.seamed-validator-stakes=<seamed validator run> --input derived.seamed-delegator-stakes=<seamed delegator run>
+uv run --locked avalanche data check derived.stake-owner-types --capture data/runs/stake-owner-types-example/capture --dataset data/runs/stake-owner-types-example/dataset
+```
+
+The pin [`v0.10-label-link-2026-11-05.json`](pins/v0.10-label-link-2026-11-05.json) names the four runs of this section and the two seamed stake runs they read.
 
 ## Split validator exits by Subnet role
 

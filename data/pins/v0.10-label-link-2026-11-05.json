@@ -1,0 +1,70 @@
+{
+  "code": {
+    "client_commit": "093e95d837ea397f6c3e4a317f5d27000274687a"
+  },
+  "name": "v0.10-label-link-2026-11-05",
+  "pinned_at": "2026-11-05T21:42:18Z",
+  "runs": [
+    {
+      "bytes": 69100377,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T21:31:53Z:98730f0dddc4",
+      "captured_at": "2026-11-05T21:31:53Z",
+      "check": "pass",
+      "dataset_id": "allium.p-chain-atomic-transactions",
+      "parquet": "p-chain-atomic-transactions.parquet",
+      "run": "allium-p-chain-atomic-transactions-2026-11-05",
+      "sha256": "636fbbf17b2006724468cdf6eddce039d8f1fc3af826ad7427593dfe32f0012d"
+    },
+    {
+      "bytes": 22080,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T21:32:06Z:fc17e8cc714b",
+      "captured_at": "2026-11-05T21:32:06Z",
+      "check": "pass",
+      "dataset_id": "allium.identity-labels-atomic",
+      "parquet": "identity-labels-atomic.parquet",
+      "run": "allium-identity-labels-atomic-2026-11-05",
+      "sha256": "3f5af8c6b0b14f3438521e449d74baaf799dd7b8e77cfe8516932653a5e916ad"
+    },
+    {
+      "bytes": 17948,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T21:32:13Z:9cf98ad16164",
+      "captured_at": "2026-11-05T21:32:13Z",
+      "check": "pass",
+      "dataset_id": "af.address-mapping-atomic",
+      "parquet": "address-mapping-atomic.parquet",
+      "run": "af-address-mapping-atomic-2026-11-05",
+      "sha256": "c6f4aa6e9a750d076f5b16fee0f3290dbb214e8236e90dde4b612960f60f1e5f"
+    },
+    {
+      "bytes": 72588,
+      "capture_id": "capture:derived:2026-11-05T21:33:37Z:d7c97efcfeee",
+      "captured_at": "2026-11-05T21:33:37Z",
+      "check": "pass",
+      "dataset_id": "derived.stake-owner-types",
+      "parquet": "stake-owner-types.parquet",
+      "run": "stake-owner-types-2026-11-05",
+      "sha256": "e2f0c802453d7ae33dd816d1375387fc12815e27aa046be26795d344feec0246"
+    },
+    {
+      "bytes": 6236868,
+      "capture_id": "capture:derived:2026-11-04T05:16:17Z:09610e452885",
+      "captured_at": "2026-11-04T05:16:17Z",
+      "check": "pass",
+      "dataset_id": "derived.seamed-validator-stakes",
+      "parquet": "seamed-validator-stakes.parquet",
+      "run": "seamed-validator-stakes-2026-11-04",
+      "sha256": "9173d626ec26572948c9503750a95f26c7fdff56d527b1f915731ae56b7ef317"
+    },
+    {
+      "bytes": 540010410,
+      "capture_id": "capture:derived:2026-11-04T05:17:22Z:9c0461883efe",
+      "captured_at": "2026-11-04T05:17:22Z",
+      "check": "pass",
+      "dataset_id": "derived.seamed-delegator-stakes",
+      "parquet": "seamed-delegator-stakes.parquet",
+      "run": "seamed-delegator-stakes-2026-11-04",
+      "sha256": "6b073e2ff199539bf9cf73dfa11788d0c4120aa093bf16677fd30b35dd28b1ea"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
