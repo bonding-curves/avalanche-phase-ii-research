@@ -1,0 +1,90 @@
+{
+  "code": {
+    "client_commit": "f066acf6a8a5be9054fedeb4a00085c16a247163"
+  },
+  "name": "v0.9.1-outside-yields-2026-11-05",
+  "pinned_at": "2026-11-05T17:56:23Z",
+  "runs": [
+    {
+      "bytes": 444557800,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T17:43:56Z:d47d990fca26",
+      "captured_at": "2026-11-05T17:43:56Z",
+      "check": "pass",
+      "dataset_id": "allium.lending-interest-rates",
+      "parquet": "lending-interest-rates.parquet",
+      "run": "allium-lending-interest-rates-2026-11-05",
+      "sha256": "7997c1f44ca5d52af8c5f8e6884489e9cf746e987f057c053a511fdf83ee0117"
+    },
+    {
+      "bytes": 5155,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T17:36:12Z:51761d7e336c",
+      "captured_at": "2026-11-05T17:36:12Z",
+      "check": "pass",
+      "dataset_id": "af.benchmark-rates-daily",
+      "parquet": "benchmark-rates-daily.parquet",
+      "run": "af-benchmark-rates-daily-2026-11-05",
+      "sha256": "4a2309d729889e8472f5ac37af6b91c51e40486d2cc4dfe17dd420de40b7fe37"
+    },
+    {
+      "bytes": 50088,
+      "capture_id": "capture:derived:2026-11-05T17:46:59Z:bed5520e0945",
+      "captured_at": "2026-11-05T17:46:59Z",
+      "check": "pass",
+      "dataset_id": "derived.aave-wavax-filled",
+      "parquet": "aave-wavax-filled.parquet",
+      "run": "aave-wavax-filled-2026-11-05-r2",
+      "sha256": "62a489374683a4e7d4ca794fdc2e5f7ae946f04dfb347c19007910347e3bd61a"
+    },
+    {
+      "bytes": 102834,
+      "capture_id": "capture:derived:2026-11-05T17:47:51Z:e768ad48d9fd",
+      "captured_at": "2026-11-05T17:47:51Z",
+      "check": "pass",
+      "dataset_id": "derived.outside-yields-daily",
+      "parquet": "outside-yields-daily.parquet",
+      "run": "outside-yields-daily-2026-11-05-r2",
+      "sha256": "630520a2c0de006a68b00639b2aaa9ae88e9dc5776615e184e9ff4415480447a"
+    },
+    {
+      "bytes": 1729325,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T16:05:23Z:e9b9fd99dba0",
+      "captured_at": "2026-11-05T16:05:23Z",
+      "check": "pass",
+      "dataset_id": "allium.prices-hourly",
+      "parquet": "prices-hourly.parquet",
+      "run": "allium-prices-hourly-2026-11-05",
+      "sha256": "d30b59cd664a1c2cbbd73a0ac0052d5e0f7f1d0b71b6e185a29805aaece4e837"
+    },
+    {
+      "bytes": 82567,
+      "capture_id": "capture:fred:2026-11-05T07:04:08Z:ef1e1f3ef7c6",
+      "captured_at": "2026-11-05T07:04:08Z",
+      "check": "pass",
+      "dataset_id": "fred.tbill-3m-daily",
+      "parquet": "tbill-3m-daily.parquet",
+      "run": "tbill-3m-daily-2026-11-05",
+      "sha256": "e39a20533cee4884ccc71e142d72ff601feae7f77b5eaa8e8450263defbef0aa"
+    },
+    {
+      "bytes": 129059,
+      "capture_id": "capture:binance-market-data:2026-11-05T07:36:30Z:c6946059a175",
+      "captured_at": "2026-11-05T07:36:30Z",
+      "check": "pass",
+      "dataset_id": "binance.avax-usdt-perp-funding",
+      "parquet": "avax-usdt-perp-funding.parquet",
+      "run": "binance-avax-funding-2026-11-05",
+      "sha256": "6b993a4e38e26ac2d870a484a68d82a9534a811fae4d0254c7a2b27a95c9ea8e"
+    },
+    {
+      "bytes": 543664,
+      "capture_id": "capture:derived:2026-10-26T17:19:20Z:c592aefd8f16",
+      "captured_at": "2026-10-26T17:19:20Z",
+      "check": "pass",
+      "dataset_id": "derived.opportunity-costs-daily",
+      "parquet": "opportunity-costs-daily.parquet",
+      "run": "opportunity-costs-daily-2026-10-26-qualified",
+      "sha256": "4d898f577bd5b85d9a07b8e2b287c24db1290710a4e11bea979528d216e40fad"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}
