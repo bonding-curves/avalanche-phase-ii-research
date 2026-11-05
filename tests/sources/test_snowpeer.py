@@ -149,6 +149,10 @@ def test_catalog_schema_and_references_are_valid():
         "allium.dex-token-prices-hourly",
         "af.economy-gas-fees-daily",
         "derived.market-daily-vector",
+        "allium.lending-interest-rates",
+        "af.benchmark-rates-daily",
+        "derived.aave-wavax-filled",
+        "derived.outside-yields-daily",
     ]
 
 

@@ -1689,6 +1689,31 @@
           "id": "btc-usd-daily",
           "dataset_id": "coinmetrics.btc-usd-daily",
           "role": "daily Bitcoin reference rate at 24:00 UTC and its log return"
+        },
+        {
+          "id": "opportunity-costs-daily",
+          "dataset_id": "derived.opportunity-costs-daily",
+          "role": "DefiLlama's daily Aave v3 WAVAX supply rate, series aave-wavax, kept on every day it has a value"
+        },
+        {
+          "id": "lending-interest-rates",
+          "dataset_id": "allium.lending-interest-rates",
+          "role": "Allium's lending rate updates: the Aave v3 WAVAX daily mean that fills DefiLlama's gaps, and the AVAX and WAVAX markets of the lending composite"
+        },
+        {
+          "id": "aave-wavax-filled",
+          "dataset_id": "derived.aave-wavax-filled",
+          "role": "the filled Aave v3 WAVAX rate, the lending composite on a day without a rated Allium update"
+        },
+        {
+          "id": "benchmark-rates-daily",
+          "dataset_id": "af.benchmark-rates-daily",
+          "role": "the Foundation's daily DTB3 bill rate from 2024"
+        },
+        {
+          "id": "binance-funding",
+          "dataset_id": "binance.avax-usdt-perp-funding",
+          "role": "Binance AVAXUSDT perpetual funding events, averaged by UTC date and annualised"
         }
       ]
     },
@@ -2054,6 +2079,59 @@
             "GAS_USED_AVAX is the day's fees in AVAX. Every C-Chain fee is burned, so it is a burn, but the economy's scope is not the whole chain: it summed to about 13% less than Allium's AVALANCHE.METRICS.OVERVIEW fees over the same days on 2026-11-04, a gap not yet traced",
             "GAS_USED_USD is empty on the earliest days; the columns ending in _REF value AVAX at the pipeline's fixed reference price",
             "A day on which the economy counted no fee has no row"
+          ]
+        },
+        {
+          "id": "allium-lending-interest-rates",
+          "sql": "queries/allium-lending-interest-rates.sql",
+          "relations": [
+            "INTEREST_RATES"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2021-01-01",
+              "meaning": "inclusive lower UTC block date; before the table's first update for these tokens, on 2021-08-18"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC block date"
+            }
+          ],
+          "observed_semantics": [
+            "AVALANCHE.LENDING.INTEREST_RATES holds one row per rate update of a lending market, keyed by UNIQUE_ID",
+            "SUPPLY_APY and VARIABLE_BORROW_APY are in percent a year; SUPPLIED_AMOUNT is in tokens and SUPPLIED_AMOUNT_USD in US dollars",
+            "Aave v2 and its forks Blizz and Nereus, Aave v3 and Euler v2 record a supply rate; the Compound v2 forks BENQI, Banker Joe, Iron Bank and Atlantis record none, and their borrow rate sits on a different scale",
+            "Aave v3 reports a supply rate of 0 for sAVAX, which earns through its exchange rate",
+            "On 2026-11-05 the first update with a supply rate for WAVAX is Aave v2's on 2021-10-04; BENQI's AVAX market starts on 2021-08-18"
+          ]
+        },
+        {
+          "id": "af-benchmark-rates-daily",
+          "sql": "queries/af-benchmark-rates-daily.sql",
+          "relations": [
+            "BENCHMARK_RATES_DAILY"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2024-01-01",
+              "meaning": "inclusive lower UTC date; the table's first day"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC date"
+            }
+          ],
+          "observed_semantics": [
+            "AF.GROSS_CHAIN_PRODUCT.BENCHMARK_RATES_DAILY holds one rate, DTB3, the US 3-month Treasury bill rate from FRED, as an annual decimal on every calendar day from 2024-01-01",
+            "SOURCE is FRED DTB3 on a published business day, FRED DTB3 ffill on a day carried forward from the last published value, and FRED DTB3 bfill on 2024-01-01, filled back from 2 January"
           ]
         }
       ]
@@ -10031,6 +10109,354 @@
           "type": "number",
           "unit": "natural log of AVAX per day",
           "derivation": "ln(gas_burn_avax); null on a day without a row"
+        }
+      ]
+    },
+    {
+      "id": "allium.lending-interest-rates",
+      "name": "Lending rate updates on Avalanche for AVAX, WAVAX, sAVAX, USDC and USDt",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per lending rate update that Allium records on Avalanche for WAVAX, native AVAX, sAVAX, USDC and USDt, read from the Avalanche Foundation's Snowflake account, read-only, under the Foundation's agreement, through a named connection: each market's supply and borrow rates in percent a year and its supplied amount in tokens and dollars. Aave v2, its forks, Aave v3 and Euler v2 record a supply rate; the Compound v2 forks, BENQI among them, record none. The capture holds every row in its window, held-back dates included, and the build cuts nothing. The per-update rows stay in the run and are not redistributed; only daily rates derived from them leave it. The check refuses a repeated update, a negative rate or amount, and a row outside the window, and counts each market's updates in the summary.",
+      "query_ids": [
+        "allium-lending-interest-rates"
+      ],
+      "fields": [
+        {
+          "name": "project",
+          "type": "string",
+          "unit": "lending project as Allium names it",
+          "derivation": "PROJECT"
+        },
+        {
+          "name": "protocol",
+          "type": "string",
+          "unit": "protocol family as Allium names it, such as aave_v3 or compound_v2",
+          "derivation": "PROTOCOL"
+        },
+        {
+          "name": "market_address",
+          "type": "string",
+          "unit": "C-Chain contract address",
+          "derivation": "MARKET_ADDRESS"
+        },
+        {
+          "name": "token_address",
+          "type": "string",
+          "unit": "C-Chain contract address",
+          "derivation": "TOKEN_ADDRESS"
+        },
+        {
+          "name": "token_symbol",
+          "type": "string",
+          "unit": "symbol as the source lists it",
+          "derivation": "TOKEN_SYMBOL"
+        },
+        {
+          "name": "block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "BLOCK_TIMESTAMP of the update"
+        },
+        {
+          "name": "block_number",
+          "type": "integer",
+          "unit": "C-Chain block height",
+          "derivation": "BLOCK_NUMBER"
+        },
+        {
+          "name": "unique_id",
+          "type": "string",
+          "unit": "Allium update identifier",
+          "derivation": "UNIQUE_ID"
+        },
+        {
+          "name": "supply_apy",
+          "type": "number",
+          "unit": "percent a year; empty for Compound v2 forks",
+          "derivation": "SUPPLY_APY"
+        },
+        {
+          "name": "variable_borrow_apy",
+          "type": "number",
+          "unit": "percent a year for Aave; another scale for Compound v2 forks",
+          "derivation": "VARIABLE_BORROW_APY"
+        },
+        {
+          "name": "stable_borrow_apy",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "STABLE_BORROW_APY"
+        },
+        {
+          "name": "supplied_amount",
+          "type": "number",
+          "unit": "tokens",
+          "derivation": "SUPPLIED_AMOUNT"
+        },
+        {
+          "name": "supplied_amount_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "SUPPLIED_AMOUNT_USD"
+        },
+        {
+          "name": "outstanding_loans",
+          "type": "number",
+          "unit": "tokens",
+          "derivation": "OUTSTANDING_LOANS"
+        },
+        {
+          "name": "usd_exchange_rate",
+          "type": "number",
+          "unit": "US dollars per token",
+          "derivation": "USD_EXCHANGE_RATE"
+        }
+      ]
+    },
+    {
+      "id": "af.benchmark-rates-daily",
+      "name": "Daily benchmark rates of the Foundation's Gross Chain Product pipeline",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC day and rate from 2024-01-01: the US 3-month Treasury bill rate DTB3 from FRED, as the Foundation's Gross Chain Product pipeline carries it, read from the Foundation's Snowflake account, read-only, under the Foundation's agreement, through a named connection. Weekend and holiday rows carry the last published value forward and 2024-01-01 is filled back from 2 January; the source label marks each. The check refuses a repeated date and rate, a missing or negative rate, and a row outside the window, and counts missing days. With --against a built fred.tbill-3m-daily run it requires every day the table marks as FRED's own value to equal FRED's DTB3.",
+      "query_ids": [
+        "af-benchmark-rates-daily"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "DATE"
+        },
+        {
+          "name": "rate_id",
+          "type": "string",
+          "unit": "rate identifier",
+          "derivation": "RATE_ID; DTB3 only on 2026-11-05"
+        },
+        {
+          "name": "rate_annual",
+          "type": "number",
+          "unit": "annual rate as a decimal",
+          "derivation": "RATE_ANNUAL"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "source label",
+          "derivation": "SOURCE: FRED DTB3, FRED DTB3 ffill or FRED DTB3 bfill"
+        }
+      ]
+    },
+    {
+      "id": "derived.aave-wavax-filled",
+      "name": "Aave v3 WAVAX supply rate by day, DefiLlama's series with its gaps filled from Allium",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC day of DefiLlama's Aave v3 WAVAX supply rate, the series aave-wavax of derived.opportunity-costs-daily from 2022-08-08, with its two gaps filled: 2024-01-04 to 2024-01-10 and 2024-10-09 to 2025-03-09, 159 days, each filled with the mean of supply_apy over the day's Allium rate updates of protocol aave_v3 and token WAVAX, read from the Avalanche Foundation's Snowflake account, read-only, under the Foundation's agreement, through a named connection. Every DefiLlama value is kept and the field source names each row's table, so the series changes only where it was empty. Both are annual percentage yields in percent of the supplied amount a year. Allium's daily mean, median and update count stand beside every row it covers. The check rebuilds the table, requires every DefiLlama value kept and every fill day filled, and requires Allium's mean within 0.10 points of DefiLlama's on average, with a correlation of at least 0.95, on the 60 days both cover in 1 September to 8 October 2024 and 10 to 31 March 2025. The capture names the lending run's Snowflake query ID and query-text hash.",
+      "input_ids": [
+        "opportunity-costs-daily",
+        "lending-interest-rates"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "every DefiLlama day of the series, and every day of the two fill windows"
+        },
+        {
+          "name": "rate_pct",
+          "type": "number",
+          "unit": "percent of the supplied amount a year",
+          "derivation": "DefiLlama's value where it has one; on a fill-window day without one, allium_mean_pct"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "unit": "defillama.pool-history or allium.lending-interest-rates",
+          "derivation": "the table rate_pct comes from; null on a fill day Allium does not cover"
+        },
+        {
+          "name": "defillama_rate_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "DefiLlama's value, null on its missing days"
+        },
+        {
+          "name": "allium_mean_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "mean of supply_apy over the UTC day's Allium updates of aave_v3 WAVAX"
+        },
+        {
+          "name": "allium_median_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "median of the same updates"
+        },
+        {
+          "name": "allium_updates",
+          "type": "integer",
+          "unit": "updates",
+          "derivation": "the count of the same updates"
+        }
+      ]
+    },
+    {
+      "id": "derived.outside-yields-daily",
+      "name": "Three outside yields by decision day before the held-back cut: AVAX lending composite, sAVAX yield, hedged bill rate",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per decision day from 2021-02-02 to 2025-11-18, the day before the held-back cut of 2025-11-19, with three outside yields in percent a year, each as the raw value of the day before the decision and the median of the 7 days before it, kept when at least 4 have a value. The AVAX lending composite is the supply rate of the Avalanche lending markets for AVAX and WAVAX that record one, weighted by each market's supplied AVAX at its last update of the day, from Allium's lending rate updates; a day with no rated update takes the filled Aave v3 WAVAX rate. Compound v2 forks, BENQI among them, record no supply rate in Allium's table and are left out, and their supplied AVAX is reported beside the composite. The liquid staking yield is the 30-day growth of the sAVAX exchange rate, sAVAX over AVAX in Allium's hourly prices at 24:00 UTC, compounded to a year. The hedged bill rate is the 3-month bill rate, from the Foundation's benchmark table on its FRED and carried-forward days and from FRED's last published value otherwise, less Binance's AVAX perpetual funding rate annualised. The Allium and Foundation inputs are read from the Avalanche Foundation's Snowflake account, read-only, under the Foundation's agreement, through a named connection. Nothing observed after 2025-11-19 00:00 UTC is read; the check rebuilds the table from its inputs cut at that instant and requires the same rows.",
+      "input_ids": [
+        "lending-interest-rates",
+        "aave-wavax-filled",
+        "prices-hourly",
+        "benchmark-rates-daily",
+        "tbill-3m-daily",
+        "binance-funding"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date of the decision",
+          "derivation": "every calendar day from 2021-02-02 to 2025-11-18; every other field reads only days before it"
+        },
+        {
+          "name": "lending_pct",
+          "type": "number",
+          "unit": "percent of the supplied amount a year",
+          "derivation": "the lending composite of the day before"
+        },
+        {
+          "name": "lending_source",
+          "type": "string",
+          "unit": "allium-composite or aave-wavax-filled",
+          "derivation": "allium-composite when a rated AVAX or WAVAX market updated that day, otherwise the filled Aave v3 WAVAX rate"
+        },
+        {
+          "name": "lending_markets",
+          "type": "integer",
+          "unit": "markets",
+          "derivation": "rated markets in the composite of the day before; 0 when the Aave rate stands in"
+        },
+        {
+          "name": "lending_supplied_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "the composite's total weight: supplied_amount at each rated market's last update of the day before"
+        },
+        {
+          "name": "lending_unrated_supplied_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "supplied_amount of AVAX and WAVAX markets without a supply rate that updated the day before, left out of the composite"
+        },
+        {
+          "name": "lending_median_7d_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "median of the composite over the 7 days before the decision; null with fewer than 4"
+        },
+        {
+          "name": "lending_days_7d",
+          "type": "integer",
+          "unit": "days, 0 to 7",
+          "derivation": "days in that median"
+        },
+        {
+          "name": "savax_exchange_rate",
+          "type": "number",
+          "unit": "AVAX per sAVAX",
+          "derivation": "Allium's sAVAX price over its native AVAX price, WAVAX where native is missing, both stamped at 24:00 UTC of the day before"
+        },
+        {
+          "name": "savax_growth_30d_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "((rate / rate 30 days earlier) ** (365 / 30) - 1) * 100 for the day before"
+        },
+        {
+          "name": "savax_median_7d_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "median of the growth over the 7 days before the decision; null with fewer than 4"
+        },
+        {
+          "name": "savax_days_7d",
+          "type": "integer",
+          "unit": "days, 0 to 7",
+          "derivation": "days in that median"
+        },
+        {
+          "name": "bill_pct",
+          "type": "number",
+          "unit": "percent a year, discount basis",
+          "derivation": "DTB3 of the day before: the benchmark table's rate times 100 on its FRED DTB3 and carried-forward days, otherwise FRED's last published value on or before it"
+        },
+        {
+          "name": "bill_source",
+          "type": "string",
+          "unit": "af-benchmark or fred-tbill",
+          "derivation": "the table bill_pct comes from"
+        },
+        {
+          "name": "funding_pct",
+          "type": "number",
+          "unit": "percent of position value a year",
+          "derivation": "Binance AVAXUSDT mean funding rate per 8-hour event on the day before times 3 times 365 times 100"
+        },
+        {
+          "name": "funding_events",
+          "type": "integer",
+          "unit": "funding events",
+          "derivation": "events on the day before, 3 on a complete day"
+        },
+        {
+          "name": "hedged_bill_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "bill_pct less funding_pct"
+        },
+        {
+          "name": "hedged_median_7d_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "median of the hedged bill rate over the 7 days before the decision; null with fewer than 4"
+        },
+        {
+          "name": "hedged_days_7d",
+          "type": "integer",
+          "unit": "days, 0 to 7",
+          "derivation": "days in that median"
         }
       ]
     }

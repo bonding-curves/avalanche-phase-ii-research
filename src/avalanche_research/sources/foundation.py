@@ -1,20 +1,23 @@
 """Captures from the Avalanche Foundation's Snowflake account: Allium's hourly token prices, Allium's hourly WAVAX price
-from decentralised exchange trades, and the Foundation's daily C-Chain gas fees.
+from decentralised exchange trades, Allium's lending rate updates, and the Foundation's daily C-Chain gas fees and
+benchmark rates.
 
 The account is read-only and reached through a named connection, ``foundation`` unless
 ``AVALANCHE_FOUNDATION_SNOWFLAKE_CONNECTION`` names another, which snowflake-connector-python resolves from its
 connections.toml file. The account, user, role, warehouse and key file live in that file, outside the repository, and
-never enter a capture, a receipt or the output. Each dataset is one query file. A capture records the SQL text, its bound parameters, the Snowflake query ID and the
-session's role, warehouse, database and schema, and keeps every row the query returns in a compressed JSON-lines file
-with its SHA-256 hash. The capture holds every row of the table in its window, held-back dates included. The build types
-the rows and cuts nothing.
+never enter a capture, a receipt or the output. Each dataset is one query file. A capture records the SQL text, its
+bound parameters, the Snowflake query ID and the session's role, warehouse, database and schema, and keeps every row the
+query returns in a compressed JSON-lines file with its SHA-256 hash. The capture holds every row of the table in its
+window, held-back dates included. The build types the rows and cuts nothing.
 
-The checks report what can be wrong with each table: a repeated key, a price that is not positive, a row outside the
-captured window, and, for the price service, native AVAX against WAVAX in the hours both hold. Missing hours or days are
-counted per token, with the longest run, and reported in the summary rather than as findings, because the sources have
-genuine gaps: WAVAX lacks a few hours of the price service, the exchange price lacks hours without trades, and the gas
-table lacks days on which its economy recorded no fee. The exchange price can also be checked against a built
-``allium.prices-hourly`` run, day by day at the UTC close.
+The checks report what can be wrong with each table: a repeated key, a value that cannot be right, such as a price that
+is not positive or a negative rate, a row outside the captured window, and, for the price service, native AVAX against
+WAVAX in the hours both hold. Missing hours or days are counted per token, with the longest run, and reported in the
+summary rather than as findings, because the sources have genuine gaps: WAVAX lacks a few hours of the price service,
+the exchange price lacks hours without trades, and the gas table lacks days on which its economy recorded no fee. The
+lending summary counts each market's updates and the updates with a supply rate, which Compound v2 forks never record.
+The exchange price can be checked against a built ``allium.prices-hourly`` run, day by day at the UTC close, and the
+benchmark rates against a built ``fred.tbill-3m-daily`` run on the days the table marks as FRED's own value.
 """
 
 from __future__ import annotations
@@ -75,6 +78,9 @@ PAIR_SHARE = 0.98
 # The exchange price against the service's WAVAX price at the UTC close, on the days both hold.
 DEX_TOLERANCE = 0.03
 DEX_SHARE = 0.95
+# The benchmark table's published DTB3 days must equal FRED's: a decimal rate times 100 against FRED's percent.
+FRED_TBILL_ID = "fred.tbill-3m-daily"
+FRED_TOLERANCE = 1e-9
 
 
 @dataclass(frozen=True)
@@ -90,8 +96,10 @@ class Spec:
     transform_sql: str
     key: tuple[str, ...]
     time_column: str
-    step: str
+    step: str | None
     group: str | None
+    invalid_sql: str
+    invalid_label: str
 
 
 PRICES_HOURLY = Spec(
@@ -116,6 +124,8 @@ PRICES_HOURLY = Spec(
     time_column="hour_utc",
     step="hour",
     group="token",
+    invalid_sql="price_usd IS NULL OR price_usd <= 0",
+    invalid_label="carry a missing or non-positive price",
 )
 
 DEX_PRICES_HOURLY = Spec(
@@ -141,6 +151,8 @@ DEX_PRICES_HOURLY = Spec(
     time_column="hour_utc",
     step="hour",
     group="symbol",
+    invalid_sql="price_usd IS NULL OR price_usd <= 0",
+    invalid_label="carry a missing or non-positive price",
 )
 
 ECONOMY_GAS_FEES_DAILY = Spec(
@@ -161,9 +173,51 @@ ECONOMY_GAS_FEES_DAILY = Spec(
     time_column="date_utc",
     step="day",
     group=None,
+    invalid_sql="gas_used_avax IS NULL OR gas_used_avax <= 0",
+    invalid_label="carry a missing or non-positive burn",
 )
 
-SPECS = {spec.dataset_id: spec for spec in (PRICES_HOURLY, DEX_PRICES_HOURLY, ECONOMY_GAS_FEES_DAILY)}
+_LENDING_COLUMNS = {
+    "project": "VARCHAR", "protocol": "VARCHAR", "market_address": "VARCHAR", "token_address": "VARCHAR",
+    "token_symbol": "VARCHAR", "block_timestamp": "TIMESTAMP", "block_number": "BIGINT", "unique_id": "VARCHAR",
+    "supply_apy": "DOUBLE", "variable_borrow_apy": "DOUBLE", "stable_borrow_apy": "DOUBLE", "supplied_amount": "DOUBLE",
+    "supplied_amount_usd": "DOUBLE", "outstanding_loans": "DOUBLE", "usd_exchange_rate": "DOUBLE",
+}
+
+LENDING_INTEREST_RATES = Spec(
+    dataset_id="allium.lending-interest-rates",
+    query_id="allium-lending-interest-rates",
+    table="lending-interest-rates",
+    default_start="2021-01-01",
+    raw_types=_LENDING_COLUMNS,
+    table_columns=_LENDING_COLUMNS,
+    transform_sql="SELECT * FROM capture ORDER BY block_timestamp, unique_id",
+    key=("unique_id",),
+    time_column="block_timestamp",
+    step=None,
+    group=None,
+    invalid_sql="supply_apy < 0 OR variable_borrow_apy < 0 OR supplied_amount < 0 OR outstanding_loans < 0",
+    invalid_label="carry a negative rate or amount",
+)
+
+BENCHMARK_RATES_DAILY = Spec(
+    dataset_id="af.benchmark-rates-daily",
+    query_id="af-benchmark-rates-daily",
+    table="benchmark-rates-daily",
+    default_start="2024-01-01",
+    raw_types={"date_utc": "DATE", "rate_id": "VARCHAR", "rate_annual": "DOUBLE", "source": "VARCHAR"},
+    table_columns={"date_utc": "DATE", "rate_id": "VARCHAR", "rate_annual": "DOUBLE", "source": "VARCHAR"},
+    transform_sql="SELECT * FROM capture ORDER BY date_utc, rate_id",
+    key=("date_utc", "rate_id"),
+    time_column="date_utc",
+    step="day",
+    group="rate_id",
+    invalid_sql="rate_annual IS NULL OR rate_annual < 0",
+    invalid_label="carry a missing or negative rate",
+)
+
+SPECS = {spec.dataset_id: spec for spec in (
+    PRICES_HOURLY, DEX_PRICES_HOURLY, ECONOMY_GAS_FEES_DAILY, LENDING_INTEREST_RATES, BENCHMARK_RATES_DAILY)}
 DATASET_IDS = tuple(SPECS)
 
 
@@ -356,10 +410,6 @@ def load_capture(connection: Any, spec: Spec, capture_dir: Path, receipt: dict[s
             raise DataError(f"{unreadable} captured prices are not numbers")
 
 
-def _price_column(spec: Spec) -> str:
-    return "gas_used_avax" if spec is ECONOMY_GAS_FEES_DAILY else "price_usd"
-
-
 def coverage(connection: Any, spec: Spec) -> dict[str, Any]:
     """Per token (or for the table), its rows, first and last time, the steps missing between them, and the longest run
     of missing steps with where it starts."""
@@ -379,15 +429,33 @@ def coverage(connection: Any, spec: Spec) -> dict[str, Any]:
     }
 
 
+def markets(connection: Any) -> dict[str, Any]:
+    """Per project, protocol and token: its updates, the updates with a supply rate, its markets, and its first and
+    last update. Compound v2 forks record no supply rate."""
+    rows = connection.execute("""
+        SELECT project || '/' || protocol || '/' || token_symbol, COUNT(*), COUNT(supply_apy), COUNT(DISTINCT market_address),
+               MIN(block_timestamp), MAX(block_timestamp), MAX(supply_apy)
+        FROM rows GROUP BY 1 ORDER BY 1""").fetchall()
+    return {name: {"updates": count, "with_supply_rate": rated, "markets": markets_, "first": _json_value(first),
+                   "last": _json_value(last), "max_supply_apy": None if top is None else round(top, 6)}
+            for name, count, rated, markets_, first, last, top in rows}
+
+
 def summarize(connection: Any, spec: Spec) -> dict[str, Any]:
-    value = _price_column(spec)
-    count, first, last, total = connection.execute(
-        f"SELECT COUNT(*), MIN({spec.time_column}), MAX({spec.time_column}), SUM({value}) FROM rows").fetchone()
-    summary: dict[str, Any] = {"rows": count, "first": _json_value(first), "last": _json_value(last),
-                               "coverage": coverage(connection, spec)}
+    count, first, last = connection.execute(
+        f"SELECT COUNT(*), MIN({spec.time_column}), MAX({spec.time_column}) FROM rows").fetchone()
+    summary: dict[str, Any] = {"rows": count, "first": _json_value(first), "last": _json_value(last)}
+    if spec.step is not None:
+        summary["coverage"] = coverage(connection, spec)
     if spec is ECONOMY_GAS_FEES_DAILY:
+        total, without = connection.execute("SELECT SUM(gas_used_avax), COUNT_IF(gas_used_usd IS NULL) FROM rows").fetchone()
         summary["gas_used_avax_total"] = round(total or 0, 6)
-        summary["rows_without_usd"] = connection.execute("SELECT COUNT_IF(gas_used_usd IS NULL) FROM rows").fetchone()[0]
+        summary["rows_without_usd"] = without
+    if spec is LENDING_INTEREST_RATES:
+        summary["by_market"] = markets(connection)
+    if spec is BENCHMARK_RATES_DAILY:
+        summary["rows_by_source"] = dict(connection.execute(
+            "SELECT rate_id || ' ' || source, COUNT(*) FROM rows GROUP BY 1 ORDER BY 1").fetchall())
     return summary
 
 
@@ -405,17 +473,16 @@ def pair_agreement(connection: Any) -> dict[str, Any]:
 
 
 def check_counts(connection: Any, spec: Spec, window: dict[str, str]) -> list[str]:
-    value = _price_column(spec)
     key = ", ".join(spec.key)
-    repeats, outside, nonpositive = connection.execute(f"""
+    repeats, outside, invalid = connection.execute(f"""
         SELECT (SELECT COUNT(*) FROM rows) - (SELECT COUNT(*) FROM (SELECT DISTINCT {key} FROM rows)),
                COUNT_IF({spec.time_column} < ?::TIMESTAMP OR {spec.time_column} >= ?::TIMESTAMP),
-               COUNT_IF({value} IS NULL OR {value} <= 0)
+               COUNT_IF({spec.invalid_sql})
         FROM rows""", [window["start"], window["end"]]).fetchone()
     labels = (
         (repeats, f"rows repeat a key ({key})"),
         (outside, "rows lie outside the captured window"),
-        (nonpositive, "rows carry a missing or non-positive " + ("burn" if spec is ECONOMY_GAS_FEES_DAILY else "price")),
+        (invalid, f"rows {spec.invalid_label}"),
     )
     return [f"{count} {label}" for count, label in labels if count]
 
@@ -451,6 +518,41 @@ def dex_agreement(connection: Any, reference_dir: Path) -> tuple[dict[str, Any],
     elif within < DEX_SHARE:
         findings.append(f"{within:.2%} of {days} days lie within {DEX_TOLERANCE:.0%} of the price service's WAVAX price at "
                         f"the day's last exchange hour; at least {DEX_SHARE:.0%} must")
+    return summary, findings
+
+
+def _reference_parquet(reference_dir: Path, dataset_id: str) -> str:
+    try:
+        built = json.loads((reference_dir / "build.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise DataError(f"no build receipt in {reference_dir}: {error}") from error
+    if built.get("dataset_id") != dataset_id:
+        raise DataError(f"{reference_dir} is a run of {built.get('dataset_id')}, not {dataset_id}")
+    output = next(item for item in built["outputs"] if item["path"].endswith(".parquet"))
+    parquet = reference_dir / output["path"]
+    body = parquet.read_bytes()
+    if len(body) != output["bytes"] or sha256(body) != output["sha256"]:
+        raise DataError(f"reference Parquet differs from its build receipt: {parquet}")
+    return str(parquet).replace("'", "''")
+
+
+def fred_agreement(connection: Any, reference_dir: Path) -> tuple[dict[str, Any], list[str]]:
+    """The 3-month bill rate on the days the table marks as FRED's own value, against FRED's DTB3 as captured."""
+    path = _reference_parquet(reference_dir, FRED_TBILL_ID)
+    days, differing, missing = connection.execute(f"""
+        WITH f AS (SELECT date_utc, discount_rate_pct FROM read_parquet('{path}') WHERE discount_rate_pct IS NOT NULL),
+             b AS (SELECT date_utc, rate_annual * 100 AS pct FROM rows WHERE rate_id = 'DTB3' AND source = 'FRED DTB3'
+                   AND date_utc <= (SELECT max(date_utc) FROM f))
+        SELECT COUNT(f.date_utc), COUNT_IF(abs(b.pct - f.discount_rate_pct) > {FRED_TOLERANCE}), COUNT_IF(f.date_utc IS NULL)
+        FROM b LEFT JOIN f ON f.date_utc = b.date_utc""").fetchone()
+    summary = {"fred_days": days, "fred_days_differing": differing, "fred_days_missing": missing}
+    findings = []
+    if not days:
+        findings.append("no published DTB3 day is shared with the FRED capture")
+    if differing:
+        findings.append(f"{differing} of {days} published DTB3 days differ from FRED's value")
+    if missing:
+        findings.append(f"{missing} days the table marks as FRED DTB3 have no FRED value")
     return summary, findings
 
 
@@ -507,11 +609,12 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
     catalog = load_catalog()
     receipt = read_capture(capture_dir, catalog)
     spec = spec_for(receipt["dataset_id"])
-    if against is not None and spec is not DEX_PRICES_HOURLY:
+    if against is not None and spec not in (DEX_PRICES_HOURLY, BENCHMARK_RATES_DAILY):
         raise DataError(f"{spec.dataset_id} has no reference dataset to check against")
     window = receipt["queries"][0]["parameters"]
-    checked = ["capture hashes", "query text", "field types", "unique keys", "captured window", "positive values",
-               "gaps in the time grid, reported in the summary"]
+    checked = ["capture hashes", "query text", "field types", "unique keys", "captured window", "valid values"]
+    if spec.step is not None:
+        checked.append("gaps in the time grid, reported in the summary")
     connection = duckdb.connect()
     try:
         load_capture(connection, spec, capture_dir, receipt)
@@ -526,7 +629,12 @@ def check(capture_dir: Path, dataset_dir: Path | None = None, against: Path | No
             elif pair["share_within"] < PAIR_SHARE:
                 findings.append(f"{pair['share_within']:.3%} of {pair['hours']} shared hours price native AVAX within "
                                 f"{PAIR_TOLERANCE:.1%} of WAVAX; at least {PAIR_SHARE:.1%} must")
-        if against is not None:
+        if against is not None and spec is BENCHMARK_RATES_DAILY:
+            checked.append("FRED's DTB3 on every day the table marks as FRED's own value: equal")
+            extra, found = fred_agreement(connection, against)
+            summary.update(extra)
+            findings.extend(found)
+        elif against is not None:
             checked.append(f"the price service's WAVAX price at each day's last exchange hour: {DEX_SHARE:.0%} of days within {DEX_TOLERANCE:.0%}")
             extra, found = dex_agreement(connection, against)
             summary.update(extra)

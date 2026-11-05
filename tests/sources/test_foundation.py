@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sys
 
+import duckdb
 import pytest
 from click.testing import CliRunner
 
@@ -209,3 +210,53 @@ def test_cli_previews_a_capture_without_connecting(tmp_path, monkeypatch):
     value = json.loads(result.output)["preview"]
     assert value["source_id"] == foundation.SOURCE_ID and value["parameters"]["start"] == "2022-06-01"
     assert value["sql"] == "queries/allium-prices-hourly.sql" and not output.exists()
+
+
+def lending_rows():
+    base = {"project": "aave", "protocol": "aave_v3", "market_address": "0xpool", "token_address": foundation.WAVAX,
+            "token_symbol": "WAVAX", "block_number": 1, "variable_borrow_apy": 3.0, "stable_borrow_apy": 0.0,
+            "supplied_amount": 1e6, "supplied_amount_usd": 3e7, "outstanding_loans": 5e5, "usd_exchange_rate": 30.0}
+    rows = [{**base, "block_timestamp": f"2024-03-01T0{hour}:00:00Z", "unique_id": f"u{hour}", "supply_apy": 2.0 + hour / 10}
+            for hour in range(3)]
+    rows.append({**base, "project": "benqi", "protocol": "compound_v2", "token_symbol": "AVAX", "block_timestamp": "2024-03-01T05:00:00Z",
+                 "unique_id": "b1", "supply_apy": None, "variable_borrow_apy": 0.6})
+    return rows
+
+
+def test_lending_rates_count_markets_and_refuse_repeats_or_negative_rates(tmp_path):
+    run, _ = capture(tmp_path, foundation.LENDING_INTEREST_RATES, lending_rows())
+    built = foundation.build(foundation.LENDING_INTEREST_RATES.dataset_id, run / "capture", run / "dataset")
+    by_market = built["summary"]["by_market"]
+    assert by_market["aave/aave_v3/WAVAX"]["updates"] == 3 and by_market["benqi/compound_v2/AVAX"]["with_supply_rate"] == 0
+    assert "coverage" not in built["summary"]
+    assert foundation.check(run / "capture", run / "dataset")["status"] == "pass"
+    bad = [*lending_rows(), {**lending_rows()[0]}, {**lending_rows()[1], "unique_id": "neg", "supply_apy": -1.0}]
+    run, _ = capture(tmp_path, foundation.LENDING_INTEREST_RATES, bad, name="bad")
+    findings = foundation.check(run / "capture")["findings"]
+    assert any("repeat a key (unique_id)" in item for item in findings) and any("negative rate" in item for item in findings)
+
+
+def test_benchmark_rates_check_against_fred(tmp_path):
+    rows = [{"date_utc": "2024-01-01", "rate_id": "DTB3", "rate_annual": 0.0522, "source": "FRED DTB3 bfill"},
+            {"date_utc": "2024-01-02", "rate_id": "DTB3", "rate_annual": 0.0522, "source": "FRED DTB3"},
+            {"date_utc": "2024-01-03", "rate_id": "DTB3", "rate_annual": 0.0521, "source": "FRED DTB3"},
+            {"date_utc": "2024-01-04", "rate_id": "DTB3", "rate_annual": 0.0521, "source": "FRED DTB3 ffill"}]
+    run, _ = capture(tmp_path, foundation.BENCHMARK_RATES_DAILY, rows, parameters={"start": "2024-01-01", "end": "2024-01-05"})
+    built = foundation.build(foundation.BENCHMARK_RATES_DAILY.dataset_id, run / "capture", run / "dataset")
+    assert built["summary"]["rows_by_source"] == {"DTB3 FRED DTB3": 2, "DTB3 FRED DTB3 bfill": 1, "DTB3 FRED DTB3 ffill": 1}
+
+    def fred(name, values):
+        reference = tmp_path / name
+        reference.mkdir()
+        parquet = reference / "tbill-3m-daily.parquet"
+        duckdb.connect().execute(f"COPY (SELECT * FROM (VALUES {values}) AS t(date_utc, discount_rate_pct)) TO '{parquet}' (FORMAT PARQUET)")
+        body = parquet.read_bytes()
+        (reference / "build.json").write_text(json.dumps({"dataset_id": "fred.tbill-3m-daily", "outputs": [
+            {"path": parquet.name, "bytes": len(body), "sha256": foundation.sha256(body)}]}))
+        return reference
+
+    same = fred("same", "(DATE '2024-01-02', 5.22), (DATE '2024-01-03', 5.21)")
+    result = foundation.check(run / "capture", run / "dataset", same)
+    assert result["status"] == "pass" and result["summary"]["fred_days"] == 2
+    other = fred("other", "(DATE '2024-01-02', 5.22), (DATE '2024-01-03', 5.25)")
+    assert any("differ from FRED" in item for item in foundation.check(run / "capture", None, other)["findings"])
