@@ -60,6 +60,8 @@ PIN = Path("data/pins/p2-model-v0.8.json")
 DRAWS_SHA256 = "0e4a238778597b44e33b1be31a6179b715d67de0d2dd773ad6faca12331df75d"
 STATE = ("active_validators", "active_validator_stake_navax", "supply_navax", "issued_navax", "started_stake_navax",
          "started_stake_d0_21_navax", "started_stake_d45_100_navax")
+BANDS = ("started_stake_d0_21_navax", "started_stake_d45_100_navax")
+"""The duration-band state, present only when the base model records duration bands."""
 FLOATS = ("offered_rate_30d", "yield_gap_pp", "started_stake_days_navax")
 """The long table carries the state variables as rows and these three as columns of each row."""
 BUMP = {"bump_scale": 1.274, "bump_power": 25.0}
@@ -131,12 +133,15 @@ def wide_table(table: pd.DataFrame, cell_name: str, seed: int, draw: int, specif
     for column in FLOATS:
         wide[column] = table.groupby("timestep")[column].first()
     for name in STATE:
-        if name not in wide.columns:
+        if name in wide.columns:
+            wide[name] = wide[name].map(int).astype("int64")
+        elif name in BANDS:
+            wide[name] = pd.Series(pd.NA, index=wide.index, dtype="Int64")  # not recorded, so not measured
+        else:
             wide[name] = 0
-        wide[name] = wide[name].map(int).astype("int64")
     wide = wide.reset_index().rename(columns={"timestep": "day"})
-    for name in ("issued_navax", "started_stake_navax", "started_stake_d0_21_navax", "started_stake_d45_100_navax"):
-        wide[f"cumulative_{name}"] = wide[name].cumsum().astype("int64")
+    for name in ("issued_navax", "started_stake_navax", *BANDS):
+        wide[f"cumulative_{name}"] = wide[name].cumsum().astype(wide[name].dtype)
     wide["cumulative_started_stake_days_navax"] = wide["started_stake_days_navax"].fillna(0.0).cumsum()
     wide.insert(0, "cell", cell_name)
     wide.insert(1, "seed", seed)
