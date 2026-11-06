@@ -15,9 +15,10 @@ Granite. Each is a share or a probability that sweeps from 0, and at 0 the stage
   counter does not move.
 * The 48-hour minimum (ACP-273). A share of the commitments started from Helicon on take a period of 2 to 13 whole
   days, uniform, in place of the duration the model draws, within any bounds the reward rule sets.
-* The 90% uptime rule (ACP-267). A period ending from Helicon on misses the requirement with an added probability. A
-  missed period earns nothing: the reward the run minted for it at its start leaves the supply counter at its end,
-  as on the chain, and is recorded as ``uptime_forfeit_navax``.
+* The 90% uptime rule (ACP-267). The chain keys the 90% threshold to the period's start, so a period that starts from
+  Helicon on misses the requirement at its end with an added probability, and one that started before keeps the old
+  rule, which this model pays in full. A missed period earns nothing: the reward the run minted for it at its start
+  leaves the supply counter at its end, as on the chain, and is recorded as ``uptime_forfeit_navax``.
 
 "From Helicon on" is read at the instant each stage prices a day, noon UTC, so 2026-09-23 is the first such day. Every
 draw uses its own keyed stream (model.streams), so no existing draw moves.
@@ -48,6 +49,27 @@ _PRIVATE = ("cycle_rewards", "restaked")
 
 def from_helicon(at: datetime) -> bool:
     return MAINNET_UPGRADES.activated("helicon", at)
+
+
+def started_from_helicon(day_start: datetime, days: np.ndarray, days_left: np.ndarray) -> np.ndarray:
+    """Whether each period open at the start of the day stepping to ``day_start``, of ``days`` with ``days_left``
+    before today, started from Helicon on: its start, ``days - days_left + 1`` days before ``day_start``, is at or
+    after the activation."""
+    since = (day_start - HELICON).total_seconds() / 86_400
+    return (np.asarray(days, dtype=np.int64) - np.asarray(days_left, dtype=np.int64) + 1) <= since
+
+
+def period_missed(rules: HeliconRules, day: Day, key: np.ndarray, done: np.ndarray, days: np.ndarray,
+                  days_left: np.ndarray) -> np.ndarray:
+    """Whether each open period misses the uptime requirement under ACP-267: it started from Helicon on and its own
+    keyed draw falls below ``uptime_miss_increase``. The draw is keyed by the node and its period, so every reader of
+    one period, its validator's end and each of its delegations' ends, sees the same outcome."""
+    missed = np.zeros(len(key), dtype=bool)
+    if not rules.uptime_miss_increase or not len(key):
+        return missed
+    at = np.flatnonzero(started_from_helicon(day.start, days, days_left))
+    missed[at] = day.draw.uniforms("uptime_miss", key[at], done[at]) < rules.uptime_miss_increase
+    return missed
 
 
 @dataclass(frozen=True)
@@ -101,9 +123,8 @@ class _Renewal(_Wrapped):
         ends = state["days_left"] - 1 <= 0
         key, done = state["node_key"], state["done"]
         missed = np.zeros(len(ends), dtype=bool)
-        if rules.uptime_miss_increase and from_helicon(day.start):
-            at = np.flatnonzero(ends)
-            missed[at] = day.draw.uniforms("uptime_miss", key[at], done[at]) < rules.uptime_miss_increase
+        at = np.flatnonzero(ends)
+        missed[at] = period_missed(rules, day, key[at], done[at], state["days"][at], state["days_left"][at])
         continued = ends & state["auto_renew"] & ~missed
         if rules.auto_renew_exit_hazard:
             at = np.flatnonzero(continued)

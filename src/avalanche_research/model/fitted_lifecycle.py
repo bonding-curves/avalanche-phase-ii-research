@@ -286,10 +286,12 @@ class FittedLifecycle(SimulationModel):
     )
     uptime_miss_increase = param.Number(
         default=0.0, bounds=(0.0, 1.0), metadata={"omit_at_default": True, "source": "scenario"},
-        doc="ACP-267 90% all-or-nothing uptime: the added probability that a period ending from Helicon on earns no "
-            "reward. The reward the run minted for it leaves the supply counter at its end (uptime_forfeit_navax), an "
-            "auto-renewed validator that misses leaves the set, and the renewal and entry responses read the expected "
-            "reward received. 0 reproduces v0.9.0, which pays every period",
+        doc="ACP-267 90% all-or-nothing uptime: the added probability that a period starting from Helicon on, where "
+            "the chain keys the 90% threshold, earns no reward. A period started before keeps the old rule, paid in full "
+            "here. The reward the run minted for it leaves the supply counter at its end (uptime_forfeit_navax), and an "
+            "auto-renewed validator that misses leaves the set. The renewal and entry responses and the dollar margin "
+            "read the expected reward received: the rule's rate times (1 - uptime_miss_increase) for a 30-day stake "
+            "started from Helicon on. 0 reproduces v0.9.0, which pays every period",
     )
 
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
@@ -513,12 +515,11 @@ class FittedLifecycle(SimulationModel):
         # rule's own rate. Under ``top_up`` nothing is left unpaid, so these runs keep E009's gaps exactly, and a rule
         # that mints everything never enters this branch.
         receipt = self.funded and bool(self.mechanism.funds_from_revenue)
-        # Under the uptime rule (parts.helicon) a 30-day stake started on a day whose period ends from Helicon on is
-        # paid with probability 1 - miss, so the responses and the dollar margin read that share of the rule's rate.
-        # The rule refuses a funded run, so the two never meet.
+        # Under the uptime rule (parts.helicon) a 30-day stake started from Helicon on is paid with probability
+        # 1 - miss, so the responses and the dollar margin read that share of the rule's rate. The rule refuses a
+        # funded run, so the two never meet.
         miss = float(self.uptime_miss_increase)
-        missing = [miss if datetime.combine(day + timedelta(days=RESPONSE_DURATION_DAYS), time(12), tzinfo=UTC) >= helicon.HELICON
-                   else 0.0 for day in days]
+        missing = [miss if helicon.from_helicon(datetime.combine(day, time(12), tzinfo=UTC)) else 0.0 for day in days]
         rates = [(self.response_rate_pp(day, self.renewal_tenure), self.response_rate_pp(day, 0)) for day in days] if receipt or miss else None
 
         def p_lifecycle(params, substep, history, state):

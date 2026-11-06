@@ -181,6 +181,18 @@ def test_a_higher_uptime_miss_lowers_paid_issuance_and_supply_is_issued_less_for
     assert paid[0.8] < paid[0.3] < paid[0.0]
 
 
+def test_a_period_that_starts_before_helicon_and_ends_after_it_is_never_missed():
+    # 30-day arrivals: those started on timesteps 1 to 12, before Helicon, end on timesteps 31 to 42, after it.
+    base, missed = (run(arrivals_only(origin=ACROSS, days=30, timesteps=42, uptime_miss_increase=m)) for m in (0.0, 1.0))
+    ended = sum(path(missed, "ended_validators")[31:])
+    assert ended > 0 and sum(path(missed, helicon.FORFEIT)) == 0
+    assert path(missed, "supply_navax") == path(base, "supply_navax")
+    # Those started from Helicon on, which end from timestep 43, all miss.
+    later = run(arrivals_only(origin=ACROSS, days=30, timesteps=50, uptime_miss_increase=1.0))
+    forfeits = path(later, helicon.FORFEIT)
+    assert sum(forfeits[:43]) == 0 and sum(forfeits[43:]) == sum(path(later, "issued_navax")[13:21])
+
+
 def test_the_responses_read_the_expected_reward_received_under_the_uptime_rule():
     shared = {"renewal_response": 0.5, "entry_response": 0.5, "timesteps": 10, "runs": 1, "origin": AFTER}
     base, missing = model(**shared), model(**shared, uptime_miss_increase=0.4)
