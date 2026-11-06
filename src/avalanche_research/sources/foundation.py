@@ -1,6 +1,7 @@
 """Captures from the Avalanche Foundation's Snowflake account: Allium's hourly token prices, Allium's hourly WAVAX price
 from decentralised exchange trades, Allium's lending rate updates, the Foundation's daily C-Chain gas fees and
-benchmark rates, the last C-Chain block of each UTC day, Allium's atomic transactions between the C-Chain and the P-Chain, and the entity labels of Allium and
+benchmark rates, the last C-Chain block of each UTC day, the Foundation's monthly Gross Chain Product and Income and daily protocol
+revenue streams, Allium's daily chain overview, Allium's atomic transactions between the C-Chain and the P-Chain, and the entity labels of Allium and
 of the Foundation for the C-Chain addresses those transactions touch.
 
 The account is read-only and reached through a named connection, ``foundation`` unless
@@ -334,9 +335,75 @@ C_CHAIN_DAILY_LAST_BLOCKS = Spec(
     invalid_label="miss a hash, skip a block height or end on another day",
 )
 
+_GCP_GCI_COLUMNS = {"layer": "VARCHAR", "period_start_date": "DATE", "period_interval": "VARCHAR", "ngcp_usd": "DOUBLE", "ngcp_avax": "DOUBLE", "l_usd": "DOUBLE", "p_usd": "DOUBLE", "g_usd": "DOUBLE", "l_avax": "DOUBLE", "p_avax": "DOUBLE", "g_avax": "DOUBLE", "rgcp_level_usd": "DOUBLE", "rgcp_level_avax": "DOUBLE", "holder_yield_usd": "DOUBLE", "issuer_yield_usd": "DOUBLE", "issuer_yield_offchain_usd": "DOUBLE", "ngci_usd": "DOUBLE", "ngci_general_usd": "DOUBLE", "holder_yield_avax": "DOUBLE", "issuer_yield_avax": "DOUBLE", "issuer_yield_offchain_avax": "DOUBLE", "ngci_avax": "DOUBLE", "ngci_general_avax": "DOUBLE"}
+
+GCP_GCI_MONTHLY = Spec(
+    dataset_id="af.gcp-gci-monthly",
+    query_id="af-gcp-gci-monthly",
+    table="gcp-gci-monthly",
+    default_start="2020-09-01",
+    raw_types=_GCP_GCI_COLUMNS,
+    table_columns=_GCP_GCI_COLUMNS,
+    transform_sql="SELECT * FROM capture ORDER BY layer, period_start_date",
+    key=("layer", "period_start_date", "period_interval"),
+    time_column="period_start_date",
+    step="month",
+    group="layer",
+    # USD values start in February 2021, when the pipeline first has a USD price; the months before carry AVAX only.
+    invalid_sql="ngcp_avax IS NULL OR period_interval <> 'month'",
+    invalid_label="miss the nominal product in AVAX or are not monthly",
+)
+
+_STREAM_COLUMNS = {
+    "protocol_id": "VARCHAR", "date_utc": "DATE", "stream_id": "VARCHAR", "stream_type": "VARCHAR",
+    "denomination_token_address": "VARCHAR", "denomination_token_symbol": "VARCHAR", "amount_token": "DOUBLE",
+    "amount_usd": "DOUBLE", "amount_avax": "DOUBLE", "amount_usd_ref": "DOUBLE", "amount_avax_ref": "DOUBLE", "chain_id": "VARCHAR",
+}
+
+PROTOCOL_STREAMS_DAILY = Spec(
+    dataset_id="af.protocol-stream-token-metrics-daily",
+    query_id="af-protocol-stream-token-metrics-daily",
+    table="protocol-stream-token-metrics-daily",
+    default_start="2021-01-01",
+    raw_types=_STREAM_COLUMNS,
+    table_columns=_STREAM_COLUMNS,
+    transform_sql="SELECT * FROM capture ORDER BY protocol_id, date_utc, stream_id, denomination_token_address, chain_id",
+    key=("protocol_id", "date_utc", "stream_id", "denomination_token_address", "chain_id"),
+    time_column="date_utc",
+    step=None,
+    group=None,
+    # A fund's holder yield is negative on a day its value fell; revenue and cost streams are never negative.
+    invalid_sql="stream_type IN ('revenue', 'cost') AND (amount_token < 0 OR amount_avax < 0 OR amount_usd < 0)",
+    invalid_label="carry a negative revenue or cost",
+)
+
+_OVERVIEW_COLUMNS = {
+    "chain": "VARCHAR", "date_utc": "DATE", "total_blocks": "BIGINT", "total_transactions": "BIGINT",
+    "success_transactions": "BIGINT", "failed_transactions": "BIGINT", "transaction_fees": "DOUBLE",
+    "transaction_fees_usd": "DOUBLE", "active_addresses": "BIGINT", "new_addresses": "BIGINT",
+    "native_token_price_median_usd": "DOUBLE",
+}
+
+METRICS_OVERVIEW_DAILY = Spec(
+    dataset_id="allium.metrics-overview-daily",
+    query_id="allium-metrics-overview-daily",
+    table="metrics-overview-daily",
+    default_start="2020-09-23",
+    raw_types=_OVERVIEW_COLUMNS,
+    table_columns=_OVERVIEW_COLUMNS,
+    transform_sql="SELECT * FROM capture ORDER BY chain, date_utc",
+    key=("chain", "date_utc"),
+    time_column="date_utc",
+    step="day",
+    group="chain",
+    invalid_sql="transaction_fees IS NULL OR transaction_fees < 0 OR total_transactions < 0",
+    invalid_label="miss the fees or carry a negative count",
+)
+
 SPECS = {spec.dataset_id: spec for spec in (
     PRICES_HOURLY, DEX_PRICES_HOURLY, ECONOMY_GAS_FEES_DAILY, LENDING_INTEREST_RATES, BENCHMARK_RATES_DAILY,
-    P_CHAIN_ATOMIC, IDENTITY_LABELS_ATOMIC, ADDRESS_MAPPING_ATOMIC, C_CHAIN_DAILY_LAST_BLOCKS)}
+    P_CHAIN_ATOMIC, IDENTITY_LABELS_ATOMIC, ADDRESS_MAPPING_ATOMIC, C_CHAIN_DAILY_LAST_BLOCKS, GCP_GCI_MONTHLY,
+    PROTOCOL_STREAMS_DAILY, METRICS_OVERVIEW_DAILY)}
 DATASET_IDS = tuple(SPECS)
 
 
@@ -593,6 +660,18 @@ def summarize(connection: Any, spec: Spec) -> dict[str, Any]:
         summary["blocks"], summary["height_breaks"] = connection.execute("""
             SELECT SUM(blocks), COUNT_IF(next_first IS NOT NULL AND next_first <> last_block_number + 1)
             FROM (SELECT blocks, last_block_number, lead(first_block_number) OVER (ORDER BY date_utc) AS next_first FROM rows)""").fetchone()
+    if spec is GCP_GCI_MONTHLY:
+        summary["by_year"] = {f"{layer} {year}": {"ngcp_avax": None if product is None else round(product, 3), "ngci_avax": None if income is None else round(income, 3)}
+                              for layer, year, product, income in connection.execute("""
+                                  SELECT layer, year(period_start_date), SUM(ngcp_avax), SUM(ngci_avax) FROM rows GROUP BY 1, 2 ORDER BY 1, 2""").fetchall()}
+        summary["months_without_usd"] = connection.execute("SELECT COUNT_IF(ngcp_usd IS NULL) FROM rows").fetchone()[0]
+    if spec is PROTOCOL_STREAMS_DAILY:
+        summary["by_stream_year"] = {f"{protocol} {stream} {year}": round(avax or 0, 3) for protocol, stream, year, avax in connection.execute("""
+            SELECT protocol_id, stream_id, year(date_utc), SUM(amount_avax) FROM rows GROUP BY 1, 2, 3 ORDER BY 1, 2, 3""").fetchall()}
+        summary["negative_yield_rows"] = dict(connection.execute("""
+            SELECT stream_id, COUNT(*) FROM rows WHERE amount_avax < 0 GROUP BY 1 ORDER BY 1""").fetchall())
+    if spec is METRICS_OVERVIEW_DAILY:
+        summary["fees_avax_total"] = round(connection.execute("SELECT SUM(transaction_fees) FROM rows").fetchone()[0] or 0, 6)
     if spec is IDENTITY_LABELS_ATOMIC:
         summary["by_category"] = dict(connection.execute(
             "SELECT coalesce(primary_category, 'none'), COUNT(*) FROM rows GROUP BY 1 ORDER BY 1").fetchall())

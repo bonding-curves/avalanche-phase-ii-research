@@ -156,8 +156,12 @@ def test_catalog_schema_and_references_are_valid():
         "allium.identity-labels-atomic",
         "af.address-mapping-atomic",
         "allium.c-chain-daily-last-blocks",
+        "af.gcp-gci-monthly",
+        "af.protocol-stream-token-metrics-daily",
+        "allium.metrics-overview-daily",
         "derived.aave-wavax-filled",
         "derived.outside-yields-daily",
+        "derived.savax-yield-daily",
         "derived.stake-owner-types",
     ]
 

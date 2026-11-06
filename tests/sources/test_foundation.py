@@ -344,3 +344,41 @@ def test_daily_last_blocks_check(tmp_path, broken, finding):
     run, _ = capture(tmp_path, foundation.C_CHAIN_DAILY_LAST_BLOCKS, rows, parameters={"start": "2024-03-01", "end": "2024-03-04"})
     result = foundation.check(run / "capture")
     assert result["findings"] == ([] if finding is None else [finding])
+
+
+def test_gcp_gci_allows_months_without_usd_and_refuses_a_month_without_avax(tmp_path):
+    columns = foundation.GCP_GCI_MONTHLY.raw_types
+    base = {name: 1.0 for name in columns}
+    rows = [{**base, "layer": "economy", "period_start_date": "2024-01-01", "period_interval": "month", "ngcp_usd": None},
+            {**base, "layer": "network", "period_start_date": "2024-01-01", "period_interval": "month"}]
+    run, _ = capture(tmp_path, foundation.GCP_GCI_MONTHLY, rows, parameters={"start": "2024-01-01", "end": "2024-02-01"})
+    built = foundation.build(foundation.GCP_GCI_MONTHLY.dataset_id, run / "capture", run / "dataset")
+    assert built["summary"]["months_without_usd"] == 1 and built["summary"]["by_year"]["economy 2024"]["ngcp_avax"] == 1.0
+    assert foundation.check(run / "capture", run / "dataset")["status"] == "pass"
+    run, _ = capture(tmp_path, foundation.GCP_GCI_MONTHLY, [{**rows[1], "ngcp_avax": None}], name="bad",
+                     parameters={"start": "2024-01-01", "end": "2024-02-01"})
+    assert foundation.check(run / "capture")["findings"] == ["1 rows miss the nominal product in AVAX or are not monthly"]
+
+
+def test_streams_allow_a_negative_fund_yield_and_refuse_a_negative_revenue(tmp_path):
+    row = {"protocol_id": "benqi-staked-avax", "date_utc": "2024-03-01", "stream_id": "benqi-staked-avax-staking-yield",
+           "stream_type": "revenue", "denomination_token_address": "0x0", "denomination_token_symbol": "AVAX", "amount_token": 5.0,
+           "amount_usd": 200.0, "amount_avax": 5.0, "amount_usd_ref": 200.0, "amount_avax_ref": 5.0, "chain_id": "avalanche"}
+    fund = {**row, "protocol_id": "fund", "stream_id": "fund-holder-yield", "stream_type": "holder_yield", "amount_avax": -1.0}
+    run, _ = capture(tmp_path, foundation.PROTOCOL_STREAMS_DAILY, [row, fund])
+    built = foundation.build(foundation.PROTOCOL_STREAMS_DAILY.dataset_id, run / "capture", run / "dataset")
+    assert built["summary"]["negative_yield_rows"] == {"fund-holder-yield": 1}
+    assert built["summary"]["by_stream_year"]["benqi-staked-avax benqi-staked-avax-staking-yield 2024"] == 5.0
+    run, _ = capture(tmp_path, foundation.PROTOCOL_STREAMS_DAILY, [{**row, "amount_avax": -5.0}], name="bad")
+    assert foundation.check(run / "capture")["findings"] == ["1 rows carry a negative revenue or cost"]
+
+
+def test_metrics_overview_sums_fees_and_reports_missing_days(tmp_path):
+    def day(d, fees):
+        return {"chain": "avalanche", "date_utc": d, "total_blocks": 10, "total_transactions": 100, "success_transactions": 99,
+                "failed_transactions": 1, "transaction_fees": fees, "transaction_fees_usd": fees * 40, "active_addresses": 5,
+                "new_addresses": 1, "native_token_price_median_usd": 40.0}
+    run, _ = capture(tmp_path, foundation.METRICS_OVERVIEW_DAILY, [day("2024-03-01", 2.5), day("2024-03-03", 1.5)],
+                     parameters={"start": "2024-03-01", "end": "2024-03-04"})
+    built = foundation.build(foundation.METRICS_OVERVIEW_DAILY.dataset_id, run / "capture", run / "dataset")
+    assert built["summary"]["fees_avax_total"] == 4.0 and built["summary"]["coverage"]["avalanche"]["missing_days"] == 1

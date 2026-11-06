@@ -1748,6 +1748,16 @@
           "id": "address-mapping-atomic",
           "dataset_id": "af.address-mapping-atomic",
           "role": "the Foundation's entity mapping of the same addresses, joined beside the label"
+        },
+        {
+          "id": "savax-state-daily",
+          "dataset_id": "c-chain-rpc.savax-state-daily",
+          "role": "the AVAX one sAVAX redeems for at each UTC day's close, from BENQI's contract"
+        },
+        {
+          "id": "outside-yields-daily",
+          "dataset_id": "derived.outside-yields-daily",
+          "role": "the price-ratio liquid staking yield, read only for the comparison in the summary"
         }
       ]
     },
@@ -2271,6 +2281,85 @@
           "observed_semantics": [
             "AVALANCHE.RAW.BLOCKS holds one row per C-Chain block with NUMBER, HASH and TIMESTAMP in UTC",
             "From 2020-09-23 to 2026-11-05 every day with a block starts at the height after the previous day's last block; 21 days between 2020-09-25 and 2020-12-25 have no block"
+          ]
+        },
+        {
+          "id": "af-gcp-gci-monthly",
+          "sql": "queries/af-gcp-gci-monthly.sql",
+          "relations": [
+            "ECONOMY_GCP_MONTHLY",
+            "ECONOMY_GCI_MONTHLY",
+            "NETWORK_GCP_MONTHLY",
+            "NETWORK_GCI_MONTHLY"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-01",
+              "meaning": "inclusive lower UTC date on the month's first date"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC date"
+            }
+          ],
+          "observed_semantics": [
+            "The four views hold 75 monthly rows each, from 2020-09 to 2026-11 in the capture of 2026-11-05; the latest month is partial",
+            "NGCP is nominal Gross Chain Product, the sum of its parts L, P and G as the Foundation's pipeline defines them; NGCI is nominal Gross Chain Income, which adds holder and issuer yields; the economy views are views and the network views tables"
+          ]
+        },
+        {
+          "id": "af-protocol-stream-token-metrics-daily",
+          "sql": "queries/af-protocol-stream-token-metrics-daily.sql",
+          "relations": [
+            "PROTOCOL_STREAM_TOKEN_METRICS_DAILY"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2021-01-01",
+              "meaning": "inclusive lower UTC date on the stream date"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC date"
+            }
+          ],
+          "observed_semantics": [
+            "One row per protocol, day, stream, token and chain; 23,769 rows for benqi-staked-avax and the issuer_yield and holder_yield streams in the capture of 2026-11-05",
+            "benqi-staked-avax carries the stream benqi-staked-avax-staking-yield, the staking rewards on BENQI's pooled AVAX, 619,267 AVAX in 2024 and 946,128 AVAX in 2025, and benqi-staked-avax-holder-payout, the part paid to sAVAX holders, 557,341 and 851,515 AVAX",
+            "issuer_yield covers six stablecoin issuers and holder_yield eight tokenised fund and yield products"
+          ]
+        },
+        {
+          "id": "allium-metrics-overview-daily",
+          "sql": "queries/allium-metrics-overview-daily.sql",
+          "relations": [
+            "OVERVIEW"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-23",
+              "meaning": "inclusive lower UTC date on the activity date"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC date"
+            }
+          ],
+          "observed_semantics": [
+            "AVALANCHE.METRICS.OVERVIEW holds one row per day for chain avalanche, 2,213 days from 2020-09-23 in the capture of 2026-11-05",
+            "TRANSACTION_FEES is the day's C-Chain fees in AVAX, all of which are burned; it sums to about 13% more than the Foundation's ECONOMY_GAS_FEES_DAILY over the same days"
           ]
         }
       ]
@@ -10786,6 +10875,336 @@
       ]
     },
     {
+      "id": "af.gcp-gci-monthly",
+      "name": "The Foundation's monthly Gross Chain Product and Gross Chain Income, economy and network",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per layer and month of the Avalanche Foundation's Gross Chain Product and Gross Chain Income, read from its Snowflake account under the Foundation's agreement through a named connection: nominal product with its three parts, the real level, holder and issuer yields, and nominal income, each in USD and AVAX, for the economy and for the network. These are the layers of chain product and chain income the v0.10.0 fee revenue draws from. The capture holds every month in its window, the current partial month included, and the build cuts nothing. USD values start in February 2021, and the five months before carry AVAX only. The check refuses a repeated layer and month, a month without nominal product in AVAX, and a row outside the window, counts the months without USD, and sums product and income by layer and year in the summary.",
+      "query_ids": [
+        "af-gcp-gci-monthly"
+      ],
+      "fields": [
+        {
+          "name": "layer",
+          "type": "string",
+          "unit": "economy or network",
+          "derivation": "economy from the ECONOMY views, network from the NETWORK tables"
+        },
+        {
+          "name": "period_start_date",
+          "type": "string",
+          "unit": "UTC ISO date, the month's first day",
+          "derivation": "PERIOD_START_DATE"
+        },
+        {
+          "name": "period_interval",
+          "type": "string",
+          "unit": "month",
+          "derivation": "PERIOD_INTERVAL"
+        },
+        {
+          "name": "ngcp_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "NGCP_USD, nominal Gross Chain Product"
+        },
+        {
+          "name": "ngcp_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "NGCP_AVAX"
+        },
+        {
+          "name": "l_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "L_USD"
+        },
+        {
+          "name": "p_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "P_USD"
+        },
+        {
+          "name": "g_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "G_USD"
+        },
+        {
+          "name": "l_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "L_AVAX"
+        },
+        {
+          "name": "p_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "P_AVAX"
+        },
+        {
+          "name": "g_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "G_AVAX"
+        },
+        {
+          "name": "rgcp_level_usd",
+          "type": "number",
+          "unit": "US dollars of the base month",
+          "derivation": "RGCP_LEVEL_USD, real product"
+        },
+        {
+          "name": "rgcp_level_avax",
+          "type": "number",
+          "unit": "AVAX of the base month",
+          "derivation": "RGCP_LEVEL_AVAX"
+        },
+        {
+          "name": "holder_yield_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "HOLDER_YIELD_USD of the income view"
+        },
+        {
+          "name": "issuer_yield_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "ISSUER_YIELD_USD"
+        },
+        {
+          "name": "issuer_yield_offchain_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "ISSUER_YIELD_OFFCHAIN_USD"
+        },
+        {
+          "name": "ngci_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "NGCI_USD, nominal Gross Chain Income"
+        },
+        {
+          "name": "ngci_general_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "NGCI_GENERAL_USD"
+        },
+        {
+          "name": "holder_yield_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "HOLDER_YIELD_AVAX"
+        },
+        {
+          "name": "issuer_yield_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "ISSUER_YIELD_AVAX"
+        },
+        {
+          "name": "issuer_yield_offchain_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "ISSUER_YIELD_OFFCHAIN_AVAX"
+        },
+        {
+          "name": "ngci_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "NGCI_AVAX"
+        },
+        {
+          "name": "ngci_general_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "NGCI_GENERAL_AVAX"
+        }
+      ]
+    },
+    {
+      "id": "af.protocol-stream-token-metrics-daily",
+      "name": "Daily revenue streams of sAVAX, the stablecoin issuers and the tokenised funds",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per protocol, day, stream, token and chain of the Foundation's protocol stream metrics, read from its Snowflake account under the Foundation's agreement: BENQI's liquid staking token sAVAX, with its staking yield and its payout to holders, and the issuer yield of stablecoin issuers and the holder yield of tokenised bill and yield funds, each in tokens, USD and AVAX. The capture holds every row in its window and the build cuts nothing. A fund's holder yield is negative on a day its value fell, as on 139 days of two funds from September 2025. The check refuses a repeated key, a negative revenue or cost and a row outside the window, sums each stream's AVAX by year, and counts the negative yield days in the summary.",
+      "query_ids": [
+        "af-protocol-stream-token-metrics-daily"
+      ],
+      "fields": [
+        {
+          "name": "protocol_id",
+          "type": "string",
+          "unit": "protocol as the Foundation names it",
+          "derivation": "PROTOCOL_ID"
+        },
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "DATE"
+        },
+        {
+          "name": "stream_id",
+          "type": "string",
+          "unit": "stream as the Foundation names it",
+          "derivation": "STREAM_ID"
+        },
+        {
+          "name": "stream_type",
+          "type": "string",
+          "unit": "revenue, cost, issuer_yield or holder_yield",
+          "derivation": "STREAM_TYPE"
+        },
+        {
+          "name": "denomination_token_address",
+          "type": "string",
+          "unit": "C-Chain contract address",
+          "derivation": "DENOMINATION_TOKEN_ADDRESS"
+        },
+        {
+          "name": "denomination_token_symbol",
+          "type": "string",
+          "unit": "symbol",
+          "derivation": "DENOMINATION_TOKEN_SYMBOL"
+        },
+        {
+          "name": "amount_token",
+          "type": "number",
+          "unit": "tokens",
+          "derivation": "AMOUNT_TOKEN"
+        },
+        {
+          "name": "amount_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "AMOUNT_USD"
+        },
+        {
+          "name": "amount_avax",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "AMOUNT_AVAX"
+        },
+        {
+          "name": "amount_usd_ref",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "AMOUNT_USD_REF"
+        },
+        {
+          "name": "amount_avax_ref",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "AMOUNT_AVAX_REF"
+        },
+        {
+          "name": "chain_id",
+          "type": "string",
+          "unit": "chain as the Foundation names it",
+          "derivation": "CHAIN_ID"
+        }
+      ]
+    },
+    {
+      "id": "allium.metrics-overview-daily",
+      "name": "Allium's daily C-Chain overview: blocks, transactions, fees and addresses",
+      "source_id": "af-foundation-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC day of Allium's C-Chain overview, read from the Avalanche Foundation's Snowflake account under the Foundation's agreement: blocks, transactions, the day's fees in AVAX and USD, active and new addresses and the median AVAX price. Every C-Chain fee is burned, so the fees are one of the series the burn layer is traced against. The capture holds every day in its window and the build cuts nothing. The check refuses a repeated day, a day without fees, a negative count and a row outside the window, reports missing days in the summary, and sums the fees.",
+      "query_ids": [
+        "allium-metrics-overview-daily"
+      ],
+      "fields": [
+        {
+          "name": "chain",
+          "type": "string",
+          "unit": "chain as Allium names it",
+          "derivation": "CHAIN"
+        },
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "ACTIVITY_DATE"
+        },
+        {
+          "name": "total_blocks",
+          "type": "integer",
+          "unit": "blocks",
+          "derivation": "TOTAL_BLOCKS"
+        },
+        {
+          "name": "total_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "TOTAL_TRANSACTIONS"
+        },
+        {
+          "name": "success_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "SUCCESS_TRANSACTIONS"
+        },
+        {
+          "name": "failed_transactions",
+          "type": "integer",
+          "unit": "transactions",
+          "derivation": "FAILED_TRANSACTIONS"
+        },
+        {
+          "name": "transaction_fees",
+          "type": "number",
+          "unit": "AVAX",
+          "derivation": "TRANSACTION_FEES"
+        },
+        {
+          "name": "transaction_fees_usd",
+          "type": "number",
+          "unit": "US dollars",
+          "derivation": "TRANSACTION_FEES_USD"
+        },
+        {
+          "name": "active_addresses",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "ACTIVE_ADDRESSES"
+        },
+        {
+          "name": "new_addresses",
+          "type": "integer",
+          "unit": "addresses",
+          "derivation": "NEW_ADDRESSES"
+        },
+        {
+          "name": "native_token_price_median_usd",
+          "type": "number",
+          "unit": "US dollars per AVAX",
+          "derivation": "NATIVE_TOKEN_PRICE_MEDIAN_USD"
+        }
+      ]
+    },
+    {
       "id": "derived.aave-wavax-filled",
       "name": "Aave v3 WAVAX supply rate by day, DefiLlama's series with its gaps filled from Allium",
       "source_id": "derived",
@@ -10980,6 +11399,86 @@
           "type": "integer",
           "unit": "days, 0 to 7",
           "derivation": "days in that median"
+        }
+      ]
+    },
+    {
+      "id": "derived.savax-yield-daily",
+      "name": "The liquid staking yield from sAVAX's contract rate, by decision day before the held-back cut",
+      "source_id": "derived",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per decision day from 2022-01-28 to 2025-11-18 with the 30-day liquid staking yield read from the AVAX one sAVAX redeems for in BENQI's contract, the yield a holder of sAVAX earns. It sits beside derived.outside-yields-daily, whose price-ratio yield is unchanged. A row is dated by the decision day d and reads the state at day d-1's last block. The yield is the rate's growth over 30 days compounded to a year, in percent, and the 7-day median is the median of the yields of days d-7 to d-1 that have a value, kept when at least 4 do. The market discount, Allium's hourly sAVAX over AVAX price at 24:00 UTC of day d-1 over the contract rate less 1, is a separate column and not a yield. No row is dated on or after 2025-11-19 and every state read is at a block before 2025-11-19 00:00 UTC. The check requires that, one row per decision day, and the same rows from a rebuild and from a rebuild with every input cut at that instant. The summary compares the yield with the price-ratio yield on the days both hold.",
+      "input_ids": [
+        "savax-state-daily",
+        "prices-hourly",
+        "outside-yields-daily"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date, the decision day",
+          "derivation": "d"
+        },
+        {
+          "name": "rate_day",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "d-1, the day whose close gives the rate"
+        },
+        {
+          "name": "state_block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "block_timestamp of the state read for rate_day"
+        },
+        {
+          "name": "avax_per_savax",
+          "type": "number",
+          "unit": "AVAX per sAVAX",
+          "derivation": "avax_per_savax of c-chain-rpc.savax-state-daily on rate_day"
+        },
+        {
+          "name": "savax_supply",
+          "type": "number",
+          "unit": "sAVAX",
+          "derivation": "savax_supply on rate_day"
+        },
+        {
+          "name": "savax_growth_30d_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "((R(d-1) / R(d-31)) ^ (365 / 30) - 1) * 100"
+        },
+        {
+          "name": "savax_median_7d_pct",
+          "type": "number",
+          "unit": "percent a year",
+          "derivation": "median of savax_growth_30d_pct over days d-7 to d-1, when at least 4 have a value"
+        },
+        {
+          "name": "savax_days_7d",
+          "type": "integer",
+          "unit": "days",
+          "derivation": "days of the 7 with a yield"
+        },
+        {
+          "name": "price_ratio",
+          "type": "number",
+          "unit": "sAVAX price over AVAX price",
+          "derivation": "Allium's sAVAX price over its native AVAX price, else WAVAX, at the 24:00 UTC stamp of d-1"
+        },
+        {
+          "name": "market_discount_pct",
+          "type": "number",
+          "unit": "percent; negative when sAVAX trades below its contract rate",
+          "derivation": "(price_ratio / avax_per_savax - 1) * 100"
         }
       ]
     },

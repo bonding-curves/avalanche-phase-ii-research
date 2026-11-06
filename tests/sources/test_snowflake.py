@@ -488,8 +488,9 @@ def test_cli_preview_resolves_parameters_without_writing(tmp_path):
         "c-chain-rpc.minipool-records", "c-chain-rpc.savax-state-daily", "derived.operator-clusters",
         "allium.prices-hourly", "allium.dex-token-prices-hourly", "af.economy-gas-fees-daily", "derived.market-daily-vector",
         "allium.lending-interest-rates", "af.benchmark-rates-daily", "allium.p-chain-atomic-transactions",
-        "allium.identity-labels-atomic", "af.address-mapping-atomic", "allium.c-chain-daily-last-blocks", "derived.aave-wavax-filled", "derived.outside-yields-daily",
-        "derived.stake-owner-types",
+        "allium.identity-labels-atomic", "af.address-mapping-atomic", "allium.c-chain-daily-last-blocks", "af.gcp-gci-monthly",
+        "af.protocol-stream-token-metrics-daily", "allium.metrics-overview-daily", "derived.aave-wavax-filled", "derived.outside-yields-daily",
+        "derived.savax-yield-daily", "derived.stake-owner-types",
     ]
 
 
