@@ -371,7 +371,7 @@ def forfeit_day(missed):
     """RV-20261105-20 F1's ledger: a continuing auto-renewed 2,000 AVAX validator and a 3,000,000 AVAX validator ending
     today whose cycle reward is forfeited when ``missed``, with the day's starts asking for the whole validator pool.
     The renewal signal is supplied, as the review supplied it."""
-    from avalanche_research.model.parts.participation import cap_started, validator_pool
+    from avalanche_research.model.parts.participation import cap_started
     from avalanche_research.model.parts.stages import assembly_stage, rewards_stage
 
     none, flags = np.array([], dtype=np.int64), np.array([], dtype=bool)
@@ -394,7 +394,9 @@ def forfeit_day(missed):
     renewal = {"days_left": two(5, 0), "ending": two(False, True), "renews": np.array([False]), "continued": two(True, False),
                "missed": two(False, missed), "ended": {k: state[k][[False, True]] for k in ("stakes", "done", "days", "returns", "node_key")}}
     earlier = {"renewal": renewal, "returns": {"out_days": none, "comes_back": flags}}
-    pool = validator_pool(state, day, earlier)
+    # The requests are fixed from the opening ledger with nothing reserved, the supply less the continuing stake, so
+    # that the supply limit, and not the requests, has to hold back the forfeit.
+    pool = opening - int(state["stakes"][~renewal["ending"]].sum())
     n, rest = divmod(pool, 3_000_000 * AVAX)
     amounts = [3_000_000 * AVAX] * n + ([rest] if rest else [])
     k = len(amounts)
@@ -404,14 +406,15 @@ def forfeit_day(missed):
     rules = helicon.HeliconRules(auto_renew_share=1.0, auto_compound_share=1.0, uptime_miss_increase=0.5)
     earlier["rewards"] = helicon._Rewards(rewards_stage, rules)(state, day, earlier)
     out = helicon._Assembly(assembly_stage, rules)(state, day, earlier)
-    return opening, forfeitable, out
+    return opening, forfeitable, pool, int(earlier["continuation"]["started"]["stakes"].sum()), out
 
 
 @pytest.mark.parametrize("missed", [False, True], ids=["no-forfeit", "forfeit"])
 def test_the_days_starts_never_spend_a_reward_forfeited_the_same_day(missed):
-    opening, forfeitable, out = forfeit_day(missed)
+    opening, forfeitable, requested, funded, out = forfeit_day(missed)
     forfeit = int(out[helicon.FORFEIT])
     assert forfeit == (forfeitable if missed else 0)
+    assert funded <= requested - forfeit  # the supply limit trims the fixed requests by the forfeit
     assert int(out["stakes"].sum()) <= opening + int(out["issued_navax"]) - forfeit
 
 
