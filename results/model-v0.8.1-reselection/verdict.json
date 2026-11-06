@@ -1,0 +1,37 @@
+{
+  "challenger": "v0.8.1 candidate",
+  "incumbent": "v0.8.0",
+  "origins": 19,
+  "verdict": "no event test",
+  "reasons": [
+    "no event test"
+  ],
+  "system_test": "pass",
+  "stake_90_day_difference": 0.0,
+  "cells": {
+    "active_validator_stake_navax 30": {
+      "mean_difference": 0.0,
+      "p_worse": 1.0
+    },
+    "active_validator_stake_navax 90": {
+      "mean_difference": 0.0,
+      "p_worse": 1.0
+    },
+    "active_validator_stake_navax 180": {
+      "mean_difference": 0.0,
+      "p_worse": 1.0
+    },
+    "active_validators 30": {
+      "mean_difference": 0.0,
+      "p_worse": 1.0
+    },
+    "active_validators 90": {
+      "mean_difference": 0.0,
+      "p_worse": 1.0
+    },
+    "active_validators 180": {
+      "mean_difference": 0.0,
+      "p_worse": 1.0
+    }
+  }
+}
