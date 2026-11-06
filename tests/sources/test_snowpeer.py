@@ -80,6 +80,7 @@ def test_catalog_schema_and_references_are_valid():
         "snowflake.primary-burn-daily",
         "snowflake.c-chain-block-gaps",
         "snowflake.subnet-validator-transactions",
+        "snowflake.p-chain-l1-fee-state-daily",
         "coingecko.avax-market-daily",
         "binance.avax-usdt-daily",
         "defillama.avax-price-daily",

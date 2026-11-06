@@ -627,9 +627,54 @@ SUBNET_VALIDATOR_TRANSACTIONS = DatasetSpec(
     ),
 )
 
+L1_FEE_STATE_DAILY = DatasetSpec(
+    dataset_id="snowflake.p-chain-l1-fee-state-daily",
+    query_id="p-chain-l1-fee-state-daily",
+    tx_types=(),
+    raw_types={
+        "date_utc": "DATE", "blocks": "BIGINT", "first_block_height": "BIGINT", "last_block_height": "BIGINT",
+        "last_block_timestamp": "TIMESTAMP", "active_l1_validators": "BIGINT", "peak_active_l1_validators": "BIGINT",
+        "accrued_fee_navax": "BIGINT", "l1_validator_fees_navax": "BIGINT", "excess_gas": "BIGINT",
+        "fee_state_capacity": "BIGINT", "fee_state_excess": "BIGINT",
+    },
+    table_columns={
+        "date_utc": "DATE", "blocks": "BIGINT", "first_block_height": "BIGINT", "last_block_height": "BIGINT",
+        "last_block_timestamp": "TIMESTAMP", "active_l1_validators": "BIGINT", "peak_active_l1_validators": "BIGINT",
+        "accrued_fee_navax": "BIGINT", "l1_validator_fees_navax": "BIGINT", "excess_gas": "BIGINT",
+        "fee_state_capacity": "BIGINT", "fee_state_excess": "BIGINT",
+    },
+    transform_sql="SELECT * FROM capture ORDER BY date_utc",
+    validity_sql="""
+        COUNT_IF(date_utc IS NULL OR blocks IS NULL OR active_l1_validators IS NULL OR accrued_fee_navax IS NULL
+                 OR l1_validator_fees_navax IS NULL),
+        COUNT_IF(blocks <= 0 OR active_l1_validators < 0 OR accrued_fee_navax < 0 OR l1_validator_fees_navax < 0)""",
+    validity_labels=("miss a required daily field", "have no block or a negative count or fee"),
+    check_names=("unique dates", "acceptance window", "contiguous block heights", "the accrued fee never falls",
+                 "last block on its day"),
+    check_sql="""
+        COUNT(*) - COUNT(DISTINCT date_utc),
+        COUNT_IF(date_utc < ?::DATE OR date_utc >= ?::DATE),
+        (SELECT COUNT(*) FROM (SELECT first_block_height, lag(last_block_height) OVER (ORDER BY date_utc) AS previous FROM rows)
+         WHERE previous IS NOT NULL AND first_block_height <> previous + 1)
+          + COUNT_IF(last_block_height - first_block_height + 1 <> blocks),
+        (SELECT COUNT(*) FROM (SELECT accrued_fee_navax, lag(accrued_fee_navax) OVER (ORDER BY date_utc) AS previous FROM rows)
+         WHERE accrued_fee_navax < previous),
+        COUNT_IF(last_block_timestamp::DATE <> date_utc)""",
+    check_labels=("repeat a UTC date", "are outside the requested UTC window",
+                  "do not continue the previous day's heights or skip a height",
+                  "have an accrued fee below the previous day's", "end on a block from another day"),
+    check_params=lambda window: [window["start"], window["end"]],
+    summary_sql="""
+        COUNT(*), MIN(date_utc), MAX(date_utc), SUM(blocks), SUM(l1_validator_fees_navax), MAX(peak_active_l1_validators),
+        arg_max(active_l1_validators, date_utc), MAX(accrued_fee_navax)""",
+    summary_keys=("rows", "first_date", "last_date", "blocks", "l1_validator_fees_navax", "peak_active_l1_validators",
+                  "last_active_l1_validators", "accrued_fee_navax"),
+)
+
 SPECS = {spec.dataset_id: spec for spec in (
     VALIDATOR_STAKES, DELEGATOR_STAKES, STAKING_REWARDS, STAKING_SUPPLY,
     PRIMARY_BURN_EVENTS, C_CHAIN_EVM_BURN_DAILY, PRIMARY_BURN_DAILY, C_CHAIN_BLOCK_GAPS, SUBNET_VALIDATOR_TRANSACTIONS,
+    L1_FEE_STATE_DAILY,
 )}
 DATASET_IDS = tuple(SPECS)
 DATASET_ID = VALIDATOR_STAKES.dataset_id

@@ -508,3 +508,27 @@ def test_cli_rejects_parameters_for_snowpeer_and_malformed_values(monkeypatch, c
     monkeypatch.setattr(sys, "argv", ["avalanche", "data", "fetch", snowflake.DATASET_ID, "--output", "x", "--param", "start", "--preview"])
     assert cli.main() == 2
     assert "key=value" in capsys.readouterr().err
+
+
+def l1_day(day, first, last, active=3, accrued=1_000, fees=300):
+    return {
+        "date_utc": day, "blocks": last - first + 1, "first_block_height": first, "last_block_height": last,
+        "last_block_timestamp": datetime(day.year, day.month, day.day, 23, 59, 50), "active_l1_validators": active,
+        "peak_active_l1_validators": active, "accrued_fee_navax": accrued, "l1_validator_fees_navax": fees,
+        "excess_gas": 0, "fee_state_capacity": 1_000_000, "fee_state_excess": 0,
+    }
+
+
+def test_l1_fee_state_daily_requires_contiguous_heights_and_a_rising_accrued_fee(tmp_path):
+    rows = [l1_day(date(2025, 3, 11), 100, 199, accrued=1_000, fees=300), l1_day(date(2025, 3, 12), 200, 299, accrued=1_100, fees=330)]
+    window = {"start": "2025-03-11", "end": "2025-03-13"}
+    capture_dir, _ = make_capture(tmp_path, rows, window, snowflake.L1_FEE_STATE_DAILY)
+    dataset_dir = tmp_path / "dataset"
+    build = snowflake.build(snowflake.L1_FEE_STATE_DAILY.dataset_id, capture_dir, dataset_dir)
+    assert build["summary"]["l1_validator_fees_navax"] == 630 and build["summary"]["blocks"] == 200
+    assert snowflake.check(capture_dir, dataset_dir)["findings"] == []
+    broken = [rows[0], l1_day(date(2025, 3, 12), 201, 299, accrued=900, fees=330)]
+    broken_capture, _ = make_capture(tmp_path / "broken", broken, window, snowflake.L1_FEE_STATE_DAILY)
+    findings = snowflake.check(broken_capture)["findings"]
+    assert "1 rows do not continue the previous day's heights or skip a height" in findings
+    assert "1 rows have an accrued fee below the previous day's" in findings

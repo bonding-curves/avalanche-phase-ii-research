@@ -1346,6 +1346,31 @@
             "RegisterL1ValidatorTx and DisableL1ValidatorTx carry NODE_ID, SUBNET_ID, and L1_VALIDATOR_WEIGHT",
             "No AddPermissionlessValidatorTx names a Subnet other than the Primary Network (checked 2026-09-29)"
           ]
+        },
+        {
+          "id": "p-chain-l1-fee-state-daily",
+          "sql": "queries/p-chain-l1-fee-state-daily.sql",
+          "relations": [
+            "P_BLOCKS"
+          ],
+          "parameters": [
+            {
+              "name": "start",
+              "type": "date",
+              "default": "2020-09-10",
+              "meaning": "inclusive lower UTC block date; the state starts on 2024-12-16"
+            },
+            {
+              "name": "end",
+              "type": "date",
+              "default": "the UTC day after the capture date",
+              "meaning": "exclusive upper UTC block date"
+            }
+          ],
+          "observed_semantics": [
+            "AVALANCHE_PRIMARY_NETWORK_DATA.PRIMARY.P_BLOCKS holds one row per P-Chain block; from block 20,107,576 on 2024-12-16 12:24:27 UTC it carries the ACP-77 fee state, 5,436,342 blocks to 2026-09-22, where the share stops",
+            "L1_VALIDATOR_ACCRUED_FEES is the fee in nAVAX each active L1 validator has accrued since the state began, and it never falls; L1_VALIDATOR_ACTIVE_COUNT is the active L1 validator count after the block; L1_VALIDATOR_EXCESS_GAS sets the fee's price under ACP-77"
+          ]
         }
       ]
     },
@@ -3278,6 +3303,96 @@
           "type": "integer",
           "unit": "L1 validator weight",
           "derivation": "P_TRANSACTIONS.L1_VALIDATOR_WEIGHT, L1 transactions only"
+        }
+      ]
+    },
+    {
+      "id": "snowflake.p-chain-l1-fee-state-daily",
+      "name": "The L1 validator fee state of the P-Chain by UTC date",
+      "source_id": "avalanche-snowflake",
+      "status": "implemented",
+      "contract_quantities": [
+        "context"
+      ],
+      "studies": [
+        "How Do Avalanche Validators Actually Think About Staking Rewards?"
+      ],
+      "description": "One row per UTC date from 2024-12-16 of the ACP-77 L1 validator fee state in the P-Chain block table of the Snowflake share: the day's blocks and heights, and at its last block the active L1 validator count, the fee each active validator has accrued since the state began, the excess gas that sets the fee's price, and the fee state's capacity and excess. The day's fee is the active count before each block times the rise in the accrued fee at that block, summed over the day's blocks; the continuous L1 validator fee is consumed from validator balances and lowers realised supply. The share stops on 2026-09-22, and the P-Chain block list from the node continues the counters after it. The check refuses a repeated date, a day outside the window, a day that does not continue the previous day's heights or skips one, an accrued fee below the previous day's, and a last block from another day.",
+      "query_ids": [
+        "p-chain-l1-fee-state-daily"
+      ],
+      "fields": [
+        {
+          "name": "date_utc",
+          "type": "string",
+          "unit": "UTC ISO date",
+          "derivation": "the block timestamp's date"
+        },
+        {
+          "name": "blocks",
+          "type": "integer",
+          "unit": "P-Chain blocks",
+          "derivation": "blocks on the day"
+        },
+        {
+          "name": "first_block_height",
+          "type": "integer",
+          "unit": "P-Chain height",
+          "derivation": "the day's lowest BLOCK_HEIGHT"
+        },
+        {
+          "name": "last_block_height",
+          "type": "integer",
+          "unit": "P-Chain height",
+          "derivation": "the day's highest BLOCK_HEIGHT"
+        },
+        {
+          "name": "last_block_timestamp",
+          "type": "timestamp",
+          "unit": "UTC",
+          "derivation": "TIMESTAMP of the last block"
+        },
+        {
+          "name": "active_l1_validators",
+          "type": "integer",
+          "unit": "validators",
+          "derivation": "L1_VALIDATOR_ACTIVE_COUNT at the last block"
+        },
+        {
+          "name": "peak_active_l1_validators",
+          "type": "integer",
+          "unit": "validators",
+          "derivation": "the day's largest L1_VALIDATOR_ACTIVE_COUNT"
+        },
+        {
+          "name": "accrued_fee_navax",
+          "type": "integer",
+          "unit": "nAVAX per active validator since 2024-12-16",
+          "derivation": "L1_VALIDATOR_ACCRUED_FEES at the last block"
+        },
+        {
+          "name": "l1_validator_fees_navax",
+          "type": "integer",
+          "unit": "nAVAX",
+          "derivation": "the sum over the day's blocks of the previous block's active count times the rise in L1_VALIDATOR_ACCRUED_FEES"
+        },
+        {
+          "name": "excess_gas",
+          "type": "integer",
+          "unit": "gas",
+          "derivation": "L1_VALIDATOR_EXCESS_GAS at the last block"
+        },
+        {
+          "name": "fee_state_capacity",
+          "type": "integer",
+          "unit": "gas",
+          "derivation": "FEE_STATE_CAPACITY at the last block"
+        },
+        {
+          "name": "fee_state_excess",
+          "type": "integer",
+          "unit": "gas",
+          "derivation": "FEE_STATE_EXCESS at the last block"
         }
       ]
     },
