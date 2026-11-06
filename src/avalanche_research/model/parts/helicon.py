@@ -20,6 +20,13 @@ Granite. Each is a share or a probability that sweeps from 0, and at 0 the stage
   rule, which this model pays in full. A missed period earns nothing: the reward the run minted for it at its start
   leaves the supply counter at its end, as on the chain, and is recorded as ``uptime_forfeit_navax``.
 
+With delegations (``DelegatedLifecycle``, ``DelegatedStakeLifecycle``) the delegation laws are unchanged. A placement
+reads each validator's days left, which for an auto-renewed validator is its current cycle, so every delegation ends by
+that cycle's end and none spans a renewal, as ACP-236 requires, and a validator that exits or misses its uptime has no
+delegation left. Under the uptime rule a delegation ending on a validator whose period missed earns nothing, as the
+chain's abort branch pays the delegator nothing (``delegator_rewards_at_end``), and its reward leaves the supply with
+the validator's. The holder model of v0.10.0 is refused.
+
 "From Helicon on" is read at the instant each stage prices a day, noon UTC, so 2026-09-23 is the first such day. Every
 draw uses its own keyed stream (model.streams), so no existing draw moves.
 """
@@ -88,14 +95,17 @@ class HeliconRules:
                     self.short_period_share, self.uptime_miss_increase))
 
     def stages(self, stages: tuple) -> tuple:
-        """``stages`` with the renewal, continuation, rewards and assembly stages wrapped, or unchanged when no rule is
-        set. A model with delegations or holders is refused: their stages read validator end dates these rules move."""
+        """``stages`` with the renewal, continuation, rewards, assembly and delegations stages wrapped, or unchanged
+        when no rule is set. The holder model of v0.10.0 is refused."""
         if not self.active:
             return stages
         names = [name for name, _ in stages]
-        if set(names) - {"renewal", "returns", "arrivals", "continuation", "rewards", "assembly"}:
-            raise ValueError(f"the Helicon rules are built for the validator lifecycle, not one with stages {names}")
-        wrap = {"renewal": _Renewal, "continuation": _Continuation, "rewards": _Rewards, "assembly": _Assembly}
+        if "holders" in names:
+            raise ValueError("the Helicon rules are not built for the holder model of v0.10.0")
+        if set(names) - {"renewal", "returns", "arrivals", "continuation", "rewards", "assembly", "delegations"}:
+            raise ValueError(f"the Helicon rules are built for the validator lifecycle and its delegations, not stages {names}")
+        wrap = {"renewal": _Renewal, "continuation": _Continuation, "rewards": _Rewards, "assembly": _Assembly,
+                "delegations": _Delegations}
         return tuple((name, wrap[name](stage, self) if name in wrap else stage) for name, stage in stages)
 
 
@@ -203,3 +213,22 @@ class _Assembly(_Wrapped):
             "ended_validators": out["ended_validators"] + n_cycled,
             "renewed_validators": out["renewed_validators"] + n_cycled,
         }
+
+
+class _Delegations(_Wrapped):
+    """The delegations stage, with the rewards of the delegations ending today on a validator whose period missed its
+    uptime added to the day's forfeit."""
+
+    def __call__(self, state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> dict:
+        out = self.stage(state, day, earlier)
+        if not self.rules.uptime_miss_increase:
+            return out
+        from avalanche_research.model.parts.delegations import on_validators
+
+        ending = state["delegation_days_left"] - 1 <= 0
+        rows = on_validators(state["node_key"], state["delegation_validator"][ending])
+        on = np.flatnonzero(rows >= 0)
+        missed = np.zeros(len(rows), dtype=bool)
+        r = rows[on]
+        missed[on] = period_missed(self.rules, day, state["node_key"][r], state["done"][r], state["days"][r], state["days_left"][r])
+        return {**out, FORFEIT: out[FORFEIT] + int(state["delegation_rewards"][ending][missed].sum())}

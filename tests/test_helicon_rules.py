@@ -21,7 +21,9 @@ from test_v09_price_security import RECORDED, REFERENCE, table_sha256
 from avalanche_research.mechanisms import ChainReward, RevenueFunded
 from avalanche_research.model.engine import run
 from avalanche_research.model.fitted_blocks import Arrivals, RenewalLogit, ReturnHazard
+from avalanche_research.model.delegation_blocks import DelegationFlow
 from avalanche_research.model.parts import helicon
+from avalanche_research.model.parts.delegations import on_validators
 from avalanche_research.model.parts.stages import Day, RunSettings
 from avalanche_research.model.streams import Streams
 
@@ -68,9 +70,11 @@ def test_each_helicon_setting_enters_the_specification_only_when_set(key):
     assert built.param[key].metadata == {"omit_at_default": True, "source": "scenario"} and built.param[key].bounds == (0.0, 1.0)
 
 
-def test_a_helicon_rule_is_refused_on_a_model_with_delegations():
-    with pytest.raises(ValueError, match="validator lifecycle"):
-        REFERENCE["delegated"](auto_renew_share=0.5).blocks()
+def test_a_helicon_rule_is_refused_on_the_holder_model_of_v0100():
+    stages = (*((name, None) for name in ("renewal", "continuation", "rewards", "assembly", "delegations")), ("holders", None))
+    with pytest.raises(ValueError, match="holder model of v0.10.0"):
+        helicon.HeliconRules(auto_renew_share=0.5).stages(stages)
+    assert helicon.HeliconRules().stages(stages) == stages
 
 
 # Automatic renewal.
@@ -205,3 +209,112 @@ def test_the_responses_read_the_expected_reward_received_under_the_uptime_rule()
 def test_the_uptime_rule_is_refused_with_revenue_funding():
     with pytest.raises(ValueError, match="revenue"):
         model(mechanism=RevenueFunded(), uptime_miss_increase=0.1)
+
+
+# The rules on the delegated candidate (DelegatedStakeLifecycle with the v0.8.1 laws).
+
+CANDIDATE_ORIGIN = date(2025, 11, 18)
+"""The candidate's latest origin, as its stake law refuses one in the held-back period: its first day from Helicon on is
+timestep 309, so a run of 400 days has 92 days after it."""
+
+
+def candidate(origin=CANDIDATE_ORIGIN, timesteps=400, runs=2, **settings):
+    """The released base's tiny state (views.model_structure.tiny_stake_lifecycle) at ``origin``, with delegations
+    under the containment laws, the stake law fitted on synthetic tables labelled with that origin."""
+    import hashlib
+
+    from avalanche_research.model.delegated_lifecycle import DelegatedStakeLifecycle
+    from avalanche_research.model.fitted_lifecycle import decided_by_us
+    from avalanche_research.model.parts.return_hazard import ReturnLogitHazard
+    from avalanche_research.model.stake_lifecycle import fitted_stake_settings
+    from test_delegated_lifecycle import TERMS
+    from test_v081_candidate import law_blocks
+
+    tables = {}
+    for context in ("renewal", "return", "entry"):
+        table = pd.DataFrame({
+            "previous_stake_navax": np.full(60, 0 if context == "entry" else 2_000 * AVAX, dtype=np.int64),
+            "next_days": np.full(60, 30, dtype=np.int64),
+            "next_stake_navax": np.repeat(np.array([2_000, 4_000], dtype=np.int64) * AVAX, 30),
+            "decided_us": np.full(60, decided_by_us(origin) - 30 * 86_400_000_000, dtype=np.int64),
+        })
+        sha = hashlib.sha256(table.to_csv(index=False).encode()).hexdigest()
+        table.attrs = {"context": context, "run": "synthetic", "origin": origin.isoformat(), "window": "365 days",
+                       "sha256": sha, "source": f"synthetic; origin {origin}; 365 days; sha256 {sha}"}
+        tables[context] = table
+    initial = pd.DataFrame({"stakes": np.full(4, 2_000 * AVAX), "days_left": [1, 1, 5, 9], "done": [0, 2, 1, 0],
+                            "after_return": np.zeros(4, bool), "days": np.full(4, 30), "handed_on": np.zeros(4, bool),
+                            "returns": np.zeros(4, dtype=np.int64)})
+    return DelegatedStakeLifecycle(
+        origin=origin, inputs_source="synthetic", initial=initial,
+        out_of_set=pd.DataFrame({"out_stakes": [2_000 * AVAX], "out_days": [8], "out_done": [1], "out_last_days": [30], "out_returns": [0]}),
+        moves=pd.DataFrame({"previous_days": [30], "next_days": [30], "previous_stake_navax": [2_000 * AVAX], "next_stake_navax": [2_000 * AVAX]}),
+        first_commitments=pd.DataFrame({"days": [30], "stake_navax": [2_000 * AVAX]}),
+        renewal=RenewalLogit(intercept=0.0), returns=ReturnLogitHazard(intercept=-1.0), arrivals=Arrivals(mean_per_day=2),
+        move_stake_bands="three", move_stake_weighted=False, timesteps=timesteps, runs=runs, seed=3,
+        **fitted_stake_settings(tables, origin, "synthetic"),
+        open_delegations=pd.DataFrame({"validator": [2, 3], "stakes": [500 * AVAX, 3_000 * AVAX], "days_left": [4, 9], "benqi": [False, True]}),
+        benqi_validators=pd.DataFrame({"validator": [3]}), delegation_terms=TERMS,
+        delegation_flow=DelegationFlow(mean_per_day=4.0, benqi_share=0.3), **law_blocks(), **settings)
+
+
+def states(model):
+    from test_delegated_lifecycle import final_states
+
+    return final_states(model)
+
+
+def test_at_defaults_the_delegated_candidate_is_unchanged_by_the_helicon_settings():
+    base, zero = candidate(timesteps=40), candidate(timesteps=40, **{key: 0.0 for key in SETTINGS})
+    assert zero.specification_hash() == base.specification_hash()
+    pd.testing.assert_frame_equal(run(base), run(zero))
+
+
+def test_on_the_candidate_with_every_start_auto_renewed_the_delegation_invariants_hold_across_helicon():
+    model = candidate(auto_renew_share=1.0, auto_compound_share=0.5, short_period_share=0.2)
+    raw = states(model)  # the engine checks every invariant, delegation ones included, after every day
+    on_auto = 0
+    for _, row in raw.iterrows():
+        auto_keys = set(row["node_key"][row["auto_renew"]].tolist())
+        on_auto += int(np.isin(row["delegation_validator"], list(auto_keys)).sum())
+        rows = on_validators(row["node_key"], row["delegation_validator"])
+        assert (rows >= 0).all() and (row["delegation_days_left"] <= row["days_left"][rows]).all()
+    assert on_auto > 0 and raw["timestep"].max() == 400
+    # No auto-renewed validator leaves at hazard 0 with no uptime miss.
+    for _, run_rows in raw.groupby("run"):
+        before = [set(r["node_key"][r["auto_renew"]].tolist()) for _, r in run_rows.iterrows()]
+        assert all(a <= set(r["node_key"].tolist()) for a, (_, r) in zip(before, list(run_rows.iterrows())[1:]))
+
+
+def test_on_the_candidate_delegations_to_auto_renewed_validators_that_exit_end_with_them():
+    raw = states(candidate(auto_renew_share=1.0, auto_renew_exit_hazard=1.0))
+    exited_with_delegations = 0
+    for _, run_rows in raw.groupby("run"):
+        rows = [r for _, r in run_rows.sort_values("timestep").iterrows()]
+        for previous, current in zip(rows, rows[1:]):
+            gone = set(previous["node_key"][previous["auto_renew"]].tolist()) - set(current["node_key"].tolist())
+            assert not set(current["delegation_validator"].tolist()) & gone
+            held = [rows[i]["delegation_validator"] for i in range(len(rows)) if rows[i]["timestep"] < current["timestep"]]
+            exited_with_delegations += sum(bool(set(h.tolist()) & gone) for h in held)
+    assert exited_with_delegations > 0
+
+
+def test_on_the_candidate_a_missed_period_forfeits_its_validator_and_delegator_rewards():
+    raw = states(candidate(uptime_miss_increase=1.0))
+    delegator_forfeit = 0
+    for _, run_rows in raw.groupby("run"):
+        rows = [r for _, r in run_rows.sort_values("timestep").iterrows()]
+        supply0 = rows[0]["supply_navax"]
+        assert [r["supply_navax"] for r in rows] == list(supply0 + np.cumsum([r["issued_navax"] for r in rows])
+                                                         - np.cumsum([r[helicon.FORFEIT] for r in rows]))
+        for previous, current in zip(rows, rows[1:]):
+            start = datetime.combine(CANDIDATE_ORIGIN + timedelta(days=int(current["timestep"])), datetime.min.time(), tzinfo=UTC).replace(hour=12)
+            ends = previous["days_left"] - 1 <= 0
+            missed = ends & helicon.started_from_helicon(start, previous["days"], previous["days_left"])
+            ending = previous["delegation_days_left"] - 1 <= 0
+            on = on_validators(previous["node_key"], previous["delegation_validator"][ending])
+            judged = helicon.started_from_helicon(start, previous["days"][on], previous["days_left"][on])
+            delegators = int(previous["delegation_rewards"][ending][judged].sum())
+            assert current[helicon.FORFEIT] == int(previous["cycle_reward_navax"][missed].sum()) + delegators
+            delegator_forfeit += delegators
+    assert delegator_forfeit > 0
