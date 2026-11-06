@@ -318,3 +318,50 @@ def test_on_the_candidate_a_missed_period_forfeits_its_validator_and_delegator_r
             assert current[helicon.FORFEIT] == int(previous["cycle_reward_navax"][missed].sum()) + delegators
             delegator_forfeit += delegators
     assert delegator_forfeit > 0
+
+
+def restake_day(mechanism):
+    """A continuing auto-renewed 2,000 AVAX validator whose cycle reward of 1 AVAX sits in the unstaked supply, and a
+    2,100 AVAX start that the supply limit funds from the same pool, the case review RV-20261105-17 F1 found."""
+    from avalanche_research.model.parts.participation import cap_started
+    from avalanche_research.model.parts.stages import assembly_stage, rewards_stage
+
+    none, flags = np.array([], dtype=np.int64), np.array([], dtype=bool)
+    state = {"stakes": np.array([2000 * AVAX]), "days_left": np.array([1]), "days": np.array([5]), "done": np.array([0]),
+             "after_return": np.array([False]), "handed_on": np.array([False]), "returns": np.array([0]),
+             "node_key": np.array([1]), "out_stakes": none, "out_days": none, "out_done": none, "out_last_days": none,
+             "out_returns": none, "out_node_key": none, "supply_navax": 4100 * AVAX,
+             "active_validator_stake_navax": 2000 * AVAX, "revenue_pool_navax": 0, "auto_renew": np.array([True]),
+             "cycle_reward_navax": np.array([AVAX])}
+    started = {"stakes": np.array([2100 * AVAX]), "days": np.array([5]), "done": np.array([0]),
+               "after_return": np.array([False]), "returns": np.array([0]), "node_key": np.array([2])}
+    scheduled = {k: (flags if k == "after_return" else none) for k in
+                 ("start_day", "stakes", "days", "done", "after_return", "returns", "node_key")}
+    day = Day(t=0, start=datetime(2026, 10, 7, 12, tzinfo=UTC), draw=Streams(1, 1), blocks=None, renewal_gap=0.0,
+              entry_gap=0.0, settings=RunSettings(large_navax=None, renewal_response=0.0, entry_response=0.0,
+                                                  mechanism=mechanism, scheduled=scheduled))
+    renewal = {"days_left": np.array([5]), "ending": np.array([False]), "renews": flags, "continued": np.array([True]),
+               "missed": np.array([False]), "ended": {k: none for k in ("stakes", "done", "days", "returns", "node_key")}}
+    earlier = {"renewal": renewal, "returns": {"out_days": none, "comes_back": flags}}
+    earlier["continuation"] = cap_started(state, day, earlier, started, 0, 0)
+    rules = helicon.HeliconRules(auto_renew_share=1.0, auto_compound_share=1.0)
+    earlier["rewards"] = helicon._Rewards(rewards_stage, rules)(state, day, earlier)
+    out = helicon._Assembly(assembly_stage, rules)(state, day, earlier)
+    return state, earlier, out
+
+
+@pytest.mark.parametrize("mechanism", [ChainReward(), RevenueFunded(revenue_share=1.0, shortfall="cut")],
+                         ids=["minted", "revenue-funded"])
+def test_restaking_never_lifts_the_stake_above_the_supply_when_the_days_starts_take_the_pool(mechanism):
+    state, earlier, out = restake_day(mechanism)
+    supply = int(state["supply_navax"]) + int(out["issued_navax"]) - int(out[helicon.FORFEIT])
+    assert int(earlier["continuation"]["started"]["stakes"].sum()) == 2100 * AVAX  # the start took the whole pool
+    assert int(out["stakes"].sum()) <= supply
+    # The restake that did not fit is paid out, so the continuing validator keeps its own stake.
+    assert int(earlier["rewards"]["restaked"].sum()) == 0 and int(out["stakes"][0]) == 2000 * AVAX
+
+
+def test_restaking_takes_only_the_room_left_in_order():
+    assert helicon.within_room(np.array([5, 4, 3]), 7).tolist() == [5, 2, 0]
+    assert helicon.within_room(np.array([5, 4]), 20).tolist() == [5, 4]
+    assert helicon.within_room(np.array([5]), -3).tolist() == [0]

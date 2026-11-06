@@ -41,6 +41,7 @@ from typing import Any
 import numpy as np
 
 from avalanche_research.domain.protocol import MAINNET, MAINNET_UPGRADES, PERCENT_DENOMINATOR, auto_renew_restake
+from avalanche_research.model.parts.participation import validator_pool
 from avalanche_research.model.parts.stages import Day, bounded_days, priced_rewards
 
 HELICON = MAINNET_UPGRADES.time("helicon")
@@ -118,6 +119,26 @@ def restaked_navax(rewards: np.ndarray, stakes: np.ndarray, share: float) -> np.
     return np.array([auto_renew_restake(int(r), 0, shares, int(s))[0] for r, s in zip(rewards, stakes)], dtype=np.int64)
 
 
+def within_room(restaked: np.ndarray, room: int) -> np.ndarray:
+    """The restaked rewards that fit in ``room``, the unstaked supply left after the day's other stake, taken in order.
+    The part that does not fit is paid out instead (RV-20261105-17 F1)."""
+    restaked = np.asarray(restaked, dtype=np.int64)
+    before = np.concatenate([[0], np.cumsum(restaked)[:-1]]) if len(restaked) else restaked
+    return np.clip(np.minimum(restaked, max(int(room), 0) - before), 0, None).astype(np.int64)
+
+
+def restake_room(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> int | None:
+    """The unstaked supply the day's restaking can take: the pool the day's starts read, less the stake they took and
+    the reward forfeited today, so that restaked rewards never lift the stake above the supply. The cycle's reward was
+    minted at its start and sits in that pool, where the day's starts could otherwise spend it first. None outside a
+    run, where there is no pool to read."""
+    if day.settings is None or "supply_navax" not in state:
+        return None
+    started = int(np.asarray(earlier["continuation"]["started"]["stakes"], dtype=np.int64).sum())
+    forfeit = int(state["cycle_reward_navax"][earlier["renewal"]["missed"]].sum()) if "missed" in earlier["renewal"] else 0
+    return validator_pool(state, day, earlier) - started - forfeit
+
+
 @dataclass(frozen=True)
 class _Wrapped:
     stage: Any
@@ -176,6 +197,9 @@ class _Rewards(_Wrapped):
         started = earlier["continuation"]["started"]
         stakes = state["stakes"][continued]
         restaked = restaked_navax(state["cycle_reward_navax"][continued], stakes, self.rules.auto_compound_share)
+        room = restake_room(state, day, earlier) if restaked.any() else None
+        if room is not None:
+            restaked = within_room(restaked, room)
         cycles = {"stakes": stakes + restaked, "days": state["days"][continued], "done": state["done"][continued] + 1}
         priced = {name: np.concatenate([np.asarray(started[name], dtype=np.int64), cycles[name]]) for name in cycles}
         totals, each = priced_rewards(state, day, priced)
