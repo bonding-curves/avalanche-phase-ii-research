@@ -17,7 +17,9 @@ The candidate passes the system test with no difference at all. In every one of 
 
 CRPS scores a whole forecast distribution against what happened, and here it is scaled by the mean one-day change before the origin. Lower is better. With no difference, the one-sided p that the candidate is worse is 1 in every cell. The rule's margin of 2.2 and its cell threshold of 0.05/6 are not approached.
 
-The equality follows from the two changes of the rebuild. The candidate's arrivals do not read participation, so they are v0.8.0's arrivals. Its new delegations draw their terms from the delegations started in the 28 days to the origin. Delegations change delegated stake, which these two forecasts do not count. The candidate's added behaviour, its delegations, is tested by the held-out event tests of the delegation blocks, where the 28-day terms passed at 15 of 18 origins and the 365-day terms failed. Those tests are not restated here.
+The equality follows from the two changes of the rebuild. The candidate's arrivals do not read participation, so they are v0.8.0's arrivals. Its new delegations draw their terms from the delegations started in the 28 days to the origin. Delegations change delegated stake, which these two forecasts do not count.
+
+The 28-day terms window met the numerical criteria as a preregistered challenger across 18 development origins: 15 wins, bootstrap p = 0.0003 and calibration error = 0.0061. The original primary verdict excluded that challenger. These development results informed selection of the rebuilt candidate. They are not a new independent validation of the rebuilt model or all delegation behavior. The original 365-day terms and elasticity 1 tests failed; elasticity 0 retains v0.8.0 arrivals.
 
 The verdict in [`verdict.json`](verdict.json) reads "no event test", because this script leaves the event-test field open, as it did for the earlier candidate. Its system test reads "pass".
 
@@ -27,7 +29,7 @@ The rule is the one fixed on 6 October and described in [`../model-v0.8.0-select
 
 The candidate is commit `196b5bf2`, with delegation terms from the 28 days to the origin and a participation elasticity of 0. Both models were built from pin [`data/pins/p2-model-v0.8.1.json`](../../data/pins/p2-model-v0.8.1.json). The 7,600 runs ran on one machine from 5 to 6 November 2026, one origin and model per task, each task writing its own file. Six of the candidate's tasks ran in two separate copies of the same code, and each copied file kept its SHA-256 from source to destination.
 
-Three runs were run again from the same commit, one of v0.8.0 at 1 July 2022 and two of the candidate at 1 January 2024 and 1 October 2025. Each gave the specification hash the run recorded.
+Three recorded specifications were recomputed from a clean export of the same commit, one for v0.8.0 at 1 July 2022 and two for the candidate at 1 January 2024 and 1 October 2025. All three specification hashes matched. This check repeated preparation and specification construction only. It reran no trajectories or scores.
 
 ## Files
 
