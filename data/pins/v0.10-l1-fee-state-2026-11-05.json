@@ -1,0 +1,20 @@
+{
+  "code": {
+    "client_commit": "87fd80e28ff0d6a819909605f592d9845747a5ee"
+  },
+  "name": "v0.10-l1-fee-state-2026-11-05",
+  "pinned_at": "2026-11-06T01:09:43Z",
+  "runs": [
+    {
+      "bytes": 17093,
+      "capture_id": "capture:avalanche-snowflake:2026-11-06T00:54:00Z:425cdd79426a",
+      "captured_at": "2026-11-06T00:54:00Z",
+      "check": "pass",
+      "dataset_id": "snowflake.p-chain-l1-fee-state-daily",
+      "parquet": "p-chain-l1-fee-state-daily.parquet",
+      "run": "p-chain-l1-fee-state-daily-2026-11-05",
+      "sha256": "9034d06b5a826d325f7695adb9c36f355b675326eac1484cd9f0947d98de88b5"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}

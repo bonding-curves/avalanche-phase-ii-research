@@ -6,7 +6,7 @@ A **dataset** is one table with a catalog ID, such as `derived.staking-periods`.
 
 | Path | What it holds |
 | --- | --- |
-| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 20 sources and 93 datasets |
+| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 20 sources and 94 datasets |
 | [`data-catalog.schema.json`](data-catalog.schema.json) | The JSON schema that validates the catalog |
 | [`queries/`](queries/) | The exact SQL text each Snowflake dataset runs |
 | [`pins/`](pins/) | Pinned input sets: the exact runs a result was made from, with their hashes. See [`pins/README.md`](pins/README.md) |
@@ -102,6 +102,7 @@ The rest of this guide gives the status of every dataset and how to reproduce ea
 | `af.gcp-gci-monthly` | One Parquet row per layer and month of the Foundation's Gross Chain Product and Gross Chain Income, economy and network | Implemented, tested, and captured on 2026-11-05: 150 rows, 75 months per layer from 2020-09 |
 | `af.protocol-stream-token-metrics-daily` | One Parquet row per protocol, day, stream and token of the Foundation's revenue streams for sAVAX, the stablecoin issuers and the tokenised funds | Implemented, tested, and captured on 2026-11-05: 23,769 rows |
 | `allium.metrics-overview-daily` | One Parquet row per UTC day of Allium's C-Chain overview: blocks, transactions, fees and addresses | Implemented, tested, and captured on 2026-11-05: 2,213 days from 2020-09-23, 5.13 million AVAX of fees |
+| `snowflake.p-chain-l1-fee-state-daily` | One Parquet row per UTC date of the ACP-77 L1 validator fee state in the share's P-Chain blocks: the active L1 validator count, the fee each has accrued, the excess gas, and the day's fee | Implemented, tested, and captured on 2026-11-05: 646 days from 2024-12-16 to 2026-09-22, where the share stops, 18,026 AVAX of fees |
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
@@ -609,6 +610,20 @@ done
 ```
 
 The pin [`v0.10-revenue-tables-2026-11-05.json`](pins/v0.10-revenue-tables-2026-11-05.json) names the three runs of this section.
+
+## Read the L1 validator fee state
+
+Since the Etna upgrade, an L1 validator pays a continuous fee from a balance it deposits, under ACP-77. The P-Chain keeps two counters: the active L1 validator count, and the fee each active validator has accrued since the fee state began at block 20,107,576 on 2024-12-16. The dataset `snowflake.p-chain-l1-fee-state-daily` reads both from the share's P-Chain block table, one row per UTC date. Each row gives the state at the day's last block, with the excess gas that sets the fee's price, and the day's fee: the active count before each block times the rise in the accrued fee at that block, summed over the day's blocks. The check requires every day to continue the previous day's heights without a gap, and the accrued fee never to fall.
+
+The run of 2026-11-05 holds 646 days to 2026-09-22, where the share stops. L1 validators paid 18,026 AVAX in fees, the active count peaked at 1,523, and 591 were active on the last day. After the share stops, the P-Chain block list from the node, `data-api.p-chain-block-list`, carries the same two counters. On the eight full days both hold, 2026-09-14 to 2026-09-21, the two agree exactly on the active count, the accrued fee and the last height. The daily fee in `snowflake.primary-burn-daily` reads the counters at blocks that hold a transaction, and equals this table's fee on five of the seven full days it shares. On the other two it differs by less than 0.001 AVAX, because a rise between a day's last transaction and its last block is dated to the next day.
+
+```bash
+uv run --locked --extra snowflake avalanche data fetch snowflake.p-chain-l1-fee-state-daily --output data/runs/l1-fee-state-example/capture --timeout 600
+uv run --locked avalanche data build snowflake.p-chain-l1-fee-state-daily --from data/runs/l1-fee-state-example/capture --output data/runs/l1-fee-state-example/dataset
+uv run --locked avalanche data check snowflake.p-chain-l1-fee-state-daily --capture data/runs/l1-fee-state-example/capture --dataset data/runs/l1-fee-state-example/dataset
+```
+
+The pin [`v0.10-l1-fee-state-2026-11-05.json`](pins/v0.10-l1-fee-state-2026-11-05.json) names this run.
 
 ## Split validator exits by Subnet role
 
