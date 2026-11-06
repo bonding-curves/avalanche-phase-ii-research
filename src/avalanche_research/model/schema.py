@@ -26,6 +26,10 @@ PLACEMENTS = {
     "kpi": "a value of the `measure` column of the table of key performance indicators that the function "
            "`kpis.kpi_table` returns, whose number is in its `value` column, one row per horizon in days and "
            "operating-cost level",
+    "kpi_column": "a column of its own in the table of key performance indicators that the function `kpis.kpi_table` "
+                  "returns",
+    "daily": "a column of the daily table that the function `kpis.run_daily_table` builds from one run of the long "
+             "table, one row per day, beside the run's state variables and the float columns a measure reads",
 }
 """Where an output appears, by placement code."""
 
@@ -182,6 +186,31 @@ OUTPUTS: tuple[Output, ...] = (
            "One over the Herfindahl index of the operators' shares of weight, own stake plus delegations, and 0 when "
            "nothing is staked."),
 
+    # Daily-table columns that are not engine outputs, from kpis.run_daily_table and kpis.with_realized_supply.
+    Output("supply_counter_navax", "daily", "int64", STOCK, "always",
+           "The run's `supply_navax`, the P-Chain supply counter, under the name the chain's daily table gives it."),
+    Output("issued_all_roles_navax", "daily", "int64", FLOW, "delegations",
+           "The run's `issued_navax` in a model with delegations, validators' and delegators' rewards minted on the "
+           "day. The daily table's `issued_navax` then holds `validator_issued_navax`, validators only, as the chain's "
+           "table does."),
+    Output("burned_navax", "daily", "float64", f"{NAVAX}, AVAX burned on the day, a flow", "always",
+           "The transaction fees burned on the day. After the origin the function `kpis.with_realized_supply` holds it "
+           "at the mean daily burn it is given, and a daily table without that step has no such column."),
+    Output("total_supply_navax", "daily", "float64", STOCK, "always",
+           "Realized total supply, minted less burned. After the origin the function `kpis.with_realized_supply` "
+           "builds it from the supply at the origin plus each day's issuance of every role less the burn, and a "
+           "daily table without that step has no such column."),
+
+    # The columns of kpis.kpi_table.
+    Output("measure", "kpi_column", "object (str)", "text, no unit", "always",
+           "The name of the row's measure, one of the `kpi` entries."),
+    Output("horizon_days", "kpi_column", "int64", "days after the origin", "always",
+           "The horizon the measure reads up to, counted in days from the origin."),
+    Output("cost_level", "kpi_column", "object (str)", "text, no unit", "always",
+           "The operating-cost level of a `return_margin` row, and the empty string on every other row."),
+    Output("value", "kpi_column", "float64", "the unit of the row's measure, listed in that measure's `kpi` entry",
+           "always", "The number of the row's measure at the row's horizon and cost level."),
+
     # KPI measures of kpis.kpi_table.
     Output("issued_navax", "kpi", "float64", f"{NAVAX}, minted from the day after the origin to the horizon, a flow summed",
            "always",
@@ -299,7 +328,7 @@ def expected(model: SimulationModel) -> dict[str, dict[str, Output]]:
     named = [name for _, name in model._tracked()] if "delegations" in present else []
     found: dict[str, dict[str, Output]] = {"identifier": {}, "variable": {}, "float": {}}
     for output in OUTPUTS:
-        if output.placement == "kpi" or output.group not in present:
+        if output.placement not in found or output.group not in present:
             continue
         for name in (named if output.name == NAMED_OPERATOR else [output.name]):
             found[output.placement][name] = output
@@ -320,7 +349,7 @@ def render() -> str:
     lines = [
         "# Outputs of the staking model",
         "",
-        "`model.engine.run` returns one long table, and `model.kpis.kpi_table` derives one row per measure from it. "
+        "`model.engine.run` returns one long table, and `model.kpis` derives a daily table and a table of measures from it. "
         "Each row below is one output of the fitted lifecycle or of a model built on it, with its unit and the group "
         "of settings that makes it appear. The module `model.schema` holds the entries, and its function `render` "
         "writes this table.",

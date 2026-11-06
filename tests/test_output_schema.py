@@ -3,7 +3,8 @@ Markdown rendering is the committed ``OUTPUTS.md``.
 
 Small runs of each group check the schema against what the engine writes: the plain fitted lifecycle, the delegated
 v0.8.1 candidate from its pin with a price path, turnover and the dollar margin, a revenue-funded run and the holder
-model. The pinned case is skipped while the pin or its runs are absent.
+model. Each run's daily table and the KPI table of a synthetic daily table check the KPI module's columns. The pinned
+case is skipped while the pin or its runs are absent.
 """
 
 from __future__ import annotations
@@ -86,6 +87,23 @@ def test_each_output_has_the_dtype_the_schema_gives(case):
         assert str(table[name].dtype) == output.dtype.split(" ")[0], name
 
 
+def test_each_run_s_daily_table_carries_its_engine_outputs_and_exactly_the_daily_entries_for_its_groups(case):
+    built, wanted, table = case
+    origin = pd.Timestamp(built.origin)
+    one = table[table["run"] == 1]
+    daily = kpis.with_realized_supply(kpis.run_daily_table(one, origin), origin, 400_000_000.0 * AVAX, 1_000.0 * AVAX)
+    expected = schema.expected(built)
+    # The daily table keeps every state variable and only the float columns a measure reads.
+    read = {*kpis.DAILY_COLUMNS, *kpis.RUN_COLUMNS, *kpis.CONCENTRATION_COLUMNS}
+    engine = (set(expected["variable"]) | (set(expected["float"]) & read)) - {"supply_navax"}
+    listed = {o.name for o in schema.entries("daily") if o.group in wanted}
+    assert set(daily.columns) == engine | listed
+    for name in set(daily.columns) - engine:
+        output = schema.lookup(name, "daily")
+        assert output is not None and output.group in wanted, name
+        assert str(daily[name].dtype) == output.dtype.split(" ")[0], name
+
+
 def test_every_entry_has_a_unit_a_description_a_known_placement_and_a_known_group():
     for output in schema.OUTPUTS:
         assert output.unit.strip() and output.description.strip(), output.name
@@ -123,10 +141,12 @@ def test_every_measure_the_kpi_table_produces_is_listed_and_every_listed_measure
     daily, origin = full_daily_table()
     table = kpis.kpi_table(daily, origin, horizons=(30,), competing_yield=0.04, operating_costs={"low": 0.01},
                            baseline=daily, secured_value_usd=1e9)
+    assert list(table.columns) == [o.name for o in schema.entries("kpi_column")]
     produced = set(table["measure"])
     listed = {o.name for o in schema.entries("kpi")}
     assert produced == listed
-    assert str(table["value"].dtype) == "float64"
+    for output in schema.entries("kpi_column"):
+        assert str(table[output.name].dtype) == output.dtype.split(" ")[0], output.name
     assert set(kpis.KPIS) | set(kpis.CONCENTRATION_KPIS) <= listed
 
 

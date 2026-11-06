@@ -1,6 +1,6 @@
 # Outputs of the staking model
 
-`model.engine.run` returns one long table, and `model.kpis.kpi_table` derives one row per measure from it. Each row below is one output of the fitted lifecycle or of a model built on it, with its unit and the group of settings that makes it appear. The module `model.schema` holds the entries, and its function `render` writes this table.
+`model.engine.run` returns one long table, and `model.kpis` derives a daily table and a table of measures from it. Each row below is one output of the fitted lifecycle or of a model built on it, with its unit and the group of settings that makes it appear. The module `model.schema` holds the entries, and its function `render` writes this table.
 
 Placements:
 
@@ -8,6 +8,8 @@ Placements:
 - `variable`: a value of the long table's `variable` column, whose amount is in the `value` column, one row per run, day and variable.
 - `float`: a column of its own in the long table, one value per run and day, repeated on each of that day's rows.
 - `kpi`: a value of the `measure` column of the table of key performance indicators that the function `kpis.kpi_table` returns, whose number is in its `value` column, one row per horizon in days and operating-cost level.
+- `kpi_column`: a column of its own in the table of key performance indicators that the function `kpis.kpi_table` returns.
+- `daily`: a column of the daily table that the function `kpis.run_daily_table` builds from one run of the long table, one row per day, beside the run's state variables and the float columns a measure reads.
 
 Groups:
 
@@ -60,6 +62,14 @@ Groups:
 | `lst_target_navax` | float | holders | float64 | nAVAX, 10^-9 AVAX, a target stock held as a float, at the end of the day | The liquid staking provider's target stock of delegated stake, grown each day by its drift plus the gap elasticity times the change in the liquid staker's yield gap since the origin. The provider starts delegations to bring its stake up to the target. |
 | `liquid_staking_share` | float | holders | float64 | a share of all stake, own and delegated, 0 to 1, at the end of the day | The liquid staking provider's open delegated stake over all open stake, validators' own and delegated. |
 | `effective_operators` | float | holders | float64 | a number of operators, at least 1 when anything is staked, at the end of the day | One over the Herfindahl index of the operators' shares of weight, own stake plus delegations, and 0 when nothing is staked. |
+| `supply_counter_navax` | daily | always | int64 | nAVAX, 10^-9 AVAX, a stock at the end of the day | The run's `supply_navax`, the P-Chain supply counter, under the name the chain's daily table gives it. |
+| `issued_all_roles_navax` | daily | delegations | int64 | nAVAX, 10^-9 AVAX on the day, a flow | The run's `issued_navax` in a model with delegations, validators' and delegators' rewards minted on the day. The daily table's `issued_navax` then holds `validator_issued_navax`, validators only, as the chain's table does. |
+| `burned_navax` | daily | always | float64 | nAVAX, 10^-9 AVAX, AVAX burned on the day, a flow | The transaction fees burned on the day. After the origin the function `kpis.with_realized_supply` holds it at the mean daily burn it is given, and a daily table without that step has no such column. |
+| `total_supply_navax` | daily | always | float64 | nAVAX, 10^-9 AVAX, a stock at the end of the day | Realized total supply, minted less burned. After the origin the function `kpis.with_realized_supply` builds it from the supply at the origin plus each day's issuance of every role less the burn, and a daily table without that step has no such column. |
+| `measure` | kpi_column | always | object (str) | text, no unit | The name of the row's measure, one of the `kpi` entries. |
+| `horizon_days` | kpi_column | always | int64 | days after the origin | The horizon the measure reads up to, counted in days from the origin. |
+| `cost_level` | kpi_column | always | object (str) | text, no unit | The operating-cost level of a `return_margin` row, and the empty string on every other row. |
+| `value` | kpi_column | always | float64 | the unit of the row's measure, listed in that measure's `kpi` entry | The number of the row's measure at the row's horizon and cost level. |
 | `issued_navax` | kpi | always | float64 | nAVAX, 10^-9 AVAX, minted from the day after the origin to the horizon, a flow summed | The validators' issuance over the horizon, as the 64-bit float that issuance saved divides. A run with delegations counts its validators' part, `validator_issued_navax`. |
 | `issuance_saved` | kpi | always | float64 | a share of the baseline's issuance over the same days, negative when the run issues more | One minus the run's issuance over the baseline's, the same run under the chain's rule. Given only with a baseline. |
 | `validator_stake_retained` | kpi | always | float64 | a ratio of validator stake to the baseline's at the horizon, 1 when equal | The validator stake at the horizon over the baseline's. Given only with a baseline. |
