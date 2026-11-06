@@ -126,9 +126,14 @@ def rewards_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict
     ``revenue_pool_navax`` the pool after today's inflow and payments. The pool fills before it pays. Under the
     chain's rule everything is minted, the pool only fills, and the three revenue outputs are not state unless the
     model carries revenue funding."""
+    return priced_rewards(state, day, earlier["continuation"]["started"])[0]
+
+
+def priced_rewards(state: Mapping[str, Any], day: Day, started: Mapping[str, Any]) -> tuple[dict, np.ndarray]:
+    """The rewards stage's output for the commitments ``started``, and each one's reward paid, minted or from the
+    pool, in their order. The Helicon rules (parts.helicon) price the day's auto-renewed cycles with them."""
     from avalanche_research.model.parts.participation import unstaked_share
 
-    started = earlier["continuation"]["started"]
     mechanism = day.settings.mechanism
     supply = int(state["supply_navax"])
     share = 1.0 - unstaked_share(state) if "supply_navax" in state else None
@@ -137,6 +142,7 @@ def rewards_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict
     context = RewardContext(day=day.start, supply_navax=supply, pool_navax=pool,
                             validator_stake_navax=int(state["active_validator_stake_navax"]))
     minted = paid = unpaid = 0
+    each = []
     for stake, d, periods in zip(started["stakes"], started["days"], started["done"]):
         reward = mechanism.potential_reward_navax(int(stake), int(d) * 86_400, supply, day.start, int(periods), share)
         funding = mechanism.funding(reward, replace(context, pool_navax=pool) if pool != context.pool_navax else context)
@@ -144,6 +150,7 @@ def rewards_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict
         paid += funding.revenue_navax
         unpaid += funding.unpaid_navax
         pool -= funding.revenue_navax
+        each.append(funding.minted_navax + funding.revenue_navax)
     return {
         "issued_navax": int(minted),
         "revenue_paid_navax": int(paid),
@@ -152,7 +159,7 @@ def rewards_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict
         "started_stake_navax": int(sum(int(stake) for stake in started["stakes"])),
         "started_stake_days_navax": float(sum(int(stake) * int(d) for stake, d in zip(started["stakes"], started["days"]))),
         "offered_rate_30d": float(mechanism.annual_rate(OFFERED_RATE_DAYS, supply, day.start, staked_share=share)),
-    }
+    }, np.asarray(each, dtype=np.int64)
 
 
 def assembly_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> dict:
