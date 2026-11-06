@@ -1,0 +1,50 @@
+{
+  "code": {
+    "client_commit": "8d7b1f9248daa44f366f2d553395240aba7f05ad"
+  },
+  "name": "v0.9.1-savax-yield-2026-11-05",
+  "pinned_at": "2026-11-06T00:34:37Z",
+  "runs": [
+    {
+      "bytes": 69144,
+      "capture_id": "capture:derived:2026-11-06T00:24:35Z:91a6a34799aa",
+      "captured_at": "2026-11-06T00:24:35Z",
+      "check": "pass",
+      "dataset_id": "derived.savax-yield-daily",
+      "parquet": "savax-yield-daily.parquet",
+      "run": "savax-yield-daily-2026-11-05",
+      "sha256": "b46eff9cd53537096a38a8fa6fb9a8d2042a02fea4479fde81891866a85f3fae"
+    },
+    {
+      "bytes": 233704,
+      "capture_id": "capture:avalanche-c-chain-rpc:2026-11-05T23:30:12Z:b2e56c2bd625",
+      "captured_at": "2026-11-05T23:30:12Z",
+      "check": "pass",
+      "dataset_id": "c-chain-rpc.savax-state-daily",
+      "parquet": "savax-state-daily.parquet",
+      "run": "c-chain-rpc-savax-state-daily-2026-11-05",
+      "sha256": "46be3ad0b25b7de648a5b05d6d0c1e8f40b66897e82e12c8c256824b994821b6"
+    },
+    {
+      "bytes": 1729325,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-05T16:05:23Z:e9b9fd99dba0",
+      "captured_at": "2026-11-05T16:05:23Z",
+      "check": "pass",
+      "dataset_id": "allium.prices-hourly",
+      "parquet": "prices-hourly.parquet",
+      "run": "allium-prices-hourly-2026-11-05",
+      "sha256": "d30b59cd664a1c2cbbd73a0ac0052d5e0f7f1d0b71b6e185a29805aaece4e837"
+    },
+    {
+      "bytes": 102834,
+      "capture_id": "capture:derived:2026-11-05T17:47:51Z:e768ad48d9fd",
+      "captured_at": "2026-11-05T17:47:51Z",
+      "check": "pass",
+      "dataset_id": "derived.outside-yields-daily",
+      "parquet": "outside-yields-daily.parquet",
+      "run": "outside-yields-daily-2026-11-05-r2",
+      "sha256": "630520a2c0de006a68b00639b2aaa9ae88e9dc5776615e184e9ff4415480447a"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}

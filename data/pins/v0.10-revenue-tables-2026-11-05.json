@@ -1,0 +1,40 @@
+{
+  "code": {
+    "client_commit": "8d7b1f9248daa44f366f2d553395240aba7f05ad"
+  },
+  "name": "v0.10-revenue-tables-2026-11-05",
+  "pinned_at": "2026-11-06T00:33:31Z",
+  "runs": [
+    {
+      "bytes": 19857,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-06T00:20:15Z:0b142ee24fa7",
+      "captured_at": "2026-11-06T00:20:15Z",
+      "check": "pass",
+      "dataset_id": "af.gcp-gci-monthly",
+      "parquet": "gcp-gci-monthly.parquet",
+      "run": "af-gcp-gci-monthly-2026-11-05",
+      "sha256": "31910f07ea11a32ee695287c91380171fb202c910191ce113b6d9bc4e221ad33"
+    },
+    {
+      "bytes": 725097,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-06T00:20:27Z:9d467d18c3d2",
+      "captured_at": "2026-11-06T00:20:27Z",
+      "check": "pass",
+      "dataset_id": "af.protocol-stream-token-metrics-daily",
+      "parquet": "protocol-stream-token-metrics-daily.parquet",
+      "run": "af-protocol-stream-token-metrics-daily-2026-11-05",
+      "sha256": "8b0e2bab4a38825d3770c296dd874200a541c2bfd5383a0ee93386b376f7e343"
+    },
+    {
+      "bytes": 73265,
+      "capture_id": "capture:af-foundation-snowflake:2026-11-06T00:20:36Z:85f7ffec5248",
+      "captured_at": "2026-11-06T00:20:36Z",
+      "check": "pass",
+      "dataset_id": "allium.metrics-overview-daily",
+      "parquet": "metrics-overview-daily.parquet",
+      "run": "allium-metrics-overview-daily-2026-11-05",
+      "sha256": "f53d404f78de6a474760fb34492c919acb6614f982d16980df41c18cd90a54b4"
+    }
+  ],
+  "schema_version": "avalanche-pins/v1"
+}

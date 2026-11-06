@@ -6,7 +6,7 @@ A **dataset** is one table with a catalog ID, such as `derived.staking-periods`.
 
 | Path | What it holds |
 | --- | --- |
-| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 20 sources and 89 datasets |
+| [`data-catalog.json`](data-catalog.json) | Every source and dataset: provider, endpoint or query, fields, units, and derivation. It lists 20 sources and 93 datasets |
 | [`data-catalog.schema.json`](data-catalog.schema.json) | The JSON schema that validates the catalog |
 | [`queries/`](queries/) | The exact SQL text each Snowflake dataset runs |
 | [`pins/`](pins/) | Pinned input sets: the exact runs a result was made from, with their hashes. See [`pins/README.md`](pins/README.md) |
@@ -98,6 +98,10 @@ The rest of this guide gives the status of every dataset and how to reproduce ea
 | `derived.stake-owner-types` | One Parquet row per P-Chain address, entity-labelled C-Chain address and direction of the atomic transactions between them, with the label's owner class | Implemented, tested, and derived on 2026-11-05: 1,187 links of 1,061 P-Chain addresses, 111 of them first seen after the held-back cut |
 | `allium.c-chain-daily-last-blocks` | One Parquet row per UTC day with its first and last C-Chain block, from the Foundation's Snowflake account | Implemented, tested, and captured on 2026-11-05: 2,214 days from 2020-09-23, every day starting at the height after the previous day's last block |
 | `c-chain-rpc.savax-state-daily` | One Parquet row per UTC day from 2022-01-27 with the sAVAX supply, the AVAX it claims and the AVAX one sAVAX redeems for, read from BENQI's contract at the day's last block | Implemented, tested, and captured on 2026-11-05: 1,743 days to 2026-11-04, every block hash equal to Allium's, 351 days held back |
+| `derived.savax-yield-daily` | One Parquet row per decision day from 2022-01-28 to 2025-11-18 with the 30-day liquid staking yield from sAVAX's contract rate, its 7-day median, and the market discount of the price ratio to that rate | Implemented, tested, and derived on 2026-11-05: 1,391 days, the yield from 2022-02-27, none on or after the held-back cut |
+| `af.gcp-gci-monthly` | One Parquet row per layer and month of the Foundation's Gross Chain Product and Gross Chain Income, economy and network | Implemented, tested, and captured on 2026-11-05: 150 rows, 75 months per layer from 2020-09 |
+| `af.protocol-stream-token-metrics-daily` | One Parquet row per protocol, day, stream and token of the Foundation's revenue streams for sAVAX, the stablecoin issuers and the tokenised funds | Implemented, tested, and captured on 2026-11-05: 23,769 rows |
+| `allium.metrics-overview-daily` | One Parquet row per UTC day of Allium's C-Chain overview: blocks, transactions, fees and addresses | Implemented, tested, and captured on 2026-11-05: 2,213 days from 2020-09-23, 5.13 million AVAX of fees |
 | `etf-issuers.avax-fund-snapshot` | One Parquet row per AVAX exchange-traded product per capture with the issuer's NAV, net assets, shares outstanding, AVAX held, and share staked: BAVA, VAVX, the 21Shares Avalanche product and two baskets holding AVAX, and GAVA from its latest 10-Q | Implemented, tested, and captured daily from 2026-09-28: 7,464,611 AVAX across six funds on the first run |
 | `etf-issuers.avax-fund-history` | One Parquet row per fund per valuation date from the histories issuers publish: 21Shares daily since launch, BAVA's daily NAV since 2026-04-14, and GAVA's quarter ends | Implemented, tested, and captured daily from 2026-09-28: 4,619 rows on the first run |
 
@@ -575,6 +579,36 @@ uv run --locked avalanche data check c-chain-rpc.savax-state-daily --capture dat
 ```
 
 The pin [`v0.10-savax-state-2026-11-05.json`](pins/v0.10-savax-state-2026-11-05.json) names the two runs of this section.
+
+The dataset `derived.savax-yield-daily` turns the rate into the 30-day liquid staking yield, beside the price-ratio yield of `derived.outside-yields-daily`, which is unchanged. A row is dated by the decision day d and reads the state at day d-1's last block, so no row reads a block from the held-back period, and the check requires every state it reads to be at a block before 2025-11-19 00:00 UTC. The yield is `((R(d-1) / R(d-31)) ** (365 / 30) - 1) * 100`, and the 7-day median is the median of the yields of days d-7 to d-1 that have one, kept when at least 4 do. The yield starts on decision day 2022-02-27 and its median on 2022-03-02, where the price-ratio yield starts on 2022-07-02. The column `market_discount_pct` is the price ratio over the rate less 1, in percent, and is not a yield. On the 1,236 decision days both hold before the cut, the contract-rate yield averages 5.73% a year with a standard deviation of 0.70 points and is never negative. The price-ratio yield averages 6.12% with a standard deviation of 7.95 points. The two correlate at 0.13 day by day and 0.21 for the 7-day medians, because changes in the market discount account for nearly all of the price-ratio yield's movement.
+
+```bash
+uv run --locked avalanche data derive derived.savax-yield-daily --output data/runs/savax-yield-example \
+  --input c-chain-rpc.savax-state-daily=savax-state-example --input allium.prices-hourly=<hourly price run> \
+  --input derived.outside-yields-daily=<outside-yield run>
+uv run --locked avalanche data check derived.savax-yield-daily --capture data/runs/savax-yield-example/capture --dataset data/runs/savax-yield-example/dataset
+```
+
+The pin [`v0.9.1-savax-yield-2026-11-05.json`](pins/v0.9.1-savax-yield-2026-11-05.json) names this run and the three runs it reads.
+
+## Read the Foundation's revenue tables
+
+Three datasets from the Foundation's Snowflake account, read through the named connection described above, hold the fee revenue layers of v0.10.0.
+
+1. `af.gcp-gci-monthly` holds the Foundation's Gross Chain Product and Gross Chain Income by month, for the economy and for the network. Each row gives nominal product with its three parts, the real level, holder and issuer yields, and nominal income, in USD and AVAX. USD values start in February 2021, and the five months before carry AVAX only. In 2025 the network's product was 7.54 million AVAX and its income 8.49 million AVAX.
+2. `af.protocol-stream-token-metrics-daily` holds the daily streams of BENQI's sAVAX, the issuer yield of six stablecoin issuers and the holder yield of eight tokenised fund and yield products. sAVAX's staking yield, the rewards on BENQI's pooled AVAX, was 619,267 AVAX in 2024 and 946,128 AVAX in 2025. Its payout to holders was 557,341 and 851,515 AVAX. A fund's holder yield is negative on a day its value fell, as on 139 days of two funds from September 2025. The supply in `c-chain-rpc.savax-state-daily` times each day's rise in the rate gives 431,072 AVAX paid to holders in 2024 and 717,098 AVAX in 2025, 23% and 16% below the stream's payout. The gap is not yet traced.
+3. `allium.metrics-overview-daily` holds Allium's daily C-Chain overview, with the day's fees in AVAX, all of which are burned: 5.13 million AVAX from 2020-09-23 to 2026-11-04.
+
+```bash
+for id in af.gcp-gci-monthly af.protocol-stream-token-metrics-daily allium.metrics-overview-daily; do
+  run=data/runs/${id//./-}-example
+  uv run --locked --extra snowflake avalanche data fetch $id --output $run/capture --timeout 600
+  uv run --locked avalanche data build $id --from $run/capture --output $run/dataset
+  uv run --locked avalanche data check $id --capture $run/capture --dataset $run/dataset
+done
+```
+
+The pin [`v0.10-revenue-tables-2026-11-05.json`](pins/v0.10-revenue-tables-2026-11-05.json) names the three runs of this section.
 
 ## Split validator exits by Subnet role
 
