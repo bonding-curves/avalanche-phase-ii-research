@@ -41,6 +41,11 @@ PURPOSES = {
     "benqi_allocation": "the validator BENQI delegates to",
     "price": "one run's daily shocks to the log AVAX price",
     "holder_days": "the duration of a fund's validator commitment, within the fund's band",
+    "auto_renew": "whether a commitment started from Helicon on is an ACP-236 auto-renewed validator",
+    "auto_renew_exit": "whether an auto-renewed validator leaves at a cycle end",
+    "short_period": "whether a commitment started from Helicon on takes a period below 14 days (ACP-273)",
+    "short_period_days": "the whole days, 2 to 13, of a period below 14 days",
+    "uptime_miss": "whether a period ending from Helicon on misses ACP-267's uptime requirement and earns no reward",
 }
 
 KIND_OPEN, KIND_OUT, KIND_SCHEDULED, KIND_ARRIVAL = 0, 1, 2, 3

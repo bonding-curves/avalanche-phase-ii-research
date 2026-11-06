@@ -36,6 +36,7 @@ from avalanche_research.model.fitted_blocks import (
     RenewalLogit,
     ReturnHazard,
 )
+from avalanche_research.model.parts import helicon
 from avalanche_research.model.parts.arrivals import arrivals_stage
 from avalanche_research.model.parts.continuation import STAKE_BANDS, continuation_stage
 from avalanche_research.model.parts.duration_transition import (
@@ -256,6 +257,41 @@ class FittedLifecycle(SimulationModel):
             "stylised-fact tests read. False is every version to v0.9.0, whose tables do not carry them",
     )
 
+    # Helicon's rules (ML29, parts.helicon), swept and never fitted, each left out of the specification at its default
+    # in the same way. At 0 the stages are not wrapped, so every run is v0.9.0's.
+    auto_renew_share = param.Number(
+        default=0.0, bounds=(0.0, 1.0), metadata={"omit_at_default": True, "source": "scenario"},
+        doc="ACP-236 automatic renewal: the share of commitments started from Helicon on that are auto-renewed "
+            "validators. At each cycle end such a validator does not face the renewal logit. It starts its next cycle "
+            "for the same period unless auto_renew_exit_hazard draws its exit or the cycle missed the uptime "
+            "requirement. 0 reproduces v0.9.0",
+    )
+    auto_renew_exit_hazard = param.Number(
+        default=0.0, bounds=(0.0, 1.0), metadata={"omit_at_default": True, "source": "scenario"},
+        doc="ACP-236 automatic renewal: the probability that an auto-renewed validator leaves at a cycle end, per "
+            "cycle. At 0 it always continues. No effect unless auto_renew_share is above 0. 0 reproduces v0.9.0",
+    )
+    auto_compound_share = param.Number(
+        default=0.0, bounds=(0.0, 1.0), metadata={"omit_at_default": True, "source": "scenario"},
+        doc="ACP-236 AutoCompoundRewardShares: the share of each cycle's reward an auto-renewed validator restakes into "
+            "its own stake at the cycle end, at most up to the 3,000,000 AVAX maximum validator stake. The rest is paid "
+            "out. The reward was minted at the cycle's start, so restaking moves no supply. No effect unless "
+            "auto_renew_share is above 0. 0 reproduces v0.9.0",
+    )
+    short_period_share = param.Number(
+        default=0.0, bounds=(0.0, 1.0), metadata={"omit_at_default": True, "source": "scenario"},
+        doc="ACP-273 48-hour minimum: the share of commitments started from Helicon on that take a period below 14 "
+            "days, drawn uniform in whole days 2 to 13, in place of the duration the model draws, within the reward "
+            "rule's duration bounds. 0 reproduces v0.9.0",
+    )
+    uptime_miss_increase = param.Number(
+        default=0.0, bounds=(0.0, 1.0), metadata={"omit_at_default": True, "source": "scenario"},
+        doc="ACP-267 90% all-or-nothing uptime: the added probability that a period ending from Helicon on earns no "
+            "reward. The reward the run minted for it leaves the supply counter at its end (uptime_forfeit_navax), an "
+            "auto-renewed validator that misses leaves the set, and the renewal and entry responses read the expected "
+            "reward received. 0 reproduces v0.9.0, which pays every period",
+    )
+
     # The daily step, run in this order (model.parts.stages). A plain class attribute, not a setting, so the
     # specification and its hash do not record it.
     stages = (
@@ -272,7 +308,15 @@ class FittedLifecycle(SimulationModel):
     def state_variables(self):
         return ["active_validators", "active_validator_stake_navax", "returning_nodes", "supply_navax", "issued_navax",
                 "started_stake_navax", "nakamoto_third_nodes", *(REVENUE_VARIABLES if self.funded else ()),
-                *(TURNOVER_VARIABLES if self.record_turnover else ())]
+                *(TURNOVER_VARIABLES if self.record_turnover else ()),
+                *([helicon.FORFEIT] if self.uptime_miss_increase else [])]
+
+    @property
+    def helicon_rules(self) -> helicon.HeliconRules:
+        """The Helicon settings one run reads (parts.helicon)."""
+        return helicon.HeliconRules(float(self.auto_renew_share), float(self.auto_renew_exit_hazard),
+                                    float(self.auto_compound_share), float(self.short_period_share),
+                                    float(self.uptime_miss_increase))
 
     @property
     def funded(self) -> bool:
@@ -307,6 +351,8 @@ class FittedLifecycle(SimulationModel):
             raise ValueError("give the origin price, its drift and its volatility together, or none of them")
         if self.margin_response and not self.has_price():
             raise ValueError("the dollar margin reads the day's price, so give the run a price path")
+        if self.uptime_miss_increase and self.funded:
+            raise ValueError("the uptime rule forfeits minted rewards, and has no rule yet for a reward paid from revenue")
 
     def initial_state(self):
         initial = self.initial if self.initial is not None else pd.DataFrame(columns=COMMITMENT)
@@ -326,6 +372,10 @@ class FittedLifecycle(SimulationModel):
             "nakamoto_third_nodes": nakamoto_third_nodes(state["stakes"], state["node_key"]),
             **({name: 0 for name in REVENUE_VARIABLES} if self.funded else {}),
             **({name: 0 for name in TURNOVER_VARIABLES} if self.record_turnover else {}),
+            # Open and scheduled commitments are never auto-renewed, and their rewards were minted before the origin.
+            **({"auto_renew": np.zeros(len(state["stakes"]), dtype=bool),
+                "cycle_reward_navax": np.zeros(len(state["stakes"]), dtype=np.int64)} if self.helicon_rules.active else {}),
+            **({helicon.FORFEIT: 0} if self.uptime_miss_increase else {}),
             "yield_gap_pp": 0.0,
             "started_stake_days_navax": 0.0,
             # The rate at the counter of the day before the origin, which the model does not hold.
@@ -432,7 +482,7 @@ class FittedLifecycle(SimulationModel):
                 for day in days]
         blocks_for = self._blocks_by_run()
         large_navax = None if self.renewal_large is None or self.large_above_avax is None else int(self.large_above_avax * 10**9)
-        seed, origin, stages = self.seed, self.origin, self.stages
+        seed, origin, stages = self.seed, self.origin, self.helicon_rules.stages(self.stages)
         sched = self.scheduled if self.scheduled is not None else pd.DataFrame(columns=["start_day", "stakes", "days", "done", "after_return", "returns"])
         sched_day = _array(sched["start_day"])
         settings = RunSettings(
@@ -463,7 +513,13 @@ class FittedLifecycle(SimulationModel):
         # rule's own rate. Under ``top_up`` nothing is left unpaid, so these runs keep E009's gaps exactly, and a rule
         # that mints everything never enters this branch.
         receipt = self.funded and bool(self.mechanism.funds_from_revenue)
-        rates = [(self.response_rate_pp(day, self.renewal_tenure), self.response_rate_pp(day, 0)) for day in days] if receipt else None
+        # Under the uptime rule (parts.helicon) a 30-day stake started on a day whose period ends from Helicon on is
+        # paid with probability 1 - miss, so the responses and the dollar margin read that share of the rule's rate.
+        # The rule refuses a funded run, so the two never meet.
+        miss = float(self.uptime_miss_increase)
+        missing = [miss if datetime.combine(day + timedelta(days=RESPONSE_DURATION_DAYS), time(12), tzinfo=UTC) >= helicon.HELICON
+                   else 0.0 for day in days]
+        rates = [(self.response_rate_pp(day, self.renewal_tenure), self.response_rate_pp(day, 0)) for day in days] if receipt or miss else None
 
         def p_lifecycle(params, substep, history, state):
             t = state["timestep"]
@@ -481,6 +537,9 @@ class FittedLifecycle(SimulationModel):
                 if unpaid > 0.0:
                     renewal_gap -= rates[t][0] * unpaid
                     entry_gap -= rates[t][1] * unpaid
+            if miss and missing[t]:
+                renewal_gap -= rates[t][0] * missing[t]
+                entry_gap -= rates[t][1] * missing[t]
             margin = None
             if margin_on:
                 # The design's 30-day rate at the renewal tenure, at the day's counter and share under the live gap,
@@ -490,7 +549,7 @@ class FittedLifecycle(SimulationModel):
                                                       completed_periods=tenure, staked_share=share)
                 else:
                     rate = self.response_rate_pp(days[t], tenure) / 100
-                margin = float(rate) * float(state["price_usd"])
+                margin = float(rate) * float(state["price_usd"]) * (1.0 - missing[t] if miss else 1.0)
             day = Day(
                 t=t, start=datetime.combine(origin + timedelta(days=t + 1), time(12), tzinfo=UTC), draw=Streams(seed, run),
                 blocks=blocks_for(run), renewal_gap=renewal_gap, entry_gap=entry_gap, settings=settings,
@@ -527,12 +586,20 @@ class FittedLifecycle(SimulationModel):
                   "started_stake_navax", "started_stake_days_navax", "offered_rate_30d",
                   *(["price_usd"] if price_for is not None else []),
                   *(REVENUE_VARIABLES if self.funded else ()),
-                  *(TURNOVER_VARIABLES if self.record_turnover else ()))
+                  *(TURNOVER_VARIABLES if self.record_turnover else ()),
+                  *(helicon.STATE_ARRAYS if self.helicon_rules.active else ()),
+                  *([helicon.FORFEIT] if miss else []))
+        s_supply_rule = s_supply_with_revenue if self.count_revenue_in_supply else s_supply
+
+        def s_supply_after_forfeit(params, substep, history, state, signal):
+            # A period that missed the uptime requirement gives back the reward minted at its start (parts.helicon).
+            return "supply_navax", s_supply_rule(params, substep, history, state, signal)[1] - signal[helicon.FORFEIT]
+
         return [{
             "policies": {"lifecycle": p_lifecycle},
             "variables": {
                 **{name: s_copy(name) for name in copied},
-                "supply_navax": s_supply_with_revenue if self.count_revenue_in_supply else s_supply,
+                "supply_navax": s_supply_after_forfeit if miss else s_supply_rule,
                 "active_validators": s_count,
                 "active_validator_stake_navax": s_stake,
                 "returning_nodes": s_out,
