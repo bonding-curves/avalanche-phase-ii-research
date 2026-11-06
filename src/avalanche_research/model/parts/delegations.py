@@ -55,7 +55,7 @@ from avalanche_research.domain.protocol import (
     delegation_weight_limit_navax,
 )
 from avalanche_research.model.parts.holders import lst_gap, lst_starts, lst_target_next
-from avalanche_research.model.parts.participation import delegation_pool, unstaked_share, within_pool
+from avalanche_research.model.parts.participation import delegation_pool, reserved_navax, unstaked_share, within_pool
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -347,7 +347,8 @@ def delegations_stage(state: Mapping[str, Any], day: Day, earlier: Mapping[str, 
         order, chosen = place(new_stakes, is_benqi, u_choice, u_benqi, room, validator_days >= MIN_DELEGATION_DAYS,
                               np.isin(keys, setup.benqi_keys), setup)
     # A delegation is placed only while the unstaked supply covers its stake (parts.participation); the rest are unplaced.
-    pool = delegation_pool(state, validators, int(kept["delegation_stakes"].sum()) + int(starting["delegation_stakes"].sum()))
+    pool = delegation_pool(state, validators, int(kept["delegation_stakes"].sum()) + int(starting["delegation_stakes"].sum()),
+                           reserved_navax(state, earlier))
     fits = within_pool(order, new_stakes, pool)
     if len(fits) < len(order):
         chosen[np.setdiff1d(order, fits)] = -1

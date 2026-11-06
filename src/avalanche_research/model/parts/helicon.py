@@ -25,7 +25,9 @@ reads each validator's days left, which for an auto-renewed validator is its cur
 that cycle's end and none spans a renewal, as ACP-236 requires, and a validator that exits or misses its uptime has no
 delegation left. Under the uptime rule a delegation ending on a validator whose period missed earns nothing, as the
 chain's abort branch pays the delegator nothing (``delegator_rewards_at_end``), and its reward leaves the supply with
-the validator's. The holder model of v0.10.0 is refused.
+the validator's. The day's whole forfeit, validators' and delegators', is known in the renewal stage before any stake
+is funded, and both funding pools hold it back (``participation.reserved_navax``), so no start, delegation or restake
+spends a reward that leaves the supply that day. The holder model of v0.10.0 is refused.
 
 "From Helicon on" is read at the instant each stage prices a day, noon UTC, so 2026-09-23 is the first such day. Every
 draw uses its own keyed stream (model.streams), so no existing draw moves.
@@ -41,7 +43,7 @@ from typing import Any
 import numpy as np
 
 from avalanche_research.domain.protocol import MAINNET, MAINNET_UPGRADES, PERCENT_DENOMINATOR, auto_renew_restake
-from avalanche_research.model.parts.participation import validator_pool
+from avalanche_research.model.parts.participation import reserved_navax, validator_pool
 from avalanche_research.model.parts.stages import Day, bounded_days, priced_rewards
 
 HELICON = MAINNET_UPGRADES.time("helicon")
@@ -96,7 +98,7 @@ class HeliconRules:
                     self.short_period_share, self.uptime_miss_increase))
 
     def stages(self, stages: tuple) -> tuple:
-        """``stages`` with the renewal, continuation, rewards, assembly and delegations stages wrapped, or unchanged
+        """``stages`` with the renewal, continuation, rewards and assembly stages wrapped, or unchanged
         when no rule is set. The holder model of v0.10.0 is refused."""
         if not self.active:
             return stages
@@ -105,8 +107,7 @@ class HeliconRules:
             raise ValueError("the Helicon rules are not built for the holder model of v0.10.0")
         if set(names) - {"renewal", "returns", "arrivals", "continuation", "rewards", "assembly", "delegations"}:
             raise ValueError(f"the Helicon rules are built for the validator lifecycle and its delegations, not stages {names}")
-        wrap = {"renewal": _Renewal, "continuation": _Continuation, "rewards": _Rewards, "assembly": _Assembly,
-                "delegations": _Delegations}
+        wrap = {"renewal": _Renewal, "continuation": _Continuation, "rewards": _Rewards, "assembly": _Assembly}
         return tuple((name, wrap[name](stage, self) if name in wrap else stage) for name, stage in stages)
 
 
@@ -128,15 +129,30 @@ def within_room(restaked: np.ndarray, room: int) -> np.ndarray:
 
 
 def restake_room(state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> int | None:
-    """The unstaked supply the day's restaking can take: the pool the day's starts read, less the stake they took and
-    the reward forfeited today, so that restaked rewards never lift the stake above the supply. The cycle's reward was
-    minted at its start and sits in that pool, where the day's starts could otherwise spend it first. None outside a
-    run, where there is no pool to read."""
+    """The unstaked supply the day's restaking can take: the pool the day's starts read, which already holds back the
+    reward forfeited today, less the stake they took, so that restaked rewards never lift the stake above the supply.
+    The cycle's reward was minted at its start and sits in that pool, where the day's starts could otherwise spend it
+    first. None outside a run, where there is no pool to read."""
     if day.settings is None or "supply_navax" not in state:
         return None
     started = int(np.asarray(earlier["continuation"]["started"]["stakes"], dtype=np.int64).sum())
-    forfeit = int(state["cycle_reward_navax"][earlier["renewal"]["missed"]].sum()) if "missed" in earlier["renewal"] else 0
-    return validator_pool(state, day, earlier) - started - forfeit
+    return validator_pool(state, day, earlier) - started
+
+
+def delegator_forfeit_navax(rules: HeliconRules, day: Day, state: Mapping[str, Any]) -> int:
+    """The rewards of the delegations ending today on a validator whose period missed its uptime, by the same keyed
+    draw the validator's own end reads (``period_missed``), whether or not that validator's period ends today."""
+    if not rules.uptime_miss_increase or "delegation_days_left" not in state:
+        return 0
+    from avalanche_research.model.parts.delegations import on_validators
+
+    ending = state["delegation_days_left"] - 1 <= 0
+    rows = on_validators(state["node_key"], state["delegation_validator"][ending])
+    on = np.flatnonzero(rows >= 0)
+    missed = np.zeros(len(rows), dtype=bool)
+    r = rows[on]
+    missed[on] = period_missed(rules, day, state["node_key"][r], state["done"][r], state["days"][r], state["days_left"][r])
+    return int(state["delegation_rewards"][ending][missed].sum())
 
 
 @dataclass(frozen=True)
@@ -165,7 +181,9 @@ class _Renewal(_Wrapped):
         decided = out["ending"] & ~state["handed_on"]
         renews = out["renews"].copy()
         renews[state["auto_renew"][decided]] = False
-        return {**out, "renews": renews, "continued": continued, "missed": missed}
+        # The day's whole forfeit, known before any stake is funded, so that both pools hold it back (RV-20261105-20 F1).
+        forfeit = int(state["cycle_reward_navax"][missed].sum()) + delegator_forfeit_navax(rules, day, state)
+        return {**out, "renews": renews, "continued": continued, "missed": missed, "forfeit_navax": forfeit}
 
 
 class _Continuation(_Wrapped):
@@ -232,27 +250,8 @@ class _Assembly(_Wrapped):
             **out, "stakes": stakes, "done": done,
             "auto_renew": np.concatenate([state["auto_renew"][keep], choose, np.zeros(n_due, dtype=bool)]),
             "cycle_reward_navax": np.concatenate([kept_rewards, each[:n_started], np.zeros(n_due, dtype=np.int64)]),
-            FORFEIT: int(state["cycle_reward_navax"][renewal["missed"]].sum()),
+            FORFEIT: reserved_navax(state, earlier),
             # A cycle end that continues is an ending renewed at once, as the record counts one.
             "ended_validators": out["ended_validators"] + n_cycled,
             "renewed_validators": out["renewed_validators"] + n_cycled,
         }
-
-
-class _Delegations(_Wrapped):
-    """The delegations stage, with the rewards of the delegations ending today on a validator whose period missed its
-    uptime added to the day's forfeit."""
-
-    def __call__(self, state: Mapping[str, Any], day: Day, earlier: Mapping[str, dict]) -> dict:
-        out = self.stage(state, day, earlier)
-        if not self.rules.uptime_miss_increase:
-            return out
-        from avalanche_research.model.parts.delegations import on_validators
-
-        ending = state["delegation_days_left"] - 1 <= 0
-        rows = on_validators(state["node_key"], state["delegation_validator"][ending])
-        on = np.flatnonzero(rows >= 0)
-        missed = np.zeros(len(rows), dtype=bool)
-        r = rows[on]
-        missed[on] = period_missed(self.rules, day, state["node_key"][r], state["done"][r], state["days"][r], state["days_left"][r])
-        return {**out, FORFEIT: out[FORFEIT] + int(state["delegation_rewards"][ending][missed].sum())}

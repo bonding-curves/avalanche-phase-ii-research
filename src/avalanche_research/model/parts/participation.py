@@ -76,17 +76,31 @@ def funded(stakes: np.ndarray, pool: int, minimum: int = MIN_STAKE_NAVAX) -> tup
     return out, made
 
 
+def reserved_navax(state: Mapping[str, Any], earlier: Mapping[str, dict]) -> int:
+    """The reward forfeited today, which leaves the supply at the end of the day and so funds no stake today. The
+    Helicon rules (parts.helicon) give the day's whole forfeit, validators' and delegators', as the renewal stage's
+    ``forfeit_navax``. A renewal signal with only the validators' ``missed`` gives their cycle rewards. 0 otherwise,
+    as in every run without the uptime rule."""
+    renewal = earlier.get("renewal", {})
+    if "forfeit_navax" in renewal:
+        return int(renewal["forfeit_navax"])
+    if "missed" in renewal and "cycle_reward_navax" in state:
+        return int(state["cycle_reward_navax"][renewal["missed"]].sum())
+    return 0
+
+
 def validator_pool(state: Mapping[str, Any], day, earlier: Mapping[str, dict]) -> int:
     """The AVAX the day's starting commitments can take: the supply less the commitments that continue, those
-    scheduled to start today, the delegated stake open at the start of the day and the delegations scheduled to start
-    today."""
+    scheduled to start today, the delegated stake open at the start of the day, the delegations scheduled to start
+    today and the reward forfeited today (``reserved_navax``)."""
     keep = ~earlier["renewal"]["ending"]
     sched = day.settings.scheduled
     due = sched["start_day"] == day.t + 1
     delegated = int(state["active_delegated_stake_navax"]) if "active_delegated_stake_navax" in state else 0
     if "scheduled_stakes" in state:
         delegated += int(state["scheduled_stakes"][state["scheduled_start_day"] == day.t + 1].sum())
-    return int(state["supply_navax"]) - int(state["stakes"][keep].sum()) - int(sched["stakes"][due].sum()) - delegated
+    return (int(state["supply_navax"]) - int(state["stakes"][keep].sum()) - int(sched["stakes"][due].sum()) - delegated
+            - reserved_navax(state, earlier))
 
 
 def cap_started(state: Mapping[str, Any], day, earlier: Mapping[str, dict], started: dict, n_renewed: int, n_back: int) -> dict:
@@ -108,10 +122,12 @@ def cap_started(state: Mapping[str, Any], day, earlier: Mapping[str, dict], star
     return {"started": kept, "renews": renews, "comes_back": comes_back}
 
 
-def delegation_pool(state: Mapping[str, Any], validators: Mapping[str, Any], open_navax: int) -> int:
-    """The AVAX the day's new delegations can take: the supply after the day's validator rewards, less the next
-    state's validator stake and the delegated stake already open or starting today."""
-    return int(state["supply_navax"]) + int(validators["issued_navax"]) - int(validators["stakes"].sum()) - int(open_navax)
+def delegation_pool(state: Mapping[str, Any], validators: Mapping[str, Any], open_navax: int, reserved: int = 0) -> int:
+    """The AVAX the day's new delegations can take: the supply after the day's validator rewards and less the reward
+    ``reserved`` as forfeited today, less the next state's validator stake and the delegated stake already open or
+    starting today."""
+    return (int(state["supply_navax"]) + int(validators["issued_navax"]) - int(reserved) - int(validators["stakes"].sum())
+            - int(open_navax))
 
 
 def within_pool(order: np.ndarray, stakes: np.ndarray, pool: int) -> np.ndarray:
